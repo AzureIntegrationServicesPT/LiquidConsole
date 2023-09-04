@@ -1,0 +1,88 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Failure_Response": {
+        "inputs": {
+          "body": {},
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "statusCode": "@outputs('Get_Value_from_KeyVault')?['statusCode']"
+        },
+        "kind": "Http",
+        "runAfter": {
+          "Scope_Get_Configuration": [
+            "Failed",
+            "Skipped",
+            "TimedOut"
+          ]
+        },
+        "type": "Response"
+      },
+      "Scope_Get_Configuration": {
+        "actions": {
+          "Get_Value_from_KeyVault": {
+            "inputs": {
+              "authentication": {
+                "audience": "https://vault.azure.net",
+                "type": "ManagedServiceIdentity"
+              },
+              "method": "GET",
+              "queries": {
+                "api-version": "2016-10-01"
+              },
+              "uri": "@{parameter('baseUrl_kv')}/@{coalesce(triggerBody()?['key'])}"
+            },
+            "runAfter": {},
+            "type": "Http"
+          }
+        },
+        "runAfter": {},
+        "trackedProperties": "@{json(string(triggerBody()?['trackedProperties']))}",
+        "type": "Scope"
+      },
+      "Success_Response": {
+        "inputs": {
+          "body": "@body('Get_Value_from_KeyVault')?['value']",
+          "statusCode": 200
+        },
+        "kind": "Http",
+        "runAfter": {
+          "Scope_Get_Configuration": [
+            "Succeeded"
+          ]
+        },
+        "type": "Response"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {
+          "schema": {
+            "properties": {
+              "key": {
+                "description": "Configuration item to fetch from configuration store.",
+                "type": "string"
+              },
+              "trackedProperties": {
+                "description": "tracked properties (json structure) from the parent integration.",
+                "properties": {},
+                "type": "object"
+              }
+            },
+            "required": [
+              "key"
+            ],
+            "type": "object"
+          }
+        },
+        "kind": "Http",
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

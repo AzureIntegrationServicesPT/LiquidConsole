@@ -14,6 +14,8 @@
 			{{each.Key | json}}:{% include_local "Function" content: each.Value %}
 		{% when "Workflow" %}
 				{{each.Key | json}}:{% include_local "Workflow" content: each.Value %}
+		{% when "ApiConnection"%}
+				{{each.Key | json}}:{%include_local "ApiConnection" content: each.Value %}
 		{%else%}
 		{{each.Key | json}}:{{each.Value | json}}
 		{%endcase%}

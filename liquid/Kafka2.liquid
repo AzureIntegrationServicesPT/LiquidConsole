@@ -100,8 +100,11 @@ record.PartnerAccount.S4SEmail__c
     }
 }
 {%endcapturejson%}
-{%assign final = payload | kafka_producer %}
+{%assign final = payload | json | json_to_avro %}
+{% comment %} {% assign final2 = payload | avro %} {% endcomment %}
 {
-    "KafkaResult": {{final | json}},
+    "JsonToAvroTestwithJson": {{final | json}},
+    "JsonToAvro":"{{final}}",
+    {% comment %} "AvroTestwithJson": {{final2 | json }}, {% endcomment %}
     "payload": {{payload | json}}
 }

@@ -1,0 +1,281 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "IFA_check": {
+        "actions": {
+          "AccountID_from_IFA": {
+            "actions": {
+              "Set_accountIdResponse_success": {
+                "inputs": {
+                  "name": "accountIdResponse",
+                  "value": {
+                    "Id": "@{body('Get_Account_ID_with_IFA')?['value']?[0]?['Id']}",
+                    "S4SIdentification_Number__c": "@{triggerBody()?['S4SIdentification_Number__c']}",
+                    "S4SIfA__c": "@{triggerBody()?['S4SIfA__c']}",
+                    "message": "@{coalesce(body('Get_Account_ID_with_IFA')?['message'],'')}",
+                    "status": "@{if(equals(length(body('Get_Account_ID_with_IFA')?['value']),0),'failure','success')}"
+                  }
+                },
+                "runAfter": {},
+                "type": "SetVariable"
+              }
+            },
+            "else": {
+              "actions": {
+                "Set_accountIdResponse_failure": {
+                  "inputs": {
+                    "name": "accountIdResponse",
+                    "value": {
+                      "Id": "",
+                      "S4SIdentification_Number__c": "",
+                      "S4SIfA__c": "@{triggerBody()?['S4SIfA__c']}",
+                      "message": "Provided IFA could not be found in SieSales",
+                      "status": "@{if(equals(length(body('Get_Account_ID_with_IFA')?['value']),0),'failure','success')}"
+                    }
+                  },
+                  "runAfter": {},
+                  "type": "SetVariable"
+                }
+              }
+            },
+            "expression": {
+              "and": [
+                {
+                  "greater": [
+                    "@length(coalesce(body('Get_Account_ID_with_IFA')?['value'],''))",
+                    0
+                  ]
+                }
+              ]
+            },
+            "runAfter": {
+              "Get_Account_ID_with_IFA": [
+                "Succeeded"
+              ]
+            },
+            "type": "If"
+          },
+          "Get_Account_ID_with_IFA": {
+            "inputs": {
+              "queries": {
+                "$filter": "S4SIfA__c eq '@{triggerBody()?['S4SIfA__c']}'",
+                "$select": "Id"
+              },
+              "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Account'))}/items",
+              "host": {
+                "referenceName": "salesForceConnection"
+              },
+              "method": "get"
+            },
+            "runAfter": {},
+            "type": "ApiConnection"
+          }
+        },
+        "else": {
+          "actions": {
+            "Identification_Number_check": {
+              "actions": {
+                "Condition": {
+                  "actions": {
+                    "Set_accountIdResponse_Identification": {
+                      "inputs": {
+                        "name": "accountIdResponse",
+                        "value": {
+                          "Id": "@{body('Get_Account_ID_with_Identification_Numbers')?['value']?[0]?['S4SAccount__c']}",
+                          "S4SIdentification_Number__c": "@{triggerBody()?['S4SIdentification_Number__c']}",
+                          "S4SIfA__c": "@{triggerBody()?['S4SIfA__c']}",
+                          "message": "@{coalesce(body('Get_Account_ID_with_Identification_Numbers')?['message'],'')}",
+                          "status": "@{if(equals(length(body('Get_Account_ID_with_Identification_Numbers')?['value']),0),'failure','success')}"
+                        }
+                      },
+                      "runAfter": {},
+                      "type": "SetVariable"
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Set_accountIdResponse_Identification_failure": {
+                        "inputs": {
+                          "name": "accountIdResponse",
+                          "value": {
+                            "Id": "",
+                            "S4SIdentification_Number__c": "@{triggerBody()?['S4SIdentification_Number__c']}",
+                            "S4SIfA__c": "",
+                            "message": "Provided Identification number could not be found in SieSales",
+                            "status": "@{if(equals(length(body('Get_Account_ID_with_Identification_Numbers')?['value']),0),'failure','success')}"
+                          }
+                        },
+                        "runAfter": {},
+                        "type": "SetVariable"
+                      }
+                    }
+                  },
+                  "expression": {
+                    "and": [
+                      {
+                        "greater": [
+                          "@length(coalesce(body('Get_Account_ID_with_Identification_Numbers')?['value'],''))",
+                          0
+                        ]
+                      }
+                    ]
+                  },
+                  "runAfter": {
+                    "Get_Account_ID_with_Identification_Numbers": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "If"
+                },
+                "Get_Account_ID_with_Identification_Numbers": {
+                  "inputs": {
+                    "host": {
+                      "connection": {
+                        "name": "@parameters('$connections')['salesForceConnectionConnection']['connectionId']"
+                      }
+                    },
+                    "method": "get",
+                    "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SIdentification_Number__c'))}/items",
+                    "queries": {
+                      "$filter": "S4SIdentification_Number__c eq '@{triggerBody()?['S4SIdentification_Number__c']}'",
+                      "$select": "S4SAccount__c"
+                    }
+                  },
+                  "runAfter": {},
+                  "type": "ApiConnection"
+                }
+              },
+              "else": {
+                "actions": {
+                  "ID_,_Identification_Number_doesnt_exists": {
+                    "inputs": {
+                      "name": "accountIdResponse",
+                      "value": {
+                        "Id": "",
+                        "S4SIdentification_Number__c": "@{triggerBody()?['S4SIdentification_Number__c']}",
+                        "S4SIfA__c": "@{triggerBody()?['S4SIfA__c']}",
+                        "message": "Please pass either IFA/ Identification Number",
+                        "status": "failure"
+                      }
+                    },
+                    "runAfter": {},
+                    "type": "SetVariable"
+                  }
+                }
+              },
+              "expression": {
+                "and": [
+                  {
+                    "not": {
+                      "equals": [
+                        "@triggerBody()?['S4SIdentification_Number__c']",
+                        "@null"
+                      ]
+                    }
+                  },
+                  {
+                    "not": {
+                      "equals": [
+                        "@triggerBody()?['S4SIdentification_Number__c']",
+                        "@string('')"
+                      ]
+                    }
+                  },
+                  {
+                    "equals": [
+                      "",
+                      ""
+                    ]
+                  }
+                ]
+              },
+              "runAfter": {},
+              "type": "If"
+            }
+          }
+        },
+        "expression": {
+          "and": [
+            {
+              "not": {
+                "equals": [
+                  "@triggerBody()?['S4SIfA__c']",
+                  "@null"
+                ]
+              }
+            },
+            {
+              "not": {
+                "equals": [
+                  "@triggerBody()?['S4SIfA__c']",
+                  "@string('')"
+                ]
+              }
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_variable": [
+            "Succeeded"
+          ]
+        },
+        "type": "If"
+      },
+      "Initialize_variable": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "accountIdResponse",
+              "type": "object",
+              "value": {
+                "Id": "",
+                "S4SIdentification_Number__c": "",
+                "S4SIfA__c": "",
+                "message": "",
+                "status": ""
+              }
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Response": {
+        "inputs": {
+          "body": "@variables('accountIdResponse')",
+          "statusCode": 200
+        },
+        "kind": "Http",
+        "runAfter": {
+          "IFA_check": [
+            "Succeeded"
+          ]
+        },
+        "type": "Response"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {
+          "schema": {
+            "properties": {
+              "S4SIdentification_Number__c": {
+                "type": "string"
+              },
+              "S4SIfA__c": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "kind": "Http",
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}
