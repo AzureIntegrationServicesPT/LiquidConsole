@@ -1,0 +1,27 @@
+{% capturejson func %}
+{
+    "cases":{
+        {%for case in content.cases %}
+        {%capturejson iter %}
+            { 
+            {% include_local "ActionIterator" content: case.Value.actions %}
+            }
+            {%endcapturejson %}
+            {%assign action = case.Value | add_property:"actions",iter%}
+            {{case.Key | json}}:{{action | json}},
+        {%endfor%}
+    },
+        {%capturejson iter %}
+        { 
+        {% include_local "ActionIterator" content: content.default.actions %}
+        }
+        {%endcapturejson %}
+        {%assign action = content.default | add_property:"actions",iter%}
+        
+    {{"default" | json}}:{{action | json}},
+    "runAfter": {{content.runAfter | json}},
+    "expression":{{content.expression | json}},
+    "type": "Switch"
+}
+{%endcapturejson %}
+{{func | json}}

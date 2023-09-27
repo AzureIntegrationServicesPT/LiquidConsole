@@ -48,6 +48,9 @@ for input_file in "$input_folder"/*.json; do
         # Run the dotnet command for each file
         dotnet run "$input_file" "$liquid_script" "$temp_output_file"
         cat "$temp_output_file" | jq > "$output_file"
+        sed 's/\${\(.*\)}/parameters('\''\1'\'')/g; t; d' $output_file
+        sed -i 's/\${\(.*\)}/parameters('\''\1'\'')/g' $output_file
+
 
         # Print a message indicating completion
         echo "Processed $input_file => $output_file"

@@ -3,7 +3,9 @@
     "inputs": {
         "host": {
             "workflow": {
-                "id": "REPLACE"
+                {%assign id = content.inputs.host.workflow.id | remove: "${"| split: "_" %}
+                {%capture final%}{{id[0]}}_{{id[1]}}{%endcapture%}
+                "id": {{final | downcase | json}}
             }
         },
         "body": {{content.inputs.body | json}},

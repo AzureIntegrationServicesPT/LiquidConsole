@@ -1,0 +1,120 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "For_each": {
+        "actions": {
+          "Delete_record": {
+            "inputs": {
+              "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('EventRelation'))}/items/@{encodeURIComponent(encodeURIComponent(items('For_each')?['Id']))}",
+              "host": {
+                "referenceName": "salesForceConnection"
+              },
+              "method": "delete"
+            },
+            "runAfter": {},
+            "type": "ApiConnection"
+          },
+          "Set_variable": {
+            "inputs": {
+              "name": "deleteDataResponse",
+              "value": {
+                "EventContactRelation": {
+                  "Id": "",
+                  "Message": "@{coalesce(body('Delete_record')?['message'],'')}",
+                  "Status": "@{if(equals(length(body('Delete_record')?['value']),0),'failure','success')}"
+                }
+              }
+            },
+            "runAfter": {
+              "Delete_record": [
+                "Succeeded"
+              ]
+            },
+            "type": "SetVariable"
+          }
+        },
+        "foreach": "@body('Get_records')?['value']",
+        "runAfter": {
+          "Get_records": [
+            "Succeeded"
+          ]
+        },
+        "type": "Foreach"
+      },
+      "Get_records": {
+        "inputs": {
+          "queries": {
+            "$filter": "EventId eq '@{triggerBody()?['EventId']}'",
+            "$select": "Id"
+          },
+          "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('EventRelation'))}/items",
+          "host": {
+            "referenceName": "salesForceConnection"
+          },
+          "method": "get"
+        },
+        "runAfter": {
+          "Initialize_variable": [
+            "Succeeded"
+          ]
+        },
+        "type": "ApiConnection"
+      },
+      "Initialize_variable": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "deleteDataResponse",
+              "type": "object",
+              "value": {
+                "EventContactRelation": [
+                  {
+                    "Created": "",
+                    "Id": "",
+                    "Message": "",
+                    "Status": ""
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Response": {
+        "inputs": {
+          "body": "@variables('deleteDataResponse')",
+          "statusCode": 200
+        },
+        "kind": "Http",
+        "runAfter": {
+          "For_each": [
+            "Succeeded"
+          ]
+        },
+        "type": "Response"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {
+          "schema": {
+            "properties": {
+              "EventId": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "kind": "Http",
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

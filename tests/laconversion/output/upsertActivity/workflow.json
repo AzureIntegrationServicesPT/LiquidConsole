@@ -1,0 +1,397 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Catch": {
+        "actions": {
+          "Response": {
+            "runAfter": {},
+            "type": "Response",
+            "kind": "Http",
+            "inputs": {
+              "body": "@if(contains(triggerOutputs()?['headers']?['Content-Type'],'application/json'),json(variables('Initialize upsertEventDetailsResponse'))?['Response']?['Envelope']?['Body']?['ActivitiesResponse'],variables('Initialize upsertEventDetailsResponse'))",
+              "headers": {
+                "Content-Type": "@{if(contains(triggerOutputs()?['headers']?['Content-Type'],'application/json'),'application/json','application/xml')}"
+              },
+              "statusCode": 500
+            }
+          },
+          "Terminate": {
+            "runAfter": {
+              "Response": [
+                "Succeeded"
+              ]
+            },
+            "type": "Terminate",
+            "inputs": {
+              "runError": {
+                "code": "500",
+                "message": "catch block"
+              },
+              "runStatus": "Failed"
+            }
+          }
+        },
+        "runAfter": {
+          "Try": [
+            "Failed",
+            "TimedOut"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Initialize_ContactResponse": {
+        "runAfter": {
+          "Initialize_Request": [
+            "Succeeded"
+          ]
+        },
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ContactResponse",
+              "type": "array"
+            }
+          ]
+        }
+      },
+      "Initialize_Object_Response": {
+        "runAfter": {
+          "Initialize_upsertEventDetailsResponse": [
+            "Succeeded"
+          ]
+        },
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ObjectResponse",
+              "type": "array"
+            }
+          ]
+        }
+      },
+      "Initialize_Request": {
+        "runAfter": {
+          "Initialize_Object_Response": [
+            "Succeeded"
+          ]
+        },
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "Request",
+              "type": "object",
+              "value": {}
+            }
+          ]
+        }
+      },
+      "Initialize_upsertEventDetailsResponse": {
+        "runAfter": {},
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "Initialize upsertEventDetailsResponse",
+              "type": "string",
+              "value": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Envelope>\n    <Body>\n        <ActivitiesResponse>\n            <Events>\n                <Created>false</Created>\n                <Id/>\n                <Message>Generic Error in the Logic App</Message>\n                <Status>failure</Status>\n            </Events>\n            <Tasks>\n                <Created>false</Created>\n                <Id/>\n                <Message>Generic Error in the Logic App</Message>\n                <Status>failure</Status>\n            </Tasks>\n        </ActivitiesResponse>\n    </Body>\n</Envelope>"
+            }
+          ]
+        }
+      },
+      "Try": {
+        "actions": {
+          "For_each_Relation": {
+            "foreach": "@body('Transform_Upsert_Responses_to_Upsert_Relations')?['Relation']",
+            "actions": {
+              "upsertObject_-_Event_or_Task_Relation": {
+                "inputs": {
+                  "host": {
+                    "workflow": {
+                      "id": "int_upsertobject"
+                    }
+                  },
+                  "body": {
+                    "Object": {
+                      "EventId": "@items('For_each_Relation')?['EventId']",
+                      "RelationId": "@items('For_each_Relation')?['RelationId']",
+                      "isInvitee": true
+                    }
+                  },
+                  "headers": {
+                    "Object": "EventRelation"
+                  }
+                },
+                "runAfter": {},
+                "type": "Workflow"
+              }
+            },
+            "runAfter": {
+              "Transform_Upsert_Responses_to_Upsert_Relations": [
+                "Succeeded"
+              ]
+            },
+            "type": "Foreach"
+          },
+          "Loop_over_Upsert": {
+            "foreach": "@ body('Transform_JSON_Payload_into_Generic_Object')?['Objects']",
+            "actions": {
+              "Condition_delete_Contacts": {
+                "actions": {
+                  "logic-c00031-int_deleteData": {
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "int_deleteeventrelation"
+                        }
+                      },
+                      "body": {
+                        "EventId": "@{items('Loop_Over_Upsert')?['Information']?['Id']}"
+                      },
+                      "headers": null
+                    },
+                    "runAfter": {},
+                    "type": "Workflow"
+                  }
+                },
+                "runAfter": {
+                  "Current_Item": [
+                    "Succeeded"
+                  ]
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "not": {
+                        "equals": [
+                          "@items('Loop_over_Upsert')?['Information']?['deleteContacts']",
+                          "@null"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "type": "If",
+                "else": null
+              },
+              "Current_Item": {
+                "runAfter": {},
+                "type": "Compose",
+                "inputs": "@items('Loop_Over_Upsert')?['Information']"
+              },
+              "Success_getting_UserID": {
+                "actions": {
+                  "Append_to_ContactResponse": {
+                    "runAfter": {},
+                    "type": "AppendToArrayVariable",
+                    "inputs": {
+                      "name": "ContactResponse",
+                      "value": {
+                        "Created": "false",
+                        "Id": "@{items('Loop_over_Upsert')?['Information']?['Id']}",
+                        "Message": "Provided User Information could not be found in SieSales",
+                        "Status": "false"
+                      }
+                    }
+                  }
+                },
+                "runAfter": {},
+                "else": {
+                  "actions": {
+                    "Which_Type": {
+                      "actions": {
+                        "Append_to_ContactResponse": {
+                          "runAfter": {},
+                          "type": "AppendToArrayVariable",
+                          "inputs": {
+                            "name": "ContactResponse",
+                            "value": {
+                              "Created": "false",
+                              "Id": "@{items('Loop_over_Upsert')?['Information']?['Id']}",
+                              "Message": "Provided User Information could not be found in SieSales",
+                              "Status": "false"
+                            }
+                          }
+                        }
+                      },
+                      "runAfter": {},
+                      "else": {
+                        "actions": {
+                          "Append_to_ObjectResponse": {
+                            "runAfter": {},
+                            "type": "AppendToArrayVariable",
+                            "inputs": {
+                              "name": "ObjectResponse",
+                              "value": {
+                                "Response": {
+                                  "Created": "false",
+                                  "Id": "@{items('Loop_over_Upsert')?['Information']?['Id']}",
+                                  "Message": "Provided User Information could not be found in SieSales",
+                                  "Status": "failure"
+                                },
+                                "Type": "@{items('Loop_over_Upsert')?['Type']}s"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "expression": {
+                        "and": [
+                          {
+                            "equals": [
+                              "@items('Loop_over_Upsert')?['Type']",
+                              "Contact"
+                            ]
+                          }
+                        ]
+                      },
+                      "type": "If"
+                    }
+                  }
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "equals": [
+                        "@items('Loop_over_Upsert')?['Type']",
+                        "Contact"
+                      ]
+                    }
+                  ]
+                },
+                "type": "If"
+              },
+              "getUserId": {
+                "inputs": {
+                  "host": {
+                    "workflow": {
+                      "id": "int_getuserid"
+                    }
+                  },
+                  "body": {
+                    "Email": "@{items('Loop_Over_Upsert')?['Information']?['Email']}",
+                    "Id": "@{items('Loop_Over_Upsert')?['Information']?['Owner']?['Id']}",
+                    "S4SGID_Technical__c": "@{if(equals(items('Loop_Over_Upsert')?['Type'],'Contact'),items('Loop_Over_Upsert')?['Information']?['Owner']?['S4SGID_Technical__c'],items('Loop_Over_Upsert')?['Information']?['Owner']?['GIDTechnical'])}"
+                  },
+                  "headers": null
+                },
+                "runAfter": {
+                  "Current_Item": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Workflow"
+              }
+            },
+            "runAfter": {
+              "Transform_JSON_Payload_into_Generic_Object": [
+                "Succeeded"
+              ]
+            },
+            "type": "Foreach",
+            "runtimeConfiguration": {
+              "concurrency": {
+                "repetitions": 50
+              }
+            }
+          },
+          "Response_upsertEvents": {
+            "runAfter": {
+              "For_each_Relation": [
+                "Succeeded"
+              ]
+            },
+            "type": "Response",
+            "kind": "Http",
+            "inputs": {
+              "body": "@if(contains(triggerOutputs()?['headers']?['Content-Type'],'application/json'),body('Transform_Upsert_Responses_to_Upsert_Relations')?['Response']?['Envelope']?['Body']?['ActivitiesResponse'],concat('<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n',xml(body('Transform_Upsert_Responses_to_Upsert_Relations')?['Response'])))",
+              "headers": {
+                "Content-Type": "@{if(contains(triggerOutputs()?['headers']?['Content-Type'],'application/json'),'application/json','application/xml')}"
+              },
+              "statusCode": 200
+            }
+          },
+          "Transform_JSON_Payload_into_Generic_Object": {
+            "inputs": {
+              "body": "@if(contains(triggerOutputs()?['headers']?['Content-Type'],'application/json'),triggerBody(),body('Transform_XML_to_JSON'))",
+              "function": {
+                "connectionName": "Liquid"
+              },
+              "headers": {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "Filename": "parameters('liquid_UpsertActivity')"
+              },
+              "method": "POST"
+            },
+            "runAfter": {
+              "Transform_XML_to_JSON": [
+                "Succeeded",
+                "Failed"
+              ]
+            },
+            "type": "Function"
+          },
+          "Transform_Upsert_Responses_to_Upsert_Relations": {
+            "inputs": {
+              "body": {
+                "Contact": "@variables('ContactResponse')",
+                "Object": "@variables('ObjectResponse')"
+              },
+              "function": {
+                "connectionName": "Liquid"
+              },
+              "headers": {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "Filename": "parameters('liquid_Upsert_Relations')"
+              },
+              "method": "POST"
+            },
+            "runAfter": {
+              "Loop_over_Upsert": [
+                "Succeeded"
+              ]
+            },
+            "type": "Function"
+          },
+          "Transform_XML_to_JSON": {
+            "inputs": {
+              "body": "@triggerBody()",
+              "function": {
+                "connectionName": "Liquid"
+              },
+              "headers": {
+                "Accept": "application/json",
+                "Content-Type": "application/xml",
+                "Filename": "parameters('liquid_XML_to_JSON')"
+              },
+              "method": "POST"
+            },
+            "runAfter": {},
+            "type": "Function"
+          }
+        },
+        "runAfter": {
+          "Initialize_ContactResponse": [
+            "Succeeded"
+          ]
+        },
+        "type": "Scope"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "type": "Request",
+        "kind": "Http",
+        "inputs": {}
+      }
+    }
+  },
+  "kind": "Stateful"
+}

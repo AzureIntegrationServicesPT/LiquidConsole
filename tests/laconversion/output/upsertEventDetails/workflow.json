@@ -1,0 +1,722 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Initialize_EachUpsertEvent": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "eachUpsertEvent",
+              "type": "object"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_contactResponse": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "contactResponse",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_upsertEventDetailsResponse": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "Initialize upsertEventDetailsResponse",
+              "type": "object",
+              "value": {
+                "Events": [
+                  {
+                    "Contacts": [
+                      {
+                        "Created": "",
+                        "Email": "",
+                        "Id": "",
+                        "Message": "",
+                        "Status": ""
+                      }
+                    ],
+                    "Created": "",
+                    "Id": "",
+                    "Message": "",
+                    "Status": ""
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Main": {
+        "actions": {
+          "Catch": {
+            "actions": {
+              "Response": {
+                "inputs": {
+                  "body": "@variables('Initialize upsertEventDetailsResponse')",
+                  "statusCode": 200
+                },
+                "kind": "Http",
+                "runAfter": {
+                  "Terminate": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Response"
+              },
+              "Terminate": {
+                "inputs": {
+                  "runError": {
+                    "message": "catch block"
+                  },
+                  "runStatus": "Failed"
+                },
+                "runAfter": {},
+                "type": "Terminate"
+              }
+            },
+            "runAfter": {
+              "Try": [
+                "TimedOut",
+                "Skipped",
+                "Failed"
+              ]
+            },
+            "type": "Scope"
+          },
+          "Try": {
+            "actions": {
+              "Loop_over_Upsert_Event": {
+                "actions": {
+                  "Condition": {
+                    "actions": {
+                      "Call_Int_upsertEvent": {
+                        "inputs": {
+                          "host": {
+                            "workflow": {
+                              "id": "int_upsertevent"
+                            }
+                          },
+                          "body": {
+                            "Event": {
+                              "ActivityDate": "@{items('Loop_over_Upsert_Event')?['ActivityDate']}",
+                              "ActivityDateTime": "@{items('Loop_over_Upsert_Event')?['ActivityDateTime']}",
+                              "CurrencyIsoCode": "@{items('Loop_over_Upsert_Event')?['CurrencyIsoCode']}",
+                              "Description": "@{items('Loop_over_Upsert_Event')?['Description']}",
+                              "DurationInMinutes": "@{items('Loop_over_Upsert_Event')?['DurationInMinutes']}",
+                              "Email": "@{items('Loop_over_Upsert_Event')?['Email']}",
+                              "EndDateTime": "@{items('Loop_over_Upsert_Event')?['EndDateTime']}",
+                              "EventSubtype": "@{items('Loop_over_Upsert_Event')?['EventSubtype']}",
+                              "Id": "@{items('Loop_over_Upsert_Event')?['Id']}",
+                              "IsAllDayEvent": "@{items('Loop_over_Upsert_Event')?['IsAllDayEvent']}",
+                              "IsPrivate": "@{items('Loop_over_Upsert_Event')?['IsPrivate']}",
+                              "IsRecurrence2": "@{items('Loop_over_Upsert_Event')?['IsRecurrence2']}",
+                              "IsReminderSet": "@{items('Loop_over_Upsert_Event')?['IsReminderSet']}",
+                              "IsVisibleInSelfService": "@{items('Loop_over_Upsert_Event')?['IsVisibleInSelfService']}",
+                              "Location": "@{items('Loop_over_Upsert_Event')?['Location']}",
+                              "OwnerId": "@{body('int_getUserId')?['Id']} ",
+                              "Phone": "@{items('Loop_over_Upsert_Event')?['Phone']}",
+                              "ShowAs": "@{items('Loop_over_Upsert_Event')?['ShowAs']}",
+                              "StartDateTime": "@{items('Loop_over_Upsert_Event')?['StartDateTime']}",
+                              "Subject": "@{items('Loop_over_Upsert_Event')?['Subject']}",
+                              "Type": "@{items('Loop_over_Upsert_Event')?['Type']}",
+                              "WhatId": "@{coalesce(items('Loop_over_Upsert_Event')?['WhatId'])}",
+                              "WhoId": "@{coalesce(body('int_getContactId')?['Id'])}",
+                              "S4STraining_Topic__c": "@{items('Loop_over_Upsert_Event')?['S4STraining_Topic__c']}",
+                              "S4SNumber_of_Participants__c": "@{items('Loop_over_Upsert_Event')?['S4SNumber_of_Participants__c']}",
+                              "S4SStatus__c": "@{items('Loop_over_Upsert_Event')?['S4SStatus__c']}",
+                              "S4SOther_Topics__c": "@{items('Loop_over_Upsert_Event')?['S4SOther_Topics__c']}"
+                            }
+                          },
+                          "headers": null
+                        },
+                        "runAfter": {},
+                        "type": "Workflow"
+                      }
+                    },
+                    "expression": {
+                      "and": [
+                        {
+                          "equals": [
+                            "@body('int_getUserId')?['status']",
+                            "success"
+                          ]
+                        }
+                      ]
+                    },
+                    "runAfter": {
+                      "int_getContactId": [
+                        "Succeeded"
+                      ],
+                      "int_getUserId": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "If",
+                    "else": null
+                  },
+                  "Condition_delete_Contacts": {
+                    "actions": {
+                      "logic-c00031-int_deleteData": {
+                        "inputs": {
+                          "host": {
+                            "workflow": {
+                              "id": "int_deleteeventrelation"
+                            }
+                          },
+                          "body": {
+                            "EventId": "@items('Loop_over_Upsert_Event')?['Id']"
+                          },
+                          "headers": null
+                        },
+                        "runAfter": {},
+                        "type": "Workflow"
+                      }
+                    },
+                    "expression": {
+                      "and": [
+                        {
+                          "not": {
+                            "equals": [
+                              "@items('Loop_over_Upsert_Event')?['deleteContacts']",
+                              "@null"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "runAfter": {
+                      "Place_holder_for_parallel_processing": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "If",
+                    "else": null
+                  },
+                  "For_each_ContactResponse": {
+                    "actions": {
+                      "Check_Contact_Id_before_insertion": {
+                        "actions": {
+                          "logic-c00031-int_upsertEventRelation": {
+                            "inputs": {
+                              "host": {
+                                "workflow": {
+                                  "id": "int_upserteventrelation"
+                                }
+                              },
+                              "body": {
+                                "EventId": "@{body('Call_Int_upsertEvent')?['Id']}",
+                                "RelationId": "@{items('For_each_ContactResponse')?['Id']}",
+                                "isInvitee": "true"
+                              },
+                              "headers": null
+                            },
+                            "runAfter": {},
+                            "type": "Workflow"
+                          }
+                        },
+                        "expression": {
+                          "and": [
+                            {
+                              "and": [
+                                {
+                                  "not": {
+                                    "equals": [
+                                      "@variables('eachUpsertEvent')?['Id']",
+                                      "@null"
+                                    ]
+                                  }
+                                },
+                                {
+                                  "not": {
+                                    "equals": [
+                                      "@variables('eachUpsertEvent')?['Id']",
+                                      "@string('')"
+                                    ]
+                                  }
+                                }
+                              ]
+                            },
+                            {
+                              "and": [
+                                {
+                                  "not": {
+                                    "equals": [
+                                      "@items('For_each_ContactResponse')?['Id']",
+                                      "@null"
+                                    ]
+                                  }
+                                },
+                                {
+                                  "not": {
+                                    "equals": [
+                                      "@items('For_each_ContactResponse')?['Id']",
+                                      "@string('')"
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        "runAfter": {},
+                        "type": "If",
+                        "else": null
+                      }
+                    },
+                    "foreach": "@variables('contactResponse')",
+                    "runAfter": {
+                      "Condition": [
+                        "Succeeded"
+                      ],
+                      "Condition_delete_Contacts": [
+                        "Succeeded"
+                      ],
+                      "Loop_over_Upsert_Contact": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Foreach"
+                  },
+                  "Loop_over_Upsert_Contact": {
+                    "actions": {
+                      "Condition_Account_and_User_exist": {
+                        "actions": {
+                          "Append_to_array_ContactResponse": {
+                            "inputs": {
+                              "name": "contactResponse",
+                              "value": "@body('logic-c00031-int_upsertContact')"
+                            },
+                            "runAfter": {
+                              "logic-c00031-int_upsertContact": [
+                                "Succeeded"
+                              ]
+                            },
+                            "type": "AppendToArrayVariable"
+                          },
+                          "logic-c00031-int_upsertContact": {
+                            "inputs": {
+                              "host": {
+                                "workflow": {
+                                  "id": "int_upsertcontact"
+                                }
+                              },
+                              "body": {
+                                "Contact": {
+                                  "AccountId": "@{body('int_getAccountId')?['Id']}",
+                                  "AssistantName": "@items('Loop_over_Upsert_Contact')?['AssistantName']",
+                                  "AssistantPhone": "@items('Loop_over_Upsert_Contact')?['AssistantPhone']",
+                                  "Birthdate": "@items('Loop_over_Upsert_Contact')?['Birthdate']",
+                                  "CurrencyIsoCode": "@items('Loop_over_Upsert_Contact')?['CurrencyIsoCode']",
+                                  "DPML__Employee_Number__c": "@items('Loop_over_Upsert_Contact')?['DPML__Employee_Number__c']",
+                                  "Department": "@items('Loop_over_Upsert_Contact')?['Department']",
+                                  "Description": "@items('Loop_over_Upsert_Contact')?['Description']",
+                                  "DoNotCall": "@items('Loop_over_Upsert_Contact')?['DoNotCall']",
+                                  "Email": "@items('Loop_over_Upsert_Contact')?['Email']",
+                                  "Fax": "@items('Loop_over_Upsert_Contact')?['Fax']",
+                                  "FirstName": "@{items('Loop_over_Upsert_Contact')?['FirstName']}",
+                                  "HasOptedOutOfEmail": "@items('Loop_over_Upsert_Contact')?['HasOptedOutOfEmail']",
+                                  "HasOptedOutOfFax": "@items('Loop_over_Upsert_Contact')?['HasOptedOutOfFax']",
+                                  "HomePhone": "@items('Loop_over_Upsert_Contact')?['HomePhone']",
+                                  "Id": "@{items('Loop_over_Upsert_Contact')?['Id']}",
+                                  "IndividualId": "@items('Loop_over_Upsert_Contact')?['IndividualId']",
+                                  "Jigsaw": "@items('Loop_over_Upsert_Contact')?['Jigsaw']",
+                                  "LID__LinkedIn_Company_Id__c": "@items('Loop_over_Upsert_Contact')?['LID__LinkedIn_Company_Id__c']",
+                                  "LID__LinkedIn_Member_Token__c": "@items('Loop_over_Upsert_Contact')?['LID__LinkedIn_Member_Token__c']",
+                                  "LastName": "@items('Loop_over_Upsert_Contact')?['LastName']",
+                                  "LeadSource": "@items('Loop_over_Upsert_Contact')?['LeadSource']",
+                                  "MobilePhone": "@items('Loop_over_Upsert_Contact')?['MobilePhone']",
+                                  "OtherPhone": "@items('Loop_over_Upsert_Contact')?['OtherPhone']",
+                                  "OwnerId": "@{body('int_getUserId_for_Contact')?['Id']}",
+                                  "Phone": "@items('Loop_over_Upsert_Contact')?['Phone']",
+                                  "RecordTypeId": "@items('Loop_over_Upsert_Contact')?['RecordTypeId']",
+                                  "ReportsToId": "@items('Loop_over_Upsert_Contact')?['ReportsToId']",
+                                  "S4SAcademic_Title__c": "@items('Loop_over_Upsert_Contact')?['S4SAcademic_Title__c']",
+                                  "S4SAlternative_First_Name__c": "@items('Loop_over_Upsert_Contact')?['S4SAlternative_First_Name__c']",
+                                  "S4SAlternative_Last_Name__c": "@items('Loop_over_Upsert_Contact')?['S4SAlternative_Last_Name__c']",
+                                  "S4SCONTACT_LegacyID__c": "@items('Loop_over_Upsert_Contact')?['S4SCONTACT_LegacyID__c']",
+                                  "S4SData_Admin__c": "@items('Loop_over_Upsert_Contact')?['S4SData_Admin__c']",
+                                  "S4SDepartment_Type__c": "@items('Loop_over_Upsert_Contact')?['S4SDepartment_Type__c']",
+                                  "S4SDepartment_converted__c": "@items('Loop_over_Upsert_Contact')?['S4SDepartment_converted__c']",
+                                  "S4SDouble_Opt_In_Date__c": "@items('Loop_over_Upsert_Contact')?['S4SDouble_Opt_In_Date__c']",
+                                  "S4SDouble_Opt_In__c": "@items('Loop_over_Upsert_Contact')?['S4SDouble_Opt_In__c']",
+                                  "S4SEmail_Duplicate__c": "@items('Loop_over_Upsert_Contact')?['S4SEmail_Duplicate__c']",
+                                  "S4SEmail_encoding__c": "@items('Loop_over_Upsert_Contact')?['S4SEmail_encoding__c']",
+                                  "S4SExternal_Source__c": "@items('Loop_over_Upsert_Contact')?['S4SExternal_Source__c']",
+                                  "S4SGender__c": "@items('Loop_over_Upsert_Contact')?['S4SGender__c']",
+                                  "S4SInitial__c": "@items('Loop_over_Upsert_Contact')?['S4SInitial__c']",
+                                  "S4SJob_Description__c": "@items('Loop_over_Upsert_Contact')?['S4SJob_Description__c']",
+                                  "S4SJob_Level__c": "@items('Loop_over_Upsert_Contact')?['S4SJob_Level__c']",
+                                  "S4SJob_Role__c": "@items('Loop_over_Upsert_Contact')?['S4SJob_Role__c']",
+                                  "S4SJob_Specification__c": "@items('Loop_over_Upsert_Contact')?['S4SJob_Specification__c']",
+                                  "S4SLanguage__c": "@items('Loop_over_Upsert_Contact')?['S4SLanguage__c']",
+                                  "S4SLanguage_encoding__c": "@items('Loop_over_Upsert_Contact')?['S4SLanguage_encoding__c']",
+                                  "S4SLead_Central_Enabled_Contact__c": "@items('Loop_over_Upsert_Contact')?['S4SLead_Central_Enabled_Contact__c']",
+                                  "S4SLegitimate_Interest__c": "@items('Loop_over_Upsert_Contact')?['S4SLegitimate_Interest__c']",
+                                  "S4SLinkedIn_URL__c": "@items('Loop_over_Upsert_Contact')?['S4SLinkedIn_URL__c']",
+                                  "S4SLocale_encoding__c": "@items('Loop_over_Upsert_Contact')?['S4SLocale_encoding__c']",
+                                  "S4SManagement_Level__c": "@items('Loop_over_Upsert_Contact')?['S4SManagement_Level__c']",
+                                  "S4SNever_Email__c": "@items('Loop_over_Upsert_Contact')?['S4SNever_Email__c']",
+                                  "S4SNever_Mail__c": "@items('Loop_over_Upsert_Contact')?['S4SNever_Mail__c']",
+                                  "S4SNever_Survey__c": "@items('Loop_over_Upsert_Contact')?['S4SNever_Survey__c']",
+                                  "S4SNo_Marketing__c": "@items('Loop_over_Upsert_Contact')?['S4SNo_Marketing__c']",
+                                  "S4SOpt_Out_Date__c": "@items('Loop_over_Upsert_Contact')?['S4SOpt_Out_Date__c']",
+                                  "S4SOpt_Out__c": "@items('Loop_over_Upsert_Contact')?['S4SOpt_Out__c']",
+                                  "S4SPartner_Contact_Role__c": "@items('Loop_over_Upsert_Contact')?['S4SPartner_Contact_Role__c']",
+                                  "S4SRestricted_Phone__c": "@items('Loop_over_Upsert_Contact')?['S4SRestricted_Phone__c']",
+                                  "S4SSelf_Employed__c": "@items('Loop_over_Upsert_Contact')?['S4SSelf_Employed__c']",
+                                  "S4SSpecification_converted__c": "@items('Loop_over_Upsert_Contact')?['S4SSpecification_converted__c']",
+                                  "S4SStatus__c": "@items('Loop_over_Upsert_Contact')?['S4SStatus__c']",
+                                  "S4STimezone__c": "@items('Loop_over_Upsert_Contact')?['S4STimezone__c']",
+                                  "S4SUser_ID__c": "@items('Loop_over_Upsert_Contact')?['S4SUser_ID__c']",
+                                  "S4SVisibility__c": "@items('Loop_over_Upsert_Contact')?['S4SVisibility__c']",
+                                  "S4S_Converted_from_Lead__c": "@items('Loop_over_Upsert_Contact')?['S4S_Converted_from_Lead__c']",
+                                  "Title": "@items('Loop_over_Upsert_Contact')?['Title']"
+                                },
+                                "FirstName": "",
+                                "LastName": ""
+                              },
+                              "headers": null
+                            },
+                            "runAfter": {},
+                            "type": "Workflow"
+                          }
+                        },
+                        "else": {
+                          "actions": {
+                            "Append_to_array_variable": {
+                              "inputs": {
+                                "name": "contactResponse",
+                                "value": {
+                                  "Created": "false",
+                                  "Id": "",
+                                  "Message": "@{coalesce(body('int_getAccountId')?['message'],body('int_getUserId_for_Contact')?['message'],'')}",
+                                  "Status": ""
+                                }
+                              },
+                              "runAfter": {},
+                              "type": "AppendToArrayVariable"
+                            }
+                          }
+                        },
+                        "expression": {
+                          "and": [
+                            {
+                              "equals": [
+                                "@body('int_getUserId_for_Contact')?['status']",
+                                "success"
+                              ]
+                            },
+                            {
+                              "equals": [
+                                "@body('int_getAccountId')?['status']",
+                                "success"
+                              ]
+                            }
+                          ]
+                        },
+                        "runAfter": {
+                          "int_getAccountId": [
+                            "Succeeded"
+                          ],
+                          "int_getUserId_for_Contact": [
+                            "Succeeded"
+                          ]
+                        },
+                        "type": "If"
+                      },
+                      "Condition_Placeholder": {
+                        "actions": {},
+                        "expression": {
+                          "and": [
+                            {
+                              "equals": [
+                                "",
+                                ""
+                              ]
+                            }
+                          ]
+                        },
+                        "runAfter": {},
+                        "type": "If",
+                        "else": null
+                      },
+                      "int_getAccountId": {
+                        "inputs": {
+                          "host": {
+                            "workflow": {
+                              "id": "int_getaccountid"
+                            }
+                          },
+                          "body": {
+                            "S4SIdentification_Number__c": "@{items('Loop_over_Upsert_Contact')?['Account']?['IdentificationNumber']}",
+                            "S4SIfA__c": "@items('Loop_over_Upsert_Contact')?['Account']?['IFA']"
+                          },
+                          "headers": null
+                        },
+                        "runAfter": {
+                          "Condition_Placeholder": [
+                            "Succeeded"
+                          ]
+                        },
+                        "type": "Workflow"
+                      },
+                      "int_getUserId_for_Contact": {
+                        "inputs": {
+                          "host": {
+                            "workflow": {
+                              "id": "int_getuserid"
+                            }
+                          },
+                          "body": {
+                            "Email": "@{items('Loop_over_Upsert_Contact')?['Owner']?['Email']}",
+                            "S4SGID_Technical__c": "@{items('Loop_over_Upsert_Contact')?['Owner']?['S4SGID_Technical__c']}"
+                          },
+                          "headers": null
+                        },
+                        "runAfter": {
+                          "Condition_Placeholder": [
+                            "Succeeded"
+                          ]
+                        },
+                        "type": "Workflow"
+                      }
+                    },
+                    "foreach": "@items('Loop_over_Upsert_Event')?['Contact']",
+                    "runAfter": {
+                      "Place_holder_for_parallel_processing": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Foreach"
+                  },
+                  "Place_holder_for_parallel_processing": {
+                    "inputs": {
+                      "name": "eachUpsertEvent",
+                      "value": "@items('Loop_over_Upsert_Event')"
+                    },
+                    "runAfter": {},
+                    "type": "SetVariable"
+                  },
+                  "Set_variable_eventDetailsResponse": {
+                    "inputs": {
+                      "name": "Initialize upsertEventDetailsResponse",
+                      "value": {
+                        "Events": {
+                          "Contacts": "@variables('contactResponse')",
+                          "Created": "@{body('Call_Int_upsertEvent')?['Created']}",
+                          "Id": "@{body('Call_Int_upsertEvent')?['Id']}",
+                          "Message": "@{body('Call_Int_upsertEvent')?['Message']}",
+                          "Status": "@{body('Call_Int_upsertEvent')?['Status']}"
+                        }
+                      }
+                    },
+                    "runAfter": {
+                      "For_each_ContactResponse": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "SetVariable"
+                  },
+                  "int_getContactId": {
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "int_getcontactid"
+                        }
+                      },
+                      "body": {
+                        "Email": "@{items('Loop_over_Upsert_Event')?['Who']?['Email']}"
+                      },
+                      "headers": null
+                    },
+                    "runAfter": {
+                      "Place_holder_for_parallel_processing": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Workflow"
+                  },
+                  "int_getUserId": {
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "int_getuserid"
+                        }
+                      },
+                      "body": {
+                        "Email": "@{items('Loop_over_Upsert_Event')?['Email']}",
+                        "S4SGID_Technical__c": "@{items('Loop_over_Upsert_Event')?['Owner']?['GIDTechnical']}"
+                      },
+                      "headers": null
+                    },
+                    "runAfter": {
+                      "Place_holder_for_parallel_processing": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Workflow"
+                  }
+                },
+                "foreach": "@triggerBody()?['Event']",
+                "runAfter": {},
+                "type": "Foreach"
+              },
+              "Response_upsertEvents": {
+                "inputs": {
+                  "body": "@variables('Initialize upsertEventDetailsResponse')",
+                  "statusCode": 200
+                },
+                "kind": "Http",
+                "runAfter": {
+                  "Loop_over_Upsert_Event": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Response"
+              }
+            },
+            "runAfter": {},
+            "type": "Scope"
+          }
+        },
+        "runAfter": {
+          "Initialize_EachUpsertEvent": [
+            "Succeeded"
+          ],
+          "Initialize_contactResponse": [
+            "Succeeded"
+          ],
+          "Initialize_upsertEventDetailsResponse": [
+            "Succeeded"
+          ]
+        },
+        "trackedProperties": {
+          "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+          "citizenName": "c00031",
+          "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+          "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'Event')}",
+          "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+          "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'non-defined')}",
+          "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'upsertEventDetails')}",
+          "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+          "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+          "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+        },
+        "type": "Scope"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {
+          "schema": {
+            "properties": {
+              "Event": {
+                "properties": {
+                  "ActivityDate": {
+                    "type": "string"
+                  },
+                  "ActivityDateTime": {
+                    "type": "string"
+                  },
+                  "CurrencyIsoCode": {
+                    "type": "string"
+                  },
+                  "Description": {
+                    "type": "string"
+                  },
+                  "DurationInMinutes": {
+                    "type": "string"
+                  },
+                  "Email": {
+                    "type": "string"
+                  },
+                  "EndDateTime": {
+                    "type": "string"
+                  },
+                  "EventSubtype": {
+                    "type": "string"
+                  },
+                  "Id": {
+                    "type": "string"
+                  },
+                  "IsAllDayEvent": {
+                    "type": "string"
+                  },
+                  "IsPrivate": {
+                    "type": "string"
+                  },
+                  "IsRecurrence2": {
+                    "type": "string"
+                  },
+                  "IsReminderSet": {
+                    "type": "string"
+                  },
+                  "IsVisibleInSelfService": {
+                    "type": "string"
+                  },
+                  "Location": {
+                    "type": "string"
+                  },
+                  "OwnerId": {
+                    "type": "string"
+                  },
+                  "Phone": {
+                    "type": "string"
+                  },
+                  "ShowAs": {
+                    "type": "string"
+                  },
+                  "StartDateTime": {
+                    "type": "string"
+                  },
+                  "Subject": {
+                    "type": "string"
+                  },
+                  "Type": {
+                    "type": "string"
+                  },
+                  "WhatId": {
+                    "type": "string"
+                  },
+                  "WhoId": {
+                    "type": "string"
+                  },
+                  "S4STraining_Topic__c": {
+                    "type": "string"
+                  },
+                  "S4SNumber_of_Participants__c": {
+                    "type": "string"
+                  },
+                  "S4SStatus__c": {
+                    "type": "string"
+                  },
+                  "S4SOther_Topics__c": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "kind": "Http",
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

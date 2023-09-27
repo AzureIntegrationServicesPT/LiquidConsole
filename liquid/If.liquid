@@ -1,0 +1,14 @@
+{%capturejson iter %}
+		{ 
+		{% include_local "ActionIterator" content: content.actions %}
+		}
+{%endcapturejson %}
+		{%assign action = content | add_property:"actions",iter%}
+{%capturejson iter %}
+		{ 
+		{% include_local "ActionIterator" content: content.else.actions %}
+		}
+{%endcapturejson %}
+        {%assign temp = content.else | add_property:"actions",iter%}
+        {%assign action = action | add_property:"else",temp%}
+		{{action | json }}

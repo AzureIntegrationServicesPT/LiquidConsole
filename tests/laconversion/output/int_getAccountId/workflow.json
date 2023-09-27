@@ -4,17 +4,17 @@
     "actions": {
       "IFA_check": {
         "actions": {
-          "AccountID_from_IFA": {
+          "Condition": {
             "actions": {
-              "Set_accountIdResponse_success": {
+              "Set_accountIdResponse_Identification": {
                 "inputs": {
                   "name": "accountIdResponse",
                   "value": {
-                    "Id": "@{body('Get_Account_ID_with_IFA')?['value']?[0]?['Id']}",
+                    "Id": "@{body('Get_Account_ID_with_Identification_Numbers')?['value']?[0]?['S4SAccount__c']}",
                     "S4SIdentification_Number__c": "@{triggerBody()?['S4SIdentification_Number__c']}",
                     "S4SIfA__c": "@{triggerBody()?['S4SIfA__c']}",
-                    "message": "@{coalesce(body('Get_Account_ID_with_IFA')?['message'],'')}",
-                    "status": "@{if(equals(length(body('Get_Account_ID_with_IFA')?['value']),0),'failure','success')}"
+                    "message": "@{coalesce(body('Get_Account_ID_with_Identification_Numbers')?['message'],'')}",
+                    "status": "@{if(equals(length(body('Get_Account_ID_with_Identification_Numbers')?['value']),0),'failure','success')}"
                   }
                 },
                 "runAfter": {},
@@ -23,15 +23,15 @@
             },
             "else": {
               "actions": {
-                "Set_accountIdResponse_failure": {
+                "Set_accountIdResponse_Identification_failure": {
                   "inputs": {
                     "name": "accountIdResponse",
                     "value": {
                       "Id": "",
-                      "S4SIdentification_Number__c": "",
-                      "S4SIfA__c": "@{triggerBody()?['S4SIfA__c']}",
-                      "message": "Provided IFA could not be found in SieSales",
-                      "status": "@{if(equals(length(body('Get_Account_ID_with_IFA')?['value']),0),'failure','success')}"
+                      "S4SIdentification_Number__c": "@{triggerBody()?['S4SIdentification_Number__c']}",
+                      "S4SIfA__c": "",
+                      "message": "Provided Identification number could not be found in SieSales",
+                      "status": "@{if(equals(length(body('Get_Account_ID_with_Identification_Numbers')?['value']),0),'failure','success')}"
                     }
                   },
                   "runAfter": {},
@@ -43,28 +43,28 @@
               "and": [
                 {
                   "greater": [
-                    "@length(coalesce(body('Get_Account_ID_with_IFA')?['value'],''))",
+                    "@length(coalesce(body('Get_Account_ID_with_Identification_Numbers')?['value'],''))",
                     0
                   ]
                 }
               ]
             },
             "runAfter": {
-              "Get_Account_ID_with_IFA": [
+              "Get_Account_ID_with_Identification_Numbers": [
                 "Succeeded"
               ]
             },
             "type": "If"
           },
-          "Get_Account_ID_with_IFA": {
+          "Get_Account_ID_with_Identification_Numbers": {
             "inputs": {
               "queries": {
-                "$filter": "S4SIfA__c eq '@{triggerBody()?['S4SIfA__c']}'",
-                "$select": "Id"
+                "$filter": "S4SIdentification_Number__c eq '@{triggerBody()?['S4SIdentification_Number__c']}'",
+                "$select": "S4SAccount__c"
               },
-              "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Account'))}/items",
+              "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SIdentification_Number__c'))}/items",
               "host": {
-                "referenceName": "salesForceConnection"
+                "referenceName": "salesForceConnectionConnection"
               },
               "method": "get"
             },
@@ -130,17 +130,15 @@
                 },
                 "Get_Account_ID_with_Identification_Numbers": {
                   "inputs": {
-                    "host": {
-                      "connection": {
-                        "name": "@parameters('$connections')['salesForceConnectionConnection']['connectionId']"
-                      }
-                    },
-                    "method": "get",
-                    "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SIdentification_Number__c'))}/items",
                     "queries": {
                       "$filter": "S4SIdentification_Number__c eq '@{triggerBody()?['S4SIdentification_Number__c']}'",
                       "$select": "S4SAccount__c"
-                    }
+                    },
+                    "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SIdentification_Number__c'))}/items",
+                    "host": {
+                      "referenceName": "salesForceConnectionConnection"
+                    },
+                    "method": "get"
                   },
                   "runAfter": {},
                   "type": "ApiConnection"
@@ -200,7 +198,7 @@
             {
               "not": {
                 "equals": [
-                  "@triggerBody()?['S4SIfA__c']",
+                  "@triggerBody()?['S4SIdentification_Number__c']",
                   "@null"
                 ]
               }
@@ -208,18 +206,20 @@
             {
               "not": {
                 "equals": [
-                  "@triggerBody()?['S4SIfA__c']",
+                  "@triggerBody()?['S4SIdentification_Number__c']",
                   "@string('')"
                 ]
               }
+            },
+            {
+              "equals": [
+                "",
+                ""
+              ]
             }
           ]
         },
-        "runAfter": {
-          "Initialize_variable": [
-            "Succeeded"
-          ]
-        },
+        "runAfter": {},
         "type": "If"
       },
       "Initialize_variable": {

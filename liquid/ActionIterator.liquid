@@ -1,5 +1,5 @@
 {%for each in content %}
-	{% if each.Value.actions != null %}
+	{% if each.Value.actions != null and each.Value.type != "If" %}
 		{% comment %} Do Recursive {% endcomment %}
 		{%capturejson iter %}
 		{ 
@@ -16,6 +16,10 @@
 				{{each.Key | json}}:{% include_local "Workflow" content: each.Value %}
 		{% when "ApiConnection"%}
 				{{each.Key | json}}:{%include_local "ApiConnection" content: each.Value %}
+		{% when "Switch"%}
+				{{each.Key | json}}:{%include_local "Switch" content: each.Value %}
+		{% when "If"%}
+				{{each.Key | json}}:{%include_local "If" content: each.Value %}
 		{%else%}
 		{{each.Key | json}}:{{each.Value | json}}
 		{%endcase%}
