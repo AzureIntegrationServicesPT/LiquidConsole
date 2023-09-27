@@ -127,7 +127,9 @@
                       "body": "@outputs('Compose')?['Object']",
                       "path": "/v3/datasets/default/tables/@{encodeURIComponent(encodeURIComponent(triggerOutputs()['headers']?['Object']))}/items/@{encodeURIComponent(encodeURIComponent(triggerBody()?['Object']?['Id']))}",
                       "host": {
-                        "referenceName": "salesForceConnection"
+                        "connection": {
+                          "referenceName": "salesForceConnection"
+                        }
                       },
                       "headers": {
                         "Content-Type": "application/json"
@@ -138,7 +140,6 @@
                     "type": "ApiConnection"
                   }
                 },
-                "runAfter": {},
                 "else": {
                   "actions": {
                     "Create_Event_or_Task": {
@@ -146,7 +147,9 @@
                         "body": "@outputs('Compose')?['Object']",
                         "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent(triggerOutputs()['headers']?['Object']))}/items",
                         "host": {
-                          "referenceName": "salesForceConnection"
+                          "connection": {
+                            "referenceName": "salesForceConnection"
+                          }
                         },
                         "headers": {
                           "Content-Type": "application/json"
@@ -197,6 +200,7 @@
                     }
                   ]
                 },
+                "runAfter": {},
                 "type": "If"
               },
               "Set_Try_Response": {

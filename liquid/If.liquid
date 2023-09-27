@@ -1,14 +1,22 @@
-{%capturejson iter %}
-		{ 
+{%assign tempIf = content.actions %}
+{%assign tempIfElse = content.else.actions %}
+{%assign counter=counter | plus: 1%}
+{%assign counterpre=counter%}
+{%assign counter=counter | plus: 1%}
+{%assign mem = mem | add_to_list: content.actions%}
+{%assign mem = mem | add_to_list: content.else.actions%}
+{
+	"actions":{ 
 		{% include_local "ActionIterator" content: content.actions %}
-		}
-{%endcapturejson %}
-		{%assign action = content | add_property:"actions",iter%}
-{%capturejson iter %}
-		{ 
-		{% include_local "ActionIterator" content: content.else.actions %}
-		}
-{%endcapturejson %}
-        {%assign temp = content.else | add_property:"actions",iter%}
-        {%assign action = action | add_property:"else",temp%}
-		{{action | json }}
+		},
+	"else":{
+		"actions":{ 
+			{% include_local "ActionIterator" content: content.else.actions %}
+			}
+	},
+	"expression":{{content.expression | json}},
+	"runAfter":{{content.runAfter | json}},
+	"type":"If"{% comment %},
+	"current":{{mem | json}},
+	"counter":{{counter}} {% endcomment %}
+}

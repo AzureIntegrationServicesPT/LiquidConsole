@@ -117,7 +117,9 @@
                       "body": "@body('Parse_JSON')?['Event']",
                       "path": "/v3/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Event'))}/items/@{encodeURIComponent(encodeURIComponent(triggerBody()?['Event']?['Id']))}",
                       "host": {
-                        "referenceName": "salesForceConnection"
+                        "connection": {
+                          "referenceName": "salesForceConnection"
+                        }
                       },
                       "headers": {
                         "Content-Type": "application/json"
@@ -135,7 +137,9 @@
                         "body": "@body('Parse_JSON')?['Event']",
                         "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Event'))}/items",
                         "host": {
-                          "referenceName": "salesForceConnection"
+                          "connection": {
+                            "referenceName": "salesForceConnection"
+                          }
                         },
                         "headers": {
                           "Content-Type": "application/json"

@@ -93,40 +93,18 @@
             "actions": {
               "Condition_if_Contact_Id_Exists": {
                 "actions": {
-                  "Set_Response_for_Update": {
+                  "Set_variable": {
                     "inputs": {
                       "name": "contactResponse",
                       "value": {
                         "Created": "false",
-                        "Id": "@{triggerBody()?['Contact']?['Id']}",
-                        "Message": "@{coalesce(body('Update_Contact')?['message'],'')}",
-                        "Status": "@{if(equals(outputs('Update_Contact')?['statusCode'],200),'success',if(equals(outputs('Update_Contact')?['statusCode'],201),'success','failure'))}"
+                        "Id": "@{body('get_Contact_Id_from_Email')?['Id']}",
+                        "Message": "@{coalesce(body('get_Contact_Id_from_Email')?['message'],'')}",
+                        "Status": "@{if(equals(outputs('get_Contact_Id_from_Email')?['statusCode'],200),'success','failure')}"
                       }
                     },
-                    "runAfter": {
-                      "Update_Contact": [
-                        "Succeeded",
-                        "Skipped",
-                        "Failed",
-                        "TimedOut"
-                      ]
-                    },
-                    "type": "SetVariable"
-                  },
-                  "Update_Contact": {
-                    "inputs": {
-                      "body": "@json(body('JsonRemoveNullOrEmptyFunc')?['result']?['restructuredJson'])?['Contact']",
-                      "path": "/v3/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Contact'))}/items/@{encodeURIComponent(encodeURIComponent(triggerBody()?['Contact']?['Id']))}",
-                      "host": {
-                        "referenceName": "salesForceConnection"
-                      },
-                      "headers": {
-                        "Content-Type": "application/json"
-                      },
-                      "method": "patch"
-                    },
                     "runAfter": {},
-                    "type": "ApiConnection"
+                    "type": "SetVariable"
                   }
                 },
                 "else": {
@@ -158,7 +136,9 @@
                             "body": "@json(body('JsonRemoveNullOrEmptyFunc')?['result']?['restructuredJson'])?['Contact']",
                             "path": "/v3/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Contact'))}/items/@{encodeURIComponent(encodeURIComponent(triggerBody()?['Contact']?['Id']))}",
                             "host": {
-                              "referenceName": "salesForceConnection"
+                              "connection": {
+                                "referenceName": "salesForceConnection"
+                              }
                             },
                             "headers": {
                               "Content-Type": "application/json"
@@ -176,7 +156,9 @@
                               "body": "@json(body('JsonRemoveNullOrEmptyFunc')?['result']?['restructuredJson'])?['Contact']",
                               "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Contact'))}/items",
                               "host": {
-                                "referenceName": "salesForceConnection"
+                                "connection": {
+                                  "referenceName": "salesForceConnection"
+                                }
                               },
                               "headers": {
                                 "Content-Type": "application/json"
@@ -238,7 +220,7 @@
                     {
                       "not": {
                         "equals": [
-                          "@triggerBody()?['Contact']?['Id']",
+                          "@body('get_Contact_Id_from_Email')?['Id']",
                           "@null"
                         ]
                       }
@@ -246,14 +228,18 @@
                     {
                       "not": {
                         "equals": [
-                          "@triggerBody()?['Contact']?['Id']",
-                          ""
+                          "@body('get_Contact_Id_from_Email')?['Id']",
+                          "@string('')"
                         ]
                       }
                     }
                   ]
                 },
-                "runAfter": {},
+                "runAfter": {
+                  "get_Contact_Id_from_Email": [
+                    "Succeeded"
+                  ]
+                },
                 "type": "If"
               },
               "Set_Try_Response": {

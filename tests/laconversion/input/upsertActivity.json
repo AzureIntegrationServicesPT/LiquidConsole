@@ -319,7 +319,7 @@
 														"actions": {
 															"Append_Contact_Fail_to_Variable": {
 																"runAfter": {},
-																"type": "Workflow",
+																"type": "AppendToArrayVariable",
 																"inputs": {
 																	"name": "ContactResponse",
 																	"value": {

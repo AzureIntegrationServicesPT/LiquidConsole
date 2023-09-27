@@ -144,6 +144,9 @@
                         "type": "Workflow"
                       }
                     },
+                    "else": {
+                      "actions": {}
+                    },
                     "expression": {
                       "and": [
                         {
@@ -162,8 +165,7 @@
                         "Succeeded"
                       ]
                     },
-                    "type": "If",
-                    "else": null
+                    "type": "If"
                   },
                   "Condition_delete_Contacts": {
                     "actions": {
@@ -183,6 +185,9 @@
                         "type": "Workflow"
                       }
                     },
+                    "else": {
+                      "actions": {}
+                    },
                     "expression": {
                       "and": [
                         {
@@ -200,8 +205,7 @@
                         "Succeeded"
                       ]
                     },
-                    "type": "If",
-                    "else": null
+                    "type": "If"
                   },
                   "For_each_ContactResponse": {
                     "actions": {
@@ -224,6 +228,9 @@
                             "runAfter": {},
                             "type": "Workflow"
                           }
+                        },
+                        "else": {
+                          "actions": {}
                         },
                         "expression": {
                           "and": [
@@ -270,8 +277,7 @@
                           ]
                         },
                         "runAfter": {},
-                        "type": "If",
-                        "else": null
+                        "type": "If"
                       }
                     },
                     "foreach": "@variables('contactResponse')",
@@ -437,6 +443,9 @@
                       },
                       "Condition_Placeholder": {
                         "actions": {},
+                        "else": {
+                          "actions": {}
+                        },
                         "expression": {
                           "and": [
                             {
@@ -448,8 +457,7 @@
                           ]
                         },
                         "runAfter": {},
-                        "type": "If",
-                        "else": null
+                        "type": "If"
                       },
                       "int_getAccountId": {
                         "inputs": {

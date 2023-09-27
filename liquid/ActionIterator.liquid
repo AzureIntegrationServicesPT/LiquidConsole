@@ -1,6 +1,9 @@
 {%for each in content %}
 	{% if each.Value.actions != null and each.Value.type != "If" %}
 		{% comment %} Do Recursive {% endcomment %}
+		{%assign tempActionIterator = each.Value.actions %}
+		{%assign counter=counter | plus: 1%}
+		{%assign mem = mem | add_to_list: each.Value.actions %}
 		{%capturejson iter %}
 		{ 
 		{% include_local "ActionIterator" content: each.Value.actions %}

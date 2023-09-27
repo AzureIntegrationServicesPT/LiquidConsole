@@ -5,8 +5,10 @@
         "queries":{{content.inputs.queries | json}},
         "path":{{content.inputs.path | json}},
         "host": {
+            "connection":{
             {%assign getConnectionName = content.inputs.host.connection.name | split : "'" %}
             "referenceName": {{getConnectionName[3] | json }}
+            }
         },
         "headers": {{content.inputs.headers | json}},
         "method": {{content.inputs.method | json}}

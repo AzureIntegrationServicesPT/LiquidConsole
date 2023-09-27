@@ -2,6 +2,8 @@
 {
     "cases":{
         {%for case in content.cases %}
+        {%assign counter=counter | plus: 1%}
+        {%assign mem = mem | add_to_list: case.Value.actions %}
         {%capturejson iter %}
             { 
             {% include_local "ActionIterator" content: case.Value.actions %}
@@ -11,6 +13,8 @@
             {{case.Key | json}}:{{action | json}},
         {%endfor%}
     },
+        {%assign counter=counter | plus: 1%}
+        {%assign mem = mem | add_to_list: content.default.actions %}
         {%capturejson iter %}
         { 
         {% include_local "ActionIterator" content: content.default.actions %}

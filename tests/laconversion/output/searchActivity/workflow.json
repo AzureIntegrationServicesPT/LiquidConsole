@@ -36,7 +36,9 @@
               },
               "path": "/soql/executesoqlquery",
               "host": {
-                "referenceName": "SalesForceConnection"
+                "connection": {
+                  "referenceName": "SalesForceConnection"
+                }
               },
               "method": "post"
             },
@@ -54,7 +56,9 @@
               },
               "path": "/soql/executesoqlquery",
               "host": {
-                "referenceName": "SalesForceConnection"
+                "connection": {
+                  "referenceName": "SalesForceConnection"
+                }
               },
               "method": "post"
             },

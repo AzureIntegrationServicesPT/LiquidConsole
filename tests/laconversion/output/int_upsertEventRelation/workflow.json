@@ -11,7 +11,9 @@
           },
           "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('EventRelation'))}/items",
           "host": {
-            "referenceName": "salesForceConnection"
+            "connection": {
+              "referenceName": "salesForceConnection"
+            }
           },
           "method": "post"
         },

@@ -12,7 +12,9 @@
               },
               "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('User'))}/items",
               "host": {
-                "referenceName": "salesForceConnection"
+                "connection": {
+                  "referenceName": "salesForceConnection"
+                }
               },
               "method": "get"
             },
@@ -34,11 +36,6 @@
                   }
                 }
               }
-            },
-            "runAfter": {
-              "Get_User_Id": [
-                "Succeeded"
-              ]
             },
             "else": {
               "actions": {
@@ -68,13 +65,13 @@
                 }
               ]
             },
+            "runAfter": {
+              "Get_User_Id": [
+                "Succeeded"
+              ]
+            },
             "type": "If"
           }
-        },
-        "runAfter": {
-          "What_Query_to_Send": [
-            "Succeeded"
-          ]
         },
         "else": {
           "actions": {
@@ -104,6 +101,11 @@
                 ]
               }
             }
+          ]
+        },
+        "runAfter": {
+          "What_Query_to_Send": [
+            "Succeeded"
           ]
         },
         "type": "If"

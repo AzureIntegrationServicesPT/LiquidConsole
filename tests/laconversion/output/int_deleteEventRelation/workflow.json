@@ -8,7 +8,9 @@
             "inputs": {
               "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('EventRelation'))}/items/@{encodeURIComponent(encodeURIComponent(items('For_each')?['Id']))}",
               "host": {
-                "referenceName": "salesForceConnection"
+                "connection": {
+                  "referenceName": "salesForceConnection"
+                }
               },
               "method": "delete"
             },
@@ -50,7 +52,9 @@
           },
           "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('EventRelation'))}/items",
           "host": {
-            "referenceName": "salesForceConnection"
+            "connection": {
+              "referenceName": "salesForceConnection"
+            }
           },
           "method": "get"
         },

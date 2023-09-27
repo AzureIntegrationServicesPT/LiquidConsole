@@ -1,7 +1,9 @@
 
 {% assign actions = content.actions %}
 {% assign trigger = content.triggers %}
-
+{%assign mem = null | create_list %}
+{%assign counter=0%}
+{%assign mem = mem | add_to_list: content.actions %}
 {%capturejson final %}
 {
 {%include_local "ActionIterator" content: content.actions %}

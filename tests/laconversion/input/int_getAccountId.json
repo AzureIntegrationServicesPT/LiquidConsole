@@ -134,7 +134,7 @@
                                     "inputs": {
                                         "host": {
                                             "connection": {
-                                                "name": "@parameters('$connections')['salesForceConnectionConnection']['connectionId']"
+                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
                                             }
                                         },
                                         "method": "get",
@@ -183,12 +183,6 @@
                                                 "@string('')"
                                             ]
                                         }
-                                    },
-                                    {
-                                        "equals": [
-                                            "",
-                                            ""
-                                        ]
                                     }
                                 ]
                             },

@@ -12,7 +12,9 @@
               },
               "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Contact'))}/items",
               "host": {
-                "referenceName": "salesForceConnection"
+                "connection": {
+                  "referenceName": "salesForceConnection"
+                }
               },
               "method": "get"
             },
