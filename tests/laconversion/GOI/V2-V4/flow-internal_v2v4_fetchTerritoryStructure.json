@@ -1,0 +1,654 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Initialize_Array_for_whereClauses": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "whereClauses",
+                            "type": "array"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_Count_variable": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "Count",
+                            "type": "integer",
+                            "value": 1
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable-TempCOunt": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "varTempCount",
+                            "type": "integer",
+                            "value": 1
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_fetchTerritoryStuctureQuery": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "fetchTerritoryStructureQuery",
+                            "type": "string",
+                            "value": "SELECT Id,OwnerId,IsDeleted,Name,CurrencyIsoCode,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastActivityDate,LastViewedDate,LastReferencedDate,S4SActive__c,S4SSale_Country__c,S4SLead_Country__c,S4SParent_TerritoryPath__c,S4SSales_Branch__c,S4SSales_Department__c,S4SSales_District__c,S4SSales_Office__c,S4SSales_SubRegion__c,S4SSales_Territory__c,S4SLevel__c,S4SUnique_ID__c,S4SSiemens_Territory_Structure_LegacyID__c from S4SSiemens_Territory_Structure__c "
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_for_whereClause": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "whereClause",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_for_where_condition": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "where",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_soapErrorResponse": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "SoapErrorResponse",
+                            "type": "String",
+                            "value": "<soap-env:Envelope xmlns:soap-env=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap-env:Header/><soap-env:Body><soap-env:Fault><faultcode>soap-env:Server</faultcode><faultstring>{errormessagedetails}</faultstring><detail/></soap-env:Fault></soap-env:Body></soap-env:Envelope>"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Scope-Catch": {
+                "actions": {
+                    "Error_Response": {
+                        "inputs": {
+                            "body": "@replace(variables('SoapErrorResponse'),'{errormessagedetails}',concat('Some error occurred while connection. Please find more details using tracking id : ', workflow()['run']['name']))",
+                            "headers": {
+                                "Content-Type": "text/xml"
+                            },
+                            "statusCode": 500
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                        "type": "Response"
+                    },
+                    "Terminate": {
+                        "inputs": {
+                            "runStatus": "Failed"
+                        },
+                        "runAfter": {
+                            "Error_Response": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Terminate"
+                    }
+                },
+                "runAfter": {
+                    "Scope-Try": [
+                        "Failed",
+                        "Skipped",
+                        "TimedOut"
+                    ]
+                },
+                "type": "Scope"
+            },
+            "Scope-Try": {
+                "actions": {
+                    "Append_to_array_variable": {
+                        "inputs": {
+                            "name": "whereClauses",
+                            "value": "s4sactive__c=true and IsDeleted=false"
+                        },
+                        "runAfter": {
+                            "Condition_to_check_SALES_DISTRICT": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "AppendToArrayVariable"
+                    },
+                    "Condition_To_Check_FetchTerritoryStructure": {
+                        "actions": {
+                            "Response": {
+                                "inputs": {
+                                    "body": "@body('Execute_a_SOQL_query_fetchTerritoryStructureQuery')",
+                                    "statusCode": 200
+                                },
+                                "kind": "Http",
+                                "runAfter": {},
+                                "type": "Response"
+                            }
+                        },
+                        "else": {
+                            "actions": {
+                                "Failure_Response_at_fetchTerritoryStructureQuery": {
+                                    "inputs": {
+                                        "body": "<Result>\n                            <SUCCESS>Failure</SUCCESS>\n                            <ERROR_MSG>@{body('Execute_a_SOQL_query_fetchTerritoryStructureQuery')?['message']}</ERROR_MSG>\n                            <OfferLineItemResult>\n                                <SUCCESS>Failure</SUCCESS>\n                                <ERROR_MSG></ERROR_MSG>\n                            </OfferLineItemResult>\n                        </Result>",
+                                        "headers": {
+                                            "Content-Type": "text/xml"
+                                        },
+                                        "statusCode": "@outputs('Execute_a_SOQL_query_fetchTerritoryStructureQuery')?['statusCode']"
+                                    },
+                                    "kind": "Http",
+                                    "runAfter": {},
+                                    "type": "Response"
+                                },
+                                "Terminate_at_FetchTerritory": {
+                                    "inputs": {
+                                        "runStatus": "Failed"
+                                    },
+                                    "runAfter": {
+                                        "Failure_Response_at_fetchTerritoryStructureQuery": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Terminate"
+                                }
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "equals": [
+                                        "@outputs('Execute_a_SOQL_query_fetchTerritoryStructureQuery')?['statusCode']",
+                                        200
+                                    ]
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Execute_a_SOQL_query_fetchTerritoryStructureQuery": [
+                                "Succeeded",
+                                "Failed"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Condition_to_check_REGION": {
+                        "actions": {
+                            "Add_REGION_where_clause_to_whereClauses_Array": {
+                                "inputs": {
+                                    "name": "whereClauses",
+                                    "value": "@variables('where')"
+                                },
+                                "runAfter": {
+                                    "Set_where_condition_for_REGION": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "AppendToArrayVariable"
+                            },
+                            "Set_where_condition_for_REGION": {
+                                "inputs": {
+                                    "name": "where",
+                                    "value": " S4SSale_Country__c = '@{xpath(xml(triggerBody()),'.//Offer/TERRITORY_STRUCTURE/REGION/text()')?[0]}'"
+                                },
+                                "runAfter": {},
+                                "type": "SetVariable"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@xpath(xml(triggerBody()),'.//Offer/TERRITORY_STRUCTURE/REGION/text()')?[0]",
+                                            "@null"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@xpath(xml(triggerBody()),'.//Offer/TERRITORY_STRUCTURE/REGION/text()')?[0]",
+                                            ""
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Condition_to_check_SUB_REGION": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Condition_to_check_SALES_BRANCH": {
+                        "actions": {
+                            "Add_SALES_BRANCH_where_clause_to_whereClauses_Array": {
+                                "inputs": {
+                                    "name": "whereClauses",
+                                    "value": "@variables('where')"
+                                },
+                                "runAfter": {
+                                    "Set_where_condition_for_SALES_BRANCH": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "AppendToArrayVariable"
+                            },
+                            "Set_where_condition_for_SALES_BRANCH": {
+                                "inputs": {
+                                    "name": "where",
+                                    "value": "s4ssales_branch__c  = '@{xpath(xml(triggerBody()),'.//Offer/TERRITORY_STRUCTURE/SALES_BRANCH/text()')?[0]}'"
+                                },
+                                "runAfter": {},
+                                "type": "SetVariable"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@xpath(xml(triggerBody()),'.//Offer/TERRITORY_STRUCTURE/SALES_BRANCH/text()')?[0]",
+                                            "@null"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@xpath(xml(triggerBody()),'.//Offer/TERRITORY_STRUCTURE/SALES_BRANCH/text()')?[0]",
+                                            ""
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Condition_to_check_TERRITORY_CLUSTER": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Condition_to_check_SALES_DEPARTMENT": {
+                        "actions": {
+                            "Add_SALES_DEPARTMENT_where_clause_to_whereClauses_Array": {
+                                "inputs": {
+                                    "name": "whereClauses",
+                                    "value": "@variables('where')"
+                                },
+                                "runAfter": {
+                                    "Set_where_condition_for_SALES_DEPARTMENT": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "AppendToArrayVariable"
+                            },
+                            "Set_where_condition_for_SALES_DEPARTMENT": {
+                                "inputs": {
+                                    "name": "where",
+                                    "value": " S4SLead_Country__c='@{xpath(xml(triggerBody()),'.//Offer/TERRITORY_STRUCTURE/SALES_DEPARTMENT/text()')?[0]}'"
+                                },
+                                "runAfter": {},
+                                "type": "SetVariable"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@xpath(xml(triggerBody()),'.//Offer/TERRITORY_STRUCTURE/SALES_DEPARTMENT/text()')?[0]",
+                                            "@null"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@xpath(xml(triggerBody()),'.//Offer/TERRITORY_STRUCTURE/SALES_DEPARTMENT/text()')?[0]",
+                                            ""
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Condition_to_check_SALES_BRANCH": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Condition_to_check_SALES_DISTRICT": {
+                        "actions": {
+                            "Add_SALES_DISTRICT_where_clause_to_whereClauses_Array": {
+                                "inputs": {
+                                    "name": "whereClauses",
+                                    "value": "@variables('where')"
+                                },
+                                "runAfter": {
+                                    "Set_where_condition_for_SALES_DISTRICT": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "AppendToArrayVariable"
+                            },
+                            "Set_where_condition_for_SALES_DISTRICT": {
+                                "inputs": {
+                                    "name": "where",
+                                    "value": "s4ssales_district__c='@{xpath(xml(triggerBody()),'.//Offer/TERRITORY_STRUCTURE/SALES_DISTRICT/text()')?[0]}'"
+                                },
+                                "runAfter": {},
+                                "type": "SetVariable"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@xpath(xml(triggerBody()),'.//Offer/TERRITORY_STRUCTURE/SALES_DISTRICT/text()')?[0]",
+                                            "@null"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@xpath(xml(triggerBody()),'.//Offer/TERRITORY_STRUCTURE/SALES_DISTRICT/text()')?[0]",
+                                            ""
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Condition_to_check_SALES_DEPARTMENT": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Condition_to_check_SALES_OFFICE": {
+                        "actions": {
+                            "SALES_OFFICE_where_clause_to_whereClauses_Array": {
+                                "inputs": {
+                                    "name": "whereClauses",
+                                    "value": "@variables('where')"
+                                },
+                                "runAfter": {
+                                    "Set_where_condition_for_SALES_OFFICE": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "AppendToArrayVariable"
+                            },
+                            "Set_where_condition_for_SALES_OFFICE": {
+                                "inputs": {
+                                    "name": "where",
+                                    "value": "S4SSales_Office__c ='@{xpath(xml(triggerBody()),'.//Offer/TERRITORY_STRUCTURE/SALES_OFFICE/text()')?[0]}'"
+                                },
+                                "runAfter": {},
+                                "type": "SetVariable"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@xpath(xml(triggerBody()),'.//Offer/TERRITORY_STRUCTURE/SALES_OFFICE/text()')?[0]",
+                                            "@null"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@xpath(xml(triggerBody()),'.//Offer/TERRITORY_STRUCTURE/SALES_OFFICE/text()')?[0]",
+                                            ""
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {},
+                        "type": "If"
+                    },
+                    "Condition_to_check_SUB_REGION": {
+                        "actions": {
+                            "Add_SUB_REGION_where_clause_to_whereClauses_Array": {
+                                "inputs": {
+                                    "name": "whereClauses",
+                                    "value": "@variables('where')"
+                                },
+                                "runAfter": {
+                                    "Set_where_condition_for_SUB_REGION": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "AppendToArrayVariable"
+                            },
+                            "Set_where_condition_for_SUB_REGION": {
+                                "inputs": {
+                                    "name": "where",
+                                    "value": " S4SSales_SubRegion__c ='@{xpath(xml(triggerBody()),'.//Offer/TERRITORY_STRUCTURE/SUB_REGION/text()')?[0]}'"
+                                },
+                                "runAfter": {},
+                                "type": "SetVariable"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@xpath(xml(triggerBody()),'.//Offer/TERRITORY_STRUCTURE/SUB_REGION/text()')?[0]",
+                                            "@null"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@xpath(xml(triggerBody()),'.//Offer/TERRITORY_STRUCTURE/SUB_REGION/text()')?[0]",
+                                            ""
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Condition_to_check_SALES_OFFICE": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Condition_to_check_TERRITORY_CLUSTER": {
+                        "actions": {
+                            "Set_where_condition_for_TERRITORY_CLUSTER": {
+                                "inputs": {
+                                    "name": "where",
+                                    "value": " s4slead_country__c ='@{xpath(xml(triggerBody()),'.//Offer/TERRITORY_STRUCTURE/TERRITORY_CLUSTER/text()')?[0]}'"
+                                },
+                                "runAfter": {},
+                                "type": "SetVariable"
+                            },
+                            "TERRITORY_CLUSTER_where_clause_to_whereClauses_Array": {
+                                "inputs": {
+                                    "name": "whereClauses",
+                                    "value": "@variables('where')"
+                                },
+                                "runAfter": {
+                                    "Set_where_condition_for_TERRITORY_CLUSTER": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "AppendToArrayVariable"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@xpath(xml(triggerBody()),'.//Offer/TERRITORY_STRUCTURE/TERRITORY_CLUSTER/text()')?[0]",
+                                            "@null"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@xpath(xml(triggerBody()),'.//Offer/TERRITORY_STRUCTURE/TERRITORY_CLUSTER/text()')?[0]",
+                                            ""
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Condition_to_check_REGION": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Execute_a_SOQL_query_fetchTerritoryStructureQuery": {
+                        "inputs": {
+                            "body": {
+                                "query": "@{variables('fetchTerritoryStructureQuery')}where @{outputs('Replace_of_star_with_perc_in_whereClause')}"
+                            },
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                }
+                            },
+                            "method": "post",
+                            "path": "/soql/executesoqlquery",
+                            "retryPolicy": {
+                                "type": "none"
+                            }
+                        },
+                        "runAfter": {
+                            "Replace_of_star_with_perc_in_whereClause": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ApiConnection"
+                    },
+                    "For_each": {
+                        "actions": {
+                            "Append_to_string_variable": {
+                                "inputs": {
+                                    "name": "whereClause",
+                                    "value": "@if(equals(last(variables('whereClauses')),items('For_each')),items('For_each'),concat(items('For_each'), ' AND '))"
+                                },
+                                "runAfter": {},
+                                "type": "AppendToStringVariable"
+                            }
+                        },
+                        "foreach": "@variables('whereClauses')",
+                        "runAfter": {
+                            "Append_to_array_variable": [
+                                "Succeeded"
+                            ]
+                        },
+                        "runtimeConfiguration": {
+                            "concurrency": {
+                                "repetitions": 1
+                            }
+                        },
+                        "type": "Foreach"
+                    },
+                    "Replace_of_star_with_perc_in_whereClause": {
+                        "inputs": "@concat(replace(variables('whereClause'),'*','%'),' order by s4slead_country__c ,s4ssale_country__c , s4ssales_subregion__c,s4ssales_territory__c,s4ssales_branch__c,s4ssales_office__c,  s4ssales_department__c ,  s4ssales_district__c')",
+                        "runAfter": {
+                            "For_each": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Compose"
+                    }
+                },
+                "runAfter": {
+                    "Initialize_Array_for_whereClauses": [
+                        "Succeeded"
+                    ],
+                    "Initialize_Count_variable": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable-TempCOunt": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_fetchTerritoryStuctureQuery": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_for_whereClause": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_for_where_condition": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_soapErrorResponse": [
+                        "Succeeded"
+                    ]
+                },
+                "trackedProperties": {
+                    "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+                    "citizenName": "c00031",
+                    "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'V2V4')}",
+                    "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                    "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                    "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'fetchTerritoryStructure')}",
+                    "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}"
+                },
+                "type": "Scope"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "manual": {
+                "inputs": {
+                    "schema": {}
+                },
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+}

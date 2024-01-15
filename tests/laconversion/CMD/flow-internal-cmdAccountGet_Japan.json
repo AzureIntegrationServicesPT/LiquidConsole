@@ -1,0 +1,1075 @@
+{
+  
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Condition_to_check_Target_Response": {
+            "actions": {
+                "For_each__on_AccountList": {
+                    "actions": {
+                        "Try": {
+                            "actions": {
+                                "Condition_to_check_Action": {
+                                    "actions": {
+                                        "Condition_to_check_the_connector_response": {
+                                            "actions": {},
+                                            "else": {
+                                                "actions": {
+                                                    "Insert_or_Update_(Upsert)_a_Record_by_External_ID_2": {
+                                                        "inputs": {
+                                                            "body": {
+                                                                "BillingCity": "@{items('For_each__on_AccountList')?['CITY']}",
+                                                                "BillingCountry": "@{items('For_each__on_AccountList')?['COUNTRY']}",
+                                                                "BillingPostalCode": "@{items('For_each__on_AccountList')?['POSTAL_CODE']}",
+                                                                "S4SCID_Number__c": "@{items('For_each__on_AccountList')?['GP_NR']}",
+                                                                "S4SCMD_NAME1_I__c": "@{items('For_each__on_AccountList')?['NAME1_I']}",
+                                                                "S4SCMD_NAME1__c": "@{items('For_each__on_AccountList')?['NAME1']}",
+                                                                "S4SCMD_NAME2_I__c": "@{items('For_each__on_AccountList')?['NAME2_I']}",
+                                                                "S4SCMD_NAME2__c": "@{items('For_each__on_AccountList')?['NAME2']}",
+                                                                "S4SCMD_NAME3__c": "@{items('For_each__on_AccountList')?['NAME3']}",
+                                                                "S4SCMD_STREET2__c": "@{items('For_each__on_AccountList')?['STREET2']}",
+                                                                "S4SCMD_STREET__c": "@{items('For_each__on_AccountList')?['STREET']}",
+                                                                "S4SIfA__c": "",
+                                                                "S4SMD_Status__c": "Not managed in CMD",
+                                                                "S4SPrevious_IfA_Number__c": "@{items('For_each__on_AccountList')?['IFA_NR']}"
+                                                            },
+                                                            "host": {
+                                                                "connection": {
+                                                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                }
+                                                            },
+                                                            "method": "patch",
+                                                            "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Account'))}/externalIdFields/@{encodeURIComponent(encodeURIComponent('Id'))}/@{encodeURIComponent(encodeURIComponent(json(string(body('Execute_a_SOQL_query')?['records']?[0]))?['Id']))}"
+                                                        },
+                                                        "runAfter": {},
+                                                        "type": "ApiConnection"
+                                                    }
+                                                }
+                                            },
+                                            "expression": {
+                                                "and": [
+                                                    {
+                                                        "equals": [
+                                                            "@json(string(body('Execute_a_SOQL_query')?['records']?[0]))?['S4SMD_Status__c']",
+                                                            "Duplicate"
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "runAfter": {},
+                                            "type": "If"
+                                        }
+                                    },
+                                    "else": {
+                                        "actions": {
+                                            "Condition_to_check_IFA_NR": {
+                                                "actions": {
+                                                    "Execute_a_SOQL_query_on_fetch_ID": {
+                                                        "inputs": {
+                                                            "body": {
+                                                                "query": "Select Id,S4SIfA__c from Account where S4SCID_Number__c = '@{items('For_each__on_AccountList')?['GP_NR']}' "
+                                                            },
+                                                            "host": {
+                                                                "connection": {
+                                                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                }
+                                                            },
+                                                            "method": "post",
+                                                            "path": "/soql/executesoqlquery"
+                                                        },
+                                                        "runAfter": {},
+                                                        "type": "ApiConnection"
+                                                    },
+                                                    "Insert_or_Update_(Upsert)_a_Record_by_External_ID": {
+                                                        "inputs": {
+                                                            "body": {
+                                                                "S4SCID_Number__c": "@{items('For_each__on_AccountList')?['GP_NR']}",
+                                                                "S4SIfA__c": "",
+                                                                "S4SMD_Status__c": "CMD subscription rejected",
+                                                                "S4SNotification_from_CMD__c": "@{items('For_each__on_AccountList')?['INFO']}",
+                                                                "S4SPrevious_IfA_Number__c": "@{json(string(body('Execute_a_SOQL_query_on_fetch_ID')?['records']?[0]))?['S4SIfA__c']}"
+                                                            },
+                                                            "host": {
+                                                                "connection": {
+                                                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                }
+                                                            },
+                                                            "method": "patch",
+                                                            "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Account'))}/externalIdFields/@{encodeURIComponent(encodeURIComponent('Id'))}/@{encodeURIComponent(encodeURIComponent(json(string(body('Execute_a_SOQL_query_on_fetch_ID')?['records']?[0]))?['Id']))}"
+                                                        },
+                                                        "runAfter": {
+                                                            "Execute_a_SOQL_query_on_fetch_ID": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "ApiConnection"
+                                                    }
+                                                },
+                                                "else": {
+                                                    "actions": {
+                                                        "Condition_to_check_fetch_IFA_OUTPUT": {
+                                                            "actions": {
+                                                                "Condition_to_check_region,regionI": {
+                                                                    "actions": {
+                                                                        "Compose_Accounts_with_REGION_and_REGION_I": {
+                                                                            "inputs": {
+                                                                                "Account_list": [
+                                                                                    {
+                                                                                        "ACTION": "@{items('For_each__on_AccountList')?['ACTION']}",
+                                                                                        "CITY": "@{items('For_each__on_AccountList')?['CITY']}",
+                                                                                        "CITY_I": "@{items('For_each__on_AccountList')?['CITY_I']}",
+                                                                                        "CITY_PO_BOX": "@{items('For_each__on_AccountList')?['CITY_PO_BOX']}",
+                                                                                        "COMPANY_PSTCD": "@{items('For_each__on_AccountList')?['COMPANY_PSTCD']}",
+                                                                                        "COUNTRY": "@{items('For_each__on_AccountList')?['COUNTRY']}",
+                                                                                        "DUNS": "@{items('For_each__on_AccountList')?['DUNS']}",
+                                                                                        "GP_NR": "@{items('For_each__on_AccountList')?['GP_NR']}",
+                                                                                        "IFA_NR": "@{items('For_each__on_AccountList')?['IFA_NR']}",
+                                                                                        "INFO": "@{items('For_each__on_AccountList')?['INFO']}",
+                                                                                        "ISIC": "@{items('For_each__on_AccountList')?['ISIC']}",
+                                                                                        "KUKLA": "@{items('For_each__on_AccountList')?['KUKLA']}",
+                                                                                        "LEGAL_STATUS": "@{items('For_each__on_AccountList')?['LEGAL_STATUS']}",
+                                                                                        "NAME1": "@{items('For_each__on_AccountList')?['NAME1']}",
+                                                                                        "NAME1_I": "@{items('For_each__on_AccountList')?['NAME1_I']}",
+                                                                                        "NAME2": "@{items('For_each__on_AccountList')?['NAME2']}",
+                                                                                        "NAME2_I": "@{items('For_each__on_AccountList')?['NAME2_I']}",
+                                                                                        "NAME3": "@{items('For_each__on_AccountList')?['NAME3']}",
+                                                                                        "NAME3_I": "@{items('For_each__on_AccountList')?['NAME3_I']}",
+                                                                                        "NAT_ID": "@{items('For_each__on_AccountList')?['NAT_ID']}",
+                                                                                        "POSTAL_CODE": "@{items('For_each__on_AccountList')?['POSTAL_CODE']}",
+                                                                                        "POSTAL_CODE_POB": "@{items('For_each__on_AccountList')?['POSTAL_CODE_POB']}",
+                                                                                        "PO_BOX": "@{items('For_each__on_AccountList')?['PO_BOX']}",
+                                                                                        "REGION": "@{concat(items('For_each__on_AccountList')?['COUNTRY'],'_',items('For_each__on_AccountList')?['REGION'])}",
+                                                                                        "REGION_I": "@{concat(items('For_each__on_AccountList')?['COUNTRY'],'_',items('For_each__on_AccountList')?['REGION_I'])}",
+                                                                                        "SALESTAX_ID": "@{items('For_each__on_AccountList')?['SALESTAX_ID']}",
+                                                                                        "STREET": "@{items('For_each__on_AccountList')?['STREET']}",
+                                                                                        "STREET2": "@{items('For_each__on_AccountList')?['STREET2']}",
+                                                                                        "STREET2_I": "@{items('For_each__on_AccountList')?['STREET2_I']}",
+                                                                                        "STREET_I": "@{items('For_each__on_AccountList')?['STREET_I']}"
+                                                                                    }
+                                                                                ]
+                                                                            },
+                                                                            "runAfter": {},
+                                                                            "type": "Compose"
+                                                                        },
+                                                                        "Set_variable_'Accounts'": {
+                                                                            "inputs": {
+                                                                                "name": "Accounts",
+                                                                                "value": "@{outputs('Compose_Accounts_with_REGION_and_REGION_I')}"
+                                                                            },
+                                                                            "runAfter": {
+                                                                                "Compose_Accounts_with_REGION_and_REGION_I": [
+                                                                                    "Succeeded"
+                                                                                ]
+                                                                            },
+                                                                            "type": "SetVariable"
+                                                                        }
+                                                                    },
+                                                                    "else": {
+                                                                        "actions": {
+                                                                            "Compose_Accounts_without_REGION_and_REGION_I": {
+                                                                                "inputs": {
+                                                                                    "Account_list": [
+                                                                                        {
+                                                                                            "ACTION": "@{items('For_each__on_AccountList')?['ACTION']}",
+                                                                                            "CITY": "@{items('For_each__on_AccountList')?['CITY']}",
+                                                                                            "CITY_I": "@{items('For_each__on_AccountList')?['CITY_I']}",
+                                                                                            "CITY_PO_BOX": "@{items('For_each__on_AccountList')?['CITY_PO_BOX']}",
+                                                                                            "COMPANY_PSTCD": "@{items('For_each__on_AccountList')?['COMPANY_PSTCD']}",
+                                                                                            "COUNTRY": "@{items('For_each__on_AccountList')?['COUNTRY']}",
+                                                                                            "DUNS": "@{items('For_each__on_AccountList')?['DUNS']}",
+                                                                                            "GP_NR": "@{items('For_each__on_AccountList')?['GP_NR']}",
+                                                                                            "IFA_NR": "@{items('For_each__on_AccountList')?['IFA_NR']}",
+                                                                                            "INFO": "@{items('For_each__on_AccountList')?['INFO']}",
+                                                                                            "ISIC": "@{items('For_each__on_AccountList')?['ISIC']}",
+                                                                                            "KUKLA": "@{items('For_each__on_AccountList')?['KUKLA']}",
+                                                                                            "LEGAL_STATUS": "@{items('For_each__on_AccountList')?['LEGAL_STATUS']}",
+                                                                                            "NAME1": "@{items('For_each__on_AccountList')?['NAME1']}",
+                                                                                            "NAME1_I": "@{items('For_each__on_AccountList')?['NAME1_I']}",
+                                                                                            "NAME2": "@{items('For_each__on_AccountList')?['NAME2']}",
+                                                                                            "NAME2_I": "@{items('For_each__on_AccountList')?['NAME2_I']}",
+                                                                                            "NAME3": "@{items('For_each__on_AccountList')?['NAME3']}",
+                                                                                            "NAME3_I": "@{items('For_each__on_AccountList')?['NAME3_I']}",
+                                                                                            "NAT_ID": "@{items('For_each__on_AccountList')?['NAT_ID']}",
+                                                                                            "POSTAL_CODE": "@{items('For_each__on_AccountList')?['POSTAL_CODE']}",
+                                                                                            "POSTAL_CODE_POB": "@{items('For_each__on_AccountList')?['POSTAL_CODE_POB']}",
+                                                                                            "PO_BOX": "@{items('For_each__on_AccountList')?['PO_BOX']}",
+                                                                                            "SALESTAX_ID": "@{items('For_each__on_AccountList')?['SALESTAX_ID']}",
+                                                                                            "STREET": "@{items('For_each__on_AccountList')?['STREET']}",
+                                                                                            "STREET2": "@{items('For_each__on_AccountList')?['STREET2']}",
+                                                                                            "STREET2_I": "@{items('For_each__on_AccountList')?['STREET2_I']}",
+                                                                                            "STREET_I": "@{items('For_each__on_AccountList')?['STREET_I']}"
+                                                                                        }
+                                                                                    ]
+                                                                                },
+                                                                                "runAfter": {},
+                                                                                "type": "Compose"
+                                                                            },
+                                                                            "Set_variable_account": {
+                                                                                "inputs": {
+                                                                                    "name": "Accounts",
+                                                                                    "value": "@{outputs('Compose_Accounts_without_REGION_and_REGION_I')}"
+                                                                                },
+                                                                                "runAfter": {
+                                                                                    "Compose_Accounts_without_REGION_and_REGION_I": [
+                                                                                        "Succeeded"
+                                                                                    ]
+                                                                                },
+                                                                                "type": "SetVariable"
+                                                                            }
+                                                                        }
+                                                                    },
+                                                                    "expression": {
+                                                                        "and": [
+                                                                            {
+                                                                                "not": {
+                                                                                    "equals": [
+                                                                                        "@items('For_each__on_AccountList')?['REGION']",
+                                                                                        ""
+                                                                                    ]
+                                                                                }
+                                                                            },
+                                                                            {
+                                                                                "not": {
+                                                                                    "equals": [
+                                                                                        "@items('For_each__on_AccountList')?['REGION']",
+                                                                                        "@null"
+                                                                                    ]
+                                                                                }
+                                                                            },
+                                                                            {
+                                                                                "and": [
+                                                                                    {
+                                                                                        "not": {
+                                                                                            "equals": [
+                                                                                                "@items('For_each__on_AccountList')?['REGION_I']",
+                                                                                                ""
+                                                                                            ]
+                                                                                        }
+                                                                                    },
+                                                                                    {
+                                                                                        "not": {
+                                                                                            "equals": [
+                                                                                                "@items('For_each__on_AccountList')?['REGION_I']",
+                                                                                                "@null"
+                                                                                            ]
+                                                                                        }
+                                                                                    }
+                                                                                ]
+                                                                            },
+                                                                            {   
+                                                                                "not":{
+                                                                                    "contains": [
+                                                                                        "@variables('regionConfig')",
+                                                                                        "@items('For_each__on_AccountList')?['COUNTRY']"
+                                                                                    ]
+                                                                                }
+                                                                            }
+                                                                        ]
+                                                                    },
+                                                                    "runAfter": {},
+                                                                    "type": "If"
+                                                                },
+                                                                "Condition_to_check_the_fetchid_connector_output": {
+                                                                    "actions": {
+                                                                        "Condition_to_match_fetchid": {
+                                                                            "actions": {
+                                                                                "internal-poBOX": {
+                                                                                    "inputs": {
+                                                                                        "body": {
+                                                                                            "Accounts": "@variables('Accounts')",
+                                                                                            "FetchIDOutput": "@{json(string(body('Execute_a_SOQL_query_on_FetchID')?['records']?[0]))}",
+                                                                                            "dataValidationOutput": "@{body('Invoke_cmd_data_exchange_validation')}"
+                                                                                        },
+                                                                                        "host": {
+                                                                                            "triggerName": "manual",
+                                                                                            "workflow": {
+                                                                                                "id": "${CMD_internal_checkPOBOX_logicAppId}"
+                                                                                            }
+                                                                                        },
+                                                                                        "retryPolicy": {
+                                                                                            "type": "none"
+                                                                                        }
+                                                                                    },
+                                                                                    "runAfter": {},
+                                                                                    "type": "Workflow"
+                                                                                }
+                                                                            },
+                                                                            "else": {
+                                                                                "actions": {
+                                                                                    "Insert_or_Update_(Upsert)_a_Record_by_External_ID_3": {
+                                                                                        "inputs": {
+                                                                                            "body": {
+                                                                                                "S4SCID_Number__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['GP_NR']}",
+                                                                                                "S4SDuplicate_IfA_Number__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['IFA_NR']}",
+                                                                                                "S4SMD_Status__c": "Duplicate",
+                                                                                                "S4SIfA__c": "",
+                                                                                                "S4SNotification_from_CMD__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['INFO']}",
+                                                                                                "S4SPrevious_IfA_Number__c": "@{json(string(body('Execute_a_SOQL_query_on_FetchID')?['records']?[0]))?['S4SIfA__c']}"
+                                                                                            },
+                                                                                            "host": {
+                                                                                                "connection": {
+                                                                                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                                                }
+                                                                                            },
+                                                                                            "method": "patch",
+                                                                                            "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Account'))}/externalIdFields/@{encodeURIComponent(encodeURIComponent('Id'))}/@{encodeURIComponent(encodeURIComponent(json(string(body('Execute_a_SOQL_query_on_FetchID')?['records']?[0]))?['Id']))}"
+                                                                                        },
+                                                                                        "runAfter": {},
+                                                                                        "type": "ApiConnection"
+                                                                                    },
+                                                                                    "Invoke_'Set'_Interface": {
+                                                                                        "inputs": {
+                                                                                            "body": {
+                                                                                                "Id": "@{json(variables('Accounts'))?['Account_List']?[0]?['GP_NR']}",
+                                                                                                "duplicate": "true"
+                                                                                            },
+                                                                                            "host": {
+                                                                                                "triggerName": "manual",
+                                                                                                "workflow": {
+                                                                                                    "id": "${CMD_internal_SIE_SF4S_AccountSet_logicAppId}"
+                                                                                                }
+                                                                                            },
+                                                                                            "retryPolicy": {
+                                                                                                "type": "none"
+                                                                                            }
+                                                                                        },
+                                                                                        "runAfter": {
+                                                                                            "Insert_or_Update_(Upsert)_a_Record_by_External_ID_3": [
+                                                                                                "Succeeded"
+                                                                                            ]
+                                                                                        },
+                                                                                        "type": "Workflow"
+                                                                                    }
+                                                                                }
+                                                                            },
+                                                                            "expression": {
+                                                                                "and": [
+                                                                                    {
+                                                                                        "equals": [
+                                                                                            "@json(string(body('Execute_a_SOQL_query_on_FetchID')['records']?[0]))?['S4SIfA__c']",
+                                                                                            "@json(variables('Accounts'))?['Account_List']?[0]?['IFA_NR']"
+                                                                                        ]
+                                                                                    }
+                                                                                ]
+                                                                            },
+                                                                            "runAfter": {},
+                                                                            "type": "If"
+                                                                        }
+                                                                    },
+                                                                    "else": {
+                                                                        "actions": {
+                                                                            "Insert_or_Update_(Upsert)_a_Record_by_External_ID_4": {
+                                                                                "inputs": {
+                                                                                    "body": {
+                                                                                        "S4SCID_Number__c": "@{items('For_each__on_AccountList')?['GP_NR']}",
+                                                                                        "S4SDuplicate_IfA_Number__c": "@{items('For_each__on_AccountList')?['IFA_NR']}",
+                                                                                        "S4SMD_Status__c": "Duplicate",
+                                                                                        "S4SIfA__c": "",
+                                                                                        "S4SNotification_from_CMD__c": "@{items('For_each__on_AccountList')?['INFO']}",
+                                                                                        "S4SPrevious_IfA_Number__c": "@{json(string(body('Execute_a_SOQL_query_on_FetchID')?['records']?[0]))?['S4SIfA__c']}"
+                                                                                    },
+                                                                                    "host": {
+                                                                                        "connection": {
+                                                                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                                        }
+                                                                                    },
+                                                                                    "method": "patch",
+                                                                                    "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Account'))}/externalIdFields/@{encodeURIComponent(encodeURIComponent('IfA'))}/@{encodeURIComponent(encodeURIComponent(json(variables('Accounts'))?['Account_List']?[0]?['IFA_NR']))}"
+                                                                                },
+                                                                                "runAfter": {},
+                                                                                "type": "ApiConnection"
+                                                                            },
+                                                                            "Invoke_Set_Interface": {
+                                                                                "inputs": {
+                                                                                    "body": {
+                                                                                        "Id": "@{json(variables('Accounts'))?['Account_List']?[0]?['GP_NR']}",
+                                                                                        "duplicate": "true"
+                                                                                    },
+                                                                                    "host": {
+                                                                                        "triggerName": "manual",
+                                                                                        "workflow": {
+                                                                                            "id": "${CMD_internal_SIE_SF4S_AccountSet_logicAppId}"
+                                                                                        }
+                                                                                    }
+                                                                                },
+                                                                                "runAfter": {
+                                                                                    "Insert_or_Update_(Upsert)_a_Record_by_External_ID_4": [
+                                                                                        "Succeeded"
+                                                                                    ]
+                                                                                },
+                                                                                "type": "Workflow"
+                                                                            }
+                                                                        }
+                                                                    },
+                                                                    "expression": {
+                                                                        "and": [
+                                                                            {
+                                                                                "greater": [
+                                                                                    "@length(body('Execute_a_SOQL_query_on_FetchID')['records'])",
+                                                                                    0
+                                                                                ]
+                                                                            }
+                                                                        ]
+                                                                    },
+                                                                    "runAfter": {
+                                                                        "Execute_a_SOQL_query_on_FetchID": [
+                                                                            "Succeeded"
+                                                                        ]
+                                                                    },
+                                                                    "type": "If"
+                                                                },
+                                                                "Execute_a_SOQL_query_on_FetchID": {
+                                                                    "inputs": {
+                                                                        "body": {
+                                                                            "query": "Select Id,S4SIfA__c from Account where S4SCID_Number__c = '@{json(variables('Accounts'))?['Account_List']?[0]?['GP_NR']}' "
+                                                                        },
+                                                                        "host": {
+                                                                            "connection": {
+                                                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                            }
+                                                                        },
+                                                                        "method": "post",
+                                                                        "path": "/soql/executesoqlquery"
+                                                                    },
+                                                                    "runAfter": {
+                                                                        "Invoke_cmd_data_exchange_validation": [
+                                                                            "Succeeded"
+                                                                        ]
+                                                                    },
+                                                                    "type": "ApiConnection"
+                                                                },
+                                                                "Invoke_cmd_data_exchange_validation": {
+                                                                    "inputs": {
+                                                                        "body": {
+                                                                            "COUNTRY": "@{json(variables('Accounts'))?['Account_List']?[0]?['COUNTRY']}",
+                                                                            "NAME1": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME1']}",
+                                                                            "NAME1_I": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME1_I']}",
+                                                                            "NAME2": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME2']}",
+                                                                            "NAME2_I": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME2_I']}",
+                                                                            "NAME3": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME3']}",
+                                                                            "NAME3_I": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME3_I']}",
+                                                                            "STREET": "@{json(variables('Accounts'))?['Account_List']?[0]?['STREET']}",
+                                                                            "STREET_2": "@{json(variables('Accounts'))?['Account_List']?[0]?['STREET2']}"
+                                                                        },
+                                                                        "host": {
+                                                                            "triggerName": "manual",
+                                                                            "workflow": {
+                                                                                "id": "${CMD_internal_SIE_SF4S_dataEXvalidation_logicAppId}"
+                                                                            }
+                                                                        }
+                                                                    },
+                                                                    "runAfter": {
+                                                                        "Condition_to_check_region,regionI": [
+                                                                            "Succeeded"
+                                                                        ]
+                                                                    },
+                                                                    "type": "Workflow"
+                                                                }
+                                                            },
+                                                            "else": {
+                                                                "actions": {
+                                                                    "Condition_to_check_PO_BOX": {
+                                                                        "actions": {
+                                                                            "Insert_or_Update_(Upsert)_a_Record_by_External_ID_5": {
+                                                                                "inputs": {
+                                                                                    "body": {
+                                                                                        "BillingCity": "@{json(variables('Accounts'))?['Account_List']?[0]?['CITY']}",
+                                                                                        "BillingCountry": "@{json(variables('Accounts'))?['Account_List']?[0]?['COUNTRY']}",
+                                                                                        "BillingCountryCode": "@{json(variables('Accounts'))?['Account_List']?[0]?['COUNTRY']}",
+                                                                                        "BillingPostalCode": "@{json(variables('Accounts'))?['Account_List']?[0]?['POSTAL_CODE']}",
+                                                                                        "BillingState": "@{json(variables('Accounts'))?['Account_List']?[0]?['REGION']}",
+                                                                                        "BillingStreet": "@{body('Invoke_cmd_dataEXvalidation')?['Street_Concat']}",
+                                                                                        "Name": "@{body('Invoke_cmd_dataEXvalidation')?['Name_Concat']}",
+                                                                                        "S4SAccount_Name_International__c": "@{body('Invoke_cmd_dataEXvalidation')?['Name_Inter_Concat']}",
+                                                                                        "S4SCID_Number__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['GP_NR']}",
+                                                                                        "S4SCMD_KUKLA__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['KUKLA']}",
+                                                                                        "S4SCMD_NAME1_I__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME1_I']}",
+                                                                                        "S4SCMD_NAME1__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME1']}",
+                                                                                        "S4SCMD_NAME2_I__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME2_I']}",
+                                                                                        "S4SCMD_NAME2__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME2']}",
+                                                                                        "S4SCMD_NAME3_I__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME3_I']}",
+                                                                                        "S4SCMD_NAME3__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME3']}",
+                                                                                        "S4SCMD_REGION__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['REGION']}",
+                                                                                        "S4SCMD_STREET2__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['STREET2']}",
+                                                                                        "S4SCMD_STREET__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['STREET']}",
+                                                                                        "S4SCity_PO_Box_International__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['CITY_PO_BOX_I']}",
+                                                                                        "S4SCity_PO_Box__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['CITY_PO_BOX']}",
+                                                                                        "S4SCompany_Postal_Code__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['COMPANY_PSTCD']}",
+                                                                                        "S4SDUNS__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['DUNS']}",
+                                                                                        "S4SDuplicate_IfA_Number__c": "",
+                                                                                        "S4SISIC__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['ISIC']}",
+                                                                                        "S4SIfA__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['IFA_NR']}",
+                                                                                        "S4SInternational_City__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['CITY_I']}",
+                                                                                        "S4SInternational_CountryGP__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['COUNTRY']}",
+                                                                                        "S4SInternational_RegionGP__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['REGION_I']}",
+                                                                                        "S4SInternational_Steet_Name_2__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['STREET2_I']}",
+                                                                                        "S4SInternational_Street_Name_1__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['STREET_I']}",
+                                                                                        "S4SMD_Status__c": "Managed in CMD",
+                                                                                        "S4SNat_Company_ID__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAT_ID']}",
+                                                                                        "S4SNotification_from_CMD__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['INFO']}",
+                                                                                        "S4SPO_Box_Postcode__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['POSTAL_CODE_POB']}",
+                                                                                        "S4SPrevious_IfA_Number__c": "@{json(string(body('FetchID-final')?['records']?[0]))?['S4SIfA__c']}",
+                                                                                        "S4STax_ID__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['SALESTAX_ID']}"
+                                                                                    },
+                                                                                    "host": {
+                                                                                        "connection": {
+                                                                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                                        }
+                                                                                    },
+                                                                                    "method": "patch",
+                                                                                    "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Account'))}/externalIdFields/@{encodeURIComponent(encodeURIComponent('Id'))}/@{encodeURIComponent(encodeURIComponent(json(string(body('FetchID-final')?['records']?[0]))?['Id']))}"
+                                                                                },
+                                                                                "runAfter": {},
+                                                                                "type": "ApiConnection"
+                                                                            }
+                                                                        },
+                                                                        "else": {
+                                                                            "actions": {
+                                                                                "Insert_or_Update_(Upsert)_a_Record_by_External_ID_6": {
+                                                                                    "inputs": {
+                                                                                        "body": {
+                                                                                            "BillingCity": "@{json(variables('Accounts'))?['Account_List']?[0]?['CITY']}",
+                                                                                            "BillingCountry": "@{json(variables('Accounts'))?['Account_List']?[0]?['COUNTRY']}",
+                                                                                            "BillingCountryCode": "@{json(variables('Accounts'))?['Account_List']?[0]?['COUNTRY']}",
+                                                                                            "BillingPostalCode": "@{json(variables('Accounts'))?['Account_List']?[0]?['POSTAL_CODE']}",
+                                                                                            "BillingState": "@{json(variables('Accounts'))?['Account_List']?[0]?['REGION']}",
+                                                                                            "BillingStreet": "@body('Invoke_cmd_dataEXvalidation')?['Street_Concat']",
+                                                                                            "Name": "@body('Invoke_cmd_dataEXvalidation')?['Name_Concat']",
+                                                                                            "S4SAccount_Name_International__c": "@body('Invoke_cmd_dataEXvalidation')?['Name_Inter_Concat']",
+                                                                                            "S4SCID_Number__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['GP_NR']}",
+                                                                                            "S4SCMD_KUKLA__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['KUKLA']}",
+                                                                                            "S4SCMD_NAME1_I__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME1_I']}",
+                                                                                            "S4SCMD_NAME1__c": "@{json(variables('Accounts'))?['Account_List']?[0]['NAME1']}",
+                                                                                            "S4SCMD_NAME2_I__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME2_I']}",
+                                                                                            "S4SCMD_NAME2__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME2']}",
+                                                                                            "S4SCMD_NAME3_I__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME3_I']}",
+                                                                                            "S4SCMD_NAME3__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME3']}",
+                                                                                            "S4SCMD_REGION__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['REGION']}",
+                                                                                            "S4SCMD_STREET2__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['STREET_2']}",
+                                                                                            "S4SCMD_STREET__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['STREET']}",
+                                                                                            "S4SCity_PO_Box_International__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['CITY_PO_BOX_I']}",
+                                                                                            "S4SCity_PO_Box__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['CITY_PO_BOX']}",
+                                                                                            "S4SCompany_Postal_Code__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['COMPANY_PSTCD']}",
+                                                                                            "S4SDUNS__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['DUNS']}",
+                                                                                            "S4SDuplicate_IfA_Number__c": "",
+                                                                                            "S4SISIC__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['ISIC']}",
+                                                                                            "S4SIfA__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['IFA_NR']}",
+                                                                                            "S4SInternational_City__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['CITY_I']}",
+                                                                                            "S4SInternational_CountryGP__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['COUNTRY']}",
+                                                                                            "S4SInternational_RegionGP__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['REGION_I']}",
+                                                                                            "S4SInternational_Steet_Name_2__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['STREET2_I']}",
+                                                                                            "S4SInternational_Street_Name_1__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['STREET_I']}",
+                                                                                            "S4SMD_Status__c": "Managed in CMD",
+                                                                                            "S4SNat_Company_ID__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAT_ID']}",
+                                                                                            "S4SNotification_from_CMD__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['INFO']}",
+                                                                                            "S4SPO_Box_Postcode__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['POSTAL_CODE_POB']}",
+                                                                                            "S4SPrevious_IfA_Number__c": "@{json(string(body('FetchID-final')?['records']?[0]))?['S4SIfA__c']}",
+                                                                                            "S4SPO_box__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['PO_BOX']}",
+                                                                                            "S4STax_ID__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['SALESTAX_ID']}"
+                                                                                        },
+                                                                                        "host": {
+                                                                                            "connection": {
+                                                                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                                            }
+                                                                                        },
+                                                                                        "method": "patch",
+                                                                                        "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Account'))}/externalIdFields/@{encodeURIComponent(encodeURIComponent('Id'))}/@{encodeURIComponent(encodeURIComponent(json(string(body('FetchID-final')))?['records']?[0]?['Id']))}"
+                                                                                    },
+                                                                                    "runAfter": {},
+                                                                                    "type": "ApiConnection"
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "expression": {
+                                                                            "or": [
+                                                                                {
+                                                                                    "equals": [
+                                                                                        "@json(variables('Accounts'))?['Account_List']?[0]?['PO_BOX']",
+                                                                                        ""
+                                                                                    ]
+                                                                                },
+                                                                                {
+                                                                                    "equals": [
+                                                                                        "@json(variables('Accounts'))?['Account_List']?[0]?['PO_BOX']",
+                                                                                        "@null"
+                                                                                    ]
+                                                                                }
+                                                                            ]
+                                                                        },
+                                                                        "runAfter": {
+                                                                            "FetchID-final": [
+                                                                                "Succeeded"
+                                                                            ]
+                                                                        },
+                                                                        "type": "If"
+                                                                    },
+                                                                    "FetchID-final": {
+                                                                        "inputs": {
+                                                                            "body": {
+                                                                                "query": "Select Id,S4SIfA__c from Account where S4SCID_Number__c = '@{json(variables('Accounts'))?['Account_List']?[0]?['GP_NR']}'"
+                                                                            },
+                                                                            "host": {
+                                                                                "connection": {
+                                                                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                                }
+                                                                            },
+                                                                            "method": "post",
+                                                                            "path": "/soql/executesoqlquery"
+                                                                        },
+                                                                        "runAfter": {
+                                                                            "Invoke_cmd_dataEXvalidation": [
+                                                                                "Succeeded"
+                                                                            ]
+                                                                        },
+                                                                        "type": "ApiConnection"
+                                                                    },
+                                                                    "Invoke_cmd_dataEXvalidation": {
+                                                                        "inputs": {
+                                                                            "body": {
+                                                                                "COUNTRY": "@{json(variables('Accounts'))?['Account_List']?[0]?['COUNTRY']}",
+                                                                                "NAME1": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME1']}",
+                                                                                "NAME1_I": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME1_I']}",
+                                                                                "NAME2": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME2']}",
+                                                                                "NAME2_I": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME2_I']}",
+                                                                                "NAME3": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME3']}",
+                                                                                "NAME3_I": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME3_I']}",
+                                                                                "STREET": "@{json(variables('Accounts'))?['Account_List']?[0]?['STREET']}",
+                                                                                "STREET_2": "@{json(variables('Accounts'))?['Account_List']?[0]?['STREET2']}"
+                                                                            },
+                                                                            "host": {
+                                                                                "triggerName": "manual",
+                                                                                "workflow": {
+                                                                                    "id": "${CMD_internal_SIE_SF4S_dataEXvalidation_logicAppId}"
+                                                                                }
+                                                                            },
+                                                                            "retryPolicy": {
+                                                                                "type": "none"
+                                                                            }
+                                                                        },
+                                                                        "runAfter": {
+                                                                            "region_and_region_I_check": [
+                                                                                "Succeeded"
+                                                                            ]
+                                                                        },
+                                                                        "type": "Workflow"
+                                                                    },
+                                                                    "region_and_region_I_check": {
+                                                                        "actions": {
+                                                                            "Compose_Account_List_with_REGION_and_REGION_I": {
+                                                                                "inputs": {
+                                                                                    "Account_list": [
+                                                                                        {
+                                                                                            "ACTION": "@{items('For_each__on_AccountList')?['ACTION']}",
+                                                                                            "CITY": "@{items('For_each__on_AccountList')?['CITY']}",
+                                                                                            "CITY_I": "@{items('For_each__on_AccountList')?['CITY_I']}",
+                                                                                            "CITY_PO_BOX": "@{items('For_each__on_AccountList')?['CITY_PO_BOX']}",
+                                                                                            "COMPANY_PSTCD": "@{items('For_each__on_AccountList')?['COMPANY_PSTCD']}",
+                                                                                            "COUNTRY": "@{items('For_each__on_AccountList')?['COUNTRY']}",
+                                                                                            "DUNS": "@{items('For_each__on_AccountList')?['DUNS']}",
+                                                                                            "GP_NR": "@{items('For_each__on_AccountList')?['GP_NR']}",
+                                                                                            "IFA_NR": "@{items('For_each__on_AccountList')?['IFA_NR']}",
+                                                                                            "INFO": "@{items('For_each__on_AccountList')?['INFO']}",
+                                                                                            "ISIC": "@{items('For_each__on_AccountList')?['ISIC']}",
+                                                                                            "KUKLA": "@{items('For_each__on_AccountList')?['KUKLA']}",
+                                                                                            "LEGAL_STATUS": "@{items('For_each__on_AccountList')?['LEGAL_STATUS']}",
+                                                                                            "NAME1": "@{items('For_each__on_AccountList')?['NAME1']}",
+                                                                                            "NAME1_I": "@{items('For_each__on_AccountList')?['NAME1_I']}",
+                                                                                            "NAME2": "@{items('For_each__on_AccountList')?['NAME2']}",
+                                                                                            "NAME2_I": "@{items('For_each__on_AccountList')?['NAME2_I']}",
+                                                                                            "NAME3": "@{items('For_each__on_AccountList')?['NAME3']}",
+                                                                                            "NAME3_I": "@{items('For_each__on_AccountList')?['NAME3_I']}",
+                                                                                            "NAT_ID": "@{items('For_each__on_AccountList')?['NAT_ID']}",
+                                                                                            "POSTAL_CODE": "@{items('For_each__on_AccountList')?['POSTAL_CODE']}",
+                                                                                            "POSTAL_CODE_POB": "@{items('For_each__on_AccountList')?['POSTAL_CODE_POB']}",
+                                                                                            "PO_BOX": "@{items('For_each__on_AccountList')?['PO_BOX']}",
+                                                                                            "REGION": "@{concat(items('For_each__on_AccountList')?['COUNTRY'],'_',items('For_each__on_AccountList')?['REGION'])}",
+                                                                                            "REGION_I": "@{concat(items('For_each__on_AccountList')?['COUNTRY'],'_',items('For_each__on_AccountList')?['REGION_I'])}",
+                                                                                            "SALESTAX_ID": "@{items('For_each__on_AccountList')?['SALESTAX_ID']}",
+                                                                                            "STREET": "@{items('For_each__on_AccountList')?['STREET']}",
+                                                                                            "STREET2": "@{items('For_each__on_AccountList')?['STREET2']}",
+                                                                                            "STREET2_I": "@{items('For_each__on_AccountList')?['STREET2_I']}",
+                                                                                            "STREET_I": "@{items('For_each__on_AccountList')?['STREET_I']}"
+                                                                                        }
+                                                                                    ]
+                                                                                },
+                                                                                "runAfter": {},
+                                                                                "type": "Compose"
+                                                                            },
+                                                                            "Set_accountList": {
+                                                                                "inputs": {
+                                                                                    "name": "Accounts",
+                                                                                    "value": "@{outputs('Compose_Account_List_with_REGION_and_REGION_I')}"
+                                                                                },
+                                                                                "runAfter": {
+                                                                                    "Compose_Account_List_with_REGION_and_REGION_I": [
+                                                                                        "Succeeded"
+                                                                                    ]
+                                                                                },
+                                                                                "type": "SetVariable"
+                                                                            }
+                                                                        },
+                                                                        "else": {
+                                                                            "actions": {
+                                                                                "AccountList": {
+                                                                                    "inputs": {
+                                                                                        "name": "Accounts",
+                                                                                        "value": "@{outputs('Compose_Accounts_List_without_REGION_and_REGION_I')}"
+                                                                                    },
+                                                                                    "runAfter": {
+                                                                                        "Compose_Accounts_List_without_REGION_and_REGION_I": [
+                                                                                            "Succeeded"
+                                                                                        ]
+                                                                                    },
+                                                                                    "type": "SetVariable"
+                                                                                },
+                                                                                "Compose_Accounts_List_without_REGION_and_REGION_I": {
+                                                                                    "inputs": {
+                                                                                        "Account_list": [
+                                                                                            {
+                                                                                                "ACTION": "@{items('For_each__on_AccountList')?['ACTION']}",
+                                                                                                "CITY": "@{items('For_each__on_AccountList')?['CITY']}",
+                                                                                                "CITY_I": "@{items('For_each__on_AccountList')?['CITY_I']}",
+                                                                                                "CITY_PO_BOX": "@{items('For_each__on_AccountList')?['CITY_PO_BOX']}",
+                                                                                                "COMPANY_PSTCD": "@{items('For_each__on_AccountList')?['COMPANY_PSTCD']}",
+                                                                                                "COUNTRY": "@{items('For_each__on_AccountList')?['COUNTRY']}",
+                                                                                                "DUNS": "@{items('For_each__on_AccountList')?['DUNS']}",
+                                                                                                "GP_NR": "@{items('For_each__on_AccountList')?['GP_NR']}",
+                                                                                                "IFA_NR": "@{items('For_each__on_AccountList')?['IFA_NR']}",
+                                                                                                "INFO": "@{items('For_each__on_AccountList')?['INFO']}",
+                                                                                                "ISIC": "@{items('For_each__on_AccountList')?['ISIC']}",
+                                                                                                "KUKLA": "@{items('For_each__on_AccountList')?['KUKLA']}",
+                                                                                                "LEGAL_STATUS": "@{items('For_each__on_AccountList')?['LEGAL_STATUS']}",
+                                                                                                "NAME1": "@{items('For_each__on_AccountList')?['NAME1']}",
+                                                                                                "NAME1_I": "@{items('For_each__on_AccountList')?['NAME1_I']}",
+                                                                                                "NAME2": "@{items('For_each__on_AccountList')?['NAME2']}",
+                                                                                                "NAME2_I": "@{items('For_each__on_AccountList')?['NAME2_I']}",
+                                                                                                "NAME3": "@{items('For_each__on_AccountList')?['NAME3']}",
+                                                                                                "NAME3_I": "@{items('For_each__on_AccountList')?['NAME3_I']}",
+                                                                                                "NAT_ID": "@{items('For_each__on_AccountList')?['NAT_ID']}",
+                                                                                                "POSTAL_CODE": "@{items('For_each__on_AccountList')?['POSTAL_CODE']}",
+                                                                                                "POSTAL_CODE_POB": "@{items('For_each__on_AccountList')?['POSTAL_CODE_POB']}",
+                                                                                                "PO_BOX": "@{items('For_each__on_AccountList')?['PO_BOX']}",
+                                                                                                "SALESTAX_ID": "@{items('For_each__on_AccountList')?['SALESTAX_ID']}",
+                                                                                                "STREET": "@{items('For_each__on_AccountList')?['STREET']}",
+                                                                                                "STREET2": "@{items('For_each__on_AccountList')?['STREET2']}",
+                                                                                                "STREET2_I": "@{items('For_each__on_AccountList')?['STREET2_I']}",
+                                                                                                "STREET_I": "@{items('For_each__on_AccountList')?['STREET_I']}"
+                                                                                            }
+                                                                                        ]
+                                                                                    },
+                                                                                    "runAfter": {},
+                                                                                    "type": "Compose"
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "expression": {
+                                                                            "and": [
+                                                                                {
+                                                                                    "not": {
+                                                                                        "equals": [
+                                                                                            "@{items('For_each__on_AccountList')?['REGION']}",
+                                                                                            ""
+                                                                                        ]
+                                                                                    }
+                                                                                },
+                                                                                {
+                                                                                    "not": {
+                                                                                        "equals": [
+                                                                                            "@{items('For_each__on_AccountList')?['REGION']}",
+                                                                                            "@null"
+                                                                                        ]
+                                                                                    }
+                                                                                },
+                                                                                {
+                                                                                    "and": [
+                                                                                        {
+                                                                                            "not": {
+                                                                                                "equals": [
+                                                                                                    "@items('For_each__on_AccountList')?['REGION_I']",
+                                                                                                    ""
+                                                                                                ]
+                                                                                            }
+                                                                                        },
+                                                                                        {
+                                                                                            "not": {
+                                                                                                "equals": [
+                                                                                                    "@items('For_each__on_AccountList')?['REGION_I']",
+                                                                                                    "@null"
+                                                                                                ]
+                                                                                            }
+                                                                                        }
+                                                                                    ]
+                                                                                },
+                                                                                {   
+                                                                                "not":{
+                                                                                    "contains": [
+                                                                                        "@variables('regionConfig')",
+                                                                                        "@items('For_each__on_AccountList')?['COUNTRY']"
+                                                                                    ]
+                                                                                }
+                                                                            }
+                                                                            ]
+                                                                        },
+                                                                        "runAfter": {},
+                                                                        "type": "If"
+                                                                    }
+                                                                }
+                                                            },
+                                                            "expression": {
+                                                                "and": [
+                                                                    {
+                                                                        "greater": [
+                                                                            "@length(array(body('Execute_a_SOQL_query_on_Fetch__IFA')?['records']))",
+                                                                            0
+                                                                        ]
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "runAfter": {
+                                                                "Execute_a_SOQL_query_on_Fetch__IFA": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "If"
+                                                        },
+                                                        "Execute_a_SOQL_query_on_Fetch__IFA": {
+                                                            "inputs": {
+                                                                "body": {
+                                                                    "query": "Select S4SCID_Number__c from Account where  S4SIfA__c = '@{items('For_each__on_AccountList')?['IFA_NR']}' "
+                                                                },
+                                                                "host": {
+                                                                    "connection": {
+                                                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                    }
+                                                                },
+                                                                "method": "post",
+                                                                "path": "/soql/executesoqlquery"
+                                                            },
+                                                            "runAfter": {},
+                                                            "type": "ApiConnection"
+                                                        }
+                                                    }
+                                                },
+                                                "expression": {
+                                                    "and": [
+                                                        {
+                                                            "equals": [
+                                                                "@items('For_each__on_AccountList')['IFA_NR']",
+                                                                "0000000000"
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                "runAfter": {},
+                                                "type": "If"
+                                            }
+                                        }
+                                    },
+                                    "expression": {
+                                        "and": [
+                                            {
+                                                "equals": [
+                                                    "@items('For_each__on_AccountList')['ACTION']",
+                                                    "V"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "runAfter": {
+                                        "Execute_a_SOQL_query": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "If"
+                                },
+                                "Execute_a_SOQL_query": {
+                                    "inputs": {
+                                        "body": {
+                                            "query": "Select Id,IsDeleted,Name,BillingStreet,BillingCity,BillingState,BillingPostalCode,BillingCountry,BillingCountryCode,BillingAddress,ShippingStreet,ShippingCity,ShippingState,ShippingPostalCode,ShippingCountry,Website,Ownership,CreatedDate,LastModifiedDate,S4SAccount_Name_International__c,S4SCID_Number__c,S4SCMD_KUKLA__c,S4SCMD_NAME1__c,S4SCMD_NAME2__c,S4SCMD_NAME3__c,S4SCMD_REGION__c,S4SCity_PO_Box_International__c,S4SCity_PO_Box__c,S4SCompany_Postal_Code__c,S4SDUNS__c,S4SDomestic_Ultimate_DUNS__c,S4SGlobal_Ultimate_DUNS__c,S4SISIC__c,S4SIfA__c,S4SInternational_City__c,S4SInternational_CountryGP__c,S4SInternational_Country__c,S4SInternational_Postal_Code__c,S4SInternational_RegionGP__c,S4SInternational_Region__c,S4SInternational_Steet_Name_2__c,S4SInternational_Street_Name_1__c,S4SLegalOwner__c,S4SMD_Status__c,S4SNat_Company_ID__c,S4SNo_Legal_Form_available__c,S4SNotification_from_CMD__c,S4SPO_Box_Postcode__c,S4SPO_box__c,S4SSISIC_Direct__c,S4STax_ID__c,LastModifiedBy.LastModifiedDate from Account where S4SCID_Number__c = '@{items('For_each__on_AccountList')['GP_NR']}' "
+                                        },
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "path": "/soql/executesoqlquery"
+                                    },
+                                    "runAfter": {},
+                                    "type": "ApiConnection"
+                                }
+                            },
+                            "runAfter": {},
+                            "trackedProperties": {
+                                "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+                                "citizenName": "c00031",
+                                "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'CMD')}",
+                                "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'CMD')}",
+                                "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                                "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'AccountGET_Japan')}",
+                                "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+                                "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                                "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+                            },
+                            "type": "Scope"
+                        }
+                    },
+                    "foreach": "@json(string(variables('FuncOutput')))?['Account_List']",
+                    "runAfter": {},
+                    "type": "Foreach"
+                },
+                "Success": {
+                    "inputs": {
+                        "runStatus": "Succeeded"
+                    },
+                    "runAfter": {
+                        "Response_-_Account_List": [
+                            "Failed",
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                },
+                "Response_-_Account_List": {
+                    "inputs": {
+                        "body": "Logic App Execution",
+                        "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "For_each__on_AccountList": [
+                            "Failed",
+                            "Skipped",
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
+                }
+            },
+            "else": {
+                "actions": {
+                    "Terminate_2": {
+                        "inputs": {
+                            "runStatus": "Failed"
+                        },
+                        "runAfter": {
+                            "Failed_Response": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Terminate"
+                    },
+                    "Failed_Response": {
+                        "inputs": {
+                            "statusCode": 500
+                        },
+                        "kind": "http",
+                        "runAfter": {},
+                        "type": "Response"
+                    }
+                }
+            },
+            "expression": {
+                "and": [
+                    {
+                        "not": {
+                            "equals": [
+                                "@variables('FuncOutput')",
+                                "@null"
+                            ]
+                        }
+                    },
+                    {
+                        "not": {
+                            "equals": [
+                                "@variables('FuncOutput')",
+                                ""
+                            ]
+                        }
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_variable_Accounts": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_FuncOutput": [
+                    "Succeeded"
+                ],
+                 "Initialize_variable_regionConfig": [
+                        "Succeeded"
+                    ]
+            },
+            "type": "If"
+        },
+        "Initialize_variable_Accounts": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "Accounts",
+                        "type": "string",
+                        "value": "@triggerBody()?['Accounts']"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_FuncOutput": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "FuncOutput",
+                        "type": "string",
+                        "value": "@triggerBody()?['FuncOutput']"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_regionConfig": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "regionConfig",
+                            "type": "string",
+                            "value": "@triggerBody()?['RegionConfig']"
+                        }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+           "inputs": {
+                "schema": {
+                    "properties": {
+                        "Accounts": {
+                            "type": "string"
+                        },
+                        "FuncOutput": {
+                            "type": "string"
+                        },
+                        "RegionConfig": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                }
+           },
+          "kind": "Http",
+          "type": "Request"
+        }
+    }
+}

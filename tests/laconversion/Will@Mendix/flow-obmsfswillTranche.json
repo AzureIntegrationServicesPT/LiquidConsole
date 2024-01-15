@@ -1,0 +1,396 @@
+{    
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "GetConfiguration": {
+                "inputs": {
+                    "body": {
+                        "key": "obm-config"
+                    },
+                    "host": {
+                        "triggerName": "manual",
+                        "workflow": {
+                            "id": "${getConfiguration_logicAppId}"
+                        }
+                    },
+                    "retryPolicy": {
+                        "type": "none"
+                    }
+                },
+                "runAfter": {},
+                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                "type": "Workflow"
+            },
+            "Initialize_variable_'WillRequest'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "WillRequest",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_'result'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "result",
+                            "type": "array"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_'varOpportunityId'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "OpportunityId",
+                            "type": "string",
+                            "value": "@{trim(xpath(xml(triggerBody()),'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"notifications\"]/*[local-name()=\"Notification\"]/*[local-name()=\"sObject\"]/*[local-name()=\"S4SRelated_Opportunity__c\"])'))}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_'varResponse'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "Response",
+                            "type": "string",
+                            "value": "<soapenv:Envelope \nxmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" \nxmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <out:notificationsResponse>\n         <out:Ack>##RESULT##</out:Ack>\n      </out:notificationsResponse>\n   </soapenv:Body>\n</soapenv:Envelope>"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Scope-CatchExternalWillMendixService": {
+                "actions": {
+                    "Response": {
+                        "inputs": {
+                            "body": "@replace(variables('Response'),'##RESULT##','0')",
+                            "headers": {
+                                "Content-Type": "text/xml"
+                            },
+                            "statusCode": 200
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                         "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                        "type": "Response"
+                    },
+                    "Terminate-Catch-Response": {
+                        "inputs": {
+                            "runStatus": "Failed"
+                        },
+                        "runAfter": {
+                            "Response": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Terminate"
+                    }
+                },
+                "runAfter": {
+                    "Scope-TryExternalWillMendixService": [
+                        "Failed"
+                    ]
+                },
+                "type": "Scope"
+            },
+            "Scope-TryExternalWillMendixService": {
+                "actions": {
+                    "Condition-CheckOpportunityId": {
+                        "actions": {
+                            "ConditionToCheckResponse": {
+                                "actions": {
+                                    "Append_to_array_result": {
+                                        "inputs": {
+                                            "name": "result",
+                                            "value": "@concat('SUCCESS:',string(''''),outputs('HTTP-ExternalWillMendixService')['statusCode'],string(''''))"
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToArrayVariable"
+                                    },
+                                    "SuccessResponse": {
+                                        "inputs": {
+                                            "body": "@replace(variables('Response'),'##RESULT##','1')",
+                                            "headers": {
+                                                "Content-Type": "text/xml"
+                                            },
+                                            "statusCode": "@outputs('HTTP-ExternalWillMendixService')['statusCode']"
+                                        },
+                                        "kind": "Http",
+                                        "runAfter": {
+                                            "Append_to_array_result": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                         "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                                        "type": "Response"
+                                    }
+                                },
+                                "else": {
+                                    "actions": {
+                                        "Append_to_array_error": {
+                                            "inputs": {
+                                                "name": "result",
+                                                "value": "@concat('ERROR:',string(''''),outputs('HTTP-ExternalWillMendixService')['statusCode'],string(''''))"
+                                            },
+                                            "runAfter": {},
+                                            "type": "AppendToArrayVariable"
+                                        },
+                                        "FailedResponse": {
+                                            "inputs": {
+                                                "body": "@replace(variables('Response'),'##RESULT##','0')",
+                                                "headers": {
+                                                    "Content-Type": "text/xml"
+                                                },
+                                                "statusCode": "@outputs('HTTP-ExternalWillMendixService')['statusCode']"
+                                            },
+                                            "kind": "Http",
+                                            "runAfter": {
+                                                "Append_to_array_error": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                                            "type": "Response"
+                                        },
+                                        "Terminate-FailedResponse": {
+                                            "inputs": {
+                                                "runStatus": "Failed"
+                                            },
+                                            "runAfter": {
+                                                "FailedResponse": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "Terminate"
+                                        }
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "equals": [
+                                                "@outputs('HTTP-ExternalWillMendixService')['statusCode']",
+                                                200
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "HTTP-ExternalWillMendixService": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "HTTP-ExternalWillMendixService": {
+                                "inputs": {
+                                    "authentication": {
+                                        "password": "@json(body('GetConfiguration'))?['WillMendix']?['password']",
+                                        "type": "Basic",
+                                        "username": "@json(body('GetConfiguration'))?['WillMendix']?['username']"
+                                    },
+                                    "body": "@variables('WillRequest')",
+                                    "headers": {
+                                        "Accept": "application/json",
+                                        "Content-Type": "application/json",
+                                        "key": "@{json(body('GetConfiguration'))?['WillMendix']?['key']}"
+                                    },
+                                    "method": "POST",
+                                    "retryPolicy": {
+                                        "type": "none"
+                                    },
+                                    "uri": "@{json(body('GetConfiguration'))?['WillMendix']?['Url']}"
+                                },
+                                "runAfter": {
+                                    "Set_variable_WillRequest": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                "type": "Http"
+                            },
+                            "Set_variable_WillRequest": {
+                                "inputs": {
+                                    "name": "WillRequest",
+                                    "value": "{\n\"OpportunityId\": \"@{variables('OpportunityId')}\"\n}"
+                                },
+                                "runAfter": {},
+                                "type": "SetVariable"
+                            }
+                        },
+                        "else": {
+                            "actions": {
+                                "Failed-Response": {
+                                    "inputs": {
+                                        "body": "ERROR: no opportunity id provided",
+                                        "statusCode": 200
+                                    },
+                                    "kind": "Http",
+                                    "runAfter": {},
+                                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                                    "type": "Response"
+                                },
+                                "Terminate-Failed-Response": {
+                                    "inputs": {
+                                        "runStatus": "Failed"
+                                    },
+                                    "runAfter": {
+                                        "Failed-Response": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Terminate"
+                                }
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('OpportunityId')",
+                                            "@string('')"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('OpportunityId')",
+                                            "@null"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {},
+                        "type": "If"
+                    }
+                },
+                "runAfter": {
+                    "GetConfiguration": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_'WillRequest'": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_'result'": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_'varOpportunityId'": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_'varResponse'": [
+                        "Succeeded"
+                    ],
+                    "log_-_OpportunityID": [
+                        "Succeeded"
+                    ]
+                },
+                "trackedProperties": {
+                    "apimRouting": "external",
+                    "citizenName": "c00031",
+                    "correlationId": "not-defined",
+                    "interfaceName": "SFS",
+                    "interfacePartner": "not-defined",
+                    "interfaceVersion": "not-defined",
+                    "operationName": "Will_tranche",
+                    "parentWorkflow": "not-defined"
+                },
+                "type": "Scope"
+                },
+                "log_-_OpportunityID": {
+                    "inputs": {
+                        "body": {
+                            "message": "Opportunity Id is @{trim(xpath(xml(triggerBody()),'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"notifications\"]/*[local-name()=\"Notification\"]/*[local-name()=\"sObject\"]/*[local-name()=\"S4SRelated_Opportunity__c\"])'))} for OBM_SFS_Will Tranche",
+                            "severity": "INFO"
+                        },
+                        "host": {
+                            "triggerName": "manual",
+                            "workflow": {
+                                "id": "[parameters('sf4sLog_logicApp_id')]"
+                            }
+                        }
+                    },
+                    "runAfter": {},
+                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                    "type": "Workflow"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {},
+        "triggers": {
+            "manual": {
+                "inputs": {
+                    "schema": {}
+                },
+                "kind": "Http",
+                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                "type": "Request"
+            }
+        }    
+}

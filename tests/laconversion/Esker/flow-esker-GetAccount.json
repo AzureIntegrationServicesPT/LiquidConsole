@@ -1,0 +1,246 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "actions": {
+    "Scope": {
+      "actions": {
+        "Condition_Id": {
+          "actions": {
+            "Fetch_Account_by_Id": {
+              "inputs": {
+                "body": {
+                  "query": "@{variables('Select')} where id = '@{triggerBody()?['ID']}'"
+                },
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                  }
+                },
+                "method": "post",
+                "path": "/soql/executesoqlquery"
+              },
+              "runAfter": {},
+              "type": "ApiConnection"
+            },
+            "Response_Fail_by_Id": {
+              "inputs": {
+                "body": "@body('Fetch_Account_by_Id')",
+                "statusCode": 400
+              },
+              "kind": "Http",
+              "runAfter": {
+                "Fetch_Account_by_Id": ["Failed", "Skipped", "TimedOut"]
+              },
+              "type": "Response"
+            },
+            "Response_Success_by_Id": {
+              "inputs": {
+                "body": "@body('Fetch_Account_by_Id')",
+                "statusCode": 200
+              },
+              "kind": "Http",
+              "runAfter": {
+                "Fetch_Account_by_Id": ["Succeeded"]
+              },
+              "type": "Response"
+            },
+            "Terminate_Fail_by_Id": {
+              "inputs": {
+                "runError": {
+                  "code": "400",
+                  "message": "@{body('Fetch_Account_by_Id')}"
+                },
+                "runStatus": "Failed"
+              },
+              "runAfter": {
+                "Response_Fail_by_Id": ["Succeeded"]
+              },
+              "type": "Terminate"
+            },
+            "Terminate_Success_by_Id": {
+              "inputs": {
+                "runStatus": "Succeeded"
+              },
+              "runAfter": {
+                "Response_Success_by_Id": ["Succeeded"]
+              },
+              "type": "Terminate"
+            }
+          },
+          "expression": {
+            "and": [
+              {
+                "not": {
+                  "equals": ["@triggerBody()?['ID']", "@null"]
+                }
+              },
+              {
+                "not": {
+                  "equals": ["@length(triggerBody()?['ID'])", 0]
+                }
+              }
+            ]
+          },
+          "runAfter": {},
+          "type": "If"
+        },
+        "_Condition_IFA": {
+          "actions": {
+            "Fetch_Account_by_IFA": {
+              "inputs": {
+                "body": {
+                  "query": "@{variables('Select')} where S4SIfA__c='@{triggerBody()?['IFA']}'  and S4SIfA__c != ''"
+                },
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                  }
+                },
+                "method": "post",
+                "path": "/soql/executesoqlquery"
+              },
+              "runAfter": {},
+              "type": "ApiConnection"
+            },
+            "Response_Fail_by_IFA": {
+              "inputs": {
+                "body": "@body('Fetch_Account_by_IFA')",
+                "statusCode": 400
+              },
+              "kind": "Http",
+              "runAfter": {
+                "Fetch_Account_by_IFA": ["Failed", "Skipped", "TimedOut"]
+              },
+              "type": "Response"
+            },
+            "Response_Success_by_IFA": {
+              "inputs": {
+                "body": "@body('Fetch_Account_by_IFA')",
+                "statusCode": 200
+              },
+              "kind": "Http",
+              "runAfter": {
+                "Fetch_Account_by_IFA": ["Succeeded"]
+              },
+              "type": "Response"
+            },
+            "Terminate_Fail_by_IFA": {
+              "inputs": {
+                "runError": {
+                  "code": "400",
+                  "message": "@{body('Fetch_Account_by_IFA')}"
+                },
+                "runStatus": "Failed"
+              },
+              "runAfter": {
+                "Response_Fail_by_IFA": ["Succeeded"]
+              },
+              "type": "Terminate"
+            },
+            "Terminate_Success_by_IFA": {
+              "inputs": {
+                "runStatus": "Succeeded"
+              },
+              "runAfter": {
+                "Response_Success_by_IFA": ["Succeeded"]
+              },
+              "type": "Terminate"
+            }
+          },
+          "expression": {
+            "and": [
+              {
+                "not": {
+                  "equals": ["@triggerBody()?['IFA']", "@null"]
+                }
+              },
+              {
+                "not": {
+                  "equals": ["@length(triggerBody()?['IFA'])", 0]
+                }
+              }
+            ]
+          },
+          "runAfter": {
+            "Condition_Id": ["Succeeded", "Failed", "Skipped"]
+          },
+          "type": "If"
+        }
+      },
+      "runAfter": {
+        "Select": ["Succeeded"]
+      },
+      "trackedProperties": {
+        "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+        "citizenName": "c00031",
+        "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'Esker')}",
+        "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+        "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'non-defined')}",
+        "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'esker-GetAccount')}",
+        "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+        "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+        "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+        },
+      "type": "Scope"
+    },
+    "Select": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "Select",
+            "type": "string",
+            "value": "Select Id From Account "
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "Terminate": {
+      "inputs": {
+        "runError": {
+          "code": "400",
+          "message": "Provided fields did not match for valid Account fetch"
+        },
+        "runStatus": "Failed"
+      },
+      "runAfter": {
+        "Scope": ["Succeeded"]
+      },
+      "type": "Terminate"
+    }
+  },
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {
+    "$connections": {
+      "defaultValue": {},
+      "type": "Object"
+    }
+  },
+  "triggers": {
+    "manual": {
+      "inputs": {
+        "schema": {
+          "properties": {
+            "ID": {
+              "type": "string"
+            },
+            "IFA": {
+              "type": "string"
+            },
+            "S4SIDENTIFICATION_NUMBER__c": {
+              "type": "string"
+            },
+            "SOURCESYSTEM": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "kind": "Http",
+      "type": "Request"
+    }
+  }
+}

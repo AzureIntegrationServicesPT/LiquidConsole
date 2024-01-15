@@ -1,0 +1,1481 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Initialize_File_Response": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "FilesResponse",
+                        "type": "array"
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_variable": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Initialize_Record_Id": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "RecordId",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_variable": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "insightId",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Scope-Catch": {
+            "actions": {
+                "Create_Error_Response": {
+                    "inputs": {
+                        "content": {
+                            "response": {
+                                "Attachment": "@variables('FilesResponse')",
+                                "created": "false",
+                                "errors": [
+                                    {
+                                        "message": "Unexpected error occured. Please find more details using tracking id : @{workflow()['run']['name']}",
+                                        "statusCode": "Error"
+                                    }
+                                ],
+                                "id": "@variables('RecordId')",
+                                "success": "error"
+                            }
+                        },
+                        "schema": {
+                            "properties": {
+                                "response": {
+                                    "properties": {
+                                        "Attachment": {
+                                            "items": {
+                                                "properties": {
+                                                    "created": {
+                                                        "type": "string"
+                                                    },
+                                                    "errors": {
+                                                        "items": {
+                                                            "properties": {
+                                                                "message": {
+                                                                    "type": "string"
+                                                                },
+                                                                "statusCode": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "message",
+                                                                "statusCode"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        "type": "array"
+                                                    },
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "success": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "created",
+                                                    "success",
+                                                    "errors"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        },
+                                        "created": {
+                                            "type": "string"
+                                        },
+                                        "errors": {
+                                            "items": {
+                                                "properties": {
+                                                    "message": {
+                                                        "type": "string"
+                                                    },
+                                                    "statusCode": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "message",
+                                                    "statusCode"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        },
+                                        "id": {
+                                            "type": "string"
+                                        },
+                                        "success": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "runAfter": {},
+                    "type": "ParseJson"
+                },
+                "Response": {
+                    "inputs": {
+                        "body": "@body('Create_Error_Response')",
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "Create_Error_Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
+                },
+                "Terminate_as_failure": {
+                    "inputs": {
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Scope-Try": [
+                    "Failed"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope-Try": {
+            "actions": {
+                "Condition": {
+                    "actions": {
+                        "Check_Insight_found_or_not": {
+                            "actions": {
+                                "Create_record": {
+                                    "inputs": {
+                                        "body": {
+                                            "Name": "@triggerBody()?['Insight']?['Name']",
+                                            "OwnerId": "@{if(equals(body('Fetch_User')?['totalSize'],0),triggerBody()?['Insight']?['OwnerId'],body('Fetch_User')?['records']?[0]?['Id'])}",
+                                            "S4SBusiness_Responsible__c": "@triggerBody()?['Insight']?['S4SBusiness_Responsible__c']",
+                                            "S4SDescription__c": "@triggerBody()?['Insight']?['S4SDescription__c']",
+                                            "S4SExternal_Source__c": "@triggerBody()?['Insight']?['S4SExternal_Source__c']",
+                                            "S4SMarked_for_Deletion__c": "@triggerBody()?['Insight']?['S4SMarked_for_Deletion__c']",
+                                            "S4SScenario_ID__c": "@triggerBody()?['Insight']?['S4SScenario_ID__c']",
+                                            "S4SScenario_Main_Group__c": "@triggerBody()?['Insight']?['S4SScenario_Main_Group__c']",
+                                            "S4SScenario_Sub_Group__c": "@triggerBody()?['Insight']?['S4SScenario_Sub_Group__c']"
+                                        },
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SInsights__c'))}/items"
+                                    },
+                                    "runAfter": {},
+                                    "type": "ApiConnection"
+                                },
+                                "Set_Create_Record_Id": {
+                                    "inputs": {
+                                        "name": "RecordId",
+                                        "value": "@body('Create_record')?['Id']"
+                                    },
+                                    "runAfter": {
+                                        "Create_record": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "SetVariable"
+                                },
+                                "Set_Created_to_true": {
+                                    "inputs": {
+                                        "name": "isCreated",
+                                        "value": "@{string('true')}"
+                                    },
+                                    "runAfter": {
+                                        "Create_record": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "SetVariable"
+                                },
+                                "catch_-_create_record": {
+                                    "actions": {
+                                        "Send_error_response": {
+                                            "inputs": {
+                                                "body": {
+                                                    "Error": "@{body('Create_record')?['message']}"
+                                                },
+                                                "statusCode": 500
+                                            },
+                                            "kind": "Http",
+                                            "runAfter": {},
+                                            "type": "Response"
+                                        },
+                                        "Terminate": {
+                                            "inputs": {
+                                                "runStatus": "Succeeded"
+                                            },
+                                            "runAfter": {
+                                                "Send_error_response": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "Terminate"
+                                        }
+                                    },
+                                    "runAfter": {
+                                        "Set_Create_Record_Id": [
+                                            "Skipped",
+                                            "Failed",
+                                            "TimedOut"
+                                        ],
+                                        "Set_Created_to_true": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Scope"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "Try_Update_Insight": {
+                                        "actions": {
+                                            "Get_record": {
+                                                "inputs": {
+                                                    "host": {
+                                                        "connection": {
+                                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                        }
+                                                    },
+                                                    "method": "get",
+                                                    "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SInsights__c'))}/items/@{encodeURIComponent(encodeURIComponent(variables('insightId')))}"
+                                                },
+                                                "runAfter": {},
+                                                "type": "ApiConnection"
+                                            },
+                                            "Set_Update_Record_Id": {
+                                                "inputs": {
+                                                    "name": "RecordId",
+                                                    "value": "@body('Update_record')?['Id']"
+                                                },
+                                                "runAfter": {
+                                                    "Update_record": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "SetVariable"
+                                            },
+                                            "Set_created_to_false": {
+                                                "inputs": {
+                                                    "name": "isCreated",
+                                                    "value": "@{string('false')}"
+                                                },
+                                                "runAfter": {
+                                                    "Update_record": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "SetVariable"
+                                            },
+                                            "Update_record": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "Name": "@triggerBody()?['Insight']?['Name']",
+                                                        "OwnerId": "@{if(equals(body('Fetch_User')?['totalSize'],0),triggerBody()?['Insight']?['OwnerId'],body('Fetch_User')?['records']?[0]?['Id'])}",
+                                                        "S4SBusiness_Responsible__c": "@triggerBody()?['Insight']?['S4SBusiness_Responsible__c']",
+                                                        "S4SDescription__c": "@triggerBody()?['Insight']?['S4SDescription__c']",
+                                                        "S4SExternal_Source__c": "@triggerBody()?['Insight']?['S4SExternal_Source__c']",
+                                                        "S4SMarked_for_Deletion__c": "@triggerBody()?['Insight']?['S4SMarked_for_Deletion__c']",
+                                                        "S4SScenario_ID__c": "@triggerBody()?['Insight']?['S4SScenario_ID__c']",
+                                                        "S4SScenario_Main_Group__c": "@triggerBody()?['Insight']?['S4SScenario_Main_Group__c']",
+                                                        "S4SScenario_Sub_Group__c": "@triggerBody()?['Insight']?['S4SScenario_Sub_Group__c']"
+                                                    },
+                                                    "host": {
+                                                        "connection": {
+                                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                        }
+                                                    },
+                                                    "method": "patch",
+                                                    "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SInsights__c'))}/items/@{encodeURIComponent(encodeURIComponent(variables('insightId')))}"
+                                                },
+                                                "runAfter": {
+                                                    "Get_record": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "ApiConnection"
+                                            }
+                                        },
+                                        "runAfter": {},
+                                        "type": "Scope"
+                                    },
+                                    "catch_update_insight": {
+                                        "actions": {
+                                            "Terminate_Update": {
+                                                "inputs": {
+                                                    "runStatus": "Succeeded"
+                                                },
+                                                "runAfter": {
+                                                    "send_error_response_for_udpate_record": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "Terminate"
+                                            },
+                                            "send_error_response_for_udpate_record": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "Error": "@{body('Update_record')?['message']}"
+                                                    },
+                                                    "statusCode": 500
+                                                },
+                                                "kind": "Http",
+                                                "runAfter": {},
+                                                "type": "Response"
+                                            }
+                                        },
+                                        "runAfter": {
+                                            "Try_Update_Insight": [
+                                                "Failed",
+                                                "Skipped",
+                                                "TimedOut"
+                                            ]
+                                        },
+                                        "type": "Scope"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "or": [
+                                    {
+                                        "equals": [
+                                            "@variables('insightFound')",
+                                            "@false"
+                                        ]
+                                    },
+                                    {
+                                        "and": [
+                                            {
+                                                "equals": [
+                                                    "@triggerBody()?['Insight']?['Id']",
+                                                    "@string('')"
+                                                ]
+                                            },
+                                            {
+                                                "equals": [
+                                                    "@triggerBody()?['Insight']?['Id']",
+                                                    "@null"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            "runAfter": {},
+                            "type": "If"
+                        },
+                        "Check_if_attachment_present": {
+                            "actions": {
+                                "For_each_Attachment": {
+                                    "actions": {
+                                        "Check_if_filename_present_in_the_request": {
+                                            "actions": {
+                                                "If_file_is_already_present_or_not": {
+                                                    "actions": {
+                                                        "Catch_Load_File": {
+                                                            "actions": {
+                                                                "Append_to_File_Response": {
+                                                                    "inputs": {
+                                                                        "name": "FilesResponse",
+                                                                        "value": "@body('Create_Attachment_Upload_Error')"
+                                                                    },
+                                                                    "runAfter": {
+                                                                        "Create_Attachment_Upload_Error": [
+                                                                            "Succeeded"
+                                                                        ]
+                                                                    },
+                                                                    "type": "AppendToArrayVariable"
+                                                                },
+                                                                "Create_Attachment_Upload_Error": {
+                                                                    "inputs": {
+                                                                        "content": {
+                                                                            "created": "false",
+                                                                            "errors": [
+                                                                                {
+                                                                                    "message": "Error while uploading file",
+                                                                                    "statusCode": "Error"
+                                                                                }
+                                                                            ],
+                                                                            "id": "@body('Create_Attachment')?['ContentDocumentId']",
+                                                                            "success": "false"
+                                                                        },
+                                                                        "schema": {
+                                                                            "properties": {
+                                                                                "created": {
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "errors": {
+                                                                                    "items": {
+                                                                                        "properties": {
+                                                                                            "message": {
+                                                                                                "type": "string"
+                                                                                            },
+                                                                                            "statusCode": {
+                                                                                                "type": "string"
+                                                                                            }
+                                                                                        },
+                                                                                        "required": [
+                                                                                            "message",
+                                                                                            "statusCode"
+                                                                                        ],
+                                                                                        "type": "object"
+                                                                                    },
+                                                                                    "type": "array"
+                                                                                },
+                                                                                "id": {
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "success": {
+                                                                                    "type": "string"
+                                                                                }
+                                                                            },
+                                                                            "type": "object"
+                                                                        }
+                                                                    },
+                                                                    "runAfter": {},
+                                                                    "type": "ParseJson"
+                                                                }
+                                                            },
+                                                            "runAfter": {
+                                                                "Try_Load_File": [
+                                                                    "Failed",
+                                                                    "Skipped",
+                                                                    "TimedOut"
+                                                                ]
+                                                            },
+                                                            "type": "Scope"
+                                                        },
+                                                        "Try_Load_File": {
+                                                            "actions": {
+                                                                "Append_to_array_variable": {
+                                                                    "inputs": {
+                                                                        "name": "FilesResponse",
+                                                                        "value": "@body('Create_Attachment_Record')"
+                                                                    },
+                                                                    "runAfter": {
+                                                                        "Create_Attachment_Record": [
+                                                                            "Succeeded"
+                                                                        ]
+                                                                    },
+                                                                    "type": "AppendToArrayVariable"
+                                                                },
+                                                                "Create_Attachment": {
+                                                                    "inputs": {
+                                                                        "body": {
+                                                                            "ContentLocation": "S",
+                                                                            "IsMajorVersion": false,
+                                                                            "PathOnClient": "@items('For_each_Attachment')?['filename']",
+                                                                            "Title": "@items('For_each_Attachment')?['filename']",
+                                                                            "VersionData": "@{base64(base64ToBinary(items('For_each_Attachment')?['content']))}"
+                                                                        },
+                                                                        "host": {
+                                                                            "connection": {
+                                                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                            }
+                                                                        },
+                                                                        "method": "post",
+                                                                        "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('ContentVersion'))}/items"
+                                                                    },
+                                                                    "runAfter": {},
+                                                                    "type": "ApiConnection"
+                                                                },
+                                                                "Create_Attachment_Record": {
+                                                                    "inputs": {
+                                                                        "content": {
+                                                                            "created": "true",
+                                                                            "errors": [
+                                                                                {
+                                                                                    "message": "",
+                                                                                    "statusCode": ""
+                                                                                }
+                                                                            ],
+                                                                            "id": "@body('Create_Attachment')?['ContentDocumentId']",
+                                                                            "success": "true"
+                                                                        },
+                                                                        "schema": {
+                                                                            "properties": {
+                                                                                "created": {
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "errors": {
+                                                                                    "items": {
+                                                                                        "properties": {
+                                                                                            "message": {
+                                                                                                "type": "string"
+                                                                                            },
+                                                                                            "statusCode": {
+                                                                                                "type": "string"
+                                                                                            }
+                                                                                        },
+                                                                                        "required": [
+                                                                                            "message",
+                                                                                            "statusCode"
+                                                                                        ],
+                                                                                        "type": "object"
+                                                                                    },
+                                                                                    "type": "array"
+                                                                                },
+                                                                                "id": {
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "success": {
+                                                                                    "type": "string"
+                                                                                }
+                                                                            },
+                                                                            "type": "object"
+                                                                        }
+                                                                    },
+                                                                    "runAfter": {
+                                                                        "Create_Document_Link": [
+                                                                            "Succeeded"
+                                                                        ]
+                                                                    },
+                                                                    "type": "ParseJson"
+                                                                },
+                                                                "Create_Document_Link": {
+                                                                    "inputs": {
+                                                                        "body": {
+                                                                            "ContentDocumentId": "@body('Create_Attachment')?['ContentDocumentId']",
+                                                                            "LinkedEntityId": "@variables('RecordId')",
+                                                                            "ShareType": "I",
+                                                                            "Visibility": "InternalUsers"
+                                                                        },
+                                                                        "host": {
+                                                                            "connection": {
+                                                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                            }
+                                                                        },
+                                                                        "method": "post",
+                                                                        "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('ContentDocumentLink'))}/items"
+                                                                    },
+                                                                    "runAfter": {
+                                                                        "Get_Document_Id": [
+                                                                            "Succeeded"
+                                                                        ]
+                                                                    },
+                                                                    "type": "ApiConnection"
+                                                                },
+                                                                "Get_Document_Id": {
+                                                                    "inputs": {
+                                                                        "body": {
+                                                                            "query": "SELECT ContentDocumentId FROM ContentVersion Where Id='@{body('Create_Attachment')?['Id']}'"
+                                                                        },
+                                                                        "host": {
+                                                                            "connection": {
+                                                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                            }
+                                                                        },
+                                                                        "method": "post",
+                                                                        "path": "/soql/executesoqlquery"
+                                                                    },
+                                                                    "runAfter": {
+                                                                        "Create_Attachment": [
+                                                                            "Succeeded"
+                                                                        ]
+                                                                    },
+                                                                    "type": "ApiConnection"
+                                                                }
+                                                            },
+                                                            "runAfter": {},
+                                                            "type": "Scope"
+                                                        }
+                                                    },
+                                                    "else": {
+                                                        "actions": {
+                                                            "Append_to_response": {
+                                                                "inputs": {
+                                                                    "name": "FilesResponse",
+                                                                    "value": "@body('Update_Attachment_Record')"
+                                                                },
+                                                                "runAfter": {
+                                                                    "Update_Attachment_Record": [
+                                                                        "Succeeded"
+                                                                    ]
+                                                                },
+                                                                "type": "AppendToArrayVariable"
+                                                            },
+                                                            "Fetch_Document_Link": {
+                                                                "inputs": {
+                                                                    "body": {
+                                                                        "query": "select id, ContentDocumentId, LinkedEntityId from ContentDocumentLink where ContentDocumentId = '@{body('Update_File_Content')?['ContentDocumentId']}' and LinkedEntityId = '@{variables('RecordId')}'"
+                                                                    },
+                                                                    "host": {
+                                                                        "connection": {
+                                                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                        }
+                                                                    },
+                                                                    "method": "post",
+                                                                    "path": "/soql/executesoqlquery"
+                                                                },
+                                                                "runAfter": {
+                                                                    "Update_File_Content": [
+                                                                        "Succeeded"
+                                                                    ]
+                                                                },
+                                                                "type": "ApiConnection"
+                                                            },
+                                                            "If_Document_Link_does_not_exist": {
+                                                                "actions": {
+                                                                    "Create_Document_Link_for_updated_content": {
+                                                                        "inputs": {
+                                                                            "body": {
+                                                                                "ContentDocumentId": "@body('Update_File_Content')?['ContentDocumentId']",
+                                                                                "LinkedEntityId": "@variables('RecordId')",
+                                                                                "ShareType": "I",
+                                                                                "Visibility": "InternalUsers"
+                                                                            },
+                                                                            "host": {
+                                                                                "connection": {
+                                                                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                                }
+                                                                            },
+                                                                            "method": "post",
+                                                                            "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('ContentDocumentLink'))}/items"
+                                                                        },
+                                                                        "runAfter": {},
+                                                                        "type": "ApiConnection"
+                                                                    }
+                                                                },
+                                                                "expression": {
+                                                                    "and": [
+                                                                        {
+                                                                            "equals": [
+                                                                                "@body('Fetch_Document_Link')?['totalSize']",
+                                                                                "@int('0')"
+                                                                            ]
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "runAfter": {
+                                                                    "Fetch_Document_Link": [
+                                                                        "Succeeded"
+                                                                    ]
+                                                                },
+                                                                "type": "If"
+                                                            },
+                                                            "Update_Attachment_Record": {
+                                                                "inputs": {
+                                                                    "content": {
+                                                                        "created": "false",
+                                                                        "errors": [
+                                                                            {
+                                                                                "message": "",
+                                                                                "statusCode": ""
+                                                                            }
+                                                                        ],
+                                                                        "id": "@body('Update_File_Content')?['ContentDocumentId']",
+                                                                        "success": "true"
+                                                                    },
+                                                                    "schema": {
+                                                                        "properties": {
+                                                                            "created": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "errors": {
+                                                                                "items": {
+                                                                                    "properties": {
+                                                                                        "message": {
+                                                                                            "type": "string"
+                                                                                        },
+                                                                                        "statusCode": {
+                                                                                            "type": "string"
+                                                                                        }
+                                                                                    },
+                                                                                    "required": [
+                                                                                        "message",
+                                                                                        "statusCode"
+                                                                                    ],
+                                                                                    "type": "object"
+                                                                                },
+                                                                                "type": "array"
+                                                                            },
+                                                                            "id": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "success": {
+                                                                                "type": "string"
+                                                                            }
+                                                                        },
+                                                                        "type": "object"
+                                                                    }
+                                                                },
+                                                                "runAfter": {
+                                                                    "If_Document_Link_does_not_exist": [
+                                                                        "Succeeded"
+                                                                    ]
+                                                                },
+                                                                "type": "ParseJson"
+                                                            },
+                                                            "Update_File_Content": {
+                                                                "inputs": {
+                                                                    "body": {
+                                                                        "Title": "@{body('Fetch_File')?['records']?[0]?['Title']}",
+                                                                        "VersionData": "@{base64(base64ToBinary(items('For_each_Attachment')?['content']))}"
+                                                                    },
+                                                                    "host": {
+                                                                        "connection": {
+                                                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                        }
+                                                                    },
+                                                                    "method": "patch",
+                                                                    "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('ContentVersion'))}/items/@{encodeURIComponent(encodeURIComponent(body('Fetch_File')?['records'][0]?['Id']))}"
+                                                                },
+                                                                "runAfter": {},
+                                                                "type": "ApiConnection"
+                                                            }
+                                                        }
+                                                    },
+                                                    "expression": {
+                                                        "and": [
+                                                            {
+                                                                "equals": [
+                                                                    "@body('Fetch_File')?['totalSize']",
+                                                                    0
+                                                                ]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "runAfter": {},
+                                                    "type": "If"
+                                                }
+                                            },
+                                            "expression": {
+                                                "or": [
+                                                    {
+                                                        "not": {
+                                                            "equals": [
+                                                                "@items('For_each_Attachment')['filename']",
+                                                                "@string('')"
+                                                            ]
+                                                        }
+                                                    },
+                                                    {
+                                                        "and": [
+                                                            {
+                                                                "equals": [
+                                                                    "@variables('insightFound')",
+                                                                    "@true"
+                                                                ]
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "runAfter": {
+                                                "Fetch_File": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "If"
+                                        },
+                                        "Fetch_File": {
+                                            "inputs": {
+                                                "body": {
+                                                    "query": "select Id, ContentDocumentId, Title, PathOnClient, VersionData,ContentLocation,IsMajorVersion from ContentVersion where PathOnClient='@{items('For_each_Attachment')['filename']}' and IsLatest=true and IsMajorVersion=false"
+                                                },
+                                                "host": {
+                                                    "connection": {
+                                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                    }
+                                                },
+                                                "method": "post",
+                                                "path": "/soql/executesoqlquery"
+                                            },
+                                            "runAfter": {},
+                                            "type": "ApiConnection"
+                                        }
+                                    },
+                                    "foreach": "@triggerBody()?['Insight']?['Attachment']",
+                                    "runAfter": {},
+                                    "type": "Foreach"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "Append_to_file_error_response": {
+                                        "inputs": {
+                                            "name": "FilesResponse",
+                                            "value": {
+                                                "created": "",
+                                                "errors": [
+                                                    {
+                                                        "message": "",
+                                                        "statusCode": ""
+                                                    }
+                                                ],
+                                                "id": "",
+                                                "success": ""
+                                            }
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToArrayVariable"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@triggerBody()?['Insight']?['Attachment']",
+                                                "@null"
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "runAfter": {
+                                "Check_Insight_found_or_not": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "If"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Send_insight_not_found_": {
+                                "inputs": {
+                                    "body": "No Insight found, please check your input",
+                                    "statusCode": 500
+                                },
+                                "kind": "Http",
+                                "runAfter": {},
+                                "type": "Response"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "or": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('insightId')",
+                                        "@string('')"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('insightId')",
+                                        "@null"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Scope_Fetch_User": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Create_Success_Response": {
+                    "inputs": {
+                        "content": {
+                            "response": {
+                                "Attachment": "@variables('FilesResponse')",
+                                "created": "@{variables('isCreated')}",
+                                "errors": [
+                                    {
+                                        "message": "",
+                                        "statusCode": ""
+                                    }
+                                ],
+                                "id": "@variables('RecordId')",
+                                "success": "true"
+                            }
+                        },
+                        "schema": {
+                            "properties": {
+                                "response": {
+                                    "properties": {
+                                        "Attachment": {
+                                            "items": {
+                                                "properties": {
+                                                    "created": {
+                                                        "type": "string"
+                                                    },
+                                                    "errors": {
+                                                        "items": {
+                                                            "properties": {
+                                                                "message": {
+                                                                    "type": "string"
+                                                                },
+                                                                "statusCode": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "message",
+                                                                "statusCode"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        "type": "array"
+                                                    },
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "success": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "created",
+                                                    "success",
+                                                    "errors"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        },
+                                        "created": {
+                                            "type": "string"
+                                        },
+                                        "errors": {
+                                            "items": {
+                                                "properties": {
+                                                    "message": {
+                                                        "type": "string"
+                                                    },
+                                                    "statusCode": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "message",
+                                                    "statusCode"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        },
+                                        "id": {
+                                            "type": "string"
+                                        },
+                                        "success": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "runAfter": {
+                        "Condition": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "ParseJson"
+                },
+                "Scope_Fetch_User": {
+                    "actions": {
+                        "Check_if_insight_id_exist_in_request": {
+                            "actions": {
+                                "Fetch_insight_by_Insight_Id": {
+                                    "inputs": {
+                                        "body": {
+                                            "query": "Select Id, OwnerId, IsDeleted, Name, S4SDescription__c, S4SScenario_ID__c from S4SInsights__c where Id='@{triggerBody()?['Insight']?['Id']}'"
+                                        },
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "path": "/soql/executesoqlquery"
+                                    },
+                                    "runAfter": {},
+                                    "type": "ApiConnection"
+                                },
+                                "Set_Insight_Found_to_true": {
+                                    "inputs": {
+                                        "name": "insightFound",
+                                        "value": "@if(equals(body('Fetch_insight_by_Insight_Id')?['totalSize'],0),false,true)"
+                                    },
+                                    "runAfter": {
+                                        "Set_variable": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "SetVariable"
+                                },
+                                "Set_variable": {
+                                    "inputs": {
+                                        "name": "insightId",
+                                        "value": "@{body('Fetch_insight_by_Insight_Id')?['records']?[0]?['Id']}"
+                                    },
+                                    "runAfter": {
+                                        "Validated_Insight_Id": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "SetVariable"
+                                },
+                                "Validated_Insight_Id": {
+                                    "actions": {},
+                                    "else": {
+                                        "actions": {
+                                            "Send_invalid_insight_response": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "Error": "Invalid Insight provided"
+                                                    },
+                                                    "statusCode": 500
+                                                },
+                                                "kind": "Http",
+                                                "runAfter": {},
+                                                "type": "Response"
+                                            }
+                                        }
+                                    },
+                                    "expression": {
+                                        "and": [
+                                            {
+                                                "and": [
+                                                    {
+                                                        "greaterOrEquals": [
+                                                            "@length(triggerBody()?['Insight']?['Id'])",
+                                                            15
+                                                        ]
+                                                    },
+                                                    {
+                                                        "lessOrEquals": [
+                                                            "@length(triggerBody()?['Insight']?['Id'])",
+                                                            18
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "runAfter": {
+                                        "Fetch_insight_by_Insight_Id": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "If"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "Check_scenarioId": {
+                                        "actions": {
+                                            "Fetch_Insight": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "query": "Select Id, OwnerId, IsDeleted, Name, S4SDescription__c, S4SScenario_ID__c from S4SInsights__c where S4SScenario_ID__c ='@{triggerBody()?['Insight']?['S4SScenario_ID__c']}'"
+                                                    },
+                                                    "host": {
+                                                        "connection": {
+                                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                        }
+                                                    },
+                                                    "method": "post",
+                                                    "path": "/soql/executesoqlquery"
+                                                },
+                                                "runAfter": {},
+                                                "type": "ApiConnection"
+                                            },
+                                            "Set_Insight": {
+                                                "inputs": {
+                                                    "name": "insightId",
+                                                    "value": "@{body('Fetch_Insight')?['records']?[0]?['Id']}"
+                                                },
+                                                "runAfter": {
+                                                    "Fetch_Insight": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "SetVariable"
+                                            },
+                                            "set_insight_flag": {
+                                                "inputs": {
+                                                    "name": "insightFound",
+                                                    "value": "@if(equals(body('Fetch_Insight')?['totalSize'],0),false,true)"
+                                                },
+                                                "runAfter": {
+                                                    "Set_Insight": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "SetVariable"
+                                            }
+                                        },
+                                        "else": {
+                                            "actions": {
+                                                "Send_no_input_provided_response": {
+                                                    "inputs": {
+                                                        "body": {
+                                                            "Error": "No Input for fetchInsight provided"
+                                                        },
+                                                        "statusCode": 500
+                                                    },
+                                                    "kind": "Http",
+                                                    "runAfter": {},
+                                                    "type": "Response"
+                                                },
+                                                "Terminate_now": {
+                                                    "inputs": {
+                                                        "runStatus": "Succeeded"
+                                                    },
+                                                    "runAfter": {
+                                                        "Send_no_input_provided_response": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "Terminate"
+                                                }
+                                            }
+                                        },
+                                        "expression": {
+                                            "and": [
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@triggerBody()?['Insight']?['S4SScenario_ID__c']",
+                                                            "@string('')"
+                                                        ]
+                                                    }
+                                                },
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@triggerBody()?['Insight']?['S4SScenario_ID__c']",
+                                                            "@null"
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "runAfter": {},
+                                        "type": "If"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@triggerBody()?['Insight']?['Id']",
+                                                "@string('')"
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@triggerBody()?['Insight']?['Id']",
+                                                "@null"
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "runAfter": {
+                                "Fetch_User": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "Fetch_User": {
+                            "inputs": {
+                                "body": {
+                                    "query": "Select Id from User where S4SGID_Technical__c = '@{trim(triggerBody()?['Insight']?['OwnerId'])}'"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/soql/executesoqlquery"
+                            },
+                            "runAfter": {},
+                            "type": "ApiConnection"
+                        }
+                    },
+                    "runAfter": {},
+                    "type": "Scope"
+                },
+                "Send_Success_Response": {
+                    "inputs": {
+                        "body": "@body('Create_Success_Response')",
+                        "schema": {
+                            "properties": {
+                                "response": {
+                                    "items": {
+                                        "properties": {
+                                            "Attachment": {
+                                                "properties": {
+                                                    "created": {
+                                                        "type": "string"
+                                                    },
+                                                    "errors": {
+                                                        "items": {
+                                                            "properties": {
+                                                                "message": {
+                                                                    "type": "string"
+                                                                },
+                                                                "statusCode": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "message",
+                                                                "statusCode"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        "type": "array"
+                                                    },
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "success": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            },
+                                            "created": {
+                                                "type": "string"
+                                            },
+                                            "errors": {
+                                                "items": {
+                                                    "properties": {
+                                                        "message": {
+                                                            "type": "string"
+                                                        },
+                                                        "statusCode": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "message",
+                                                        "statusCode"
+                                                    ],
+                                                    "type": "object"
+                                                },
+                                                "type": "array"
+                                            },
+                                            "id": {
+                                                "type": "string"
+                                            },
+                                            "success": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "created",
+                                            "success",
+                                            "errors",
+                                            "Attachment"
+                                        ],
+                                        "type": "object"
+                                    },
+                                    "type": "array"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "Create_Success_Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
+                }
+            },
+            "runAfter": {
+                "Initialize_File_Response": [
+                    "Succeeded"
+                ],
+                "Initialize_Record_Id": [
+                    "Succeeded"
+                ],
+                "insightFound": [
+                    "Succeeded"
+                ],
+                "isCreated": [
+                    "Succeeded"
+                ]
+            },
+            "trackedProperties": {
+                "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+                "citizenName": "c00031",
+                "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'xSell')}",
+                "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'non-defined')}",
+                "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'CSUpsertInsight')}",
+                "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+                "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+                },
+            "type": "Scope"
+        },
+        "insightFound": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "insightFound",
+                        "type": "boolean",
+                        "value": false
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_variable": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "isCreated": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "isCreated",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_variable": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {
+                "schema": {
+                    "properties": {
+                        "Insight": {
+                            "properties": {
+                                "Attachment": {
+                                    "items": {
+                                        "properties": {
+                                            "content": {
+                                                "type": "string"
+                                            },
+                                            "filename": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required": [
+                                            "content",
+                                            "filename"
+                                        ],
+                                        "type": "object"
+                                    },
+                                    "type": "array"
+                                },
+                                "Id": {
+                                    "type": "string"
+                                },
+                                "Name": {
+                                    "type": "string"
+                                },
+                                "OwnerId": {
+                                    "type": "string"
+                                },
+                                "S4SBusiness_Responsible__c": {
+                                    "type": "string"
+                                },
+                                "S4SDescription__c": {
+                                    "type": "string"
+                                },
+                                "S4SExternal_Source__c": {
+                                    "type": "string"
+                                },
+                                "S4SMarked_for_Deletion__c": {
+                                    "type": "string"
+                                },
+                                "S4SScenario_ID__c": {
+                                    "type": "string"
+                                },
+                                "S4SScenario_Main_Group__c": {
+                                    "type": "string"
+                                },
+                                "S4SScenario_Sub_Group__c": {
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "type": "object"
+                }
+            },
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

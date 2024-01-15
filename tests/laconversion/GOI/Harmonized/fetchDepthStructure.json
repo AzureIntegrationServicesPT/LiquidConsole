@@ -1,0 +1,541 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "actions": {
+      "Condition": {
+          "actions": {
+              "logic-c00031-matchDepthStructure": {
+                  "inputs": {
+                      "body": {
+                          "records": "@body('Execute_a_SOQL_query')?['records']",
+                          "request": {
+                              "S4SBusiness_Segment_Code__c": "@triggerBody()?['S4SBusiness_Segment_Code__c']",
+                              "S4SBusiness_Subsegment__c": "@triggerBody()?['S4SBusiness_Subsegment__c']",
+                              "S4SBusiness_Unit__c": "@triggerBody()?['S4SBusiness_Unit__c']",
+                              "S4SDivisions__c": "@triggerBody()?['S4SDivisions__c']",
+                              "S4SGCK__c": "@triggerBody()?['S4SGCK__c']",
+                              "S4SPCK__c": "@triggerBody()?['S4SPCK__c']",
+                              "S4SSPG__c": "@triggerBody()?['S4SSPG__c']"
+                          }
+                      },
+                      "host": {
+                          "triggerName": "manual",
+                          "workflow": {
+                              "id": "${matchDepthStructure_logicAppId}"
+                          }
+                      },
+                      "retryPolicy": {
+                          "type": "none"
+                      }
+                  },
+                  "runAfter": {},
+                  "type": "Workflow"
+              }
+          },
+          "expression": {
+              "and": [
+                  {
+                      "greater": [
+                          "@int(body('Execute_a_SOQL_query')?['totalSize'])",
+                          0
+                      ]
+                  }
+              ]
+          },
+          "runAfter": {
+              "Execute_a_SOQL_query": [
+                  "Succeeded"
+              ]
+          },
+          "type": "If"
+      },
+      "Condition_if_Business_Segment_Code_is_blank": {
+          "actions": {
+              "Set_variable_Business_Segment_Code": {
+                  "inputs": {
+                      "name": "whereBusiness_Segment_Code",
+                      "value": " AND (S4SBusiness_Segment_Code__c=null OR S4SBusiness_Segment_Code__c='@{triggerBody()?['S4SBusiness_Segment_Code__c']}')"
+                  },
+                  "runAfter": {},
+                  "type": "SetVariable"
+              }
+          },
+          "else": {
+              "actions": {
+                  "Set_variable_Business_Segment_Code_blank": {
+                      "inputs": {
+                          "name": "whereBusiness_Segment_Code",
+                          "value": " "
+                      },
+                      "runAfter": {},
+                      "type": "SetVariable"
+                  }
+              }
+          },
+          "expression": {
+              "and": [
+                  {
+                      "not": {
+                          "equals": [
+                              "@triggerBody()?['S4SBusiness_Segment_Code__c']",
+                              "@null"
+                          ]
+                      }
+                  },
+                  {
+                      "not": {
+                          "equals": [
+                              "@triggerBody()?['S4SBusiness_Segment_Code__c']",
+                              "@string('')"
+                          ]
+                      }
+                  }
+              ]
+          },
+          "runAfter": {
+              "Initialize_whereBusiness_Segment_Code": [
+                  "Succeeded"
+              ]
+          },
+          "type": "If"
+      },
+      "Condition_if_Business_Subsegment_is_blank": {
+          "actions": {
+              "Set_variable_Business_Subsegment": {
+                  "inputs": {
+                      "name": "whereBusiness_Subsegment",
+                      "value": " AND (S4SBusiness_Subsegment__c=null OR S4SBusiness_Subsegment__c='@{triggerBody()?['S4SBusiness_Subsegment__c']}')"
+                  },
+                  "runAfter": {},
+                  "type": "SetVariable"
+              }
+          },
+          "else": {
+              "actions": {
+                  "Set_variable_Business_Subsegment_blank": {
+                      "inputs": {
+                          "name": "whereBusiness_Subsegment",
+                          "value": " "
+                      },
+                      "runAfter": {},
+                      "type": "SetVariable"
+                  }
+              }
+          },
+          "expression": {
+              "and": [
+                  {
+                      "not": {
+                          "equals": [
+                              "@triggerBody()?['S4SBusiness_Subsegment__c']",
+                              "@null"
+                          ]
+                      }
+                  },
+                  {
+                      "not": {
+                          "equals": [
+                              "@triggerBody()?['S4SBusiness_Subsegment__c']",
+                              "@string('')"
+                          ]
+                      }
+                  }
+              ]
+          },
+          "runAfter": {
+              "Initialize_whereBusiness_Subsegment": [
+                  "Succeeded"
+              ]
+          },
+          "type": "If"
+      },
+      "Condition_if_Business_Unit_is_blank": {
+          "actions": {
+              "Set_variable_Business_Unit": {
+                  "inputs": {
+                      "name": "whereBusiness_Unit",
+                      "value": " AND (S4SBusiness_Unit__c=null OR S4SBusiness_Unit__c='@{triggerBody()?['S4SBusiness_Unit__c']}')"
+                  },
+                  "runAfter": {},
+                  "type": "SetVariable"
+              }
+          },
+          "else": {
+              "actions": {
+                  "Set_variable_Business_Unit_blank": {
+                      "inputs": {
+                          "name": "whereBusiness_Unit",
+                          "value": " "
+                      },
+                      "runAfter": {},
+                      "type": "SetVariable"
+                  }
+              }
+          },
+          "expression": {
+              "and": [
+                  {
+                      "not": {
+                          "equals": [
+                              "@triggerBody()?['S4SBusiness_Unit__c']",
+                              "@null"
+                          ]
+                      }
+                  },
+                  {
+                      "not": {
+                          "equals": [
+                              "@triggerBody()?['S4SBusiness_Unit__c']",
+                              "@string('')"
+                          ]
+                      }
+                  }
+              ]
+          },
+          "runAfter": {
+              "Initialize_whereBusiness_Unit": [
+                  "Succeeded"
+              ]
+          },
+          "type": "If"
+      },
+      "Condition_if_GCK_is_blank": {
+          "actions": {
+              "Set_variable_GCK": {
+                  "inputs": {
+                      "name": "whereGCK",
+                      "value": " AND (S4SGCK__c=null OR S4SGCK__c='@{triggerBody()?['S4SGCK__c']}')"
+                  },
+                  "runAfter": {},
+                  "type": "SetVariable"
+              }
+          },
+          "else": {
+              "actions": {
+                  "Set_variable_GCK_blank": {
+                      "inputs": {
+                          "name": "whereGCK",
+                          "value": " "
+                      },
+                      "runAfter": {},
+                      "type": "SetVariable"
+                  }
+              }
+          },
+          "expression": {
+              "and": [
+                  {
+                      "not": {
+                          "equals": [
+                              "@triggerBody()?['S4SGCK__c']",
+                              "@null"
+                          ]
+                      }
+                  },
+                  {
+                      "not": {
+                          "equals": [
+                              "@triggerBody()?['S4SGCK__c']",
+                              "@string('')"
+                          ]
+                      }
+                  }
+              ]
+          },
+          "runAfter": {
+              "Initialize_whereGCK": [
+                  "Succeeded"
+              ]
+          },
+          "type": "If"
+      },
+      "Condition_if_PCK_is_blank": {
+          "actions": {
+              "Set_variable_PCK": {
+                  "inputs": {
+                      "name": "wherePCK",
+                      "value": " AND (S4SPCK__c=null OR S4SPCK__c='@{triggerBody()?['S4SPCK__c']}')"
+                  },
+                  "runAfter": {},
+                  "type": "SetVariable"
+              }
+          },
+          "else": {
+              "actions": {
+                  "Set_variable_PCK_blank": {
+                      "inputs": {
+                          "name": "wherePCK",
+                          "value": " "
+                      },
+                      "runAfter": {},
+                      "type": "SetVariable"
+                  }
+              }
+          },
+          "expression": {
+              "and": [
+                  {
+                      "not": {
+                          "equals": [
+                              "@triggerBody()?['S4SPCK__c']",
+                              "@null"
+                          ]
+                      }
+                  },
+                  {
+                      "not": {
+                          "equals": [
+                              "@triggerBody()?['S4SPCK__c']",
+                              "@string('')"
+                          ]
+                      }
+                  }
+              ]
+          },
+          "runAfter": {
+              "Initialize_wherePCK": [
+                  "Succeeded"
+              ]
+          },
+          "type": "If"
+      },
+      "Condition_if_SPG_is_blank": {
+          "actions": {
+              "Set_variable_SPG": {
+                  "inputs": {
+                      "name": "whereSPG",
+                      "value": " AND (S4SSPG__c=null OR S4SSPG__c='@{triggerBody()?['S4SSPG__c']}')"
+                  },
+                  "runAfter": {},
+                  "type": "SetVariable"
+              }
+          },
+          "else": {
+              "actions": {
+                  "Set_variable_SPG_blank": {
+                      "inputs": {
+                          "name": "whereSPG",
+                          "value": " "
+                      },
+                      "runAfter": {},
+                      "type": "SetVariable"
+                  }
+              }
+          },
+          "expression": {
+              "and": [
+                  {
+                      "not": {
+                          "equals": [
+                              "@triggerBody()?['S4SSPG__c']",
+                              "@null"
+                          ]
+                      }
+                  },
+                  {
+                      "not": {
+                          "equals": [
+                              "@triggerBody()?['S4SSPG__c']",
+                              "@string('')"
+                          ]
+                      }
+                  }
+              ]
+          },
+          "runAfter": {
+              "Initialize_whereSPG": [
+                  "Succeeded"
+              ]
+          },
+          "type": "If"
+      },
+      "Execute_a_SOQL_query": {
+          "inputs": {
+              "body": {
+                  "query": "select Id,Name,S4SPCK__c,S4SSPG__c,S4SGCK__c,S4SBusiness_Subsegment__c,S4SBusiness_Segment_Code__c,S4SBusiness_Unit__c,S4SDivisions__c,family from Product2 where @{variables('whereClause')}"
+              },
+              "host": {
+                  "connection": {
+                      "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                  }
+              },
+              "method": "post",
+              "path": "/soql/executesoqlquery"
+          },
+          "runAfter": {
+              "Condition_if_SPG_is_blank": [
+                  "Succeeded"
+              ],
+              "Set_variable_whereClause": [
+                  "Succeeded"
+              ]
+          },
+          "type": "ApiConnection"
+      },
+      "Initialize_WhereClause": {
+          "inputs": {
+              "variables": [
+                  {
+                      "name": "whereClause",
+                      "type": "string"
+                  }
+              ]
+          },
+          "runAfter": {},
+          "type": "InitializeVariable"
+      },
+      "Initialize_whereBusiness_Segment_Code": {
+          "inputs": {
+              "variables": [
+                  {
+                      "name": "whereBusiness_Segment_Code",
+                      "type": "string"
+                  }
+              ]
+          },
+          "runAfter": {},
+          "type": "InitializeVariable"
+      },
+      "Initialize_whereBusiness_Subsegment": {
+          "inputs": {
+              "variables": [
+                  {
+                      "name": "whereBusiness_Subsegment",
+                      "type": "string"
+                  }
+              ]
+          },
+          "runAfter": {},
+          "type": "InitializeVariable"
+      },
+      "Initialize_whereBusiness_Unit": {
+          "inputs": {
+              "variables": [
+                  {
+                      "name": "whereBusiness_Unit",
+                      "type": "string"
+                  }
+              ]
+          },
+          "runAfter": {},
+          "type": "InitializeVariable"
+      },
+      "Initialize_whereGCK": {
+          "inputs": {
+              "variables": [
+                  {
+                      "name": "whereGCK",
+                      "type": "string"
+                  }
+              ]
+          },
+          "runAfter": {},
+          "type": "InitializeVariable"
+      },
+      "Initialize_wherePCK": {
+          "inputs": {
+              "variables": [
+                  {
+                      "name": "wherePCK",
+                      "type": "string"
+                  }
+              ]
+          },
+          "runAfter": {},
+          "type": "InitializeVariable"
+      },
+      "Initialize_whereSPG": {
+          "inputs": {
+              "variables": [
+                  {
+                      "name": "whereSPG",
+                      "type": "string"
+                  }
+              ]
+          },
+          "runAfter": {},
+          "type": "InitializeVariable"
+      },
+      "Response": {
+          "inputs": {
+              "body": "@body('logic-c00031-matchDepthStructure')",
+              "statusCode": 200
+          },
+          "kind": "Http",
+          "runAfter": {
+              "Condition": [
+                  "Succeeded"
+              ]
+          },
+          "type": "Response"
+      },
+      "Set_variable_whereClause": {
+          "inputs": {
+              "name": "whereClause",
+              "value": "@{concat(' S4SDivisions__c=', '''',triggerBody()?['S4SDivisions__c'],'''',variables('wherePCK'),variables('whereSPG'),variables('whereGCK'),variables('whereBusiness_Subsegment'),variables('whereBusiness_Segment_Code'),variables('whereBusiness_Unit'),' AND IsActive=true ORDER BY S4SPCK__c, S4SSPG__c, S4SGCK__c, S4SBusiness_Subsegment__c, S4SBusiness_Segment_Code__c, S4SBusiness_Unit__c, S4SDivisions__c NULLS FIRST')}"
+          },
+          "runAfter": {
+              "Condition_if_Business_Segment_Code_is_blank": [
+                  "Succeeded"
+              ],
+              "Condition_if_Business_Subsegment_is_blank": [
+                  "Succeeded"
+              ],
+              "Condition_if_Business_Unit_is_blank": [
+                  "Succeeded"
+              ],
+              "Condition_if_GCK_is_blank": [
+                  "Succeeded"
+              ],
+              "Condition_if_PCK_is_blank": [
+                  "Succeeded"
+              ],
+              "Initialize_WhereClause": [
+                  "Succeeded"
+              ]
+          },
+          "type": "SetVariable"
+      }
+  },
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {
+      "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+      }
+  },
+  "triggers": {
+      "manual": {
+          "inputs": {
+              "schema": {
+                  "properties": {
+                      "S4SBusiness_Segment_Code__c": {
+                          "type": "string"
+                      },
+                      "S4SBusiness_Subsegment__c": {
+                          "type": "string"
+                      },
+                      "S4SBusiness_Unit__c": {
+                          "type": "string"
+                      },
+                      "S4SDivisions__c": {
+                          "type": "string"
+                      },
+                      "S4SGCK__c": {
+                          "type": "string"
+                      },
+                      "S4SPCK__c": {
+                          "type": "string"
+                      },
+                      "S4SSPG__c": {
+                          "type": "string"
+                      }
+                  },
+                  "type": "object"
+              }
+          },
+          "kind": "Http",
+          "type": "Request"
+      }
+  }
+}

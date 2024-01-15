@@ -1,0 +1,246 @@
+{
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Scope-catch-main": {
+                "actions": {
+                    "Response_2": {
+                        "inputs": {
+                            "body": "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n <soap:Body>\n  <soap:Fault>\n   <faultcode>soap:Server</faultcode>\n   <faultstring>@{concat('Some error occurred while processing. Please find more details using tracking id : ', workflow()['run']['name'])}</faultstring>  \n  </x:TransferFunds>\n </soap:Body>\n</soap:Envelope>\n ",
+                            "statusCode": 500
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                         "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                        "type": "Response"
+                    },
+                    "Terminate": {
+                        "inputs": {
+                            "runStatus": "Failed"
+                        },
+                        "runAfter": {
+                            "Response_2": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Terminate"
+                    }
+                },
+                "runAfter": {
+                    "Scope-try-main": [
+                        "Failed",
+                        "Skipped",
+                        "TimedOut"
+                    ]
+                },
+                "type": "Scope"
+            },
+            "Scope-try-main": {
+                "actions": {
+                    "Compose_convert_request_to_json": {
+                        "inputs": "@json(xml(string(xpath(body('Transform_XML'),'.//Opportunity')?[0])))",
+                        "runAfter": {
+                            "Transform_XML": [
+                                "Succeeded"
+                            ]
+                        },
+                           "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                        "type": "Compose"
+                    },
+                    "Compose_response_to_xml": {
+                        "inputs": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sie=\"http://demchdc8zkx.dc4ca.siemens.de/SIE.SF4S.SOAP.Public.ws.provider:upsertOpportunity\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <sie:upsertOpportunityResponse>\n@{xml(body('logic-c00031-SFS_upsertOpportunity'))}\n</sie:upsertOpportunityResponse>\n   </soapenv:Body>\n</soapenv:Envelope>\n",
+                        "runAfter": {
+                            "logic-c00031-SFS_upsertOpportunity": [
+                                "Succeeded"
+                            ]
+                        },
+                           "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                        "type": "Compose"
+                    },
+                    "Response": {
+                        "inputs": {
+                            "body": "@xml(outputs('Compose_response_to_xml'))",
+                            "headers": {
+                                "Content-Type": "text/xml"
+                            },
+                            "statusCode": 200
+                        },
+                        "kind": "Http",
+                        "runAfter": {
+                            "Compose_response_to_xml": [
+                                "Succeeded"
+                            ]
+                        },
+                           "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                        "type": "Response"
+                    },
+                    "Terminate_succeeded": {
+                        "inputs": {
+                            "runStatus": "Succeeded"
+                        },
+                        "runAfter": {
+                            "logic-c00031-SFS_internal_sf4sLog2": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Terminate"
+                    },
+                    "Transform_XML": {
+                        "inputs": {
+                            "content": "@{xml(string(xpath(xml(replace(string(triggerBody()), '&', '&amp;')),'.//Opportunity')?[0]))}",
+                            "integrationAccount": {
+                                "map": {
+                                    "name": "map-c00031-SFS-UpsertOpportunityLOS"
+                                }
+                            },
+                            "transformOptions": "ApplyXsltOutputAttributes"
+                        },
+                        "runAfter": {},
+                          "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                        "type": "Xslt"
+                    },
+                    "logic-c00031-SFS_internal_sf4sLog2": {
+                        "inputs": {
+                            "body": {
+                                "message": "LOS Final Response:@{string(base64(xml(outputs('Compose_response_to_xml'))))}",
+                                "severity": "INFO"
+                            },
+                            "headers": {
+                                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                            },
+                            "host": {
+                                "triggerName": "manual",
+                                "workflow": {
+                                    "id": "[parameters('sf4sLog_logicApp_id')]"
+                                }
+                            }
+                        },
+                        "runAfter": {
+                            "Response": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Workflow"
+                    },
+                    "logic-c00031-SFS_upsertOpportunity": {
+                        "inputs": {
+                            "body": "@outputs('Compose_convert_request_to_json')",
+                            "headers": {
+                                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'UpsertOpportunity - LOS')}",
+                                "username": "@{coalesce(triggerOutputs()?['headers']?['username'], triggerOutputs()?['queries']?['username'])}",
+                                "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], workflow()?['run']?['name'])}",
+                                "defaultOwner": "@{coalesce(xpath(xml(triggerBody()),'.//SIE_SF4S_upsertOppObjects/defaultOwner/text()')?[0],string(''))}"
+                            },
+                            "host": {
+                                "triggerName": "manual",
+                                 "workflow": {
+                                    "id": "[parameters('upsertOpportunity_logicApp_id')]"
+                                }
+                            },
+                            "retryPolicy": {
+                                "type": "none"
+                            }
+                        },
+                        "runAfter": {
+                            "Compose_convert_request_to_json": [
+                                "Succeeded"
+                            ]
+                        },
+                         "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                        "type": "Workflow"
+                    }
+                },
+                "runAfter": {},
+                "trackedProperties": {
+                    "apimRouting": "not-defined",
+                    "citizenName": "c00031",
+                    "correlationId": "not-defined",
+                    "interfaceName": "SFS",
+                    "interfacePartner": "not-defined",
+                    "interfaceVersion": "not-defined",
+                    "operationName": "upsertOpportunityLOS",
+                    "parentWorkflow": "not-defined"
+                },
+                "type": "Scope"
+            },
+            "logic-c00031-SFS_internal_sf4sLog3": {
+                "inputs": {
+                    "body": {
+                        "message": "Upsert Opportunity call started from LOS",
+                        "severity": "INFO"
+                    },
+                    "headers": {
+                        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'UpsertOpportunity - LOS')}",
+                        "username": "@{coalesce(triggerOutputs()?['headers']?['username'], triggerOutputs()?['queries']?['username'])}",
+                        "workflowRunId": "@{workflow()?['run']?['name']}"
+                    },
+                    "host": {
+                        "triggerName": "manual",
+                        "workflow": {
+                            "id": "[parameters('sf4sLog_logicApp_id')]"
+                        }
+                    }
+                },
+                "runAfter": {},
+                "type": "Workflow"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {},
+        "triggers": {
+            "manual": {
+                "inputs": {},
+                "kind": "Http",
+                   "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                "type": "Request"
+            }
+        }
+   
+}

@@ -3,7 +3,7 @@
     "inputs": {
         "body": {{content.inputs.body | json}},
         "function": {
-            "connectionName": "Liquid"
+            "connectionName": "Liquid" {% comment %} Change to string after /functions/ else put Liquid{%endcomment%}
         },
         "headers": {{content.inputs.headers | json}},
         "method": {%if content.inputs.method == null %}"POST"{%else%}{{content.inputs.method | json}}{%endif%}

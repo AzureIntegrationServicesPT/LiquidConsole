@@ -1,0 +1,316 @@
+{
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Initialize_variable_finalWhereClause": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "finalWhereClause",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_initilaizeWhereClauseAppend": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "initilaizeWhereClauseAppend",
+                            "type": "string",
+                            "value": "@{null}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_response": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "response",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_whereClause": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "whereClause",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Scope-Catch": {
+                "actions": {
+                    "Error_Response": {
+                        "inputs": {
+                            "body": {
+                                "Message": "@concat('Some error occurred while processing the request. Please find more details using tracking id : ', workflow()['run']['name'])",
+                                "Status": "Failure"
+                            },
+                            "headers": {
+                                "Content-Type": "application/json"
+                            },
+                            "statusCode": 500
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                        "type": "Response"
+                    },
+                    "Terminate_in_Catch": {
+                        "inputs": {
+                            "runStatus": "Failed"
+                        },
+                        "runAfter": {
+                            "Error_Response": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Terminate"
+                    }
+                },
+                "runAfter": {
+                    "Scope-Try": [
+                        "Failed",
+                        "Skipped",
+                        "TimedOut"
+                    ]
+                },
+                "type": "Scope"
+            },
+            "Scope-Try": {
+                "actions": {
+                    "Check_IfANumber": {
+                        "actions": {
+                            "Check_initializeWhereClauseAppend": {
+                                "actions": {
+                                    "Set_variable_initializeWhereClauseAppend_if_it_exists": {
+                                        "inputs": {
+                                            "name": "initilaizeWhereClauseAppend",
+                                            "value": " and S4SIfA__c= '@{outputs('Compose_input_request')?['IfANumber']}'"
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    }
+                                },
+                                "else": {
+                                    "actions": {
+                                        "Set_variable_initializeWhereClauseAppend_if_it_doesn't_exist": {
+                                            "inputs": {
+                                                "name": "initilaizeWhereClauseAppend",
+                                                "value": "S4SIfA__c= '@{outputs('Compose_input_request')?['IfANumber']}'"
+                                            },
+                                            "runAfter": {},
+                                            "type": "SetVariable"
+                                        }
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('initilaizeWhereClauseAppend')",
+                                                    ""
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {},
+                                "type": "If"
+                            },
+                            "Set_variable_finalWhereClause": {
+                                "inputs": {
+                                    "name": "finalWhereClause",
+                                    "value": "@{concat(variables('whereClause'),variables('initilaizeWhereClauseAppend'))}"
+                                },
+                                "runAfter": {
+                                    "Check_initializeWhereClauseAppend": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "SetVariable"
+                            },
+                            "Set_variable_whereClause_with_finalWhereClause": {
+                                "inputs": {
+                                    "name": "whereClause",
+                                    "value": "@variables('finalWhereClause')"
+                                },
+                                "runAfter": {
+                                    "Set_variable_finalWhereClause": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "SetVariable"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@outputs('Compose_input_request')?['IfANumber']",
+                                            "@null"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@outputs('Compose_input_request')?['IfANumber']",
+                                            "@string('')"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Check_accountId": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Check_accountId": {
+                        "actions": {
+                            "Set_variable_initializeWhereClauseAppend": {
+                                "inputs": {
+                                    "name": "initilaizeWhereClauseAppend",
+                                    "value": "@{string(' ')}"
+                                },
+                                "runAfter": {
+                                    "Set_variable_whereClause": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "SetVariable"
+                            },
+                            "Set_variable_whereClause": {
+                                "inputs": {
+                                    "name": "whereClause",
+                                    "value": "Id='@{outputs('Compose_input_request')?['accountId']}'"
+                                },
+                                "runAfter": {},
+                                "type": "SetVariable"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@outputs('Compose_input_request')?['accountId']",
+                                            "@null"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@outputs('Compose_input_request')?['accountId']",
+                                            "@string('')"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Compose_input_request": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Compose_input_request": {
+                        "inputs": "@triggerBody()?['fetchAccountRequest']",
+                        "runAfter": {},
+                        "type": "Compose"
+                    },
+                    "Execute_a_SOQL_query": {
+                        "inputs": {
+                            "body": {
+                                "query": "Select Id,IsDeleted,MasterRecordId,Name,Type,RecordTypeId,ParentId,BillingStreet,BillingCity,BillingState,BillingPostalCode,BillingCountry,BillingStateCode,BillingCountryCode,BillingLatitude,BillingLongitude,BillingGeocodeAccuracy,ShippingStreet,ShippingCity,ShippingState,ShippingPostalCode,ShippingCountry,ShippingStateCode,ShippingCountryCode,ShippingLatitude,ShippingLongitude,ShippingGeocodeAccuracy,Phone,Fax,AccountNumber,Website,PhotoUrl,Sic,Industry,AnnualRevenue,NumberOfEmployees,Ownership,TickerSymbol,Description,Rating,Site,CurrencyIsoCode,OwnerId,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastActivityDate,LastViewedDate,LastReferencedDate,IsPartner,IsCustomerPortal,ChannelProgramName,ChannelProgramLevelName,Jigsaw,JigsawCompanyId,AccountSource,SicDesc,LID__LinkedIn_Company_Id__c,Copado_Testing__c,S4SACCOUNT_LegacyID__c,S4SARE__c,S4SAccount_Assignment__c,S4SAccount_Current_Record_Link__c,S4SAccount_Group_Type__c,S4SAccount_Life_Cycle__c,S4SAccount_Name_International__c,S4SAccount_Role__c,S4SAvailable_languages__c,S4SBusiness_Availability_24h_365_days__c,S4SBusiness_Availability_24h_Mon_Fri__c,S4SBusiness_Unit__c,S4SBypass_Duplicate_rules__c,S4SCID_Number__c,S4SCMD_IfA_Update__c,S4SCMD_KUKLA__c,S4SCMD_NAME1_I__c,S4SCMD_NAME1__c,S4SCMD_NAME2_I__c,S4SCMD_NAME2__c,S4SCMD_NAME3_I__c,S4SCMD_NAME3__c,S4SCMD_REGION__c,S4SCMD_STREET2__c,S4SCMD_STREET__c,S4SCMD_Subscription_Rejected_Date__c,S4SChange_n__c,S4SChange_of_NPS__c,S4SCheck_IFAs_and_Contacts__c,S4SCity_PO_Box_International__c,S4SCity_PO_Box__c,S4SCompany_Postal_Code__c,S4SCompany_Summary__c,S4SCurrent_FY_NPS__c,S4SDUNS__c,S4SDivision__c,S4SDomestic_Ultimate_DUNS__c,S4SDuns_Information__c,S4SDuplicate_IfA_Number__c,S4SEmail__c,S4SEngineering_electrical__c,S4SEngineering_mechanical__c,S4SExternal_Account_HelpText__c,S4SFacebook__c,S4SField_Services_24_7__c,S4SFounding_Year__c,S4SFrom_Search__c,S4SGlobal_Frame_Agreement_Database__c,S4SGlobal_Ultimate_DUNS__c,S4SISIC__c,S4SIfAAutoNumber__c,S4SIfA_Siemens_Location__c,S4SIfA__c,S4SIndustry_Direct__c,S4SIndustry_Segment_Direct__c,S4SIndustry_Segment_Ship_To__c,S4SIndustry_Ship_To__c,S4SInternational_City__c,S4SInternational_CountryGP__c,S4SSISIC_Direct__c,S4SInternational_Postal_Code__c,S4SInternational_Street_Name_1__c from Account where @{variables('whereClause')}"
+                            },
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                }
+                            },
+                            "method": "post",
+                            "path": "/soql/executesoqlquery"
+                        },
+                        "runAfter": {
+                            "Check_IfANumber": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ApiConnection"
+                    },
+                    "Final_Response": {
+                        "inputs": {
+                            "body": "@body('Execute_a_SOQL_query')",
+                            "statusCode": 200
+                        },
+                        "kind": "Http",
+                        "runAfter": {
+                            "Execute_a_SOQL_query": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Response"
+                    }
+                },
+                "runAfter": {
+                    "Initialize_variable_finalWhereClause": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_initilaizeWhereClauseAppend": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_response": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_whereClause": [
+                        "Succeeded"
+                    ]
+                },
+                "trackedProperties": {
+                    "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+                    "citizenName": "c00031",
+                    "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'PShell')}",
+                    "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                    "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                    "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'fetchAccount')}",
+                    "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}"
+                },
+                "type": "Scope"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "manual": {
+                "inputs": {},
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+}

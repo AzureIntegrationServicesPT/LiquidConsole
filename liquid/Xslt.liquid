@@ -1,0 +1,26 @@
+{% comment %}OG in Consumption
+
+"Transform_XML": {
+    "inputs": {
+        "content": "VALUE",
+        "integrationAccount": {
+            "map": {
+                "name": "NAME"
+            }
+        }
+    },
+    "runAfter": {},
+    "type": "Xslt"
+} 
+{% endcomment %}
+{
+    "type": "Xslt",
+    "inputs": {
+      "content": {{content.inputs.content | json}},
+      "map": {
+        "source": "IntegrationAccount",
+        "name": {{content.inputs.integrationAccount.map.name | json}}
+      }
+    },
+    "runAfter": {{content.runAfter | json}}
+}

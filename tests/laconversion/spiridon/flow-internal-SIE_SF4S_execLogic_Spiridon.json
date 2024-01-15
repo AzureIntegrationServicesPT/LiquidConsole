@@ -1,0 +1,167 @@
+{
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Initialize_variable_chanceOfExecutionRes": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "chanceOfExecutionRes",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_chanceOfExecution": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "chanceOfExecution",
+                            "type": "string",
+                            "value": "@{triggerBody()?['chanceOfExecution']}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Scope_Catch": {
+                "actions": {
+                    "Failed_Response": {
+                        "inputs": {
+                            "body": "Internal Server Error",
+                            "statusCode": 500
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                        "type": "Response"
+                    },
+                    "Terminate": {
+                        "inputs": {
+                            "runError": {
+                                "code": "500"
+                            },
+                            "runStatus": "Failed"
+                        },
+                        "runAfter": {
+                            "Failed_Response": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Terminate"
+                    }
+                },
+                "runAfter": {
+                    "Scope_try": [
+                        "Failed",
+                        "Skipped",
+                        "TimedOut"
+                    ]
+                },
+                "type": "Scope"
+            },
+            "Scope_try": {
+                "actions": {
+                    "Condition_to_check_chanceOfExecution": {
+                        "actions": {
+                            "Set_variable_Chance": {
+                                "inputs": {
+                                    "name": "chanceOfExecutionRes",
+                                    "value": "@{if(equals(outputs('chanceofExec'),0),'0%',if(lessOrEquals(outputs('chanceofExec'),30),'30%',if(lessOrEquals(outputs('chanceofExec'),50),'50%',if(lessOrEquals(outputs('chanceofExec'),99),'70%','100%'))))}"
+                                },
+                                "runAfter": {
+                                    "chanceofExec": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "SetVariable"
+                            },
+                            "chanceofExec": {
+                                "inputs": "@int(variables('chanceOfExecution'))",
+                                "runAfter": {},
+                                "type": "Compose"
+                            }
+                        },
+                        "else": {
+                            "actions": {
+                                "Set_variable_Chance1": {
+                                    "inputs": {
+                                        "name": "chanceOfExecutionRes",
+                                        "value": "@{if(equals(variables('chanceOfExecution'),'0'),'0%','100%')}"
+                                    },
+                                    "runAfter": {},
+                                    "type": "SetVariable"
+                                }
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('chanceOfExecution')",
+                                            "@null"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('chanceOfExecution')",
+                                            "@string('0')"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('chanceOfExecution')",
+                                            ""
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {},
+                        "type": "If"
+                    },
+                    "Success_Response": {
+                        "inputs": {
+                            "body": "@variables('chanceOfExecutionRes')",
+                            "statusCode": 200
+                        },
+                        "kind": "Http",
+                        "runAfter": {
+                            "Condition_to_check_chanceOfExecution": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Response"
+                    }
+                },
+                "runAfter": {
+                    "Initialize_variable_chanceOfExecutionRes": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_chanceOfExecution": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Scope"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {},
+        "triggers": {
+            "manual": {
+                "inputs": {
+                    "schema": {}
+                },
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+    
+}

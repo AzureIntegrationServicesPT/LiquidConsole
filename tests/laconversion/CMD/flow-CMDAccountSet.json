@@ -1,0 +1,327 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Catch": {
+            "actions": {
+                "Failed_Response": {
+                    "inputs": {
+                        "headers": {
+                            "Content-Type": "application/json"
+                        },
+                        "statusCode": 400
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                },
+                "Terminate_Flow": {
+                    "inputs": {
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Failed_Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Try": [
+                    "Failed",
+                    "TimedOut"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Condition_to_check_Duplicate": {
+            "actions": {
+                "Execute_SOQL_based_on_Id": {
+                    "inputs": {
+                        "body": {
+                            "query": "Select Id,IsDeleted,Name,BillingStreet,BillingCity,BillingState,BillingPostalCode,BillingCountry,BillingCountryCode,BillingAddress,ShippingStreet,ShippingCity,ShippingState,ShippingPostalCode,ShippingCountry,Website,Ownership,CreatedDate,LastModifiedDate,S4SAccount_Name_International__c,S4SCID_Number__c,S4SCMD_KUKLA__c,S4SCMD_NAME1__c,S4SCMD_NAME2__c,S4SCMD_NAME3__c,S4SCMD_REGION__c,S4SCity_PO_Box_International__c,S4SCity_PO_Box__c,S4SCompany_Postal_Code__c,S4SDUNS__c,S4SDomestic_Ultimate_DUNS__c,S4SGlobal_Ultimate_DUNS__c,S4SISIC__c,S4SIfA__c,S4SInternational_City__c,S4SInternational_CountryGP__c,S4SInternational_Country__c,S4SInternational_Postal_Code__c,S4SInternational_RegionGP__c,S4SInternational_Region__c,S4SInternational_Steet_Name_2__c,S4SInternational_Street_Name_1__c,S4SLegalOwner__c,S4SMD_Status__c,S4SNat_Company_ID__c,S4SNo_Legal_Form_available__c,S4SNotification_from_CMD__c,S4SPO_Box_Postcode__c,S4SPO_box__c,S4SSISIC_Direct__c,S4STax_ID__c,LastModifiedBy.LastModifiedDate from Account where S4SCID_Number__c = '@{variables('id')}' "
+                        },
+                        "host": {
+                            "connection": {
+                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                            }
+                        },
+                        "method": "post",
+                        "path": "/soql/executesoqlquery"
+                    },
+                    "runAfter": {
+                        "Set_variable": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "ApiConnection"
+                },
+                "Set_variable": {
+                    "inputs": {
+                        "name": "id",
+                        "value": "@{toUpper(json(string(triggerBody()))?['Id'])}"
+                    },
+                    "runAfter": {},
+                    "type": "SetVariable"
+                },
+                "Set_variable_'queryResponse'": {
+                    "inputs": {
+                        "name": "queryResponse",
+                        "value": "@body('Execute_SOQL_based_on_Id')"
+                    },
+                    "runAfter": {
+                        "Execute_SOQL_based_on_Id": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "SetVariable"
+                }
+            },
+            "else": {
+                "actions": {
+                    "Execute_SOQL_based_on_Status": {
+                        "inputs": {
+                            "body": {
+                                "query": "Select Id,IsDeleted,Name,BillingStreet,BillingCity,BillingState,BillingPostalCode,BillingCountry,BillingCountryCode,BillingAddress,ShippingStreet,ShippingCity,ShippingState,ShippingPostalCode,ShippingCountry,Website,Ownership,CreatedDate,LastModifiedDate,S4SAccount_Name_International__c,S4SCID_Number__c,S4SCMD_KUKLA__c,S4SCMD_NAME1__c,S4SCMD_NAME2__c,S4SCMD_NAME3__c,S4SCMD_REGION__c,S4SCity_PO_Box_International__c,S4SCity_PO_Box__c,S4SCompany_Postal_Code__c,S4SDUNS__c,S4SDomestic_Ultimate_DUNS__c,S4SGlobal_Ultimate_DUNS__c,S4SISIC__c,S4SIfA__c,S4SInternational_City__c,S4SInternational_CountryGP__c,S4SInternational_Country__c,S4SInternational_Postal_Code__c,S4SInternational_RegionGP__c,S4SInternational_Region__c,S4SInternational_Steet_Name_2__c,S4SInternational_Street_Name_1__c,S4SLegalOwner__c,S4SMD_Status__c,S4SNat_Company_ID__c,S4SNo_Legal_Form_available__c,S4SNotification_from_CMD__c,S4SPO_Box_Postcode__c,S4SPO_box__c,S4SSISIC_Direct__c,S4STax_ID__c,LastModifiedBy.LastModifiedDate from Account where S4SMD_Status__c = 'CMD Subscription Pending'  or S4SMD_Status__c = 'Unsubscribe from CMD' LIMIT+@{json(body('GetConfiguration'))?['Count']}"
+                            },
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                }
+                            },
+                            "method": "post",
+                            "path": "/soql/executesoqlquery"
+                        },
+                        "runAfter": {},
+                        "type": "ApiConnection"
+                    },
+                    "Set_'queryResponse'": {
+                        "inputs": {
+                            "name": "queryResponse",
+                            "value": "@body('Execute_SOQL_based_on_Status')"
+                        },
+                        "runAfter": {
+                            "Execute_SOQL_based_on_Status": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "SetVariable"
+                    }
+                }
+            },
+            "expression": {
+                "and": [
+                    {
+                        "not": {
+                            "equals": [
+                                "@json(string(triggerBody()))?['duplicate']",
+                                ""
+                            ]
+                        }
+                    }
+                ]
+            },
+            "runAfter": {
+                "GetConfiguration": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_'queryresponse'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_SOAP_Version": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_duplicate": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_id": [
+                    "Succeeded"
+                ]
+            },
+            "type": "If"
+        },
+        "GetConfiguration": {
+            "inputs": {
+                "body": {
+                    "key": "cmd-config"
+                },
+                "host": {
+                    "triggerName": "manual",
+                    "workflow": {
+                        "id": "${getConfiguration_logicAppId}"
+                    }
+                }
+            },
+            "runAfter": {},
+            "type": "Workflow"
+        },
+        "Initialize_variable_'queryresponse'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "queryResponse",
+                        "type": "object"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_SOAP_Version": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "SOAP Version",
+                        "type": "string",
+                        "value": "@{triggerOutputs()['headers']?['SOAPVersion']}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_duplicate": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "duplicate",
+                        "type": "Boolean",
+                        "value": "@bool(triggerBody()?['duplicate'])"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_id": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "id",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Try": {
+            "actions": {
+                "Condition_to_check_Records": {
+                    "actions": {
+                        "Response_status_from_service": {
+                            "inputs": {
+                                "body": "@body('logic-c00031-internal_AccountSet')",
+                                "headers": {
+                                    "Content-Type": "application/json"
+                                },
+                                "statusCode": "@outputs('logic-c00031-internal_AccountSet')?['statusCode']"
+                            },
+                            "kind": "Http",
+                            "runAfter": {
+                                "logic-c00031-internal_AccountSet": [
+                                    "Succeeded",
+                                    "Failed"
+                                ]
+                            },
+                            "type": "Response"
+                        },
+                        "logic-c00031-internal_AccountSet": {
+                            "inputs": {
+                                "body": {
+                                    "SOAP Version": "@variables('SOAP Version')",
+                                    "duplicate": "@variables('duplicate')",
+                                    "queryResponse": "@variables('queryResponse')"
+                                },
+                                "host": {
+                                    "triggerName": "manual",
+                                    "workflow": {
+                                        "id": "${CMD_internal_AccountSet_logicAppId}"
+                                    }
+                                },
+                                "retryPolicy": {
+                                    "type": "none"
+                                }
+                            },
+                            "runAfter": {},
+                            "type": "Workflow"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Empty_Records_Response": {
+                                "inputs": {
+                                    "body": {
+                                        "Message": "0 Accounts found for update CMD status"
+                                    },
+                                    "headers": {
+                                        "Content-Type": "application/json"
+                                    },
+                                    "statusCode": 200
+                                },
+                                "kind": "Http",
+                                "runAfter": {},
+                                "type": "Response"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('queryResponse')?['records']?[0]",
+                                        ""
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('queryResponse')?['records']?[0]",
+                                        "@null"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                }
+            },
+            "runAfter": {
+                "Condition_to_check_Duplicate": [
+                    "Succeeded"
+                ]
+            },
+            "trackedProperties": {
+                "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+                "citizenName": "c00031",
+                "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'CMD')}",
+                "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'CMD')}",
+                "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'AccountSET')}",
+                "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+                "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+            },
+            "type": "Scope"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {},
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

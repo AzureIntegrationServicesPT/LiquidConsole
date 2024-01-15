@@ -1,0 +1,544 @@
+{
+	"$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+	"actions": {
+        "Catch_Scope": {
+            "actions": {
+                "Compose_Error_Message": {
+                    "inputs": {
+                        "input": "@createArray(result('Condition_to_Check_Account_Query_Size'),result('For_each'),result('Try_Scope'))"
+                    },
+                    "runAfter": {},
+                    "type": "Compose"
+                },
+                "Error_Response": {
+                    "inputs": {
+                        "body": {
+                            "searchAccountResponse": {
+                                "message": "@body('Set_Error_Message')?['message']",
+                                "success": "@false",
+                                "workflowRunId": "@workflow()?['run']?['name']"
+                            }
+                        },
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "Set_Error_Message": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
+                },
+                "Set_Error_Message": {
+                    "inputs": {
+                        "authentication": {
+                            "type": "Raw",
+                            "value": "[parameters('functionAppKey')]"
+                        },
+                        "body": "@outputs('Compose_Error_Message')",
+                        "function": {
+                            "id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+                        },
+                        "headers": {
+                            "Accept": "application/json",
+                            "Content-Type": "application/json",
+                            "Filename": "${liquid_setError}"
+                        },
+                        "method": "POST",
+                        "retryPolicy": {
+                            "type": "none"
+                        }
+                    },
+                    "runAfter": {
+                        "Compose_Error_Message": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Function"
+                }
+            },
+            "runAfter": {
+                "Try_Scope": [
+                    "TimedOut",
+                    "Failed"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Initialize_Array_Variable": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "Array",
+                        "type": "array"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Try_Scope": {
+            "actions": {
+                "Check_Identification_Number_Clause": {
+                    "actions": {
+                        "Condition_to_Check_Identification_Number_Size": {
+                            "actions": {
+                                "For_each_account": {
+                                    "actions": {
+                                        "Append_to_array_variable_for_response": {
+                                            "inputs": {
+                                                "name": "Array",
+                                                "value": {
+                                                    "Account": "@coalesce(body('HTTP_Query_SF_INumber')?['compositeResponse']?[0]?['body']?['records'])",
+                                                    "AccountTeamMember": "@coalesce(body('HTTP_Query_SF_INumber')?['compositeResponse']?[1]?['body']?['records'])",
+                                                    "S4SAttribute_Assignment__c": "@coalesce(body('HTTP_Query_SF_INumber')?['compositeResponse']?[2]?['body']?['records'])",
+                                                    "S4SIdentification_Number__c": "@coalesce(body('HTTP_Query_SF_Identification_Number')?['records'])"
+                                                }
+                                            },
+                                            "runAfter": {
+                                                "HTTP_Query_SF_INumber": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "AppendToArrayVariable"
+                                        },
+                                        "HTTP_Query_SF_INumber": {
+                                            "inputs": {
+                                                "body": {
+                                                    "allOrNone": false,
+                                                    "compositeRequest": [
+                                                        {
+                                                            "method": "GET",
+                                                            "referenceId": "AccountINumber",
+                                                            "url": "/services/data/v55.0/query?q=SELECT Id, IsDeleted, MasterRecordId, Name, Type, RecordTypeId, Parent.Id, Parent.Name, BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, BillingStateCode, BillingCountryCode, ShippingStreet, ShippingCity, ShippingState, ShippingPostalCode, ShippingCountry, ShippingStateCode, ShippingCountryCode, Phone, Fax, AccountNumber, Website, PhotoUrl, Sic, Industry, AnnualRevenue, NumberOfEmployees, Ownership, TickerSymbol, Description, Rating, Site, CurrencyIsoCode, Owner.Id, Owner.Name, Owner.Email, Owner.S4SGID_Technical__c, IsPartner, IsCustomerPortal, ChannelProgramName, ChannelProgramLevelName, Jigsaw, JigsawCompanyId, AccountSource, SicDesc, LID__LinkedIn_Company_Id__c, Copado_Testing__c, S4SACCOUNT_LegacyID__c, S4SARE__c, S4SAccount_Assignment__c, S4SAccount_Group_Type__c, S4SAccount_Life_Cycle__c, S4SAccount_Name_International__c, S4SAccount_Role__c, S4SAvailable_languages__c, S4SBusiness_Availability_24h_365_days__c, S4SBusiness_Availability_24h_Mon_Fri__c, S4SBusiness_Availability_Other__c, S4SBusiness_Unit__c, S4SBypass_Duplicate_rules__c, S4SCID_Number__c, S4SCMD_IfA_Update__c, S4SCMD_KUKLA__c, S4SCMD_NAME1_I__c, S4SCMD_NAME1__c, S4SCMD_NAME2_I__c, S4SCMD_NAME2__c, S4SCMD_NAME3_I__c, S4SCMD_NAME3__c, S4SCMD_REGION__c, S4SCMD_STREET2__c, S4SCMD_STREET__c, S4SCMD_Subscription_Rejected_Date__c, S4SChange_n__c, S4SChange_of_NPS__c, S4SCheck_IFAs_and_Contacts__c, S4SCity_PO_Box_International__c, S4SCity_PO_Box__c, S4SCompany_Postal_Code__c, S4SCompany_Summary__c, S4SCurrent_FY_NPS__c, S4SDUNS__c, S4SDivision__c, S4SDomestic_Ultimate_DUNS__c, S4SDuns_Information__c, S4SDuplicate_IfA_Number__c, S4SEmail__c, S4SEngineering_electrical__c, S4SEngineering_mechanical__c, S4SExternal_Account_HelpText__c, S4SFacebook__c, S4SField_Services_24_7__c, S4SFounding_Year__c, S4SFrom_Search__c, S4SGlobal_Frame_Agreement_Database__c, S4SGlobal_Ultimate_DUNS__c, S4SISIC__c, S4SIfAAutoNumber__c, S4SIfA_Siemens_Location__c, S4SIfA__c, S4SInternational_City__c, S4SInternational_CountryGP__c, S4SInternational_Country__c, S4SInternational_Postal_Code__c, S4SInternational_RegionGP__c, S4SInternational_Region__c, S4SInternational_Steet_Name_2__c, S4SInternational_Street_Name_1__c, S4SIsOwnerCMDUser__c, S4SIs_Partner__c, S4SLead_BU__c, S4SLead_Country__c, S4SLead_OC__c, S4SLead_Org__c, S4SLegalOwner__c, S4SLocal_Search_Term__c, S4SMD_Status__c, S4SManagement__c, S4SNPS_Trend__c, S4SNat_Company_ID__c, S4SNo_Legal_Form_available__c, S4SNo_of_Active_Candidature__c, S4SNo_of_Cancelled_Candidature__c, S4SNomination_Letter__c, S4SNormal_Business_Hours__c, S4SNotification_from_CMD__c, S4SOfferings_to_the_market_SOP__c, S4SOfferings_to_the_market_VAR__c, S4SOffice_level_square_meters__c, S4SOperational_radius__c, S4SOrganization_Code__c, S4SPO_Box_Postcode__c, S4SPO_box__c, S4SParent_Account_Group__c, S4SParent_DUNS__c, S4SPartner_Main_Industries__c, S4SPartner_Type__c, S4SPartnership_Status__c, S4SPartnership_with_competing_vendors__c, S4SPrevious_FY_NPS__c, S4SPrevious_FY_n__c, S4SPrevious_IfA_Number__c, S4SPulse_Link__c, S4SQuality_Assurance__c, S4SRelevant_Portfolio__c, S4SResponders_current_FY_n__c, S4SSFS_Confidential__c, S4SSISIC_Direct__r.Id, S4SSISIC_Direct__r.Name, S4SSISIC_Direct__r.S4SIndustry__c, S4SSISIC_Direct__r.S4SIndustry_Description__c,S4SSISIC_Direct__r.S4SIndustry_Segment__c, S4SSISIC_Ship_To__r.Id, S4SSISIC_Ship_To__r.Name, S4SSISIC_Ship_To__r.S4SIndustry_Description__c, S4SSISIC_Ship_To__r.S4SIndustry__c, S4SSISIC_Ship_To__r.S4SIndustry_Segment__c, S4SSalesCountry__c, S4SSales_Branch__c, S4SSales_Country__c, S4SSales_Department__c, S4SSales_Office__c, S4SSales_Org_Type__c, S4SSales_Sub_Region__c, S4SSales_Territory__c, S4SService_electrical__c, S4SService_mechanical__c, S4SShopfloor_level_square_meters__c, S4SShort_Partner_company_description__c, S4SSiemens_Account_Type__c, S4SSupport_functions__c, S4STax_ID__c, S4STotal_Employees__c, S4SVertical_Name__c, S4S_No_Matched_Accounts_Found__c, S4SClone_Account_Number__c, S4SNumber_of_Pricing_Primary__c, Account_Assignments__c, S4SBypassValidationForProcessBuilder__c, S4SDAndBCreated__c, S4SData_Visibility__c, S4SLegal_Status__c, S4SMarked_for_Deletion__c, S4SPartner_Group__c, S4SQuip_ABP_URL__c, S4SQuip_Briefing_URL__c, S4SQuip_CSVP_URL__c, S4SSAP_Client__c, S4SSAP_System_ID__c, S4SSales_Planning_enabled__c, S4SCounty_FIPS__c, S4SCounty__c, S4SCustomer_Classification__c, S4SExternal_Source__c, S4SGeographical_Code__c, S4SIndirect_Creation_Status__c, S4SMilitary_Non_Military_Use__c, S4SNTA__c, S4SRegion__c, S4SRelated_IfA__c, S4SSkipValidationForDataVisibilty__c, S4SPartner_Group_Record_Type_Name__c, S4SCBase_ID__c, S4SCurrent_User_Federation_ID__c, S4SNAF_ID__c, S4SNumber_of_Active_Membership__c, S4SQuip_Document_URL__c, S4SRelevant_Sales_Employees__c, S4SUpdateIndirectCreationStatusOnce__c, S4S_Finance_Document_URL__c, S4S_Finance_Quip_Templates__c, S4S_Finance_Template_URL__c, S4SAccount_Name_SieSales__c, S4SPart_of_a_Global_Agreement__c, S4SVisible_in_Partner_Finder__c, S4SArea__c, S4SBranch_Office__c, S4SData_Visibility_Text__c, S4SLegal_Owner_International__c, S4S_ClassificationForChinaAccount__c, S4SLocal_ID__c, S4SQuip_Relationship_Management_URL__c, S4SIFA_GID__c, S4SCCC_Channel__c, S4SCCC_Classification__c, S4S_Converted_from_Lead__c, S4SLast_Data_Verification_by_CMD__c, S4SMilitary__c, S4SNuclear__c, S4SRating__c, S4SRating_category__c, S4SInitial_Account_Role__c, S4SSFS_Account_Description__c, S4SBackend_Id__c, S4SCOF_Country__c, S4SExpiry_Date_Financial_Framework__c, S4SFinancial_Framework__c, S4SGovernmental_Registration_Number__c, S4SLegal_Entity__c, S4SOrigination_ID__c, S4SPhilos_Id__c, S4SRelationship_Status__c, S4SRoles__c, S4SSFS_Rating_Date__c, S4SSFS_Rating_Type__c, S4SSFS_Rating__c, S4SSupplier_to_Siemens__c, S4SUltimate_SFS_Parent_Account__c, S4S_Customer_of_Siemens__c, S4S_Expiry_Date_Risk_Approval__c, S4SAccount_Owner_Role__c, S4SInside_Sales__c, RecordType.Name FROM Account WHERE Id='@{items('For_each_account')?['S4SAccount__c']}'"
+                                                        },
+                                                        {
+                                                            "method": "GET",
+                                                            "referenceId": "TeamMemberINumber",
+                                                            "url": "/services/data/v55.0/query?q=SELECT Id, PhotoUrl, TeamMemberRole, S4SFollow_NBA__c, Title, CurrencyIsoCode, S4SExternal_Source__c, AccountAccessLevel, IsDeleted, User.Id, User.Name, User.Email, User.S4SGID_Technical__c FROM AccountTeamMember WHERE AccountId = '@{items('For_each_account')?['Id']}' LIMIT 100"
+                                                        },
+                                                        {
+                                                            "method": "GET",
+                                                            "referenceId": "AttAssignmentsINumber",
+                                                            "url": "/services/data/v55.0/query?q=SELECT  Id,IsDeleted,Name,CurrencyIsoCode,RecordTypeId,S4SATTRIBUTE_ASSIGNMENT_LegacyID__c,S4SAccount__c,S4SCategory__c,S4SContact__c,S4SDescription__c,S4SFormat_Date__c,S4SFormat_Number__c,S4SFormat_Text__c,S4SGroup__c,S4SName__c,S4SRelatedObjectType__c,S4SRelated_Object__c,S4SSet__c,S4SValue__c,Owner.Id,Owner.Name,Owner.Email FROM S4SAttribute_Assignment__c WHERE S4SAccount__c = '@{items('For_each_account')?['Id']}' LIMIT 100"
+                                                        }
+                                                    ]
+                                                },
+                                                "headers": {
+                                                    "Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+                                                },
+                                                "method": "POST",
+                                                "retryPolicy": {
+                                                    "type": "none"
+                                                },
+                                                "uri": "${instance_NonSFS_URL}/composite/"
+                                            },
+                                            "runAfter": {
+                                                "Scope": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "Http"
+                                        },
+                                        "Scope": {
+                                            "actions": {},
+                                            "runAfter": {},
+                                            "type": "Scope"
+                                        }
+                                    },
+                                    "foreach": "@body('HTTP_Query_SF_Identification_Number')?['records']",
+                                    "runAfter": {},
+                                    "type": "Foreach"
+                                },
+                                "Set_Response_from_INumber": {
+                                    "inputs": {
+                                        "authentication": {
+                                            "type": "Raw",
+                                            "value": "[parameters('functionAppKey')]"
+                                        },
+                                        "body": {
+                                            "excludeNulls": "@triggerBody()?['searchAccount']?['excludeNulls']",
+                                            "input": "@variables('Array')",
+                                            "type": "array"
+                                        },
+                                        "function": {
+                                            "id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+                                        },
+                                        "headers": {
+                                            "Accept": "application/json",
+                                            "Content-Type": "application/json",
+                                            "Filename": "${liquid_responseAccountDetails}"
+                                        },
+                                        "method": "POST",
+                                        "retryPolicy": {
+                                            "type": "none"
+                                        }
+                                    },
+                                    "runAfter": {
+                                        "For_each_account": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Function"
+                                },
+                                "Success_Response_from_INumber": {
+                                    "inputs": {
+                                        "body": {
+                                            "searchAccountResponse": {
+                                                "Account": "@body('Set_Response_from_INumber')",
+                                                "success": "@true",
+                                                "workflowRunId": "@workflow()?['run']?['name']"
+                                            }
+                                        },
+                                        "statusCode": 200
+                                    },
+                                    "kind": "Http",
+                                    "runAfter": {
+                                        "Set_Response_from_INumber": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Response"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "No_Account_from_Identification_Number_Found_Response": {
+                                        "inputs": {
+                                            "body": {
+                                                "searchAccountResponse": {
+                                                    "message": "No account found with the information provided!",
+                                                    "success": "@true",
+                                                    "workflowRunId": "@workflow()?['run']?['name']"
+                                                }
+                                            },
+                                            "statusCode": 404
+                                        },
+                                        "kind": "Http",
+                                        "runAfter": {},
+                                        "type": "Response"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "greater": [
+                                            "@length(body('HTTP_Query_SF_Identification_Number')?['records'])",
+                                            "@int(0)"
+                                        ]
+                                    }
+                                ]
+                            },
+                            "runAfter": {
+                                "HTTP_Query_SF_Identification_Number": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "HTTP_Query_SF_Identification_Number": {
+                            "inputs": {
+                                "headers": {
+                                    "Authorization": "Bearer @{body('HTTP_GET_SF_TOKEN')}"
+                                },
+                                "method": "GET",
+                                "queries": {
+                                    "q": "SELECT Id, Name, S4SAccount__c, CurrencyIsoCode, S4SExternal_ID__c, S4SIdentification_Number__c, S4SIfA__c, S4SLocal_Source_System__c, S4SPrimary__c, S4SSource_System__c, S4SSubtype__c, S4SType__c, S4SCompany_Code__c, S4SSAP_Account_Group__c, S4SSales_Org__c, S4SSales_Country__c, S4SOrder_Block__c, S4SMarked_for_Deletion__c, S4SExternal_Source__c FROM S4SIdentification_Number__c @{body('Query_Account_Details')?['identificationNumberClause']} LIMIT 100"
+                                },
+                                "retryPolicy": {
+                                    "type": "none"
+                                },
+                                "uri": "${instance_NonSFS_URL}/query"
+                            },
+                            "runAfter": {},
+                            "type": "Http"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Condition_to_Check_Account_Query_Size": {
+                                "actions": {
+                                    "For_each": {
+                                        "actions": {
+                                            "Append_Queries": {
+                                                "inputs": {
+                                                    "name": "Array",
+                                                    "value": {
+                                                        "Account": "@items('For_each')",
+                                                        "AccountTeamMember": "@coalesce(body('HTTP_Query_SF')?['compositeResponse']?[1]?['body']?['records'])",
+                                                        "S4SAttribute_Assignment__c": "@coalesce(body('HTTP_Query_SF')?['compositeResponse']?[2]?['body']?['records'])",
+                                                        "S4SIdentification_Number__c": "@coalesce(body('HTTP_Query_SF')?['compositeResponse']?[0]?['body']?['records'])"
+                                                    }
+                                                },
+                                                "runAfter": {
+                                                    "HTTP_Query_SF": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "AppendToArrayVariable"
+                                            },
+                                            "HTTP_Query_SF": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "allOrNone": false,
+                                                        "compositeRequest": [
+                                                            {
+                                                                "method": "GET",
+                                                                "referenceId": "IdentNumber",
+                                                                "url": "/services/data/v55.0/query?q=SELECT Id, Name, CurrencyIsoCode, S4SExternal_ID__c, S4SIdentification_Number__c, S4SIfA__c, S4SLocal_Source_System__c, S4SPrimary__c, S4SSource_System__c, S4SSubtype__c, S4SType__c, S4SCompany_Code__c, S4SSAP_Account_Group__c, S4SSales_Org__c, S4SSales_Country__c, S4SOrder_Block__c, S4SMarked_for_Deletion__c, S4SExternal_Source__c FROM S4SIdentification_Number__c WHERE S4SAccount__c = '@{items('For_each')?['Id']}'  LIMIT 100"
+                                                            },
+                                                            {
+                                                                "method": "GET",
+                                                                "referenceId": "TeamMember",
+                                                                "url": "/services/data/v55.0/query?q=SELECT Id, PhotoUrl, TeamMemberRole, S4SFollow_NBA__c, Title, CurrencyIsoCode, S4SExternal_Source__c, AccountAccessLevel, IsDeleted, User.Id, User.Name, User.Email, User.S4SGID_Technical__c FROM AccountTeamMember WHERE AccountId = '@{items('For_each')?['Id']}' LIMIT 100"
+                                                            },
+                                                            {
+                                                                "method": "GET",
+                                                                "referenceId": "AttAssignments",
+                                                                "url": "/services/data/v55.0/query?q=SELECT  Id,IsDeleted,Name,CurrencyIsoCode,RecordTypeId,S4SATTRIBUTE_ASSIGNMENT_LegacyID__c,S4SAccount__c,S4SCategory__c,S4SContact__c,S4SDescription__c,S4SFormat_Date__c,S4SFormat_Number__c,S4SFormat_Text__c,S4SGroup__c,S4SName__c,S4SRelatedObjectType__c,S4SRelated_Object__c,S4SSet__c,S4SValue__c,Owner.Id,Owner.Name,Owner.Email FROM S4SAttribute_Assignment__c WHERE S4SAccount__c = '@{items('For_each')?['Id']}' LIMIT 100"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "headers": {
+                                                        "Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+                                                    },
+                                                    "method": "POST",
+                                                    "retryPolicy": {
+                                                        "type": "none"
+                                                    },
+                                                    "uri": "${instance_NonSFS_URL}/composite/"
+                                                },
+                                                "runAfter": {},
+                                                "type": "Http"
+                                            }
+                                        },
+                                        "foreach": "@body('HTTP_Query_SF_Account')?['records']",
+                                        "runAfter": {},
+                                        "type": "Foreach"
+                                    },
+                                    "Set_Response_Result": {
+                                        "inputs": {
+                                            "authentication": {
+                                                "type": "Raw",
+                                                "value": "[parameters('functionAppKey')]"
+                                            },
+                                            "body": {
+                                                "excludeNulls": "@triggerBody()?['searchAccount']?['excludeNulls']",
+                                                "input": "@variables('Array')",
+                                                "type": "object"
+                                            },
+                                            "function": {
+                                                "id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+                                            },
+                                            "headers": {
+                                                "Accept": "application/json",
+                                                "Content-Type": "application/json",
+                                                "Filename": "${liquid_responseAccountDetails}"
+                                            },
+                                            "method": "POST",
+                                            "retryPolicy": {
+                                                "type": "none"
+                                            }
+                                        },
+                                        "runAfter": {
+                                            "For_each": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "Function"
+                                    },
+                                    "Success_Response": {
+                                        "inputs": {
+                                            "body": {
+                                                "searchAccountResponse": {
+                                                    "Account": "@body('Set_Response_Result')",
+                                                    "success": "@true",
+                                                    "workflowRunId": "@workflow()?['run']?['name']"
+                                                }
+                                            },
+                                            "statusCode": 200
+                                        },
+                                        "kind": "Http",
+                                        "runAfter": {
+                                            "Set_Response_Result": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "Response"
+                                    }
+                                },
+                                "else": {
+                                    "actions": {
+                                        "No_Account_Found_Response": {
+                                            "inputs": {
+                                                "body": {
+                                                    "searchAccountResponse": {
+                                                        "message": "No account found with the information provided!",
+                                                        "success": "@true",
+                                                        "workflowRunId": "@workflow()?['run']?['name']"
+                                                    }
+                                                },
+                                                "statusCode": 404
+                                            },
+                                            "kind": "Http",
+                                            "runAfter": {},
+                                            "type": "Response"
+                                        }
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "greater": [
+                                                "@length(body('HTTP_Query_SF_Account')?['records'])",
+                                                "@int(0)"
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "HTTP_Query_SF_Account": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "HTTP_Query_SF_Account": {
+                                "inputs": {
+                                    "headers": {
+                                        "Authorization": "Bearer @{body('HTTP_GET_SF_TOKEN')}"
+                                    },
+                                    "method": "GET",
+                                    "queries": {
+                                        "q": "SELECT Id, IsDeleted, MasterRecordId, Name, Type, RecordTypeId, Parent.Id, Parent.Name, BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, BillingStateCode, BillingCountryCode, ShippingStreet, ShippingCity, ShippingState, ShippingPostalCode, ShippingCountry, ShippingStateCode, ShippingCountryCode, Phone, Fax, AccountNumber, Website, PhotoUrl, Sic, Industry, AnnualRevenue, NumberOfEmployees, Ownership, TickerSymbol, Description, Rating, Site, CurrencyIsoCode, Owner.Id, Owner.Name, Owner.Email, Owner.S4SGID_Technical__c, IsPartner, IsCustomerPortal, ChannelProgramName, ChannelProgramLevelName, Jigsaw, JigsawCompanyId, AccountSource, SicDesc, LID__LinkedIn_Company_Id__c, Copado_Testing__c, S4SACCOUNT_LegacyID__c, S4SARE__c, S4SAccount_Assignment__c, S4SAccount_Group_Type__c, S4SAccount_Life_Cycle__c, S4SAccount_Name_International__c, S4SAccount_Role__c, S4SAvailable_languages__c, S4SBusiness_Availability_24h_365_days__c, S4SBusiness_Availability_24h_Mon_Fri__c, S4SBusiness_Availability_Other__c, S4SBusiness_Unit__c, S4SBypass_Duplicate_rules__c, S4SCID_Number__c, S4SCMD_IfA_Update__c, S4SCMD_KUKLA__c, S4SCMD_NAME1_I__c, S4SCMD_NAME1__c, S4SCMD_NAME2_I__c, S4SCMD_NAME2__c, S4SCMD_NAME3_I__c, S4SCMD_NAME3__c, S4SCMD_REGION__c, S4SCMD_STREET2__c, S4SCMD_STREET__c, S4SCMD_Subscription_Rejected_Date__c, S4SChange_n__c, S4SChange_of_NPS__c, S4SCheck_IFAs_and_Contacts__c, S4SCity_PO_Box_International__c, S4SCity_PO_Box__c, S4SCompany_Postal_Code__c, S4SCompany_Summary__c, S4SCurrent_FY_NPS__c, S4SDUNS__c, S4SDivision__c, S4SDomestic_Ultimate_DUNS__c, S4SDuns_Information__c, S4SDuplicate_IfA_Number__c, S4SEmail__c, S4SEngineering_electrical__c, S4SEngineering_mechanical__c, S4SExternal_Account_HelpText__c, S4SFacebook__c, S4SField_Services_24_7__c, S4SFounding_Year__c, S4SFrom_Search__c, S4SGlobal_Frame_Agreement_Database__c, S4SGlobal_Ultimate_DUNS__c, S4SISIC__c, S4SIfAAutoNumber__c, S4SIfA_Siemens_Location__c, S4SIfA__c, S4SInternational_City__c, S4SInternational_CountryGP__c, S4SInternational_Country__c, S4SInternational_Postal_Code__c, S4SInternational_RegionGP__c, S4SInternational_Region__c, S4SInternational_Steet_Name_2__c, S4SInternational_Street_Name_1__c, S4SIsOwnerCMDUser__c, S4SIs_Partner__c, S4SLead_BU__c, S4SLead_Country__c, S4SLead_OC__c, S4SLead_Org__c, S4SLegalOwner__c, S4SLocal_Search_Term__c, S4SMD_Status__c, S4SManagement__c, S4SNPS_Trend__c, S4SNat_Company_ID__c, S4SNo_Legal_Form_available__c, S4SNo_of_Active_Candidature__c, S4SNo_of_Cancelled_Candidature__c, S4SNomination_Letter__c, S4SNormal_Business_Hours__c, S4SNotification_from_CMD__c, S4SOfferings_to_the_market_SOP__c, S4SOfferings_to_the_market_VAR__c, S4SOffice_level_square_meters__c, S4SOperational_radius__c, S4SOrganization_Code__c, S4SPO_Box_Postcode__c, S4SPO_box__c, S4SParent_Account_Group__c, S4SParent_DUNS__c, S4SPartner_Main_Industries__c, S4SPartner_Type__c, S4SPartnership_Status__c, S4SPartnership_with_competing_vendors__c, S4SPrevious_FY_NPS__c, S4SPrevious_FY_n__c, S4SPrevious_IfA_Number__c, S4SPulse_Link__c, S4SQuality_Assurance__c, S4SRelevant_Portfolio__c, S4SResponders_current_FY_n__c, S4SSFS_Confidential__c, S4SSISIC_Direct__r.Id, S4SSISIC_Direct__r.Name, S4SSISIC_Direct__r.S4SIndustry__c, S4SSISIC_Direct__r.S4SIndustry_Description__c,S4SSISIC_Direct__r.S4SIndustry_Segment__c, S4SSISIC_Ship_To__r.Id, S4SSISIC_Ship_To__r.Name, S4SSISIC_Ship_To__r.S4SIndustry_Description__c, S4SSISIC_Ship_To__r.S4SIndustry__c, S4SSISIC_Ship_To__r.S4SIndustry_Segment__c, S4SSalesCountry__c, S4SSales_Branch__c, S4SSales_Country__c, S4SSales_Department__c, S4SSales_Office__c, S4SSales_Org_Type__c, S4SSales_Sub_Region__c, S4SSales_Territory__c, S4SService_electrical__c, S4SService_mechanical__c, S4SShopfloor_level_square_meters__c, S4SShort_Partner_company_description__c, S4SSiemens_Account_Type__c, S4SSupport_functions__c, S4STax_ID__c, S4STotal_Employees__c, S4SVertical_Name__c, S4S_No_Matched_Accounts_Found__c, S4SClone_Account_Number__c, S4SNumber_of_Pricing_Primary__c, Account_Assignments__c, S4SBypassValidationForProcessBuilder__c, S4SDAndBCreated__c, S4SData_Visibility__c, S4SLegal_Status__c, S4SMarked_for_Deletion__c, S4SPartner_Group__c, S4SQuip_ABP_URL__c, S4SQuip_Briefing_URL__c, S4SQuip_CSVP_URL__c, S4SSAP_Client__c, S4SSAP_System_ID__c, S4SSales_Planning_enabled__c, S4SCounty_FIPS__c, S4SCounty__c, S4SCustomer_Classification__c, S4SExternal_Source__c, S4SGeographical_Code__c, S4SIndirect_Creation_Status__c, S4SMilitary_Non_Military_Use__c, S4SNTA__c, S4SRegion__c, S4SRelated_IfA__c, S4SSkipValidationForDataVisibilty__c, S4SPartner_Group_Record_Type_Name__c, S4SCBase_ID__c, S4SCurrent_User_Federation_ID__c, S4SNAF_ID__c, S4SNumber_of_Active_Membership__c, S4SQuip_Document_URL__c, S4SRelevant_Sales_Employees__c, S4SUpdateIndirectCreationStatusOnce__c, S4S_Finance_Document_URL__c, S4S_Finance_Quip_Templates__c, S4S_Finance_Template_URL__c, S4SAccount_Name_SieSales__c, S4SPart_of_a_Global_Agreement__c, S4SVisible_in_Partner_Finder__c, S4SArea__c, S4SBranch_Office__c, S4SData_Visibility_Text__c, S4SLegal_Owner_International__c, S4S_ClassificationForChinaAccount__c, S4SLocal_ID__c, S4SQuip_Relationship_Management_URL__c, S4SIFA_GID__c, S4SCCC_Channel__c, S4SCCC_Classification__c, S4S_Converted_from_Lead__c, S4SLast_Data_Verification_by_CMD__c, S4SMilitary__c, S4SNuclear__c, S4SRating__c, S4SRating_category__c, S4SInitial_Account_Role__c, S4SSFS_Account_Description__c, S4SBackend_Id__c, S4SCOF_Country__c, S4SExpiry_Date_Financial_Framework__c, S4SFinancial_Framework__c, S4SGovernmental_Registration_Number__c, S4SLegal_Entity__c, S4SOrigination_ID__c, S4SPhilos_Id__c, S4SRelationship_Status__c, S4SRoles__c, S4SSFS_Rating_Date__c, S4SSFS_Rating_Type__c, S4SSFS_Rating__c, S4SSupplier_to_Siemens__c, S4SUltimate_SFS_Parent_Account__c, S4S_Customer_of_Siemens__c, S4S_Expiry_Date_Risk_Approval__c, S4SAccount_Owner_Role__c, S4SInside_Sales__c, RecordType.Name FROM Account @{body('Query_Account_Details')?['clause']} LIMIT 100"
+                                    },
+                                    "retryPolicy": {
+                                        "type": "none"
+                                    },
+                                    "uri": "${instance_NonSFS_URL}/query"
+                                },
+                                "runAfter": {},
+                                "type": "Http"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "equals": [
+                                    "@body('Query_Account_Details')?['identificationNumber']",
+                                    "@string('true')"
+                                ]
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "HTTP_Get_SF_Token": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "HTTP_Get_SF_Token": {
+                    "inputs": {
+                        "headers": {
+                            "Ocp-Apim-Subscription-Key": "${apimKey}"
+                        },
+                        "method": "POST",
+                        "retryPolicy": {
+                            "type": "none"
+                        },
+                        "uri": "${baseUrl_apim_ise}/c00031/token/oAuth/nonsfs"
+                    },
+                    "runAfter": {
+                        "Query_Account_Details": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Http"
+                },
+                "Query_Account_Details": {
+                    "inputs": {
+                        "authentication": {
+                            "type": "Raw",
+                            "value": "[parameters('functionAppKey')]"
+                        },
+                        "body": "@triggerBody()",
+                        "function": {
+                            "id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+                        },
+                        "headers": {
+                            "Accept": "application/json",
+                            "Content-Type": "application/json",
+                            "Filename": "${liquid_accountSearchQuery}"
+                        },
+                        "method": "POST",
+                        "retryPolicy": {
+                            "type": "none"
+                        }
+                    },
+                    "runAfter": {},
+                    "type": "Function"
+                }
+            },
+            "runAfter": {
+                "Initialize_Array_Variable": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Scope"
+        }
+    },
+	"contentVersion": "1.0.0.0",
+	"outputs": {},
+	"parameters": {
+        "$connections": {
+			"defaultValue": {},
+			"type": "Object"
+		}
+    },
+	"triggers": {
+        "manual": {
+            "inputs": {
+                "schema": {
+                    "searchAccount": {
+                        "Account": {
+                            "Id": {
+                                "type": "string"
+                            },
+                            "S4SIfa__c": {
+                                "type": "string"
+                            }
+                        },
+                        "Department": {
+                            "type": "string"
+                        },
+                        "Email": {
+                            "type": "string"
+                        },
+                        "FirstName": {
+                            "type": "string"
+                        },
+                        "Id": {
+                            "type": "string"
+                        },
+                        "LastName": {
+                            "type": "string"
+                        },
+                        "MiddleName": {
+                            "type": "string"
+                        },
+                        "Name": {
+                            "type": "string"
+                        },
+                        "type": "object"
+                    }
+                }
+            },
+            "kind": "Http",
+            "operationOptions": "EnableSchemaValidation",
+            "type": "Request"
+        }
+    }
+}

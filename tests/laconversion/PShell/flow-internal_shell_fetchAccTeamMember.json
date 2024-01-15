@@ -1,0 +1,424 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Initialize_variable_finalResponse": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "finalResponse",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_finalWhereClause": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "finalWhereClause",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_operator": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "operator",
+                        "type": "string",
+                        "value": " AND "
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_searchConditions": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "searchConditions",
+                        "type": "array"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_whereClause": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "whereClause",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_whereClauses": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "whereClauses",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_zeroResults": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "zeroResults",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Scope-Catch": {
+            "actions": {
+                "Error_Response": {
+                    "inputs": {
+                        "body": {
+                            "Message": "@concat('Some error occurred while processing the request. Please find more details using tracking id : ', workflow()['run']['name'])",
+                            "Status": "Failure"
+                        },
+                        "headers": {
+                            "Content-Type": "application/json"
+                        },
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                },
+                "Terminate_in_Catch": {
+                    "inputs": {
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Error_Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Scope-Try": [
+                    "Failed",
+                    "Skipped",
+                    "TimedOut"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope-Try": {
+            "actions": {
+                "Check_accountId": {
+                    "actions": {
+                        "Append_to_array_variable_searchConditions_again": {
+                            "inputs": {
+                                "name": "searchConditions",
+                                "value": "@variables('whereClause')"
+                            },
+                            "runAfter": {
+                                "Set_variable_whereClause_if_accountId_exists": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "AppendToArrayVariable"
+                        },
+                        "Set_variable_whereClause_if_accountId_exists": {
+                            "inputs": {
+                                "name": "whereClause",
+                                "value": "AccountId='@{outputs('Compose_to_get_request')?['accountId']}'"
+                            },
+                            "runAfter": {},
+                            "type": "SetVariable"
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@outputs('Compose_to_get_request')?['accountId']",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@outputs('Compose_to_get_request')?['accountId']",
+                                        "@string('')"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Check_role": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Check_role": {
+                    "actions": {
+                        "Append_to_array_variable_searchConditions": {
+                            "inputs": {
+                                "name": "searchConditions",
+                                "value": "@variables('whereClause')"
+                            },
+                            "runAfter": {
+                                "Set_variable_whereClause": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "AppendToArrayVariable"
+                        },
+                        "Set_variable_whereClause": {
+                            "inputs": {
+                                "name": "whereClause",
+                                "value": "TeamMemberRole='@{outputs('Compose_to_get_request')?['role']}'"
+                            },
+                            "runAfter": {},
+                            "type": "SetVariable"
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@outputs('Compose_to_get_request')?['role']",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@outputs('Compose_to_get_request')?['role']",
+                                        "@string('')"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Compose_to_get_request": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Compose_to_get_request": {
+                    "inputs": "@triggerBody()",
+                    "runAfter": {},
+
+                    "type": "Compose"
+                },
+                "Final_Response_Compose": {
+                    "inputs": "@if(equals(variables('finalResponse'),''),concat('{\"SIE_SF4S_fetchAccountTeamOutput\":{\"AccountTeamMember\":[',variables('zeroResults'),']}}'),concat('{\"SIE_SF4S_fetchAccountTeamOutput\":{\"AccountTeamMember\":[',variables('finalResponse'),']}}'))",
+                    "runAfter": {
+                        "For_each_record_in_Query_Result": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Compose"
+                },
+                "Execute_a_SOQL_query": {
+                    "inputs": {
+                        "body": {
+                            "query": "select Id,AccountId,UserId,TeamMemberRole,PhotoUrl,Title,AccountAccessLevel,OpportunityAccessLevel,CaseAccessLevel,ContactAccessLevel,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,IsDeleted from AccountTeamMember where @{variables('whereClause')}"
+                        },
+                        "host": {
+                            "connection": {
+                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                            }
+                        },
+                        "method": "post",
+                        "path": "/soql/executesoqlquery"
+                    },
+                    "runAfter": {
+                        "Set_variable_whereClause_replacing": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "ApiConnection"
+                },
+                "For_each_record_in_Query_Result": {
+                    "actions": {
+                        "Compose_Response_from_QueryResult": {
+                            "inputs": {
+                                "AccountAccessLevel": "@{items('For_each_record_in_Query_Result')?['AccountAccessLevel']}",
+                                "AccountId": "@{items('For_each_record_in_Query_Result')?['AccountId']}",
+                                "CaseAccessLevel": "@{items('For_each_record_in_Query_Result')?['CaseAccessLevel']}",
+                                "ContactAccessLevel": "@{items('For_each_record_in_Query_Result')?['ContactAccessLevel']}",
+                                "CreatedById": "@{items('For_each_record_in_Query_Result')?['CreatedById']}",
+                                "CreatedDate": "@replace(coalesce(items('For_each_record_in_Query_Result')?['CreatedDate'], ''), '+00:00', '.000Z')",
+                                "Id": "@{items('For_each_record_in_Query_Result')?['Id']}",
+                                "IsDeleted": "@{items('For_each_record_in_Query_Result')?['IsDeleted']}",
+                                "LastModifiedById": "@{items('For_each_record_in_Query_Result')?['LastModifiedById']}",
+                                "LastModifiedDate": "@replace(coalesce(items('For_each_record_in_Query_Result')?['LastModifiedDate'], ''), '+00:00', '.000Z')",
+                                "OpportunityAccessLevel": "@{items('For_each_record_in_Query_Result')?['OpportunityAccessLevel']}",
+                                "PhotoUrl": "@{items('For_each_record_in_Query_Result')?['PhotoUrl']}",
+                                "SystemModstamp": "@replace(coalesce(items('For_each_record_in_Query_Result')?['SystemModstamp'], ''), '+00:00', '.000Z')",
+                                "TeamMemberRole": "@{items('For_each_record_in_Query_Result')?['TeamMemberRole']}",
+                                "Title": "@{items('For_each_record_in_Query_Result')?['Title']}",
+                                "UserId": "@{items('For_each_record_in_Query_Result')?['UserId']}"
+                            },
+                            "runAfter": {},
+                            "type": "Compose"
+                        },
+                        "Compose_to_add_result_to_FinalResponse": {
+                            "inputs": "@if(equals(variables('finalResponse'),''),outputs('Compose_Response_from_QueryResult'),concat(variables('finalResponse'),',',outputs('Compose_Response_from_QueryResult')))",
+                            "runAfter": {
+                                "Compose_Response_from_QueryResult": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Compose"
+                        },
+                        "Set_variable_finalResponse": {
+                            "inputs": {
+                                "name": "finalResponse",
+                                "value": "@{outputs('Compose_to_add_result_to_FinalResponse')}"
+                            },
+                            "runAfter": {
+                                "Compose_to_add_result_to_FinalResponse": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "SetVariable"
+                        }
+                    },
+                    "foreach": "@body('Execute_a_SOQL_query')['records']",
+                    "runAfter": {
+                        "Execute_a_SOQL_query": [
+                            "Succeeded"
+                        ]
+                    },
+                    "runtimeConfiguration": {
+                        "concurrency": {
+                            "repetitions": 1
+                        }
+                    },
+                    "type": "Foreach"
+                },
+                "Join_searchConditions": {
+                    "inputs": {
+                        "from": "@variables('searchConditions')",
+                        "joinWith": "####"
+                    },
+                    "runAfter": {
+                        "Check_accountId": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Join"
+                },
+                "Final_Response": {
+                    "inputs": {
+                        "body": "@json(outputs('Final_Response_Compose'))",
+                        "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "Final_Response_Compose": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
+                },
+                "Set_variable_finalWhereClause_with_operator": {
+                    "inputs": {
+                        "name": "finalWhereClause",
+                        "value": "@{replace(body('Join_searchConditions'),'####', variables('operator'))}"
+                    },
+                    "runAfter": {
+                        "Join_searchConditions": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "SetVariable"
+                },
+                "Set_variable_whereClause_replacing": {
+                    "inputs": {
+                        "name": "whereClause",
+                        "value": "@{replace(variables('finalWhereClause'), '*', '%')}"
+                    },
+                    "runAfter": {
+                        "Set_variable_finalWhereClause_with_operator": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "SetVariable"
+                }
+            },
+            "runAfter": {
+                "Initialize_variable_finalResponse": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_finalWhereClause": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_operator": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_searchConditions": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_whereClause": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_whereClauses": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_zeroResults": [
+                    "Succeeded"
+                ]
+            },
+            "trackedProperties": {
+                "citizenName": "c00031",
+                "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'PShell')}",
+                "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'fetchAccountTeamMember')}",
+                "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+                "parentWorkflow" : "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}"
+            },
+            "type": "Scope"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {},
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

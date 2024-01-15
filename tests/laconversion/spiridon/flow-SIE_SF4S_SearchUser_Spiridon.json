@@ -1,0 +1,391 @@
+{
+	"$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+	"actions": {
+		"Initialize_variable_Country": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "Country",
+						"type": "string",
+						"value": "@{trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"userSearch\"]/*[local-name()=\"SIE_SF4S_searchUserReq_Spiridon\"]/*[local-name()=\"Country\"])'))}"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Initialize_variable_LastName": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "LastName",
+						"type": "string",
+						"value": "@{trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"userSearch\"]/*[local-name()=\"SIE_SF4S_searchUserReq_Spiridon\"]/*[local-name()=\"LastName\"])'))}"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Initialize_variable_WhereClause": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "whereClause",
+						"type": "string"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Scope_Catch": {
+			"actions": {
+				"Send_Error_Response": {
+					"inputs": {
+						"body": "Unexpected error occured. Please contact system administrator with the following tracking id:@{workflow()['run']['name']}",
+						"headers": {
+							"Content-Type": "text/xml"
+						},
+						"statusCode": 500
+					},
+					"kind": "Http",
+					"runAfter": {},
+					"type": "Response"
+				},
+				"Terminate": {
+					"inputs": {
+						"runError": {
+							"code": "500"
+						},
+						"runStatus": "Failed"
+					},
+					"runAfter": {
+						"Send_Error_Response": [
+							"Succeeded"
+						]
+					},
+					"type": "Terminate"
+				}
+			},
+			"runAfter": {
+				"_Scope_Try": [
+					"Failed",
+					"Skipped",
+					"TimedOut"
+				]
+			},
+			"type": "Scope"
+		},
+		"_Scope_Try": {
+			"actions": {
+				"Condition_to_check_length_of_XSLT_output": {
+					"actions": {
+						"Response": {
+							"inputs": {
+								"body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sie=\"http://demchdc8zkx.dc4ca.siemens.de/SIE.SF4S.Spiridon.Public.WebServices.Provider:SIE_SF4S_SPIRIDON\">\n   <soapenv:Header />\n   <soapenv:Body>\n      <sie:userSearchResponse />\n   </soapenv:Body>\n</soapenv:Envelope>",
+								"headers": {
+									"Content-Type": "text/xml"
+								},
+								"statusCode": 200
+							},
+							"kind": "http",
+							"runAfter": {},
+							"type": "Response"
+						}
+					},
+					"else": {
+						"actions": {
+							"Success_Response": {
+								"inputs": {
+									"body": "@body('XsltTransform_to_Remove_Null_Or_Empty')",
+									"headers": {
+										"Content-Type": "text/xml"
+									},
+									"statusCode": 200
+								},
+								"kind": "http",
+								"runAfter": {},
+								"type": "Response"
+							}
+						}
+					},
+					"expression": {
+						"and": [
+							{
+								"equals": [
+									"@length(trim(string(body('XsltTransform_to_Remove_Null_Or_Empty'))))",
+									1
+								]
+							}
+						]
+					},
+					"runAfter": {
+						"XsltTransform_to_Remove_Null_Or_Empty": [
+							"Succeeded"
+						]
+					},
+					"type": "If"
+				},
+				"Condition_for_Where_Clause": {
+					"actions": {
+						"_Set_Variable_WhereClause": {
+							"inputs": {
+								"name": "whereClause",
+								"value": "where Country='@{variables('Country')}' and LastName='@{variables('LastName')}'"
+							},
+							"runAfter": {},
+							"type": "SetVariable"
+						}
+					},
+					"else": {
+						"actions": {
+							"Condition_to_check_Country_exist": {
+								"actions": {
+									"Set_Where_Clause_for_Country": {
+										"inputs": {
+											"name": "whereClause",
+											"value": "where Country='@{variables('Country')}'"
+										},
+										"runAfter": {},
+										"type": "SetVariable"
+									}
+								},
+								"else": {
+									"actions": {
+										"Condition_to_check_LastName_": {
+											"actions": {
+												"Set_Where_Clause_for_LastName": {
+													"inputs": {
+														"name": "whereClause",
+														"value": " where LastName='@{variables('LastName')}'"
+													},
+													"runAfter": {},
+													"type": "SetVariable"
+												}
+											},
+											"else": {
+												"actions": {
+													"Set_Where_Clause_for_empty": {
+														"inputs": {
+															"name": "whereClause",
+															"value": " @{' '}"
+														},
+														"runAfter": {},
+														"type": "SetVariable"
+													}
+												}
+											},
+											"expression": {
+												"and": [
+													{
+														"not": {
+															"equals": [
+																"@variables('LastName')",
+																"@null"
+															]
+														}
+													},
+													{
+														"not": {
+															"equals": [
+																"@variables('LastName')",
+																"@' '"
+															]
+														}
+													}
+												]
+											},
+											"runAfter": {},
+											"type": "If"
+										}
+									}
+								},
+								"expression": {
+									"and": [
+										{
+											"not": {
+												"equals": [
+													"@variables('Country')",
+													"@null"
+												]
+											}
+										},
+										{
+											"not": {
+												"equals": [
+													"@variables('Country')",
+													"@string('')"
+												]
+											}
+										}
+									]
+								},
+								"runAfter": {},
+								"type": "If"
+							}
+						}
+					},
+					"expression": {
+						"and": [
+							{
+								"not": {
+									"equals": [
+										"@variables('Country')",
+										"@null"
+									]
+								}
+							},
+							{
+								"not": {
+									"equals": [
+										"@variables('Country')",
+										"@string('')"
+									]
+								}
+							},
+							{
+								"not": {
+									"equals": [
+										"@variables('LastName')",
+										"@null"
+									]
+								}
+							},
+							{
+								"not": {
+									"equals": [
+										"@variables('LastName')",
+										"@string('')"
+									]
+								}
+							}
+						]
+					},
+					"runAfter": {},
+					"type": "If"
+				},
+				"Search_Results_JSON_": {
+					"inputs": {
+						"SearchUsers": {
+							"Users": "@body('Search_User_from_SalesForce')['records']"
+						}
+					},
+					"runAfter": {
+						"Search_User_from_SalesForce": [
+							"Succeeded"
+						]
+					},
+					"type": "Compose"
+				},
+				"Search_User_from_SalesForce": {
+					"inputs": {
+						"body": {
+							"query": "select \nId,LastName,FirstName,Department,Country,Email,MobilePhone,S4SGID_Technical__c,S4SGID__c,S4SBusiness_Unit__c,S4SLead_Country__c,S4SBusiness_Segment__c,S4SGCK__c,S4SSales_Branch__c,S4SSales_Department__c,S4SSales_District__c,S4SSales_Office__c,S4SSales_SubRegion__c,S4SSales_Territory__c,S4SDivision_Territory__c from User @{variables('whereClause')}"
+						},
+						"host": {
+							"connection": {
+								"name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+							}
+						},
+						"method": "post",
+						"path": "/soql/executesoqlquery"
+					},
+					"runAfter": {
+						"Condition_for_Where_Clause": [
+							"Succeeded"
+						]
+					},
+					"type": "ApiConnection"
+				},
+				"Terminate_Success": {
+					"inputs": {
+						"runStatus": "Succeeded"
+					},
+					"runAfter": {
+						"Condition_to_check_length_of_XSLT_output": [
+							"Succeeded"
+						]
+					},
+					"type": "Terminate"
+				},
+				"XsltTransform": {
+					"inputs": {
+						"body": "@xml(outputs('Search_Results_JSON_'))",
+						"authentication": {
+							"type": "Raw",
+							"value": "[parameters('functionAppKey')]"
+						},
+						"function": {
+							"id": "[concat(parameters('funcApp'), '/functions/XsltTransform')]"
+						},
+						"headers": {
+							"xsltName": "map-c00031-SIE-SF4S-SearchUser-Spiridon"
+						}
+					},
+					"runAfter": {
+						"Search_Results_JSON_": [
+							"Succeeded"
+						]
+					},
+					"type": "Function"
+				},
+				"XsltTransform_to_Remove_Null_Or_Empty": {
+					"inputs": {
+						"content": "@{body('XsltTransform')}",
+						"integrationAccount": {
+							"map": {
+								"name": "map-c00031-RemoveEmptyElements"
+							}
+						}
+					},
+					"runAfter": {
+						"XsltTransform": [
+							"Succeeded"
+						]
+					},
+					"type": "Xslt"
+				}
+			},
+			"runAfter": {
+				"Initialize_variable_Country": [
+					"Succeeded"
+				],
+				"Initialize_variable_LastName": [
+					"Succeeded"
+				],
+				"Initialize_variable_WhereClause": [
+					"Succeeded"
+				]
+			},
+			"trackedProperties": {
+				"apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+				"citizenName": "c00031",
+				"correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+				"interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'spiridon')}",
+				"interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+				"interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+				"operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'searchuser')}",
+				"parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+				"clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+				"clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+			},
+			"type": "Scope"
+		}
+	},
+	"contentVersion": "1.0.0.0",
+	"outputs": {},
+	"parameters": {
+		"$connections": {
+			"defaultValue": {},
+			"type": "Object"
+		}
+	},
+	"triggers": {
+		"manual": {
+			"inputs": {},
+			"kind": "Http",
+			"type": "Request"
+		}
+	}
+}

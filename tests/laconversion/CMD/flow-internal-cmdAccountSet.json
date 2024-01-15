@@ -1,0 +1,628 @@
+{
+	"$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+	"actions": {
+		"Condition_check_for_SOAP_Version": {
+			"actions": {
+				"Set_variable_Content-Type_for_1.1": {
+					"inputs": {
+						"name": "Content-Type",
+						"value": "text/xml;charset=UTF-8"
+					},
+					"runAfter": {},
+					"type": "SetVariable"
+				},
+				"Set_variable_SOAP_Action_for_1.1": {
+					"inputs": {
+						"name": "SOAP Action",
+						"value": "\"urn:sap-com:document:sap:rfc:functions:_-SIE_-CMDWS_CMD_DATA_EXCHANGE:_-SIE_-CMDF_CMD_DATA_EXCHANGERequest\""
+					},
+					"runAfter": {
+						"Set_variable_Content-Type_for_1.1": [
+							"Succeeded"
+						]
+					},
+					"type": "SetVariable"
+				},
+				"soapschema": {
+					"inputs": {
+						"name": "request",
+						"value": "http://schemas.xmlsoap.org/soap/envelope/"
+					},
+					"runAfter": {
+						"Set_variable_SOAP_Action_for_1.1": [
+							"Succeeded"
+						]
+					},
+					"type": "SetVariable"
+				}
+			},
+			"else": {
+				"actions": {
+					"Set_variable_Content_Type__for_1.2": {
+						"inputs": {
+							"name": "Content-Type",
+							"value": "application/soap+xml;charset=UTF-8;action=\"urn:sap-com:document:sap:rfc:functions:_-SIE_-CMDWS_CMD_DATA_EXCHANGE:_-SIE_-CMDF_CMD_DATA_EXCHANGERequest\""
+						},
+						"runAfter": {},
+						"type": "SetVariable"
+					},
+					"soapschema_for_1.2": {
+						"inputs": {
+							"name": "request",
+							"value": "http://www.w3.org/2003/05/soap-envelope"
+						},
+						"runAfter": {
+							"Set_variable_Content_Type__for_1.2": [
+								"Succeeded"
+							]
+						},
+						"type": "SetVariable"
+					}
+				}
+			},
+			"expression": {
+				"and": [
+					{
+						"equals": [
+							"@trim(variables('SOAP Version'))",
+							"@string('1.1')"
+						]
+					}
+				]
+			},
+			"runAfter": {
+				"Initialize_variable_'Content-Type'": [
+					"Succeeded"
+				],
+				"Initialize_variable_'Responsestatus'": [
+					"Succeeded"
+				],
+				"Initialize_variable_'SOAP Action'": [
+					"Succeeded"
+				],
+				"Initialize_variable_'SOAP Version'": [
+					"Succeeded"
+				],
+				"Initialize_variable_'configData'": [
+					"Succeeded"
+				],
+				"Initialize_variable_'duplicate'": [
+					"Succeeded"
+				],
+				"Initialize_variable_'queryresponse'": [
+					"Succeeded"
+				],
+				"Initialize_variable_request": [
+					"Succeeded"
+				]
+			},
+			"type": "If"
+		},
+		"GetConfiguration": {
+			"inputs": {
+				"body": {
+					"key": "cmd-config"
+				},
+				"host": {
+					"triggerName": "manual",
+					"workflow": {
+						"id": "${getConfiguration_logicAppId}"
+					}
+				},
+				"retryPolicy": {
+					"type": "none"
+				}
+			},
+			"runAfter": {},
+			"type": "Workflow"
+		},
+		"Initialize_variable_'Content-Type'": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "Content-Type",
+						"type": "string"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Initialize_variable_'Country'": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "Country",
+						"type": "string",
+						"value": "SFToCMD"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Initialize_variable_'Responsestatus'": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "responseStatus",
+						"type": "string"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Initialize_variable_'SOAP Action'": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "SOAP Action",
+						"type": "string"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Initialize_variable_'SOAP Version'": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "SOAP Version",
+						"type": "string",
+						"value": "@{json(string(triggerBody()))?['SOAP Version']}"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Initialize_variable_'configData'": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "configData",
+						"type": "string",
+						"value": "@{json(body('GetConfiguration'))?[variables('Country')]}"
+					}
+				]
+			},
+			"runAfter": {
+				"GetConfiguration": [
+					"Succeeded"
+				],
+				"Initialize_variable_'Country'": [
+					"Succeeded"
+				]
+			},
+			"type": "InitializeVariable"
+		},
+		"Initialize_variable_'duplicate'": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "duplicate",
+						"type": "Boolean",
+						"value": "@triggerBody()?['duplicate']"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Initialize_variable_'queryresponse'": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "queryResponse",
+						"type": "Object",
+						"value": "@triggerBody()?['queryResponse']"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Initialize_variable_request": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "request",
+						"type": "string"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Response": {
+			"inputs": {
+				"body": {
+					"statusResponse": {
+						"Message": "@{variables('responseStatus')}"
+					}
+				},
+				"headers": {
+					"Content-Type": "application/json"
+				},
+				"statusCode": 200
+			},
+			"kind": "Http",
+			"runAfter": {
+				"Run_For_Each_on_Account": [
+					"Succeeded"
+				]
+			},
+			"type": "Response"
+		},
+		"Response_2": {
+			"inputs": {
+				"body": {
+					"statusResponse": {
+						"Message": "@{string(triggerBody())}",
+						"Type": "E"
+					}
+				},
+				"headers": {
+					"Content-Type": "application/json"
+				},
+				"statusCode": 400
+			},
+			"kind": "Http",
+			"runAfter": {
+				"Run_For_Each_on_Account": [
+					"Failed",
+					"TimedOut",
+					"Skipped"
+				]
+			},
+			"type": "Response"
+		},
+		"Run_For_Each_on_Account": {
+			"actions": {
+				"Delay": {
+					"inputs": {
+						"interval": {
+							"count": 1,
+							"unit": "Second"
+						}
+					},
+					"runAfter": {},
+					"type": "Wait"
+				},
+				"Scope-Condition": {
+					"actions": {
+						"CMDAccountSetFunction": {
+							"inputs": {
+								"body": {
+									"duplicate": "@variables('duplicate')",
+									"records": [
+										"@item()"
+									]
+								},
+								"authentication": {
+									"type": "Raw",
+									"value": "[parameters('functionAppKey')]"
+								},
+								"function": {
+									"id": "[concat(parameters('funcApp'), '/functions/CMDAccountSetFunction')]"
+								},
+								"retryPolicy": {
+									"type": "none"
+								}
+							},
+							"runAfter": {},
+							"type": "Function"
+						},
+						"Compose_CMD_Request": {
+							"inputs": "<soap:Envelope xmlns:soap=\"@{variables('request')}\" xmlns:urn=\"urn:sap-com:document:sap:rfc:functions\"><soap:Header/><soap:Body><urn:_-SIE_-CMDF_CMD_DATA_EXCHANGE>@{xml(json(string(body('CMDAccountSetFunction'))))}</urn:_-SIE_-CMDF_CMD_DATA_EXCHANGE></soap:Body></soap:Envelope>",
+							"runAfter": {
+								"CMDAccountSetFunction": [
+									"Succeeded"
+								]
+							},
+							"type": "Compose"
+						},
+						"Condition_to_check_Fault": {
+							"actions": {
+								"Set_variable_2": {
+									"inputs": {
+										"name": "responseStatus",
+										"value": "{\"fault \": {\n\"faultreason\": \"@{string(xpath(xml(body('Invoke_Soap_Call_to_CMD')),'.//faultstring/text()')?[0])}\"\n}\n}"
+									},
+									"runAfter": {},
+									"type": "SetVariable"
+								}
+							},
+							"else": {
+								"actions": {
+									"Condition_to_set_status": {
+										"actions": {
+											"Set_variable_'status'": {
+												"inputs": {
+													"name": "responseStatus",
+													"value": "The record with id='@{items('Run_For_Each_on_Account')?['Id']}' has been updated Successfully"
+												},
+												"runAfter": {
+													"Update_record_for_status_CMD_Subscription_Pending": [
+														"Succeeded"
+													]
+												},
+												"type": "SetVariable"
+											},
+											"Update_record_for_status_CMD_Subscription_Pending": {
+												"inputs": {
+													"body": {
+														"Name": "@{items('Run_For_Each_on_Account')?['Name']}",
+														"S4SMD_Status__c": "Awaiting CMD Subscription"
+													},
+													"host": {
+														"connection": {
+															"name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+														}
+													},
+													"method": "patch",
+													"path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Account'))}/items/@{encodeURIComponent(encodeURIComponent(items('Run_For_Each_on_Account')?['Id']))}"
+												},
+												"runAfter": {},
+												"type": "ApiConnection"
+											}
+										},
+										"else": {
+											"actions": {
+												"Condition_to_check_status": {
+													"actions": {
+														"Set_variable": {
+															"inputs": {
+																"name": "responseStatus",
+																"value": "The record with id='@{items('Run_For_Each_on_Account')?['Id']}' has been updated Successfully"
+															},
+															"runAfter": {
+																"Update_record_for_Unsubscribe_from_CMD": [
+																	"Succeeded"
+																]
+															},
+															"type": "SetVariable"
+														},
+														"Update_record_for_Unsubscribe_from_CMD": {
+															"inputs": {
+																"body": {
+																	"Name": "@{items('Run_For_Each_on_Account')?['Name']}",
+																	"S4SMD_Status__c": "Awaiting CMD Unsubscription"
+																},
+																"host": {
+																	"connection": {
+																		"name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+																	}
+																},
+																"method": "patch",
+																"path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Account'))}/items/@{encodeURIComponent(encodeURIComponent(items('Run_For_Each_on_Account')?['Id']))}"
+															},
+															"runAfter": {},
+															"type": "ApiConnection"
+														}
+													},
+													"else": {
+														"actions": {
+															"Set_json_of_response": {
+																"inputs": {
+																	"name": "responseStatus",
+																	"value": "@{string(xpath(xml(body('Invoke_Soap_Call_to_CMD')),'.//ET_MESSAGES/item/MESSAGE/text()')?[0])}"
+																},
+																"runAfter": {},
+																"type": "SetVariable"
+															}
+														}
+													},
+													"expression": {
+														"and": [
+															{
+																"equals": [
+																	"@items('Run_For_Each_on_Account')?['S4SMD_Status__c']",
+																	"Unsubscribe from CMD"
+																]
+															},
+															{
+																"equals": [
+																	"@string(xpath(xml(body('Invoke_Soap_Call_to_CMD')),'.//ET_MESSAGES/item/TYPE/text()')?[0])",
+																	"S"
+																]
+															}
+														]
+													},
+													"runAfter": {},
+													"type": "If"
+												}
+											}
+										},
+										"expression": {
+											"and": [
+												{
+													"equals": [
+														"@string(xpath(xml(body('Invoke_Soap_Call_to_CMD')),'.//ET_MESSAGES/item/TYPE/text()')?[0])",
+														"S"
+													]
+												},
+												{
+													"equals": [
+														"@items('Run_For_Each_on_Account')?['S4SMD_Status__c']",
+														"CMD Subscription Pending"
+													]
+												}
+											]
+										},
+										"runAfter": {},
+										"type": "If"
+									}
+								}
+							},
+							"expression": {
+								"and": [
+									{
+										"not": {
+											"equals": [
+												"@string(xpath(xml(body('Invoke_Soap_Call_to_CMD')),'.//faultstring/text()')?[0])",
+												""
+											]
+										}
+									},
+									{
+										"not": {
+											"equals": [
+												"@string(xpath(xml(body('Invoke_Soap_Call_to_CMD')),'.//faultstring/text()')?[0])",
+												"@null"
+											]
+										}
+									},
+									{
+										"not": {
+											"equals": [
+												"@string(xpath(xml(body('Invoke_Soap_Call_to_CMD')),'.//faultstring/text()')?[0])",
+												"@string('null')"
+											]
+										}
+									}
+								]
+							},
+							"runAfter": {
+								"Invoke_Soap_Call_to_CMD": [
+									"Succeeded"
+								]
+							},
+							"type": "If"
+						},
+						"HTTP_Get_Certificate": {
+							"inputs": {
+								"body": {
+									"key": "integration-platform-certificate"
+								},
+								"host": {
+									"triggerName": "manual",
+									"workflow": {
+										"id": "${getConfiguration_logicAppId}"
+									}
+								},
+								"retryPolicy": {
+									"type": "none"
+								}
+							},
+							"runAfter": {},
+							"type": "Workflow"
+						},
+						"HTTP_Get_Certificate_Password": {
+							"inputs": {
+								"body": {
+									"key": "integration-platform-certificate-password"
+								},
+								"host": {
+									"triggerName": "manual",
+									"workflow": {
+										"id": "${getConfiguration_logicAppId}"
+									}
+								},
+								"retryPolicy": {
+									"type": "none"
+								}
+							},
+							"runAfter": {},
+							"type": "Workflow"
+						},
+						"Invoke_Soap_Call_to_CMD": {
+							"inputs": {
+								"authentication": {
+									"password": "@body('HTTP_Get_Certificate_Password')",
+									"pfx": "@body('HTTP_Get_Certificate')",
+									"type": "ClientCertificate"
+								},
+								"body": "@outputs('Compose_CMD_Request')",
+								"headers": {
+									"Content-Type": "@variables('Content-Type')",
+									"SOAPAction": "@variables('SOAP Action')"
+								},
+								"method": "POST",
+								"retryPolicy": {
+									"type": "none"
+								},
+								"uri": "@{json(string(variables('configData')))?['url']}"
+							},
+							"runAfter": {
+								"Compose_CMD_Request": [
+									"Succeeded"
+								],
+								"HTTP_Get_Certificate": [
+									"Succeeded"
+								],
+								"HTTP_Get_Certificate_Password": [
+									"Succeeded"
+								]
+							},
+							"type": "Http"
+						}
+					},
+					"runAfter": {
+						"Delay": [
+							"Succeeded"
+						]
+					},
+					"trackedProperties": {
+						"apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+						"citizenName": "c00031",
+						"correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+						"interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'CMD')}",
+						"interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'CMD')}",
+						"interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+						"operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'internal_cmdAccountSet')}",
+						"parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+						"clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+						"clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+					},
+					"type": "Scope"
+				}
+			},
+			"foreach": "@json(string(variables('queryResponse')))?['records']",
+			"runAfter": {
+				"Condition_check_for_SOAP_Version": [
+					"Succeeded"
+				]
+			},
+			"runtimeConfiguration": {
+				"concurrency": {
+					"repetitions": 1
+				}
+			},
+			"type": "Foreach"
+		}
+	},
+	"contentVersion": "1.0.0.0",
+	"outputs": {},
+	"parameters": {
+		"$connections": {
+			"defaultValue": {},
+			"type": "Object"
+		}
+	},
+	"triggers": {
+		"manual": {
+			"inputs": {
+				"method": "POST",
+				"schema": {
+					"properties": {
+						"SOAP Version": {
+							"type": "string"
+						},
+						"duplicate": {
+							"type": "Boolean"
+						},
+						"queryResponse": {
+							"type": "Object"
+						}
+					},
+					"type": "object"
+				}
+			},
+			"kind": "Http",
+			"type": "Request"
+		}
+	}
+}

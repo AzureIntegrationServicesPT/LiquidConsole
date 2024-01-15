@@ -1,0 +1,1623 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Check-Input_Account": {
+            "actions": {
+                "Account_Response_Log": {
+                    "inputs": {
+                        "body": {
+                            "message": "Account with Id: '@{json(variables('varUpsertAccountResponse'))?['Id']}' created/ updated successfully.",
+                            "severity": "INFO"
+                        },
+                        "headers": {
+                            "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                            "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                            "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                        },
+                        "host": {
+                            "triggerName": "manual",
+                            "workflow": {
+                                "id": "[parameters('sf4sLog_logicApp_id')]"
+                            }
+                        }
+                    },
+                    "runAfter": {
+                        "Set_variable_-_AccountResponseMap": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Workflow"
+                },
+                "Response": {
+                    "inputs": {
+                        "body": "@if(equals(xpath(xml(triggerBody()),'.//S4SExternal_Source__c/text()')?[0],'LOS'),json(concat('{\"SIE_SF4S_upsertAccountResponse\":',string(removeProperty(json(variables('varResponseMap'))?['SIE_SF4S_upsertAccountResponse'],'S4SIAC')),'}')),json(variables('varResponseMap')))",
+                        "headers": {
+                            "Content-Type": "application/json"
+                        },
+                        "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "Set_variable_2": [
+                            "Succeeded"
+                        ]
+                    },
+                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                    "type": "Response"
+                },
+                "Response_2": {
+                    "inputs": {
+                        "body": "@if(equals(xpath(xml(triggerBody()),'.//S4SExternal_Source__c/text()')?[0],'LOS'),json(concat('{\"SIE_SF4S_upsertAccountResponse\":',string(removeProperty(json(variables('varResponseMap'))?['SIE_SF4S_upsertAccountResponse'],'S4SIAC')),'}')),json(variables('varResponseMap')))",
+                        "headers": {
+                            "Content-Type": "application/json"
+                        },
+                        "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "Set_variable_Final_Response": [
+                            "Succeeded"
+                        ]
+                    },
+                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                    "type": "Response"
+                },
+                "SIE_SF4S_upsertResponse_Status": {
+                    "actions": {
+                        "Append_to_array_variable_3": {
+                            "inputs": {
+                                "name": "varRole",
+                                "value": {
+                                    "SIE_SF4S_upsertResponse": {
+                                        "Id": "",
+                                        "Message": "@{variables('varRoleErrorMessage')}",
+                                        "Status": "Failure",
+                                        "created": ""
+                                    }
+                                }
+                            },
+                            "runAfter": {
+                                "Check_-TempRoles": [
+                                    "Failed"
+                                ]
+                            },
+                            "type": "AppendToArrayVariable"
+                        },
+                        "Check_-TempRoles": {
+                            "actions": {
+                                "For_each_-_TempRoles": {
+                                    "actions": {
+                                        "Scope_-Catch": {
+                                            "actions": {
+                                                "Compose_-_Log_-UpserTempRole_-Failure": {
+                                                    "inputs": "upsert role is failed '%/SIE_SF4S_upsertRoleInput/S4SRole__c[0]/Id%'",
+                                                    "runAfter": {},
+                                                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                                                    "type": "Compose"
+                                                }
+                                            },
+                                            "runAfter": {
+                                                "Scope_-TRY": [
+                                                    "Failed"
+                                                ]
+                                            },
+                                            "type": "Scope"
+                                        },
+                                        "Scope_-TRY": {
+                                            "actions": {
+                                                "Append_to_array_variable": {
+                                                    "inputs": {
+                                                        "name": "varRole",
+                                                        "value": {
+                                                            "SIE_SF4S_upsertResponse": {
+                                                                "Id": "@{outputs('Compose-UpsertRoleResponse')?['Id']}",
+                                                                "Message": "",
+                                                                "Status": "True",
+                                                                "created": "@{if(equals(json(string(setProperty(json(string(removeProperty(json(items('For_each_-_TempRoles'))['S4SRole'], 'S4SAccount__c'))), 'S4SAccount__c', json(variables('varUpsertAccountResponse'))?['Id'])))?['Id'], null), 'true', 'false')}"
+                                                            }
+                                                        }
+                                                    },
+                                                    "runAfter": {
+                                                        "Scope-iuRoles": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "AppendToArrayVariable"
+                                                },
+                                                "Append_to_array_variable_2": {
+                                                    "inputs": {
+                                                        "name": "varRole",
+                                                        "value": {
+                                                            "SIE_SF4S_upsertResponse": {
+                                                                "Id": "",
+                                                                "Message": "@{variables('varRoleErrorMessage')}",
+                                                                "Status": "Failure",
+                                                                "created": ""
+                                                            }
+                                                        }
+                                                    },
+                                                    "runAfter": {
+                                                        "Set_variable-ErrorMessageRole": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "AppendToArrayVariable"
+                                                },
+                                                "Scope-iuRoles": {
+                                                    "actions": {
+                                                        "Compose-UpsertRoleRequest": {
+                                                            "inputs": "@removeProperty(json(replace(replace(string(removeProperty(setProperty(json(string(removeProperty(json(items('For_each_-_TempRoles'))['S4SRole'],'S4SAccount__c'))),'S4SAccount__c',json(variables('varUpsertAccountResponse'))?['Id']),'IsDeleted')),'\"0\"','false'),'\"1\"','true')),'Name')",
+                                                            "runAfter": {},
+                                                             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                                                            "type": "Compose"
+                                                        },
+                                                        "Compose-UpsertRoleResponse": {
+                                                            "inputs": "@coalesce(body('Create_record_role'), body('Insert_or_Update_(Upsert)_a_Record_by_External_ID_role'))",
+                                                            "runAfter": {
+                                                                "ConditionRole": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                                                            "type": "Compose"
+                                                        },
+                                                        "ConditionRole": {
+                                                            "actions": {
+                                                                "Create_record_role": {
+                                                                    "inputs": {
+                                                                        "body": "@removeProperty(json(string(outputs('Compose-UpsertRoleRequest'))),'Id')",
+                                                                        "headers": {
+                                                                            "Authorization": "Bearer @{body('HTTP-GetSFToken')}",
+                                                                            "Content-Type": "application/json"
+                                                                        },
+                                                                        "method": "POST",
+                                                                        "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SRole__c'))}/items",
+                                                                        "uri": "${instanceURL}/sobjects/S4SRole__c/"
+                                                                    },
+																	"runAfter": {},
+                                                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                                "type": "Http"
+                                                                }
+                                                            },
+                                                            "else": {
+                                                                "actions": {
+                                                                    "Insert_or_Update_(Upsert)_a_Record_by_External_ID_role": {
+                                                                        "inputs": {
+                                                                            "body": "@removeProperty(removeProperty(json(string(outputs('Compose-UpsertRoleRequest'))),'S4SAccount__c'),'Id')",
+                                                                            "headers": {
+                                                                                "Authorization": "Bearer @{body('HTTP-GetSFToken')}",
+                                                                                "Content-Type": "application/json"
+                                                                            },
+                                                                            "method": "PATCH",
+                                                                            "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SRole__c'))}/externalIdFields/@{encodeURIComponent(encodeURIComponent('Id'))}/@{encodeURIComponent(encodeURIComponent(outputs('Compose-UpsertRoleRequest')?['Id']))}",
+                                                                            "uri": "${instanceURL}/sobjects/S4SRole__c/Id/@{outputs('Compose-UpsertRoleRequest')?['Id']}"
+                                                                        },
+                                                                        "runAfter": {},
+                                                                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                                        "type": "Http"
+                                                                    }
+                                                                }
+                                                            },
+                                                            "expression": {
+                                                                "or": [
+                                                                    {
+                                                                        "equals": [
+                                                                            "@outputs('Compose-UpsertRoleRequest')?['Id']",
+                                                                            "@null"
+                                                                        ]
+                                                                    },
+                                                                    {
+                                                                        "equals": [
+                                                                            "@outputs('Compose-UpsertRoleRequest')?['Id']",
+                                                                            "@string('')"
+                                                                        ]
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "runAfter": {
+                                                                "Compose-UpsertRoleRequest": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "If"
+                                                        }
+                                                    },
+                                                    "runAfter": {},
+                                                    "type": "Scope"
+                                                },
+                                                "Set_variable-ErrorMessageRole": {
+                                                    "inputs": {
+                                                        "name": "varRoleErrorMessage",
+                                                        "value": "@{replace(replace(concat(coalesce(body('Create_record_role'), body('Insert_or_Update_(Upsert)_a_Record_by_External_ID_role'))?[0]?['message'],',',coalesce(body('Create_record_role'), body('Insert_or_Update_(Upsert)_a_Record_by_External_ID_role'))?[0]?['fields']),'[\"',''),'\"]','')}"
+                                                    },
+                                                    "runAfter": {
+                                                        "Scope-iuRoles": [
+                                                            "Failed"
+                                                        ]
+                                                    },
+                                                    "type": "SetVariable"
+                                                },
+                                                "logic-c00031-SFS_internal_sf4sLog5": {
+                                                    "inputs": {
+                                                        "body": {
+                                                            "message": "Upsert Role is Succesful for Account Id: '@{json(variables('varUpsertAccountResponse'))?['Id']}'; Role ID: '@{variables('varRoleId')}'",
+                                                            "severity": "INFO"
+                                                        },
+                                                        "headers": {
+                                                            "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                                            "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                                            "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                                        },
+                                                        "host": {
+                                                            "triggerName": "manual",
+                                                            "workflow": {
+                                                                "id": "[parameters('sf4sLog_logicApp_id')]"
+                                                            }
+                                                        },
+                                                        "retryPolicy": {
+                                                            "type": "none"
+                                                        }
+                                                    },
+                                                    "runAfter": {},
+                                                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                    "type": "Workflow"
+                                                }
+                                            },
+                                            "runAfter": {},
+                                            "type": "Scope"
+                                        }
+                                    },
+                                    "foreach": "@xpath(xml(triggerBody()),'.//Account/S4SRole')",
+                                    "runAfter": {},
+                                    "runtimeConfiguration": {
+                                        "concurrency": {
+                                            "repetitions": 1
+                                        }
+                                    },
+                                    "type": "Foreach"
+                                },
+                                "logic-c00031-SFS_internal_sf4sLog4": {
+                                    "inputs": {
+                                        "body": {
+                                            "message": "Upsert Role is being called for Account Id: '@{json(variables('varUpsertAccountResponse'))?['Id']}'",
+                                            "severity": "INFO"
+                                        },
+                                        "headers": {
+                                            "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                            "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                            "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                        },
+                                        "host": {
+                                            "triggerName": "manual",
+                                            "workflow": {
+                                                "id": "[parameters('sf4sLog_logicApp_id')]"
+                                            }
+                                        }
+                                    },
+                                    "runAfter": {},
+                                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                    "type": "Workflow"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "Append_Variable_TempRolesEmpty": {
+                                        "inputs": {
+                                            "name": "varRole",
+                                            "value": {
+                                                "SIE_SF4S_upsertResponse": {
+                                                    "Id": "",
+                                                    "Message": "",
+                                                    "Status": "",
+                                                    "created": ""
+                                                }
+                                            }
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToArrayVariable"
+                                    },
+                                    "logic-c00031-SFS_internal_sf4sLog3": {
+                                        "inputs": {
+                                            "body": {
+                                                "message": "Upsert Role is NOT being called for Account Id: '@{json(variables('varUpsertAccountResponse'))?['Id']}' as No Role details are provided by '@{xpath(xml(triggerBody()),'.//Account/S4SExternal_Source__c')}'",
+                                                "severity": "INFO"
+                                            },
+                                            "headers": {
+                                                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                                "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                                "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                            },
+                                            "host": {
+                                                "triggerName": "manual",
+                                                "workflow": {
+                                                    "id": "[parameters('sf4sLog_logicApp_id')]"
+                                                }
+                                            },
+                                            "retryPolicy": {
+                                                "type": "none"
+                                            }
+                                        },
+                                        "runAfter": {},
+                                         "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                        "type": "Workflow"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@xpath(xml(triggerBody()),'.//Account/S4SRole')",
+                                                "@null"
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "runAfter": {
+                                "Condition_to_Check_AccountRelationShip": [
+                                    "Succeeded",
+                                    "Failed",
+                                    "Skipped"
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "Check_-_S4SIAC_Code__c": {
+                            "actions": {
+                                "Log-Compose2": {
+                                    "inputs": "Upsert IAC is being called for Account Id: '@{json(variables('varUpsertAccountResponse'))?['Id']}'",
+                                    "runAfter": {},
+                                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                                    "type": "Compose"
+                                },
+                                "Scope-FetchIAC-Try": {
+                                    "actions": {
+                                        "Execute_a_SOQL-fetchIAC": {
+                                            "inputs": {
+                                                "headers": {
+                                                    "Authorization": "Bearer @{body('HTTP-GetSFToken')}",
+                                                    "Content-Type": "application/json"
+                                                },
+                                                "method": "GET",
+                                                "uri": "${instanceURL}/query/?q=SELECT+Id+FROM+S4SIAC__c+WHERE+name+=+'@{xpath(xml(triggerBody()),'.//Account/S4SIAC_Code__c/text()')?[0]}'"
+                                            },
+                                            "runAfter": {},
+                                             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                            "type": "Http"
+                                        },
+                                        "S4SIC_Response_Log": {
+                                            "inputs": {
+                                                "body": {
+                                                    "message": "S4SIC with Id: '@{outputs('Compose-UpsertAssetCodeResponse')?['Id']}' created/ updated successfully.",
+                                                    "severity": "INFO"
+                                                },
+                                                "headers": {
+                                                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                                    "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                                    "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                                },
+                                                "host": {
+                                                    "triggerName": "manual",
+                                                    "workflow": {
+                                                        "id": "[parameters('sf4sLog_logicApp_id')]"
+                                                    }
+                                                }
+                                            },
+                                            "runAfter": {
+                                                "Scope-iuAssetCode": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "Workflow"
+                                        },
+                                        "Scope-iuAssetCode": {
+                                            "actions": {
+                                                "Compose-UpsertAssetCodeRequest": {
+                                                    "inputs": {
+                                                        "S4SAccount__c": "@{variables('AccountId')}",
+                                                        "S4SAsset_Code_IAC__c": "@{body('Execute_a_SOQL-fetchIAC')?['records']?[0]?['Id']}"
+                                                    },
+                                                    "runAfter": {},
+													 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                                                    "type": "Compose"
+                                                },
+                                                "Compose-UpsertAssetCodeResponse": {
+                                                    "inputs": "@body('Create_record_AssetCode')",
+                                                    "runAfter": {
+                                                        "Create_record_AssetCode": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+													 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                                                    "type": "Compose"
+                                                },
+                                                "Compose_IAC_IDs": {
+                                                    "inputs": "@if(equals(variables('IAC_IDs'),''),'',substring(variables('IAC_IDs'),0,sub(length(variables('IAC_IDs')),1)))",
+                                                    "runAfter": {
+                                                        "For_each_IAC_IDs": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+													 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                                                    "type": "Compose"
+                                                },
+                                                "Create_record_AssetCode": {
+                                                    "inputs": {
+                                                        "body": "@removeProperty(outputs('Compose-UpsertAssetCodeRequest'),'Id')",
+                                                        "headers": {
+                                                            "Authorization": "Bearer @{body('HTTP-GetSFToken')}",
+                                                            "Content-Type": "application/json"
+                                                        },
+                                                        "method": "POST",
+                                                        "uri": "${instanceURL}/sobjects/S4SAsset_Code_Type__c/",
+														"retryPolicy": {
+															"type": "none"
+														}
+                                                    },
+                                                    "runAfter": {
+                                                        "Delete_IAC_if_exist": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+													 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                    "type": "Http"
+                                                },
+                                                "Delete_IAC_if_exist": {
+                                                    "inputs": {
+                                                        "body": {
+                                                            "ids": "@outputs('Compose_IAC_IDs')"
+                                                        },
+                                                        "headers": {
+                                                            "Action": "deleteSFIds",
+                                                            "Content-Type": "application/json",
+                                                            "Ocp-Apim-Subscription-Key": "${apimKey}",
+                                                            "tokenType": "sfs"
+                                                        },
+                                                        "method": "POST",
+                                                        "uri": "${baseUrl_apim_ise}/c00031-commonutilities/deleteSFIds",
+														"retryPolicy": {
+															"type": "none"
+														}
+                                                    },
+                                                    "runAfter": {
+                                                        "Compose_IAC_IDs": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+													 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                    "type": "Http"
+                                                },
+                                                "For_each_IAC_IDs": {
+                                                    "actions": {
+                                                        "Append_IAC_IDs": {
+                                                            "inputs": {
+                                                                "name": "IAC_IDs",
+                                                                "value": "@concat(item()?['Id'],',')"
+                                                            },
+                                                            "runAfter": {},
+                                                            "type": "AppendToStringVariable"
+                                                        }
+                                                    },
+                                                    "foreach": "@body('Get_IAC_IDs')?['records']",
+                                                    "runAfter": {
+                                                        "Get_IAC_Ids": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "Foreach"
+                                                },
+                                                "Get_IAC_Ids": {
+                                                    "inputs": {
+                                                        "headers": {
+                                                            "Authorization": "Bearer @{body('HTTP-GetSFToken')}",
+                                                            "Content-Type": "application/json"
+                                                        },
+                                                        "method": "GET",
+                                                        "uri": "${instanceURL}/query/?q=SELECT+Id+FROM+S4SAsset_Code_Type__c+WHERE+s4saccount__c+=+'@{outputs('Compose-UpsertAssetCodeRequest')?['S4SAccount__c']}'"
+                                                    },
+                                                    "runAfter": {                                                        
+                                                        "Compose-UpsertAssetCodeRequest": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                    "type": "Http"
+                                                }
+                                            },
+                                            "runAfter": {
+                                                "Execute_a_SOQL-fetchIAC": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "Scope"
+                                        },
+                                        "Set_variable": {
+                                            "inputs": {
+                                                "name": "varResponseS4SICRole",
+                                                "value": "\"SIE_SF4S_upsertResponse\": {        \n \"Id\":\"@{outputs('Compose-UpsertAssetCodeResponse')?['Id']}\",\n         \"created\":\"true\" , \n       \"Status\":\"True\",\n         \"Message\":\"\"\n}"
+                                            },
+                                            "runAfter": {
+                                                "Scope-iuAssetCode": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "SetVariable"
+                                        }
+                                    },
+                                    "runAfter": {
+                                        "Log-Compose2": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Scope"
+                                },
+                                "Scope_-_fetchIAC-Catch": {
+                                    "actions": {
+                                        "Compose_-Log_-FetchIAC-Failure": {
+                                            "inputs": "Upsert IAC is Succesful for Account Id: ''; Asset Code & Type ID: ''",
+                                            "runAfter": {},
+                                             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                                            "type": "Compose"
+                                        },
+                                        "Set_variable-S4SicROle": {
+                                            "inputs": {
+                                                "name": "varResponseS4SICRole",
+                                                "value": "\"SIE_SF4S_upsertResponse\": {\n          \"Id\": \"\",\n         \"created\": \"\",\n         \"Status\": \"Failure\",\n         \"Message\": \"@{replace(replace(\r\nconcat(body('Create_record_AssetCode')?[0]?['message'],',',body('Create_record_AssetCode')?[0]?['fields']),'[\"',''),'\"]','')}\"\n      }"
+                                            },
+                                            "runAfter": {
+                                                "Compose_-Log_-FetchIAC-Failure": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "SetVariable"
+                                        }
+                                    },
+                                    "runAfter": {
+                                        "Scope-FetchIAC-Try": [
+                                            "Failed"
+                                        ]
+                                    },
+                                    "type": "Scope"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "Compose_-_IAC_log": {
+                                        "inputs": "Log the message: Upsert IAC is NOT being called for Account Id: '%SIE_SF4S_upsertAccountResponse/Account/SIE_SF4S_upsertResponse/Id%' as No IAC code is provided by '@{xpath(xml(triggerBody()),'.//Account/S4SExternal_Source__c')}'",
+                                        "runAfter": {},
+                                         "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                                        "type": "Compose"
+                                    },
+                                    "Set_variable_-S4SicRole": {
+                                        "inputs": {
+                                            "name": "varResponseS4SICRole",
+                                            "value": "\"SIE_SF4S_upsertResponse\": {\n         \"Id\": \"\",\n         \"created\": \"\",\n         \"Status\": \"\",\n         \"Message\": \"\"\n      }"
+                                        },
+                                        "runAfter": {
+                                            "Compose_-_IAC_log": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "SetVariable"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@xpath(xml(triggerBody()),'.//Account/S4SIAC_Code__c')?[0]",
+                                                "@null"
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@xpath(xml(triggerBody()),'.//Account/S4SIAC_Code__c')?[0]",
+                                                ""
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "runAfter": {
+                                "Append_to_array_variable_3": [
+                                    "Succeeded",
+                                    "Failed",
+                                    "Skipped"
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "Condition_to_Check_AccountRelationShip": {
+                            "actions": {
+                                "Check-_AccountRelationShip": {
+                                    "actions": {
+                                        "AccountRelationship_Response_Log": {
+                                            "inputs": {
+                                                "body": {
+                                                    "message": "AccountRelationship with Id: '@{body('logic-c00031-SIE_SF4S_InternalupsertAccountTeam')}' created/ updated successfully.",
+                                                    "severity": "INFO"
+                                                },
+                                                "headers": {
+                                                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                                    "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                                    "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                                },
+                                                "host": {
+                                                    "triggerName": "manual",
+                                                    "workflow": {
+                                                        "id": "[parameters('sf4sLog_logicApp_id')]"
+                                                    }
+                                                }
+                                            },
+                                            "runAfter": {
+                                                "logic-c00031-SIE_SF4S_InternalupsertAccountTeam": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "Workflow"
+                                        },
+                                        "Append_to_AccountRelationShip": {
+                                            "inputs": {
+                                                "name": "varAccountRelationShip",
+                                                "value": {
+                                                    "SIE_SF4S_upsertResponse": {
+                                                        "Id": "@{body('logic-c00031-SIE_SF4S_InternalupsertAccountTeam')}",
+                                                        "Message": "",
+                                                        "Status": "@{if(empty(body('logic-c00031-SIE_SF4S_InternalupsertAccountTeam')),'Failure','True')}",
+                                                        "created": "@{if(empty(variables('AccountId')),'true',if(empty(body('logic-c00031-SIE_SF4S_InternalupsertAccountTeam')),'false','true'))}"
+                                                    }
+                                                }
+                                            },
+                                            "runAfter": {
+                                                "logic-c00031-SIE_SF4S_InternalupsertAccountTeam": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "AppendToArrayVariable"
+                                        },
+                                        "logic-c00031-SIE_SF4S_InternalupsertAccountTeam": {
+                                            "inputs": {
+                                                "body": {
+                                                    "AccountId": "@{variables('AccountId')}",
+                                                    "TeamMemberRole": "@{xpath(xml(triggerBody()),'.//Account/AccountRelationship/TeamMemberRole/text()')?[0]}",
+                                                    "UserId": "@{xpath(xml(triggerBody()),'.//Account/AccountRelationship/UserId/text()')?[0]}"
+                                                },
+                                                "headers": {
+                                                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                                    "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                                    "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                                },
+                                                "host": {
+                                                    "triggerName": "manual",
+                                                    "workflow": {
+                                                        "id": "[parameters('SIE_SF4S_InternalupsertAccountTeam_logicApp_id')]"
+                                                    }
+                                                },
+                                                "retryPolicy": {
+                                                    "type": "none"
+                                                }
+                                            },
+                                            "runAfter": {},
+                                             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                            "type": "Workflow"
+                                        }
+                                    },
+                                    "else": {
+                                        "actions": {
+                                            "For_each-AccountRelationShips": {
+                                                "actions": {
+                                                    "Append_to_AccountRelationShip2": {
+                                                        "inputs": {
+                                                            "name": "varAccountRelationShip",
+                                                            "value": {
+                                                                "SIE_SF4S_upsertResponse": {
+                                                                    "Id": "@{body('logic-c00031-SIE_SF4S_InternalupsertAccountTeam_2')}",
+                                                                    "Message": "",
+                                                                    "Status": "@{if(empty(body('logic-c00031-SIE_SF4S_InternalupsertAccountTeam_2')),'Failure','True')}",
+                                                                    "created": "@{if(empty(variables('AccountId')),'true',if(empty(body('logic-c00031-SIE_SF4S_InternalupsertAccountTeam_2')),'false','true'))}"
+                                                                }
+                                                            }
+                                                        },
+                                                        "runAfter": {
+                                                            "logic-c00031-SIE_SF4S_InternalupsertAccountTeam_2": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "AppendToArrayVariable"
+                                                    },
+                                                    "logic-c00031-SFS_internal_sf4sLog2": {
+                                                        "inputs": {
+                                                            "body": {
+                                                                "message": "Upsert Account team member is being called for Account Id: Check 2 tempAccountRelationShip: '@{items('For_each-AccountRelationShips')}'",
+                                                                "severity": "DEBUG"
+                                                            },
+                                                            "headers": {
+                                                                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                                                "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                                                "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                                            },
+                                                            "host": {
+                                                                "triggerName": "manual",
+                                                                "workflow": {
+                                                                    "id": "[parameters('sf4sLog_logicApp_id')]"
+                                                                }
+                                                            },
+                                                            "retryPolicy": {
+                                                                "type": "none"
+                                                            }
+                                                        },
+                                                        "runAfter": {},
+                                                         "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                        "type": "Workflow"
+                                                    },
+                                                    "logic-c00031-SIE_SF4S_InternalupsertAccountTeam_2": {
+                                                        "inputs": {
+                                                            "body": {
+                                                                "AccountId": "@{variables('AccountId')}",
+                                                                "TeamMemberRole": "@{xpath(xml(items('For_each-AccountRelationShips')),'.//AccountRelationship/TeamMemberRole/text()')?[0]}",
+                                                                "UserId": "@{xpath(xml(items('For_each-AccountRelationShips')),'.//AccountRelationship/UserId/text()')?[0]}"
+                                                            },
+                                                            "headers": {
+                                                                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                                                "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                                                "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                                            },
+                                                            "host": {
+                                                                "triggerName": "manual",
+                                                                "workflow": {
+                                                                    "id": "[parameters('SIE_SF4S_InternalupsertAccountTeam_logicApp_id')]"
+                                                                }
+                                                            },
+                                                            "retryPolicy": {
+                                                                "type": "none"
+                                                            }
+                                                        },
+                                                        "runAfter": {
+                                                            "logic-c00031-SFS_internal_sf4sLog2": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                         "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                        "type": "Workflow"
+                                                    }
+                                                },
+                                                "foreach": "@xpath(xml(triggerBody()),'.//Account/AccountRelationship')",
+                                                "runAfter": {},
+                                                "type": "Foreach"
+                                            }
+                                        }
+                                    },
+                                    "expression": {
+                                        "and": [
+                                            {
+                                                "equals": [
+                                                    "@length(xpath(xml(triggerBody()),'.//Account/AccountRelationship'))",
+                                                    1
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "runAfter": {},
+                                    "type": "If"
+                                },
+                                "Set_variable-FailedAccRtplResponseMap": {
+                                    "inputs": {
+                                        "name": "varAccountRelationShip",
+                                        "value": {
+                                            "SIE_SF4S_upsertResponse": {
+                                                "Id": "",
+                                                "Message": "Incorrect AccountID-@{variables('AccountId')} or AccountRelationship_OwnerID @{xpath(xml(triggerBody()),'.//AccountRelationship/UserId/text()')?[0]}",
+                                                "Status": "Failure",
+                                                "created": ""
+                                            }
+                                        }
+                                    },
+                                    "runAfter": {
+                                        "Check-_AccountRelationShip": [
+                                            "Failed"
+                                        ]
+                                    },
+                                    "type": "AppendToArrayVariable"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "Set_variable_AccountRelationShipEmpty": {
+                                        "inputs": {
+                                            "name": "varAccountRelationShip",
+                                            "value": {
+                                                "SIE_SF4S_upsertResponse": {
+                                                    "Id": "",
+                                                    "Message": "",
+                                                    "Status": "",
+                                                    "created": ""
+                                                }
+                                            }
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToArrayVariable"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@xpath(xml(triggerBody()),'.//Account/AccountRelationship')",
+                                                "@string('')"
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@xpath(xml(triggerBody()),'.//Account/AccountRelationship')",
+                                                "@null"
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "runAfter": {
+                                "Set_variable-AccountId": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "Set_variable-AccountId": {
+                            "inputs": {
+                                "name": "AccountId",
+                                "value": "@{json(variables('varUpsertAccountResponse'))?['Id']}"
+                            },
+                            "runAfter": {},
+                            "type": "SetVariable"
+                        },
+                        "Set_variable-S4SIAC": {
+                            "inputs": {
+                                "name": "varResponseS4SICRole",
+                                "value": "\"SIE_SF4S_upsertResponse\": {\n          \"Id\": \"\",\n         \"created\": \"\",\n         \"Status\": \"Failure\",\n         \"Message\": \"@{replace(replace(concat(body('Create_record_AssetCode')?[0]?['message'],',',body('Create_record_AssetCode')?[0]?['fields']),'[\"',''),'\"]','')}\"\n      }"
+                            },
+                            "runAfter": {
+                                "Check_-_S4SIAC_Code__c": [
+                                    "Failed"
+                                ]
+                            },
+                            "type": "SetVariable"
+                        },
+                        "logic-c00031-SFS_internal_sf4sLog": {
+                            "inputs": {
+                                "body": {
+                                    "message": "Upsert Account team member is being called for Account Id: '@{json(variables('varUpsertAccountResponse'))?['Id']}'",
+                                    "severity": "INFO"
+                                },
+                                "headers": {
+                                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                    "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                    "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                },
+                                "host": {
+                                    "triggerName": "manual",
+                                    "workflow": {
+                                        "id": "[parameters('sf4sLog_logicApp_id')]"
+                                    }
+                                },
+                                "retryPolicy": {
+                                    "type": "none"
+                                }
+                            },
+                            "runAfter": {},
+                             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                            "type": "Workflow"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Log-Compose_Upsert_AccountV2_Failure": {
+                                "inputs": "Upsert Account call failed for the AccoutId: '@{xpath(xml(triggerBody()),'.//Account/Id/text()')?[0]}'\n",
+                                "runAfter": {},
+                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                                "type": "Compose"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@json(variables('varUpsertAccountResponse'))?['Id']",
+                                        "@null"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Set_variable_-_AccountResponseMap": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Scope-SetResponseVariable": {
+                    "actions": {
+                        "Append_variable-Role_EMpty2": {
+                            "inputs": {
+                                "name": "varRole",
+                                "value": {
+                                    "SIE_SF4S_upsertResponse": {
+                                        "Id": "",
+                                        "Message": "",
+                                        "Status": "",
+                                        "created": ""
+                                    }
+                                }
+                            },
+                            "runAfter": {},
+                            "type": "AppendToArrayVariable"
+                        },
+                        "Append_variable_AccountRelationShip_Empty2": {
+                            "inputs": {
+                                "name": "varAccountRelationShip",
+                                "value": {
+                                    "SIE_SF4S_upsertResponse": {
+                                        "Id": "",
+                                        "Message": "",
+                                        "Status": "",
+                                        "created": ""
+                                    }
+                                }
+                            },
+                            "runAfter": {},
+                            "type": "AppendToArrayVariable"
+                        },
+                        "Set_variable-FailedAccountMap": {
+                            "inputs": {
+                                "name": "varAccountResponse",
+                                "value": "\"SIE_SF4S_upsertResponse\": {\n         \"Id\": \"\",\n         \"created\": \"\",\n         \"Status\": \"Failure\",\n         \"Message\": \"@{replace(replace(concat(body('Create_record')?[0]?['message'],body('Insert_or_Update_(Upsert)_a_Record_by_External_ID')?[0]?['message'],',',string(coalesce(body('Create_record'),body('Insert_or_Update_(Upsert)_a_Record_by_External_ID'))?[0]?['fields'])),'[\"',''),'\"]','')}\"\n      }"
+                            },
+                            "runAfter": {},
+                            "type": "SetVariable"
+                        },
+                        "Set_variable-S4SICRoleEmpty2": {
+                            "inputs": {
+                                "name": "varResponseS4SICRole",
+                                "value": "\"SIE_SF4S_upsertResponse\": {\n         \"Id\": \"\",\n         \"created\": \"\",\n         \"Status\": \"\",\n         \"Message\": \"\"\n      }"
+                            },
+                            "runAfter": {},
+                            "type": "SetVariable"
+                        },
+                        "Set_variable_SiesmartEmpty2": {
+                            "inputs": {
+                                "name": "varS4SSieSmartInformation",
+                                "value": "\"SIE_SF4S_upsertResponse\": {\n         \"Id\": \"\",\n         \"created\": \"\",\n         \"Status\": \"\",\n         \"Message\": \"\"\n      }"
+                            },
+                            "runAfter": {},
+                            "type": "SetVariable"
+                        }
+                    },
+                    "runAfter": {
+                        "Scope-iuAccount": [
+                            "Failed"
+                        ]
+                    },
+                    "type": "Scope"
+                },
+                "Scope-iuAccount": {
+                    "actions": {
+                        "Compose-UpsertAccountRequest": {
+                            "inputs": "@setProperty(setProperty(removeProperty(json(replace(replace(string(json(string(removeProperty(json(string(removeProperty(json(string(removeProperty(json(string(removeProperty(json(xml(triggerBody()))?['Account'],'AccountRelationship'))),'S4SRole'))),'S4SSieSmart_Information'))),'S4SIAC_Code__c')))),':\"0\"',':false'),':\"1\"',':true')),'IsDeleted'),'S4SSFS_Rating__C',variables('S4SSFS_Rating__c')),'S4SOrigination_ID__c',variables('S4SOrigination_ID__c'))",
+                            "runAfter": {},
+                             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                            "type": "Compose"
+                        },
+                        "ConditionAccount": {
+                            "actions": {
+                                "Create_record": {
+                                    "inputs": {
+                                        "body": "@removeProperty(outputs('Compose-UpsertAccountRequest'),'Id')",
+                                        "headers": {
+                                            "Authorization": "Bearer @{body('HTTP-GetSFToken')}",
+                                            "Content-Type": "application/json"
+                                        },
+                                        "method": "POST",
+                                        "uri": "${instanceURL}/sobjects/Account/"
+                                    },
+                                    "runAfter": {},
+                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                    "type": "Http"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "Insert_or_Update_(Upsert)_a_Record_by_External_ID": {
+                                        "inputs": {
+                                            "body": "@removeproperty(json(string(outputs('Compose-UpsertAccountRequest'))),'Id')",
+                                            "headers": {
+                                                "Authorization": "Bearer @{body('HTTP-GetSFToken')}",
+                                                "Content-Type": "application/json"
+                                            },
+                                            "method": "PATCH",
+                                            "uri": "${instanceURL}/sobjects/Account/Id/@{outputs('Compose-UpsertAccountRequest')?['Id']}"
+                                        },
+                                        "runAfter": {},
+                                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                        "type": "Http"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "or": [
+                                    {
+                                        "equals": [
+                                            "@outputs('Compose-UpsertAccountRequest')?['Id']",
+                                            "@null"
+                                        ]
+                                    },
+                                    {
+                                        "equals": [
+                                            "@outputs('Compose-UpsertAccountRequest')?['Id']",
+                                            "@string('')"
+                                        ]
+                                    }
+                                ]
+                            },
+                            "runAfter": {
+                                "Compose-UpsertAccountRequest": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "Set_variable-_AccountResponse": {
+                            "inputs": {
+                                "name": "varUpsertAccountResponse",
+                                "value": "@{coalesce(body('Create_record'), body('Insert_or_Update_(Upsert)_a_Record_by_External_ID'))}"
+                            },
+                            "runAfter": {
+                                "ConditionAccount": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "SetVariable"
+                        }
+                    },
+                    "runAfter": {},
+                    "type": "Scope"
+                },
+                "Set_variable_-_AccountResponseMap": {
+                    "inputs": {
+                        "name": "varAccountResponse",
+                        "value": "\"SIE_SF4S_upsertResponse\": {\n         \"Id\": \"@{json(variables('varUpsertAccountResponse'))?['Id']}\",\n         \"created\": \"@{if(equals(xpath(xml(triggerBody()), './/Id/text()')?[0], null), 'true', 'false')}\",\n         \"Status\": \"True\",\n         \"Message\": \"\"\n      }"
+                    },
+                    "runAfter": {
+                        "Scope-iuAccount": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "SetVariable"
+                },
+                "Set_variable_2": {
+                    "inputs": {
+                        "name": "varResponseMap",
+                        "value": "{\n\"SIE_SF4S_upsertAccountResponse\": {\n   \"Account\": {@{variables('varAccountResponse')} },\n   \"AccountRelationship\":[@{replace(replace(string(variables('varAccountRelationShip')),'[',''),']','')}],\n   \"S4SRole\": [@{replace(replace(string(variables('varRole')),'[',''),']','')}],\n   \"S4SSieSmart_Information\": {@{variables('varS4SSieSmartInformation')}},\n\"S4SIAC\":[{@{variables('varResponseS4SICRole')}}]\n}\n}"
+                    },
+                    "runAfter": {
+                        "Scope-SetResponseVariable": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "SetVariable"
+                },
+                "Set_variable_Final_Response": {
+                    "inputs": {
+                        "name": "varResponseMap",
+                        "value": "{\n\"SIE_SF4S_upsertAccountResponse\": {\n   \"Account\": {@{variables('varAccountResponse')} },\n   \"AccountRelationship\":[@{replace(replace(string(variables('varAccountRelationShip')),'[',''),']','')}],\n   \"S4SRole\": [@{replace(replace(string(variables('varRole')),'[',''),']','')}],\n\"S4SIAC\":[{@{variables('varResponseS4SICRole')}}]\n}\n}"
+                    },
+                    "runAfter": {
+                        "SIE_SF4S_upsertResponse_Status": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "SetVariable"
+                }
+            },
+            "else": {
+                "actions": {
+                    "Response-Empty_Error": {
+                        "inputs": {
+                            "body": "Empty Input",
+                            "statusCode": 400
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                         "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                        "type": "Response"
+                    }
+                }
+            },
+            "expression": {
+                "and": [
+                    {
+                        "not": {
+                            "equals": [
+                                "@string(triggerBody())",
+                                "@string('')"
+                            ]
+                        }
+                    },
+                    {
+                        "not": {
+                            "equals": [
+                                "@string(triggerBody())",
+                                "@null"
+                            ]
+                        }
+                    }
+                ]
+            },
+            "runAfter": {
+                "HTTP-GetSFToken": [
+                    "Succeeded"
+                ],
+                "Initialize_variable-AccountId": [
+                    "Succeeded"
+                ],
+                "Initialize_variable-AccountRelationship": [
+                    "Succeeded"
+                ],
+                "Initialize_variable-AccountResponse": [
+                    "Succeeded"
+                ],
+                "Initialize_variable-ResponseMap": [
+                    "Succeeded"
+                ],
+                "Initialize_variable-Role": [
+                    "Succeeded"
+                ],
+                "Initialize_variable-RoleErrorMessage": [
+                    "Succeeded"
+                ],
+                "Initialize_variable-RoleID": [
+                    "Succeeded"
+                ],
+                "Initialize_variable-S4SSieSmartInformation": [
+                    "Succeeded"
+                ],
+                "Initialize_variable-UpsertAccountResponse": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_-_S4SICRole": [
+                    "Succeeded"
+                ],
+                "Initialize_variable-S4SSFS_Rating__c": [
+                    "Succeeded"
+                ],
+                "Initialize_variable-S4SOrigination_ID__c": [
+                    "Succeeded"
+                ]
+            },
+            "type": "If"
+        },
+        "HTTP-GetSFToken": {
+            "inputs": {
+                "headers": {
+                    "Ocp-Apim-Subscription-Key": "${apimKey}"
+                },
+                "method": "POST",
+                "uri": "${apimURL}"
+            },
+            "runAfter": {},
+         "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+            "type": "Http"
+        },
+        "Initialize_variable-AccountId": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "AccountId",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable-AccountRelationship": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varAccountRelationShip",
+                        "type": "array"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable-AccountResponse": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varAccountResponse",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable-ResponseMap": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varResponseMap",
+                        "type": "string",
+                        "value": "{\n\"SIE_SF4S_upsertAccountResponse\": {\n   \"Account\": {\n   },\n   \"AccountRelationship\": {\n   },\n   \"S4SRole\": {\n   },\n   \"S4SSieSmart_Information\": {\n   }\n}\n}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable-Role": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varRole",
+                        "type": "array"
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_variable_-_COF_IDs": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable-RoleErrorMessage": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varRoleErrorMessage",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable-RoleID": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varRoleId",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable-S4SSieSmartInformation": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varS4SSieSmartInformation",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable-UpsertAccountResponse": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varUpsertAccountResponse",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_-_COF_IDs": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "COF_IDs",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_-_IAC_IDs": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "IAC_IDs",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_-_S4SICRole": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varResponseS4SICRole",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_variable_-_IAC_IDs": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable-S4SSFS_Rating__c": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "S4SSFS_Rating__c",
+                        "type": "string",
+                        "value": "@{xpath(xml(triggerBody()),'.//S4SSFS_Rating__c/text()')?[0]}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable-S4SOrigination_ID__c": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "S4SOrigination_ID__c",
+                        "type": "string",
+                        "value": "@{if(equals(xpath(xml(triggerBody()),'.//S4SExternal_Source__c/text()')?[0],'Salesforce'),'',xpath(xml(triggerBody()),'.//S4SOrigination_ID__c/text()')?[0])}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {
+                "schema": {}
+            },
+            "kind": "Http",
+             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+            "type": "Request"
+        }
+    }
+}

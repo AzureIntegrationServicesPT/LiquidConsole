@@ -1,0 +1,134 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Convert_to_MDG_Account_search_request": {
+        "inputs": {
+          "body": {
+            "MDGConfig": "@json(body('Get_MDG_Config'))",
+            "Operation": "Search",
+            "Request": "@json(triggerBody())"
+          },
+          "function": {
+            "connectionName": "Liquid"
+          },
+          "headers": {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Filename": "SFMDGsearchRequestTransformation"
+          },
+          "method": "POST"
+        },
+        "runAfter": {
+          "Get_MDG_Config": [
+            "Succeeded"
+          ]
+        },
+        "type": "Function"
+      },
+      "Get_MDG_Config": {
+        "inputs": {
+          "host": {
+            "workflow": {
+              "id": "logic_mdg"
+            }
+          },
+          "body": {
+            "key": "mdg-config"
+          },
+          "headers": null
+        },
+        "runAfter": {},
+        "type": "Workflow"
+      },
+      "Response": {
+        "inputs": {
+          "body": "@body('logic-c00031-int_SF_MDG_search-weu-dev')",
+          "statusCode": 200
+        },
+        "kind": "Http",
+        "runAfter": {
+          "logic-c00031-int_SF_MDG_search-weu-dev": [
+            "Succeeded"
+          ]
+        },
+        "type": "Response"
+      },
+      "logic-c00031-int_SF_MDG_search-weu-dev": {
+        "inputs": {
+          "host": {
+            "workflow": {
+              "id": "logic_mdg"
+            }
+          },
+          "body": {
+            "MDGRequest": "@{body('Convert_to_MDG_Account_search_request')?['MDGRequest']}",
+            "URI": "@{body('Convert_to_MDG_Account_search_request')?['URI']}"
+          },
+          "headers": null
+        },
+        "runAfter": {
+          "Convert_to_MDG_Account_search_request": [
+            "Succeeded"
+          ]
+        },
+        "type": "Workflow"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {
+          "schema": {
+            "properties": {
+              "accountName": {
+                "type": "string"
+              },
+              "duns": {
+                "type": "string"
+              },
+              "idNum": {
+                "type": "string"
+              },
+              "ifa": {
+                "type": "string"
+              },
+              "imaxhits": {
+                "type": "string"
+              },
+              "nationalCity": {
+                "type": "string"
+              },
+              "nationalCountry": {
+                "type": "string"
+              },
+              "nationalPostcode": {
+                "type": "string"
+              },
+              "nationalState": {
+                "type": "string"
+              },
+              "nationalStreet": {
+                "type": "string"
+              },
+              "sapClient": {
+                "type": "string"
+              },
+              "sapSys": {
+                "type": "string"
+              },
+              "searchDB": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "kind": "Http",
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

@@ -1,0 +1,247 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "GetConfiguration": {
+            "inputs": {
+                "body": {
+                    "key": "obm-config"
+                },
+                "host": {
+                    "triggerName": "manual",
+                    "workflow": {
+                        "id": "${getConfiguration_logicAppId}"
+                    }
+                },
+                "retryPolicy": {
+                    "type": "none"
+                }
+            },
+            "runAfter": {},
+             "runtimeConfiguration": {
+                    "secureData": {
+                        "properties": [
+                            "outputs"
+                        ]
+                    }
+                },
+            "type": "Workflow"
+        },
+        "Initialize_variable_'varAckResponse'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varAckResponse",
+                        "type": "string",
+                        "value": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n<soapenv:Header/>\n<soapenv:Body>\n<out:notificationsResponse>\n<out:Ack>##RESULT##</out:Ack>\n</out:notificationsResponse>\n</soapenv:Body>\n</soapenv:Envelope>"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_'varIvOpportunityId'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varIvOpportunityId",
+                        "type": "string",
+                        "value": "@{trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"notifications\"]/*[local-name()=\"Notification\"]/*[local-name()=\"sObject\"]/*[local-name()=\"Id\"])'))}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Scope-Catch": {
+            "actions": {
+                "Terminate-Scope-Catch": {
+                    "inputs": {
+                        "runError": {
+                            "code": "500"
+                        },
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {},
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Scope-Try": [
+                    "Failed",
+                    "Skipped",
+                    "TimedOut"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope-Try": {
+            "actions": {
+                "Scope-CatchExternalElanService": {
+                    "actions": {
+                        "Response": {
+                            "inputs": {
+                                "body": "@replace(variables('varAckResponse'),'##RESULT##','0')",
+                                "headers": {
+                                    "Content-Type": "text/xml"
+                                },
+                                "statusCode": 500
+                            },
+                            "kind": "Http",
+                            "runAfter": {},
+                            "type": "Response"
+                        },
+                        "Terminate-Scope-CatchExternalElanService": {
+                            "inputs": {
+                                "runStatus": "Failed"
+                            },
+                            "runAfter": {
+                                "Response": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Terminate"
+                        }
+                    },
+                    "runAfter": {
+                        "Scope-TryExternalElanService": [
+                            "Failed",
+                            "Skipped",
+                            "TimedOut"
+                        ]
+                    },
+                    "type": "Scope"
+                },
+                "Scope-TryExternalElanService": {
+                    "actions": {
+                        "CheckElanServiceResponse": {
+                            "actions": {
+                                "SuccessResponse": {
+                                    "inputs": {
+                                        "body": "@replace(variables('varAckResponse'),'##RESULT##','1')",
+                                        "headers": {
+                                            "Content-Type": "text/xml"
+                                        },
+                                        "statusCode": "@outputs('HTTP-ExternalElanService')['statusCode']"
+                                    },
+                                    "kind": "Http",
+                                    "runAfter": {},
+                                    "type": "Response"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "FailedResponse": {
+                                        "inputs": {
+                                            "body": "@replace(variables('varAckResponse'),'##RESULT##','0')",
+                                            "headers": {
+                                                "Content-Type": "text/xml"
+                                            },
+                                            "statusCode": "@outputs('HTTP-ExternalElanService')['statusCode']"
+                                        },
+                                        "kind": "Http",
+                                        "runAfter": {},
+                                        "type": "Response"
+                                    },
+                                    "Terminate-FailedResponse": {
+                                        "inputs": {
+                                            "runStatus": "Failed"
+                                        },
+                                        "runAfter": {
+                                            "FailedResponse": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "Terminate"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "equals": [
+                                            "@outputs('HTTP-ExternalElanService')['statusCode']",
+                                            200
+                                        ]
+                                    }
+                                ]
+                            },
+                            "runAfter": {
+                                "HTTP-ExternalElanService": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "Compose-ELANServiceSoapRequest": {
+                            "inputs": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:urn=\"urn:sap-com:document:sap:soap:functions:mc-style\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <urn:ZFinSieSalesInbound>\n         <IvOpportunityId>@{variables('varIvOpportunityId')}</IvOpportunityId>\n      </urn:ZFinSieSalesInbound>\n   </soapenv:Body>\n</soapenv:Envelope>",
+                            "runAfter": {},
+                            "type": "Compose"
+                        },
+                        "HTTP-ExternalElanService": {
+                            "inputs": {
+                                "authentication": {
+                                    "password": "@json(body('GetConfiguration'))?['ELAN']?['password']",
+                                    "type": "Basic",
+                                    "username": "@json(body('GetConfiguration'))?['ELAN']?['username']"
+                                },
+                                "body": "@outputs('Compose-ELANServiceSoapRequest')",
+                                "headers": {
+                                    "Content-Type": "text/xml"
+                                },
+                                "method": "POST",
+                                "retryPolicy": {
+                                    "type": "none"
+                                },
+                                "uri": "@{json(body('GetConfiguration'))?['ELAN']?['url']}"
+                            },
+                            "runAfter": {
+                                "Compose-ELANServiceSoapRequest": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Http"
+                        }
+                    },
+                    "runAfter": {},
+                    "type": "Scope"
+                }
+            },
+            "runAfter": {
+                "GetConfiguration": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_'varAckResponse'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_'varIvOpportunityId'": [
+                    "Succeeded"
+                ]
+            },
+            "trackedProperties": {
+                "citizenName": "c00031",
+                "correlationId": "@{triggerOutputs()['headers']?['correlationid']}",
+                "interfaceName": "OBMv4ElanOpportunity",
+                "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'non-defined')}",
+                "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'OBMv4ElanOpportunity')}",
+                "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+                "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+
+            },
+            "type": "Scope"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {},
+    "triggers": {
+        "manual": {
+            "inputs": {
+                "schema": {}
+            },
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

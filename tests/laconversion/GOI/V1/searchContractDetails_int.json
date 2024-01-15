@@ -1,0 +1,435 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Initialize_variable": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "SoapErrorResponse",
+                        "type": "string",
+                        "value": "<soap-env:Envelope xmlns:soap-env=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap-env:Header/><soap-env:Body><soap-env:Fault><faultcode>soap-env:Server</faultcode><faultstring>{errormessagedetails}</faultstring><detail/></soap-env:Fault></soap-env:Body></soap-env:Envelope>"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable'ContractDetails'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "ContractDetails",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable'ContractDetails_Response'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "ContractDetails Response",
+                        "type": "string",
+                        "value": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sie=\"http://demchdc8zkx.dc4ca.siemens.de/SIE.SF4S.GOI.Public.WebServices.Provider.V1:SIE_SF4S_GOI_V1\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <sie:contractDetailsResponse>         \n       ####ContractDetails####            \n      </sie:contractDetailsResponse>\n   </soapenv:Body>\n</soapenv:Envelope>"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable'ContractDetails_WhereClause'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "ContractDetails WhereClause",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable'IFA'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "IFA",
+                        "type": "string",
+                        "value": "@{xpath(xml(triggerBody()),'.//IFA/text()')?[0]}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable'Id'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "Id",
+                        "type": "string",
+                        "value": "@{xpath(xml(triggerBody()),'.//Id/text()')?[0]}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable'contractNumber'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "contractNumber",
+                        "type": "string",
+                        "value": "@{xpath(xml(triggerBody()),'.//contractNumber/text()')?[0]}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Scope-Catch": {
+            "actions": {
+                "Failed_Response": {
+                    "inputs": {
+                        "body": "@replace(variables('SoapErrorResponse'),'{errormessagedetails}',concat('Some error occurred while connection. Please find more details using tracking id : ', workflow()['run']['name']))",
+                        "headers": {
+                            "Content-Type": "text/xml;charset=UTF-8"
+                        },
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                },
+                "Terminate": {
+                    "inputs": {
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Failed_Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Scope-Try": [
+                    "Skipped",
+                    "TimedOut",
+                    "Failed"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope-Try": {
+            "actions": {
+                "Check-ContractNumber": {
+                    "actions": {
+                        "Condition_2": {
+                            "actions": {
+                                "Append_to_string_variable_2": {
+                                    "inputs": {
+                                        "name": "ContractDetails WhereClause",
+                                        "value": "@concat(' AND ','Name = ',string(''''),variables('contractNumber'),string(''''))"
+                                    },
+                                    "runAfter": {},
+                                    "type": "AppendToStringVariable"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "Set_variable": {
+                                        "inputs": {
+                                            "name": "ContractDetails WhereClause",
+                                            "value": "@{concat('Name = ',string(''''),variables('contractNumber'),string(''''))}"
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@variables('ContractDetails WhereClause')",
+                                                "@string('')"
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@variables('ContractDetails WhereClause')",
+                                                "@null"
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "runAfter": {},
+                            "type": "If"
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('contractNumber')",
+                                        "@string('')"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('contractNumber')",
+                                        "@null"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Check-Id": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Check-IFA": {
+                    "actions": {
+                        "Condition": {
+                            "actions": {
+                                "Append_to_string_variable_3": {
+                                    "inputs": {
+                                        "name": "ContractDetails WhereClause",
+                                        "value": "@concat(' AND ','S4SIfA__c = ',string(''''),variables('IFA'),string(''''))"
+                                    },
+                                    "runAfter": {},
+                                    "type": "AppendToStringVariable"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "Set_variable_2": {
+                                        "inputs": {
+                                            "name": "ContractDetails WhereClause",
+                                            "value": "@{concat('S4SIfA__c = ',string(''''),variables('IFA'),string(''''))}"
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@variables('ContractDetails WhereClause')",
+                                                ""
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@variables('ContractDetails WhereClause')",
+                                                ""
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "runAfter": {},
+                            "type": "If"
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('IFA')",
+                                        "@string('')"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('IFA')",
+                                        "@null"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Check-ContractNumber": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Check-Id": {
+                    "actions": {
+                        "Append_to_string_variable": {
+                            "inputs": {
+                                "name": "ContractDetails WhereClause",
+                                "value": "@concat('Id = ',string(''''),variables('Id'),string(''''))"
+                            },
+                            "runAfter": {},
+                            "type": "AppendToStringVariable"
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('Id')",
+                                        "@string('')"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('Id')",
+                                        "@null"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                },
+                "For_each_contract": {
+                    "actions": {
+                        "Append_to_string_variable_4": {
+                            "inputs": {
+                                "name": "ContractDetails",
+                                "value": "<contractDetailsRes>\n\t<generalInformation>\n\t<contractNumber>@{items('For_each_contract')?['Name']}</contractNumber>\n\t<contractEndDate>@{if(empty(items('For_each_contract')?['S4SContract_End_Date__c']), ' ' ,items('For_each_contract')?['S4SContract_End_Date__c'])}</contractEndDate>\n\t<contractName>@{items('For_each_contract')?['S4SContract_Name__c']}</contractName>\n\t<contractStartDate>@{items('For_each_contract')?['S4SContract_Start_Date__c']}</contractStartDate>\n\t<contractStatus>@{items('For_each_contract')?['S4SContract_Status__c']}</contractStatus>\n\t<contractType>@{items('For_each_contract')?['S4SContract_Type__c']}</contractType>\n\t<IfA>@{items('For_each_contract')?['S4SIfA__c']}</IfA>\n\t<accountGroup>@{items('For_each_contract')?['S4SAccount_Group__c']}</accountGroup>\t\n\t</generalInformation>\n\t<participatingCountries>\n\t<implementationPriority1>@{items('For_each_contract')?['S4SImplementation_Priority_1__c']}</implementationPriority1>\n\t<implementationPriority2>@{items('For_each_contract')?['S4SImplementation_Priority_2__c']}</implementationPriority2>\t\n\t<implementationPriority3>@{items('For_each_contract')?['S4SImplementation_Priority_3__c']}</implementationPriority3>\t\n\t</participatingCountries>\n\t<keyTermsandConditions>\n\t<warrantyTerm>@{items('For_each_contract')?['S4SWarrantyTerm__c']}</warrantyTerm>\t\n\t<paymentTerm>@{items('For_each_contract')?['S4SPayment_Term__c']}</paymentTerm>\t\n\t<deliveryTerm>@{items('For_each_contract')?['S4SDelivery_Term__c']}</deliveryTerm>\t\n\t<contractStatus>@{items('For_each_contract')?['S4SContract_Status__c']}</contractStatus>\n\t</keyTermsandConditions>\n\t<localAdoptionAgreement>\n\t<exchangeRate>@{items('For_each_contract')?['S4SExchange_Rate__c']}</exchangeRate>\n\t<landedCostFactor>@{items('For_each_contract')?['S4SLanded_Cost_Factor__c']}</landedCostFactor>\t\n\t<countryFactor>@{items('For_each_contract')?['S4SCountry_Factor__c']}</countryFactor>\n\t<localDeliveryTerm>@{items('For_each_contract')?['S4SLocal_Delivery_Term__c']}</localDeliveryTerm>\n\t</localAdoptionAgreement>\n</contractDetailsRes>\n"
+                            },
+                            "runAfter": {},
+                            "type": "AppendToStringVariable"
+                        }
+                    },
+                    "foreach": "@body('SIE_SF4S_fetchContract')?['Records']",
+                    "runAfter": {
+                        "SIE_SF4S_fetchContract": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Foreach"
+                },
+                "Response": {
+                    "inputs": {
+                        "body": "@xml(replace(variables('ContractDetails Response'),'####ContractDetails####',string(variables('ContractDetails'))))",
+                        "headers": {
+                            "Content-Type": "text/xml;charset=UTF-8"
+                        },
+                        "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "For_each_contract": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
+                },
+                "SIE_SF4S_fetchContract": {
+                    "inputs": {
+                        "body": {
+                            "query": "select Id,IsDeleted,Name,CurrencyIsoCode,OwnerId,RecordTypeId,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastActivityDate,LastViewedDate,LastReferencedDate,S4SAccount_Country__c,S4SAccount_Group__c,S4SAccount__c,S4SActual_Comment__c,S4SAll_other_Countries_excl_AU_NZ_ZA__c,S4SAssigned_Master__c,S4SAustralia_New_Zealand_Africa__c,S4SAutomatic_Adoption_of_Amendments__c,S4SContract_Currency__c,S4SContract_End_Date__c,S4SContract_Language__c,S4SContract_Name__c,S4SContract_Reference__c,S4SContract_Standard__c,S4SContract_Start_Date__c,S4SContract_Status__c,S4SContract_Sub_Type__c,S4SContract_Substatus__c,S4SContract_Type__c,S4SContract_relevant_for__c,S4SCountry_Factor_Comment__c,S4SCountry_Factor__c,S4SCountry__c,S4SDefects_Liability_Products__c,S4SDefects_Liability_Projects__c,S4SDelay_in_Delivery__c,S4SDelivery_Term__c,S4SDescription__c,S4SEuropean_Countries_excl_TR_RU__c,S4SEuropean_Union_Countries__c,S4SExchange_Rate__c,S4SExpiration_notice__c,S4SExtension_of_Rebate_Agreement__c,S4SExtension_of_Term__c,S4SForce_Majeure__c,S4SGARebate_for_IndirectDirectBusiness__c,S4SGA_Comment__c,S4SGA_Contract_End_Date__c,S4SGA_Contract_Start_Date__c,S4SGA_Extension_of_Term__c,S4SGA_Latest_Amendment_Date__c,S4SGA_Lead_Business_Unit__c,S4SGA_LoA_ID_Number__c,S4SGA_Participating_Business_Units__c,S4SGA_Rebate_for_indirectdirect_Business__c,S4SGA_Signed__c,S4SGeneral_Notes__c,S4SGlobal_Agreement_Manager__c,S4SGlobal_Agreement_Status__c,S4SGoverning_Law__c,S4SIfA__c,S4SImplementation_Priority_1__c,S4SImplementation_Priority_2__c,S4SImplementation_Priority_3__c,S4SImplementation_Priority__c,S4SIncluded_Countries__c,S4SIndustry_Direct__c,S4SInvolved_Business_Units__c,S4SIs_File_Available__c,S4SIs_LAA_AutoCreate__c,S4SKey_Terms_and_Conditions_reflect_LAA__c,S4SLanded_Cost_Factor__c,S4SLanguage__c,S4SLast_Review_Date__c,S4SLatest_Amendment_Date__c,S4SLead_Business_Unit__c,S4SLead_Country__c,S4SLegal_Advisor__c,S4SLiabilityIndemnification__c,S4SLiability_Products__c,S4SLiability_Projects__c,S4SLiquidated_DamagesPenalties__c,S4SLiquidated_Damages__c,S4SLoA_Approval_Date__c,S4SLoA_Expiration_Date__c,S4SLoA_ID_Number__c,S4SLocal_Delivery_Term__c,S4SLocal_Rebate__c,S4SMaster_Local_Adoption_Agreement__c,S4SNegotiation_Team_on_Customer_Side__c,S4SNext_Review_Date_120_Task__c,S4SNext_Review_Date__c,S4SOpportunity_Name__c,S4SOwnerDivision__c,S4SParent_Contract__c,S4SParticipating_BU_Text_Backend__c,S4SParticipating_Business_Units__c,S4SParticipating_Countries__c,S4SPayment_Term__c,S4SPrice_Basis__c,S4SProgram__c,S4SReason_for_Contract_Creation__c,S4SReason_for_NonRealization__c,S4SRebate_End_Date__c,S4SRebate_Start_Date__c,S4SReminder_Date_Task_from_end_Date__c,S4SReminder_Date_Time_Task_Next_Review__c,S4SReminder_Expiration_Notice_Task__c,S4SReminder_LoA_Expiration_notice_Task__c,S4SSales_Branch__c,S4SSales_Country__c,S4SSales_Department__c,S4SSales_District__c,S4SSales_Office__c,S4SSales_Subregion__c,S4SSales_Territory__c,S4SSend_Expiration_Notification__c,S4SServices_included__c,S4SSiemens_Company_Lead__c,S4SSoftware_Conditions__c,S4SSpecial_Items__c,S4STemplateLink__c,S4STerm_of_Acceptance__c,S4STermination_Period__c,S4STerritory_Structure__c,S4STo_be_implemented_until__c,S4SType_of_Business__c,S4SVisibility__c,S4SGALoAIDNumber__c,S4SLoAIDNumber__c,S4SSalesContractSign_Count__c,S4SWarrantyTerm__c  from S4SContract_Management__c where @{variables('ContractDetails WhereClause')}"
+                        },
+                        "host": {
+                            "connection": {
+                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                            }
+                        },
+                        "method": "post",
+                        "path": "/soql/executesoqlquery"
+                    },
+                    "runAfter": {
+                        "Check-IFA": [
+                            "Succeeded"
+                        ]
+                    },
+                    "trackedProperties": {
+                        "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+                        "citizenName": "c00031",
+                        "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'GOI')}",
+                        "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                        "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                        "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'searchContractDetails')}",
+                        "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+                        "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                        "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+                    },
+                    "type": "ApiConnection"
+                }
+            },
+            "runAfter": {
+                "Initialize_variable": [
+                    "Succeeded"
+                ],
+                "Initialize_variable'ContractDetails'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable'ContractDetails_Response'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable'ContractDetails_WhereClause'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable'IFA'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable'Id'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable'contractNumber'": [
+                    "Succeeded"
+                ]
+            },
+            "trackedProperties": {
+                "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+                        "citizenName": "c00031",
+                        "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'GOI')}",
+                        "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                        "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'V1')}",
+                        "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'searchContractDetails')}",
+                        "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}"
+            },
+            "type": "Scope"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {},
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

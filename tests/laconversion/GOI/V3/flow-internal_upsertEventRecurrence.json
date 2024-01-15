@@ -1,0 +1,362 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "actions": {
+    "Scope_Catch": {
+      "actions": {
+          "Response_in_Catch": {
+              "inputs": {
+                  "body": {
+                      "errormessagedetails": "@concat('Some error occurred while connection. Please find more details using tracking id : ', workflow()['run']['name'])"
+                  },
+                  "headers": {
+                      "Content-Type": "application/json"
+                  },
+                  "statusCode": 500
+              },
+              "kind": "Http",
+              "runAfter": {},
+              "type": "Response"
+          },
+          "Terminate": {
+              "inputs": {
+                  "runStatus": "Failed"
+              },
+              "runAfter": {
+                  "Response_in_Catch": [
+                      "Succeeded"
+                  ]
+              },
+              "type": "Terminate"
+          }
+      },
+      "runAfter": {
+          "Try_Scope": [
+              "Failed",
+              "TimedOut",
+              "Skipped"
+          ]
+      },
+      "type": "Scope"
+  },
+  "Try_Scope": {
+      "actions": {
+          "Check_recurrence": {
+              "actions": {
+                  "Check_recurrence_fields": {
+                      "actions": {
+                          "Compose_Input_Request_with_Reccurence": {
+                              "inputs": {
+                                  "ActivityDate": "@{outputs('Compose_json_request')?['ActivityDate']}",
+                                  "Description": "@{outputs('Compose_json_request')?['Description']}",
+                                  "DurationInMinutes": "@{outputs('Compose_json_request')?['DurationInMinutes']}",
+                                  "EndDateTime": "@{outputs('Compose_json_request')?['EndDateTime']}",
+                                  "IsAllDayEvent": "@bool(outputs('Compose_json_request')?['IsAllDayEvent'])",
+                                  "IsRecurrence": "@{outputs('Compose_json_request')?['IsRecurrence2']}",
+                                  "Location": "@{outputs('Compose_json_request')?['Location']}",
+                                  "OwnerId": "@{outputs('Compose_json_request')?['Assigned_to_ID']}",
+                                  "RecurrenceEndDateOnly": "@{outputs('Compose_json_request')?['RecurrenceEndDateOnly']}",
+                                  "RecurrenceInterval": "@{outputs('Compose_json_request')?['RecurrenceInterval']}",
+                                  "RecurrenceStartDateTime": "@{outputs('Compose_json_request')?['RecurrenceStartDateTime']}",
+                                  "RecurrenceType": "@{outputs('Compose_json_request')?['RecurrenceType']}",
+                                  "S4SAdditional_Information__c": "@{outputs('Compose_json_request')?['S4SAdditional_Information__c']}",
+                                  "S4SBU__c": "@{outputs('Compose_json_request')?['S4SBU__c']}",
+                                  "S4SCompleted_Date__c": "@{outputs('Compose_json_request')?['S4SCompleted_Date__c']}",
+                                  "S4SDelegated_By__c": "@{outputs('Compose_json_request')?['Delegated_by_ID']}",
+                                  "S4SDivision__c": "@{outputs('Compose_json_request')?['S4SDivision__c']}",
+                                  "S4SExternal_Source__c": "@{outputs('Compose_json_request')?['S4SExternal_Source__c']}",
+                                  "S4SOpportunity_Milestone__c": "@{outputs('Compose_json_request')?['S4SOpportunity_Milestone__c']}",
+                                  "S4SOther_Topics__c": "@{outputs('Compose_json_request')?['S4SOther_Topic__c']}",
+                                  "S4SReason__c": "@{outputs('Compose_json_request')?['S4SReason__c']}",
+                                  "S4SStatus__c": "@{outputs('Compose_json_request')?['S4SStatus__c']}",
+                                  "S4STraining_Topic__c": "@{outputs('Compose_json_request')?['S4STraining_Topic__c']}",
+                                  "StartDateTime": "@{outputs('Compose_json_request')?['StartDateTime']}",
+                                  "Subject": "@{outputs('Compose_json_request')?['Subject']}",
+                                  "Type": "@{outputs('Compose_json_request')?['Type']}",
+                                  "WhatId": "@{coalesce(if(equals(outputs('Compose_json_request')?['AccountId'],''),null,outputs('Compose_json_request')?['AccountId']),if(equals(outputs('Compose_json_request')?['OpportunityId'],''),null,outputs('Compose_json_request')?['OpportunityId']))}",
+                                  "WhoId": "@{outputs('Compose_json_request')?['ContactId']}"
+                              },
+                              "runAfter": {},
+                              "type": "Compose"
+                          },
+                          "Create_record_In_Reccurence": {
+                              "inputs": {
+                                  "body": "@outputs('Compose_Input_Request_with_Reccurence')",
+                                  "host": {
+                                      "connection": {
+                                          "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                      }
+                                  },
+                                  "method": "post",
+                                  "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Event'))}/items",
+                                  "retryPolicy": {
+                                      "type": "none"
+                                  }
+                              },
+                              "runAfter": {
+                                  "Compose_Input_Request_with_Reccurence": [
+                                      "Succeeded"
+                                  ]
+                              },
+                              "type": "ApiConnection"
+                          },
+                          "Response_in_Reccurence": {
+                              "inputs": {
+                                  "body": "@body('Create_record_In_Reccurence')",
+                                  "headers": {
+                                      "Content-Type": "application/json"
+                                  },
+                                  "statusCode": 200
+                              },
+                              "kind": "Http",
+                              "runAfter": {
+                                  "Create_record_In_Reccurence": [
+                                      "Succeeded"
+                                  ]
+                              },
+                              "type": "Response"
+                          }
+                      },
+                      "else": {
+                          "actions": {
+                              "Response_422_invalid_input": {
+                                  "inputs": {
+                                      "body": "Required input parameters not provided!",
+                                      "statusCode": 422
+                                  },
+                                  "kind": "Http",
+                                  "runAfter": {},
+                                  "type": "Response"
+                              }
+                          }
+                      },
+                      "expression": {
+                          "and": [
+                              {
+                                  "not": {
+                                      "equals": [
+                                          "@outputs('Compose_json_request')?['RecurrenceStartDateTime']",
+                                          ""
+                                      ]
+                                  }
+                              },
+                              {
+                                  "not": {
+                                      "equals": [
+                                          "@outputs('Compose_json_request')?['RecurrenceStartDateTime']",
+                                          "@null"
+                                      ]
+                                  }
+                              },
+                              {
+                                  "not": {
+                                      "equals": [
+                                          "@outputs('Compose_json_request')?['RecurrenceEndDateOnly']",
+                                          ""
+                                      ]
+                                  }
+                              },
+                              {
+                                  "not": {
+                                      "equals": [
+                                          "@outputs('Compose_json_request')?['RecurrenceEndDateOnly']",
+                                          "@null"
+                                      ]
+                                  }
+                              },
+                              {
+                                  "not": {
+                                      "equals": [
+                                          "@outputs('Compose_json_request')?['RecurrenceType']",
+                                          ""
+                                      ]
+                                  }
+                              },
+                              {
+                                  "not": {
+                                      "equals": [
+                                          "@outputs('Compose_json_request')?['RecurrenceType']",
+                                          "@null"
+                                      ]
+                                  }
+                              },
+                              {
+                                  "not": {
+                                      "equals": [
+                                          "@outputs('Compose_json_request')?['RecurrenceInterval']",
+                                          ""
+                                      ]
+                                  }
+                              },
+                              {
+                                  "not": {
+                                      "equals": [
+                                          "@outputs('Compose_json_request')?['RecurrenceInterval']",
+                                          "@null"
+                                      ]
+                                  }
+                              },
+                              {
+                                  "not": {
+                                      "equals": [
+                                          "@outputs('Compose_json_request')?['DurationInMinutes']",
+                                          ""
+                                      ]
+                                  }
+                              },
+                              {
+                                  "not": {
+                                      "equals": [
+                                          "@outputs('Compose_json_request')?['DurationInMinutes']",
+                                          "@null"
+                                      ]
+                                  }
+                              }
+                          ]
+                      },
+                      "runAfter": {},
+                      "type": "If"
+                  }
+              },
+              "else": {
+                  "actions": {
+                      "Compose_for_Create_Record_without_Reccurence": {
+                          "inputs": {
+                              "ActivityDate": "@{outputs('Compose_json_request')?['ActivityDate']}",
+                              "Description": "@{outputs('Compose_json_request')?['Description']}",
+                              "EndDateTime": "@{outputs('Compose_json_request')?['EndDateTime']}",
+                              "IsAllDayEvent": "@bool(outputs('Compose_json_request')?['IsAllDayEvent'])",
+                              "Location": "@{outputs('Compose_json_request')?['Location']}",
+                              "OwnerId": "@{outputs('Compose_json_request')?['Assigned_to_ID']}",
+                              "S4SAdditional_Information__c": "@{outputs('Compose_json_request')?['S4SAdditional_Information__c']}",
+                              "S4SBU__c": "@{outputs('Compose_json_request')?['S4SBU__c']}",
+                              "S4SCompleted_Date__c": "@{outputs('Compose_json_request')?['S4SCompleted_Date__c']}",
+                              "S4SDelegated_By__c": "@{outputs('Compose_json_request')?['Delegated_by_ID']}",
+                              "S4SDivision__c": "@{outputs('Compose_json_request')?['S4SDivision__c']}",
+                              "S4SExternal_Source__c": "@{outputs('Compose_json_request')?['S4SExternal_Source__c']}",
+                              "S4SOpportunity_Milestone__c": "@{outputs('Compose_json_request')?['S4SOpportunity_Milestone__c']}",
+                              "S4SOther_Topics__c": "@{outputs('Compose_json_request')?['S4SOther_Topic__c']}",
+                              "S4SReason__c": "@{outputs('Compose_json_request')?['S4SReason__c']}",
+                              "S4SStatus__c": "@{outputs('Compose_json_request')?['S4SStatus__c']}",
+                              "S4STraining_Topic__c": "@{outputs('Compose_json_request')?['S4STraining_Topic__c']}",
+                              "StartDateTime": "@{outputs('Compose_json_request')?['StartDateTime']}",
+                              "Subject": "@{outputs('Compose_json_request')?['Subject']}",
+                              "Type": "@{outputs('Compose_json_request')?['Type']}",
+                              "WhatId": "@{coalesce(if(equals(outputs('Compose_json_request')?['AccountId'],''),null,outputs('Compose_json_request')?['AccountId']),if(equals(outputs('Compose_json_request')?['OpportunityId'],''),null,outputs('Compose_json_request')?['OpportunityId']))}",
+                              "WhoId": "@{outputs('Compose_json_request')?['ContactId']}"
+                          },
+                          "runAfter": {},
+                          "type": "Compose"
+                      },
+                      "Create_record_without_Reccurence": {
+                          "inputs": {
+                              "body": "@outputs('Compose_for_Create_Record_without_Reccurence')",
+                              "host": {
+                                  "connection": {
+                                      "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                  }
+                              },
+                              "method": "post",
+                              "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Event'))}/items",
+                              "retryPolicy": {
+                                  "type": "none"
+                              }
+                          },
+                          "runAfter": {
+                              "Compose_for_Create_Record_without_Reccurence": [
+                                  "Succeeded"
+                              ]
+                          },
+                          "type": "ApiConnection"
+                      },
+                      "Response_in_without_Reccurence": {
+                          "inputs": {
+                              "body": "@body('Create_record_without_Reccurence')",
+                              "headers": {
+                                  "Content-Type": "application/json"
+                              },
+                              "statusCode": 200
+                          },
+                          "kind": "Http",
+                          "runAfter": {
+                              "Create_record_without_Reccurence": [
+                                  "Succeeded"
+                              ]
+                          },
+                          "type": "Response"
+                      }
+                  }
+              },
+              "expression": {
+                  "and": [
+                      {
+                          "not": {
+                              "equals": [
+                                  "@outputs('Compose_json_request')?['IsRecurrence2']",
+                                  ""
+                              ]
+                          }
+                      },
+                      {
+                          "not": {
+                              "equals": [
+                                  "@outputs('Compose_json_request')?['IsRecurrence2']",
+                                  "@null"
+                              ]
+                          }
+                      }
+                  ]
+              },
+              "runAfter": {
+                  "Compose_json_request": [
+                      "Succeeded"
+                  ]
+              },
+              "type": "If"
+          },
+          "Compose_json_request": {
+              "inputs": "@json(triggerBody()?['requestContent'])",
+              "runAfter": {},
+              "type": "Compose"
+          }
+      },
+      "runAfter": {},
+      "trackedProperties": {
+        "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+        "citizenName": "c00031",
+        "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'GOI')}",
+        "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+        "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'V3')}",
+        "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'upsertEventRecurrence')}",
+        "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}"
+    },
+      "type": "Scope"
+    }
+  },
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {
+    "$connections": {
+      "defaultValue": {},
+      "type": "Object"
+    }
+  },
+  "triggers": {
+    "manual": {
+      "inputs": {
+        "schema": {
+          "properties": {
+            "requestContent": {
+              "description": "Request Content : Event ",
+              "required": "true",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "kind": "Http",
+      "type": "Request"
+    }
+  }
+}

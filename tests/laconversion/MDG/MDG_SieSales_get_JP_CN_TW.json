@@ -1,0 +1,205 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "Select fields": {
+      "defaultValue": "Id,S4SPO_Box_Postcode__c,S4SPO_box__c,S4SCity_PO_Box__c,S4SCMD_KUKLA__c,S4SInternational_City__c,BillingCountryCode,BillingState,S4SInternational_RegionGP__c,S4SInternational_Street_Name_1__c,S4SCMD_NAME1_I__c,S4SLegal_Status__c,S4SCMD_NAME1__c,S4SCMD_NAME2__c,S4SCMD_NAME3__c,S4SIfA__c,S4SDUNS__c,S4SCompany_Postal_Code__c,BillingCity,BillingStreet,S4SISIC__c,S4SNat_Company_ID__c,S4STax_ID__c,Description,S4SCID_Number__c",
+      "type": "String"
+    },
+    "fetchAccountWhereClausefromMDStatus": {
+      "defaultValue": "S4SMD_Status__c = 'CMD Subscription Pending'",
+      "type": "String"
+    },
+    "fetchAccountWhereClausefromRecordType": {
+      "defaultValue": "recordtypeId",
+      "type": "String"
+    },
+    "fetchRecordTypesWhereClause": {
+      "defaultValue": "SELECT Id FROM RecordType where SobjectType = 'Account' and DeveloperName in ('S4SAccount','S4SInternal_Account')",
+      "type": "String"
+    },
+    "tokenConfig-SieSales": {
+      "defaultValue": "oAuthToken-nonsfs-config",
+      "type": "String"
+    }
+  },
+  "triggers": {
+    "Recurrence": {
+      "recurrence": {
+        "frequency": "Minute",
+        "interval": 15,
+        "timeZone": "W. Europe Standard Time",
+        "startTime": "2022-07-11T08:10:00Z"
+      },
+      "evaluatedRecurrence": {
+        "frequency": "Minute",
+        "interval": 15,
+        "timeZone": "W. Europe Standard Time",
+        "startTime": "2022-07-11T08:10:00Z"
+      },
+      "type": "Recurrence"
+    }
+  },
+  "actions": {
+    "Check_If_MDG_data_pull_is_succesful": {
+      "actions": {
+        "Call_int_MDG_SF_get": {
+          "inputs": {
+            "body": {
+              "CountryList": "@{json(body('Fetch_MDG_Region_Config'))},",
+              "Data": "@{body('Pull_data_from_MDG')?['BusinessPartnerEnrichmentFindByCompNameValueResponse']?['Data']}",
+              "tokenType": "nonsfs"
+            },
+            "host": {
+              "triggerName": "manual",
+              "workflow": {
+                "id": "${logic_MDG_int_MDG_SF_get}"
+              }
+            }
+          },
+          "runAfter": {},
+          "type": "Workflow"
+        }
+      },
+      "expression": {
+        "and": [
+          {
+            "equals": [
+              "@body('Pull_data_from_MDG')?['BusinessPartnerEnrichmentFindByCompNameValueResponse']?['Data']?['ReturnList']?['Return']?['TYPE']",
+              "S"
+            ]
+          }
+        ]
+      },
+      "runAfter": {
+        "Pull_data_from_MDG": ["Succeeded"]
+      },
+      "type": "If"
+    },
+    "Fetch_MDG_Region_Config": {
+      "inputs": {
+        "body": {
+          "key": "MDG-region-config"
+        },
+        "host": {
+          "triggerName": "manual",
+          "workflow": {
+            "id": "${logic_internal_getConfiguration}"
+          }
+        }
+      },
+      "runAfter": {},
+      "type": "Workflow"
+    },
+    "Get_MDG_Config": {
+      "inputs": {
+        "body": {
+          "key": "mdg-config"
+        },
+        "host": {
+          "triggerName": "manual",
+          "workflow": {
+            "id": "${logic_internal_getConfiguration}"
+          }
+        }
+      },
+      "runAfter": {},
+      "type": "Workflow"
+    },
+    "Get_SieSales_Token": {
+      "inputs": {
+        "body": {
+          "tokenType": "nonsfs"
+        },
+        "host": {
+          "triggerName": "manual",
+          "workflow": {
+            "id": "${logic_getSFOauthToken}"
+          }
+        },
+        "retryPolicy": {
+          "type": "none"
+        }
+      },
+      "runAfter": {},
+      "type": "Workflow"
+    },
+    "LiquidTransformer": {
+      "inputs": {
+        "body": {
+          "Country": "JP_CN_TW",
+          "Name": "SieSales",
+          "input": "@json(body('Get_MDG_Config'))"
+        },
+        "function": {
+          "id": "[concat(parameters('funcApp'),'/functions/LiquidTransformer')]"
+        },
+        "authentication": {
+          "type": "Raw",
+          "value": "[parameters('functionAppKey')]"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "Filename": "MDGToSalesforceRequestTransformation"
+        },
+        "method": "POST"
+      },
+      "runAfter": {
+        "Fetch_MDG_Region_Config": ["Succeeded"],
+        "Get_MDG_Config": ["Succeeded"],
+        "Get_SieSales_Token": ["Succeeded"],
+        "fetch_SieSalesCRM-certificate": ["Succeeded"],
+        "fetch_SieSalesCRM-certificate-password": ["Succeeded"]
+      },
+      "type": "Function"
+    },
+    "Pull_data_from_MDG": {
+      "inputs": {
+        "authentication": {
+          "password": "@body('fetch_SieSalesCRM-certificate-password')",
+          "pfx": "@body('fetch_SieSalesCRM-certificate')",
+          "type": "ClientCertificate"
+        },
+        "body": "@body('LiquidTransformer')?['body']",
+        "method": "POST",
+        "uri": "@{body('LiquidTransformer')?['MDGToSFGETURL']}"
+      },
+      "runAfter": {
+        "LiquidTransformer": ["Succeeded"]
+      },
+      "type": "Http"
+    },
+    "fetch_SieSalesCRM-certificate": {
+      "inputs": {
+        "body": {
+          "key": "SieSalesCRM-certificate"
+        },
+        "host": {
+          "triggerName": "manual",
+          "workflow": {
+            "id": "${logic_internal_getConfiguration}"
+          }
+        }
+      },
+      "runAfter": {},
+      "type": "Workflow"
+    },
+    "fetch_SieSalesCRM-certificate-password": {
+      "inputs": {
+        "body": {
+          "key": "SieSalesCRM-certificate-password"
+        },
+        "host": {
+          "triggerName": "manual",
+          "workflow": {
+            "id": "${logic_internal_getConfiguration}"
+          }
+        }
+      },
+      "runAfter": {},
+      "type": "Workflow"
+    }
+  },
+  "outputs": {}
+}

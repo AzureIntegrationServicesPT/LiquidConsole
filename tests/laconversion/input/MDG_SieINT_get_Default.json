@@ -1,0 +1,63 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "Select fields": {
+        "defaultValue": "Id,S4SPO_Box_Postcode__c,S4SPO_box__c,S4SCity_PO_Box__c,S4SCMD_KUKLA__c,S4SInternational_City__c,BillingCountryCode,BillingState,S4SInternational_RegionGP__c,S4SInternational_Street_Name_1__c,S4SCMD_NAME1_I__c,S4SLegal_Status__c,S4SCMD_NAME1__c,S4SCMD_NAME2__c,S4SCMD_NAME3__c,S4SIfA__c,S4SDUNS__c,S4SCompany_Postal_Code__c,BillingCity,BillingStreet,S4SISIC__c,S4SNat_Company_ID__c,S4STax_ID__c,Description,S4SCID_Number__c",
+        "type": "String"
+      },
+      "fetchAccountWhereClausefromMDStatus": {
+        "defaultValue": "S4SMD_Status__c = 'CMD Subscription Pending'",
+        "type": "String"
+      },
+      "fetchAccountWhereClausefromRecordType": {
+        "defaultValue": "recordtypeId",
+        "type": "String"
+      },
+      "fetchRecordTypesWhereClause": {
+        "defaultValue": "SELECT Id FROM RecordType where SobjectType = 'Account' and DeveloperName in ('CDC_Account','S4SADV_Account_Internal')",
+        "type": "String"
+      },
+      "tokenConfig-SieINT": {
+        "defaultValue": "oAuthToken-SieINT-config",
+        "type": "String"
+      }
+    },
+    "triggers": {
+      "Recurrence": {
+        "recurrence": {
+          "frequency": "Minute",
+          "interval": 15,
+          "timeZone": "W. Europe Standard Time",
+          "startTime": "2022-07-11T08:10:00Z"
+        },
+        "evaluatedRecurrence": {
+          "frequency": "Minute",
+          "interval": 15,
+          "timeZone": "W. Europe Standard Time",
+          "startTime": "2022-07-11T08:10:00Z"
+        },
+        "type": "Recurrence"
+      }
+    },
+    "actions": {
+      "logic-c00031-MDG_SieINT_get_Parent-weu-dev": {
+        "inputs": {
+            "body": {
+                "Country": "Default",
+                "Sender": "CDC_Account"
+            },
+            "host": {
+                "triggerName": "manual",
+                "workflow": {
+                    "id": "${logic_MDG_MDG_SieINT_get}"
+                }
+            }
+        },
+        "runAfter": {},
+        "type": "Workflow"
+    }
+  },
+    "outputs": {}
+  }
+  

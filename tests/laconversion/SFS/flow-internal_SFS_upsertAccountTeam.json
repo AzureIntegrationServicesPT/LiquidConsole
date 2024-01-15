@@ -1,0 +1,559 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Check-_existingRoleId_fetchRoleId": {
+            "actions": {
+                "Check_AccountTeamMember": {
+                    "actions": {
+                        "For_each-SIE_SF4S_fetchAccountTeamOutput_AccountTeamMember": {
+                            "actions": {
+                                "Execute_a_SOQL-SIE_SF4S_fetchUserExistingUser": {
+                                    "inputs": {
+                                        "body": {
+                                            "query": "select Id,Username,LastName,FirstName,MiddleName,Suffix,Name,CompanyName,Division,Department,Title,Street,City,State,PostalCode,Country,StateCode,CountryCode,Latitude,Longitude,GeocodeAccuracy,Email,EmailPreferencesAutoBcc,EmailPreferencesAutoBccStayInTouch,EmailPreferencesStayInTouchReminder,SenderEmail,SenderName,Signature,StayInTouchSubject,StayInTouchSignature,StayInTouchNote,Phone,Fax,MobilePhone,Alias,CommunityNickname,BadgeText,IsActive,TimeZoneSidKey,UserRoleId,LocaleSidKey,ReceivesInfoEmails,ReceivesAdminInfoEmails,EmailEncodingKey,DefaultCurrencyIsoCode,CurrencyIsoCode,ProfileId,UserType,LanguageLocaleKey,EmployeeNumber,DelegatedApproverId,ManagerId,LastLoginDate,LastPasswordChangeDate,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,OfflineTrialExpirationDate,OfflinePdaTrialExpirationDate,UserPermissionsMarketingUser,UserPermissionsOfflineUser,UserPermissionsAvantgoUser,UserPermissionsCallCenterAutoLogin,UserPermissionsMobileUser,UserPermissionsSFContentUser,UserPermissionsKnowledgeUser,UserPermissionsInteractionUser,UserPermissionsSupportUser,UserPermissionsLiveAgentUser,ForecastEnabled,UserPreferencesActivityRemindersPopup,UserPreferencesEventRemindersCheckboxDefault,UserPreferencesTaskRemindersCheckboxDefault,UserPreferencesReminderSoundOff,UserPreferencesDisableAllFeedsEmail,UserPreferencesDisableFollowersEmail,UserPreferencesDisableProfilePostEmail,UserPreferencesDisableChangeCommentEmail,UserPreferencesDisableLaterCommentEmail,UserPreferencesDisProfPostCommentEmail,UserPreferencesContentNoEmail,UserPreferencesContentEmailAsAndWhen,UserPreferencesApexPagesDeveloperMode,UserPreferencesHideCSNGetChatterMobileTask,UserPreferencesDisableMentionsPostEmail,UserPreferencesDisMentionsCommentEmail,UserPreferencesHideCSNDesktopTask,UserPreferencesHideChatterOnboardingSplash,UserPreferencesHideSecondChatterOnboardingSplash,UserPreferencesDisCommentAfterLikeEmail,UserPreferencesDisableLikeEmail,UserPreferencesSortFeedByComment,UserPreferencesDisableMessageEmail,UserPreferencesDisableBookmarkEmail,UserPreferencesDisableSharePostEmail,UserPreferencesEnableAutoSubForFeeds,UserPreferencesDisableFileShareNotificationsForApi,UserPreferencesShowTitleToExternalUsers,UserPreferencesShowManagerToExternalUsers,UserPreferencesShowEmailToExternalUsers,UserPreferencesShowWorkPhoneToExternalUsers,UserPreferencesShowMobilePhoneToExternalUsers,UserPreferencesShowFaxToExternalUsers,UserPreferencesShowStreetAddressToExternalUsers,UserPreferencesShowCityToExternalUsers,UserPreferencesShowStateToExternalUsers,UserPreferencesShowPostalCodeToExternalUsers,UserPreferencesShowCountryToExternalUsers,UserPreferencesShowProfilePicToGuestUsers,UserPreferencesShowTitleToGuestUsers,UserPreferencesShowCityToGuestUsers,UserPreferencesShowStateToGuestUsers,UserPreferencesShowPostalCodeToGuestUsers,UserPreferencesShowCountryToGuestUsers,UserPreferencesPipelineViewHideHelpPopover,UserPreferencesHideS1BrowserUI,UserPreferencesDisableEndorsementEmail,UserPreferencesPathAssistantCollapsed,UserPreferencesCacheDiagnostics,UserPreferencesShowEmailToGuestUsers,UserPreferencesShowManagerToGuestUsers,UserPreferencesShowWorkPhoneToGuestUsers,UserPreferencesShowMobilePhoneToGuestUsers,UserPreferencesShowFaxToGuestUsers,UserPreferencesShowStreetAddressToGuestUsers,UserPreferencesLightningExperiencePreferred,UserPreferencesPreviewLightning,UserPreferencesHideEndUserOnboardingAssistantModal,UserPreferencesHideLightningMigrationModal,UserPreferencesHideSfxWelcomeMat,UserPreferencesHideBiggerPhotoCallout,UserPreferencesGlobalNavBarWTShown,UserPreferencesGlobalNavGridMenuWTShown,UserPreferencesCreateLEXAppsWTShown,UserPreferencesFavoritesWTShown,UserPreferencesRecordHomeSectionCollapseWTShown,UserPreferencesRecordHomeReservedWTShown,UserPreferencesFavoritesShowTopFavorites,UserPreferencesExcludeMailAppAttachments,UserPreferencesSuppressTaskSFXReminders,UserPreferencesPreviewCustomTheme,UserPreferencesHasCelebrationBadge,UserPreferencesUserDebugModePref,UserPreferencesNewLightningReportRunPageEnabled,ContactId,AccountId,CallCenterId,Extension,PortalRole,IsPortalEnabled,FederationIdentifier,AboutMe,FullPhotoUrl,SmallPhotoUrl,IsExtIndicatorVisible,OutOfOfficeMessage,MediumPhotoUrl,DigestFrequency,DefaultGroupNotificationFrequency,LastViewedDate,LastReferencedDate,BannerPhotoUrl,SmallBannerPhotoUrl,MediumBannerPhotoUrl,IsProfilePhotoActive,IndividualId,copado__API_URL__c,copado__Hide_Copado_feedback__c,copado__Show_Copado_Tips__c,copado__Work_Manager_Panels__c,S4SARE__c,S4SBusiness_Segment__c,S4SBusiness_SubSegment__c,S4SBusiness_Unit__c,S4SCompany__c,S4SCost_Center__c,S4SDepartment__c,S4SDirX_Email__c,S4SDirX_Origin__c,S4SDivision_Territory__c,S4SEmailChangedDate__c,S4SFirst_Name_int__c,S4SGCK__c,S4SGID_Technical__c,S4SGID__c,S4SIsUserUpdated__c,S4SLast_Name_int__c,S4SLead_Country__c,S4SLocation__c,S4SManager_SCD_Technical__c,S4SManager_SCD__c,S4SOperations_Manager__c,S4SOrgUnit_SCD__c,S4SOrg_ID__c,S4SPrimary__c,S4SRelated_User_DirX__c,S4SSCD_Status__c,S4SSSP_Promotor_Planer__c,S4SSales_Branch__c,S4SSales_Department__c,S4SSales_District__c,S4SSales_Manager_Email__c,S4SSales_Office__c,S4SSales_SubRegion__c,S4SSales_Territory__c,S4SSalutation__c,S4SSiemens_Territory_Structure_Name__c,S4SSiemens_Territory_Structure__c,S4SSingle_Sign_On_Only__c,S4SSponsor_SCD_Technical__c,S4SSponsor_SCD__c,S4SSurname__c,S4SUser_s_Country__c,S4SUser_s_Division__c,DB_Region__c,S4SCurrency__c,S4SSales_Manager__c from User where Id='@{items('For_each-SIE_SF4S_fetchAccountTeamOutput_AccountTeamMember')?['UserId']}'"
+                                        },
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "path": "/soql/executesoqlquery"
+                                    },
+                                    "runAfter": {},
+                                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                    "type": "ApiConnection"
+                                },
+                                "For_each-ExistingUserDetails": {
+                                    "actions": {
+                                        "Check-FetchUserDetails_ExistingUserDetails": {
+                                            "actions": {
+                                                "Append_to_string_variable": {
+                                                    "inputs": {
+                                                        "name": "responseId",
+                                                        "value": "@body('logic-c00031-internal_SFS_iu_AccountTeamMember')?['Id']"
+                                                    },
+                                                    "runAfter": {
+                                                        "logic-c00031-internal_SFS_iu_AccountTeamMember": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "AppendToStringVariable"
+                                                },
+                                                "Compose_req_AccountTeamMember": {
+                                                    "inputs": {
+                                                        "AccountId": "@variables('AccountId')",
+                                                        "TeamMemberRole": "@variables('Role')",
+                                                        "UserId": "@items('For_each-SIE_SF4S_fetchAccountTeamOutput_AccountTeamMember')?['UserId']"
+                                                    },
+                                                    "runAfter": {
+                                                        "Delete_record-deleteBusinessObjects": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                                                    "type": "Compose"
+                                                },
+                                                "Delete_record-deleteBusinessObjects": {
+                                                    "inputs": {
+                                                        "host": {
+                                                            "connection": {
+                                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                            }
+                                                        },
+                                                        "method": "delete",
+                                                        "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('AccountTeamMember'))}/items/@{encodeURIComponent(encodeURIComponent(items('For_each-SIE_SF4S_fetchAccountTeamOutput_AccountTeamMember')?['Id']))}"
+                                                    },
+                                                    "runAfter": {},
+                                                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                    "type": "ApiConnection"
+                                                },
+                                                "logic-c00031-internal_SFS_iu_AccountTeamMember": {
+                                                    "inputs": {
+                                                        "body": "@outputs('Compose_req_AccountTeamMember')",
+                                                        "host": {
+                                                            "triggerName": "manual",
+                                                            "workflow": {
+                                                                "id": "[parameters('internal-insert_update_AccTeamMmbr_logicAppId')]"
+                                                            }
+                                                        },
+                                                        "retryPolicy": {
+                                                            "type": "none"
+                                                        }
+                                                    },
+                                                    "runAfter": {
+                                                        "Compose_req_AccountTeamMember": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                    "type": "Workflow"
+                                                }
+                                            },
+                                            "else": {
+                                                "actions": {
+                                                    "Append_to_string_variable_2": {
+                                                        "inputs": {
+                                                            "name": "responseId",
+                                                            "value": "@body('logic-c00031-internal_SFS_iu_AccountTeamMember_2')?['Id']"
+                                                        },
+                                                        "runAfter": {
+                                                            "logic-c00031-internal_SFS_iu_AccountTeamMember_2": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "AppendToStringVariable"
+                                                    },
+                                                    "Compose_req_AccountTeamMember1": {
+                                                        "inputs": {
+                                                            "AccountId": "@variables('AccountId')",
+                                                            "TeamMemberRole": "@variables('Role')",
+                                                            "UserId": "@items('For_each-SIE_SF4S_fetchAccountTeamOutput_AccountTeamMember')?['UserId']"
+                                                        },
+                                                        "runAfter": {},
+                                                         "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                                                        "type": "Compose"
+                                                    },
+                                                    "logic-c00031-internal_SFS_iu_AccountTeamMember_2": {
+                                                        "inputs": {
+                                                            "body": "@outputs('Compose_req_AccountTeamMember1')",
+                                                            "host": {
+                                                                "triggerName": "manual",
+                                                                "workflow": {
+                                                                    "id": "[parameters('internal-insert_update_AccTeamMmbr_logicAppId')]"
+                                                                }
+                                                            },
+                                                            "retryPolicy": {
+                                                                "type": "none"
+                                                            }
+                                                        },
+                                                        "runAfter": {
+                                                            "Compose_req_AccountTeamMember1": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                         "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                        "type": "Workflow"
+                                                    }
+                                                }
+                                            },
+                                            "expression": {
+                                                "and": [
+                                                    {
+                                                        "equals": [
+                                                            "@items('For_each-ExistingUserDetails')?['Division']",
+                                                            "@body('Execute_a_SIE_SF4S_fetchUser')?['records']?[0]?['Division']"
+                                                        ]
+                                                    },
+                                                    {
+                                                        "equals": [
+                                                            "@items('For_each-ExistingUserDetails')?['S4SLead_Country__c']",
+                                                            "@body('Execute_a_SIE_SF4S_fetchUser')?['records']?[0]?['S4SLead_Country__c']"
+                                                        ]
+                                                    },
+                                                    {
+                                                        "equals": [
+                                                            "@items('For_each-ExistingUserDetails')?['S4SUser_s_Country__c']",
+                                                            "@body('Execute_a_SIE_SF4S_fetchUser')?['records']?[0]?['S4SUser_s_Country__c']"
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "runAfter": {},
+                                            "type": "If"
+                                        }
+                                    },
+                                    "foreach": "@body('Execute_a_SOQL-SIE_SF4S_fetchUserExistingUser')?['records']",
+                                    "runAfter": {
+                                        "Execute_a_SOQL-SIE_SF4S_fetchUserExistingUser": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Foreach"
+                                }
+                            },
+                            "foreach": "@body('Execute-SIE_SF4S_fetchAccountTeam')?['records']",
+                            "runAfter": {},
+                            "type": "Foreach"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Append_to_string_variable_3": {
+                                "inputs": {
+                                    "name": "responseId",
+                                    "value": "@body('Insert_or_Update_-AccountTeam')?['Id']"
+                                },
+                                "runAfter": {
+                                    "Insert_or_Update_-AccountTeam": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "AppendToStringVariable"
+                            },
+                            "Compose_req_AccountTeamMember2": {
+                                "inputs": {
+                                    "AccountId": "@variables('AccountId')",
+                                    "TeamMemberRole": "@variables('Role')",
+                                    "UserId": "@body('Execute_a_SIE_SF4S_fetchUser')?['records']?[0]?['Id']"
+                                },
+                                "runAfter": {},
+                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                                "type": "Compose"
+                            },
+                            "Insert_or_Update_-AccountTeam": {
+                                "inputs": {
+                                    "body": "@outputs('Compose_req_AccountTeamMember2')",
+                                    "host": {
+                                        "triggerName": "manual",
+                                        "workflow": {
+                                            "id": "[parameters('internal-insert_update_AccTeamMmbr_logicAppId')]"
+                                        }
+                                    },
+                                    "retryPolicy": {
+                                        "type": "none"
+                                    }
+                                },
+                                "runAfter": {
+                                    "Compose_req_AccountTeamMember2": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                "type": "Workflow"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "greater": [
+                                    "@body('Execute-SIE_SF4S_fetchAccountTeam')?['totalSize']",
+                                    0
+                                ]
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Execute-SIE_SF4S_fetchAccountTeam": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Execute-SIE_SF4S_fetchAccountTeam": {
+                    "inputs": {
+                        "body": {
+                            "query": "Select Id,AccountId,UserId,TeamMemberRole,PhotoUrl,Title,AccountAccessLevel,OpportunityAccessLevel,CaseAccessLevel,ContactAccessLevel,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,IsDeleted from AccountTeamMember  where  AccountId= '@{variables('AccountId')}' and TeamMemberRole='owner'"
+                        },
+                        "host": {
+                            "connection": {
+                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                            }
+                        },
+                        "method": "post",
+                        "path": "/soql/executesoqlquery"
+                    },
+                    "runAfter": {},
+                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                    "type": "ApiConnection"
+                }
+            },
+            "else": {
+                "actions": {
+                    "Log-Compose": {
+                        "inputs": "Role does not match with owner role",
+                        "runAfter": {},
+                         "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                        "type": "Compose"
+                    }
+                }
+            },
+            "expression": {
+                "and": [
+                    {
+                        "equals": [
+                            "@body('Execute_a_SIE_SF4S_fetchUser')?['records']?[0]?['UserRoleId']",
+                            "@body('Execute_a_SOQL_fetchUser2')?['records']?[0]?['UserRoleId']"
+                        ]
+                    }
+                ]
+            },
+            "runAfter": {
+                "Execute_a_SOQL_fetchUser2": [
+                    "Succeeded"
+                ]
+            },
+            "type": "If"
+        },
+        "Execute_a_SIE_SF4S_fetchUser": {
+            "inputs": {
+                "body": {
+                    "query": "select Id,Division,S4SLead_Country__c,S4SUser_s_Country__c from User where S4SGID_Technical__c='@{variables('UserId')}'"
+                },
+                "host": {
+                    "connection": {
+                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                    }
+                },
+                "method": "post",
+                "path": "/soql/executesoqlquery"
+            },
+            "runAfter": {
+                "Set_variable": [
+                    "Succeeded"
+                ]
+            },
+             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+            "type": "ApiConnection"
+        },
+        "Execute_a_SOQL-SIE_SF4S_fetchAccount": {
+            "inputs": {
+                "body": {
+                    "query": "select Id,Owner.Id from Account where Id = '@{variables('AccountId')}'"
+                },
+                "host": {
+                    "connection": {
+                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                    }
+                },
+                "method": "post",
+                "path": "/soql/executesoqlquery"
+            },
+            "runAfter": {
+                "Set_variable": [
+                    "Succeeded"
+                ]
+            },
+             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+            "type": "ApiConnection"
+        },
+        "Execute_a_SOQL_fetchUser2": {
+            "inputs": {
+                "body": {
+                    "query": "select Id,Division,S4SLead_Country__c,S4SUser_s_Country__c from User where Id='@{body('Execute_a_SOQL-SIE_SF4S_fetchAccount')?['records']?[0]?['OwnerId']}'"
+                },
+                "host": {
+                    "connection": {
+                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                    }
+                },
+                "method": "post",
+                "path": "/soql/executesoqlquery"
+            },
+            "runAfter": {
+                "Execute_a_SIE_SF4S_fetchUser": [
+                    "Succeeded"
+                ],
+                "Execute_a_SOQL-SIE_SF4S_fetchAccount": [
+                    "Succeeded"
+                ]
+            },
+             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+            "type": "ApiConnection"
+        },
+        "Initialize_variable-UserId": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "UserId",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable-responseId": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "responseId",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_AccountId": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "AccountId",
+                        "type": "string",
+                        "value": "@{triggerBody()?['AccountId']}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_Role": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "Role",
+                        "type": "string",
+                        "value": "@{triggerBody()?['TeamMemberRole']}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Response": {
+            "inputs": {
+                "body": "@variables('responseId')",
+                "statusCode": 200
+            },
+            "kind": "Http",
+            "runAfter": {
+                "Check-_existingRoleId_fetchRoleId": [
+                    "Succeeded"
+                ]
+            },
+             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+            "type": "Response"
+        },
+        "Set_variable": {
+            "inputs": {
+                "name": "UserId",
+                "value": "@{triggerBody()?['UserId']}"
+            },
+            "runAfter": {
+                "Initialize_variable-UserId": [
+                    "Succeeded"
+                ],
+                "Initialize_variable-responseId": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_AccountId": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_Role": [
+                    "Succeeded"
+                ]
+            },
+            "type": "SetVariable"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {
+                "schema": {}
+            },
+            "kind": "Http",
+             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+            "type": "Request"
+        }
+    }
+}

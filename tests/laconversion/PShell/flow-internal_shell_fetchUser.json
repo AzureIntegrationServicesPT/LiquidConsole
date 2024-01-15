@@ -1,0 +1,366 @@
+{
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Initialize_Append_Where_clause": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "AppendWhereClause",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_S4SGID_Technical__c": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "GID",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_SOQL_User_query": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "varSOQLUser",
+                            "type": "string",
+                            "value": "select Id,Username,LastName,FirstName,MiddleName,Suffix,Name,CompanyName,Division,Department,Title,Street,City,State,PostalCode,Country,StateCode,CountryCode,Latitude,Longitude,GeocodeAccuracy,Email,EmailPreferencesAutoBcc,EmailPreferencesAutoBccStayInTouch,EmailPreferencesStayInTouchReminder,SenderEmail,SenderName,Signature,StayInTouchSubject,StayInTouchSignature,StayInTouchNote,Phone,Fax,MobilePhone,Alias,CommunityNickname,BadgeText,IsActive,TimeZoneSidKey,UserRoleId,LocaleSidKey,ReceivesInfoEmails,ReceivesAdminInfoEmails,EmailEncodingKey,DefaultCurrencyIsoCode,CurrencyIsoCode,ProfileId,UserType,LanguageLocaleKey,EmployeeNumber,DelegatedApproverId,ManagerId,LastLoginDate,LastPasswordChangeDate,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,OfflineTrialExpirationDate,OfflinePdaTrialExpirationDate,UserPermissionsMarketingUser,UserPermissionsOfflineUser,UserPermissionsAvantgoUser,UserPermissionsCallCenterAutoLogin,UserPermissionsMobileUser,UserPermissionsSFContentUser,UserPermissionsKnowledgeUser,UserPermissionsInteractionUser,UserPermissionsSupportUser,UserPermissionsLiveAgentUser,ForecastEnabled,UserPreferencesActivityRemindersPopup,UserPreferencesEventRemindersCheckboxDefault,UserPreferencesTaskRemindersCheckboxDefault,UserPreferencesReminderSoundOff,UserPreferencesDisableAllFeedsEmail,UserPreferencesDisableFollowersEmail,UserPreferencesDisableProfilePostEmail,\nUserPreferencesDisableChangeCommentEmail,UserPreferencesDisableLaterCommentEmail,UserPreferencesDisProfPostCommentEmail,UserPreferencesContentNoEmail,UserPreferencesContentEmailAsAndWhen,UserPreferencesApexPagesDeveloperMode,UserPreferencesHideCSNGetChatterMobileTask,UserPreferencesDisableMentionsPostEmail,UserPreferencesDisMentionsCommentEmail,UserPreferencesHideCSNDesktopTask,UserPreferencesHideChatterOnboardingSplash,UserPreferencesHideSecondChatterOnboardingSplash,UserPreferencesDisCommentAfterLikeEmail,UserPreferencesDisableLikeEmail,UserPreferencesSortFeedByComment,UserPreferencesDisableMessageEmail,UserPreferencesDisableBookmarkEmail,UserPreferencesDisableSharePostEmail,UserPreferencesEnableAutoSubForFeeds,UserPreferencesDisableFileShareNotificationsForApi,UserPreferencesShowTitleToExternalUsers,UserPreferencesShowManagerToExternalUsers,UserPreferencesShowEmailToExternalUsers,UserPreferencesShowWorkPhoneToExternalUsers,UserPreferencesShowMobilePhoneToExternalUsers,UserPreferencesShowFaxToExternalUsers,UserPreferencesShowStreetAddressToExternalUsers,UserPreferencesShowCityToExternalUsers,UserPreferencesShowStateToExternalUsers,UserPreferencesShowPostalCodeToExternalUsers,UserPreferencesShowCountryToExternalUsers,UserPreferencesShowProfilePicToGuestUsers,UserPreferencesShowTitleToGuestUsers,UserPreferencesShowCityToGuestUsers,UserPreferencesShowStateToGuestUsers,UserPreferencesShowPostalCodeToGuestUsers,UserPreferencesShowCountryToGuestUsers,UserPreferencesPipelineViewHideHelpPopover,UserPreferencesDisableEndorsementEmail,UserPreferencesPathAssistantCollapsed,UserPreferencesCacheDiagnostics,UserPreferencesShowEmailToGuestUsers,UserPreferencesShowManagerToGuestUsers,UserPreferencesShowWorkPhoneToGuestUsers,UserPreferencesShowMobilePhoneToGuestUsers,UserPreferencesShowFaxToGuestUsers,UserPreferencesShowStreetAddressToGuestUsers,UserPreferencesLightningExperiencePreferred,UserPreferencesPreviewLightning,UserPreferencesHideEndUserOnboardingAssistantModal,UserPreferencesHideLightningMigrationModal,UserPreferencesHideSfxWelcomeMat,UserPreferencesHideBiggerPhotoCallout,UserPreferencesGlobalNavBarWTShown,UserPreferencesGlobalNavGridMenuWTShown,UserPreferencesCreateLEXAppsWTShown,UserPreferencesFavoritesWTShown,UserPreferencesRecordHomeSectionCollapseWTShown,UserPreferencesRecordHomeReservedWTShown,UserPreferencesFavoritesShowTopFavorites,UserPreferencesExcludeMailAppAttachments,UserPreferencesSuppressTaskSFXReminders,UserPreferencesPreviewCustomTheme,UserPreferencesHasCelebrationBadge,UserPreferencesUserDebugModePref,UserPreferencesNewLightningReportRunPageEnabled,ContactId,AccountId,CallCenterId,Extension,PortalRole,IsPortalEnabled,FederationIdentifier,AboutMe,FullPhotoUrl,SmallPhotoUrl,IsExtIndicatorVisible,OutOfOfficeMessage,MediumPhotoUrl,DigestFrequency,DefaultGroupNotificationFrequency,LastViewedDate,LastReferencedDate,BannerPhotoUrl,SmallBannerPhotoUrl,MediumBannerPhotoUrl,IsProfilePhotoActive,copado__API_URL__c,copado__Hide_Copado_feedback__c,copado__Show_Copado_Tips__c,copado__Work_Manager_Panels__c,S4SARE__c,S4SBusiness_Segment__c,S4SBusiness_SubSegment__c,S4SBusiness_Unit__c,S4SCompany__c,S4SCost_Center__c from User\n"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_'UserId'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "UserId",
+                            "type": "string",
+                            "value": "@{triggerBody()?['records']?[0]?['OwnerId']}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_'initalizeWhereClauseAppend'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "initalizeWhereClauseAppend",
+                            "type": "string",
+                            "value": "@{null}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Scope-Catch": {
+                "actions": {
+                    "Failed_Response": {
+                        "inputs": {
+                            "body": {
+                                "Message": "@concat('Some error occurred while processing the request. Please find more details using tracking id : ', workflow()['run']['name'])",
+                                "Status": "Failure"
+                            },
+                            "headers": {
+                                "Content-Type": "application/json"
+                            },
+                            "statusCode": 500
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                        "type": "Response"
+                    },
+                    "Terminate_in_catch": {
+                        "inputs": {
+                            "runStatus": "Failed"
+                        },
+                        "runAfter": {
+                            "Failed_Response": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Terminate"
+                    }
+                },
+                "runAfter": {
+                    "Scope-Try": [
+                        "Failed",
+                        "Skipped",
+                        "TimedOut"
+                    ]
+                },
+                "type": "Scope"
+            },
+            "Scope-Try": {
+                "actions": {
+                    "Condition_to_check_S4SGID_Technical__c": {
+                        "actions": {
+                            "Condition_to_check_Initialized_WhereClause": {
+                                "actions": {
+                                    "Set_InitializeWhereClause": {
+                                        "inputs": {
+                                            "name": "initalizeWhereClauseAppend",
+                                            "value": "@{concat('and S4SGID_Technical__c=  ',string(''''),variables('GID'),string(''''))}"
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    }
+                                },
+                                "else": {
+                                    "actions": {
+                                        "Set_initialise_whereClause": {
+                                            "inputs": {
+                                                "name": "initalizeWhereClauseAppend",
+                                                "value": "@{concat(' S4SGID_Technical__c=  ',string(''''),variables('GID'),string(''''))}"
+                                            },
+                                            "runAfter": {},
+                                            "type": "SetVariable"
+                                        }
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('initalizeWhereClauseAppend')",
+                                                    "@null"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {},
+                                "type": "If"
+                            },
+                            "Set_final_where_clause": {
+                                "inputs": {
+                                    "name": "AppendWhereClause",
+                                    "value": "@{concat(variables('UserWhere Clause'),variables('initalizeWhereClauseAppend'))}"
+                                },
+                                "runAfter": {
+                                    "Condition_to_check_Initialized_WhereClause": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "SetVariable"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('GID')",
+                                            "@string('')"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('GID')",
+                                            "@null"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Condition_to_check_userID": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Condition_to_check_statusCode": {
+                        "actions": {
+                            "Response_when_statusCode_200": {
+                                "inputs": {
+                                    "body": "@body('Execute_FetchUser_SOQL_query')",
+                                    "headers": {
+                                        "Content-Type": "application/json"
+                                    },
+                                    "statusCode": 200
+                                },
+                                "kind": "http",
+                                "runAfter": {},
+                                "type": "Response"
+                            }
+                        },
+                        "else": {
+                            "actions": {
+                                "Response_when_statusCode_otherthan_200": {
+                                    "inputs": {
+                                        "body": "@body('Execute_FetchUser_SOQL_query')?['message']",
+                                        "headers": {
+                                            "Content-Type": "application/json"
+                                        },
+                                        "statusCode": "@outputs('Execute_FetchUser_SOQL_query')?['statusCode']"
+                                    },
+                                    "kind": "http",
+                                    "runAfter": {},
+                                    "type": "Response"
+                                },
+                                "Terminate_when_statusCode_otherthan_200": {
+                                    "inputs": {
+                                        "runStatus": "Failed"
+                                    },
+                                    "runAfter": {
+                                        "Response_when_statusCode_otherthan_200": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Terminate"
+                                }
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "equals": [
+                                        "@outputs('Execute_FetchUser_SOQL_query')?['statusCode']",
+                                        200
+                                    ]
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Execute_FetchUser_SOQL_query": [
+                                "Succeeded",
+                                "Failed"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Condition_to_check_userID": {
+                        "actions": {
+                            "Set_where_Clause": {
+                                "inputs": {
+                                    "name": "UserWhere Clause",
+                                    "value": "@{concat('Id= ',string(''''),variables('UserId'),string(''''))}"
+                                },
+                                "runAfter": {},
+                                "type": "SetVariable"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('UserId')",
+                                            "@null"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('UserId')",
+                                            "@string('')"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {},
+                        "type": "If"
+                    },
+                    "Execute_FetchUser_SOQL_query": {
+                        "inputs": {
+                            "body": {
+                                "query": "@{variables('varSOQLUser')} where @{variables('UserWhere Clause')}"
+                            },
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                }
+                            },
+                            "method": "post",
+                            "path": "/soql/executesoqlquery",
+                            "retryPolicy": {
+                                "type": "none"
+                            }
+                        },
+                        "runAfter": {
+                            "Condition_to_check_S4SGID_Technical__c": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ApiConnection"
+                    }
+                },
+                "runAfter": {
+                    "Initialize_Append_Where_clause": [
+                        "Succeeded"
+                    ],
+                    "Initialize_S4SGID_Technical__c": [
+                        "Succeeded"
+                    ],
+                    "Initialize_SOQL_User_query": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_'UserId'": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_'initalizeWhereClauseAppend'": [
+                        "Succeeded"
+                    ],
+                    "UserWhere_Clause": [
+                        "Succeeded"
+                    ]
+                },
+                "trackedProperties": {
+                    "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+                    "citizenName": "c00031",
+                    "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'PShell')}",
+                    "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                    "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                    "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'fetchUser')}",
+                    "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}"
+                },
+                "type": "Scope"
+            },
+            "UserWhere_Clause": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "UserWhere Clause",
+                            "type": "string",
+                            "value": "@{null}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "manual": {
+                "inputs": {},
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+}

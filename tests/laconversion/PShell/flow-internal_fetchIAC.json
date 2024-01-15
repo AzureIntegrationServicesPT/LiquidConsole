@@ -1,0 +1,305 @@
+{
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Initialize_variable_'Name'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "Name",
+                            "type": "string",
+                            "value": "@{triggerBody()?['records']?[0]?['S4SAsset_Type__c']}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_'S4SAsset_Code_IAC__c'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "S4SAsset_Code_IAC__c",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_'response'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "response",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_'whereClause'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "whereClause",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Scope_-_Catch": {
+                "actions": {
+                    "Error_Response": {
+                        "inputs": {
+                            "body": {
+                                "Message": "@concat('Some error occurred while processing the request. Please find more details using tracking id : ', workflow()['run']['name'])",
+                                "Status": "Failure"
+                            },
+                            "headers": {
+                                "Content-Type": "application/json"
+                            },
+                            "statusCode": 500
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                        "type": "Response"
+                    },
+                    "Terminate_in_Catch": {
+                        "inputs": {
+                            "runStatus": "Failed"
+                        },
+                        "runAfter": {
+                            "Error_Response": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Terminate"
+                    }
+                },
+                "runAfter": {
+                    "Scope_-_Try": [
+                        "Failed",
+                        "Skipped",
+                        "TimedOut"
+                    ]
+                },
+                "type": "Scope"
+            },
+            "Scope_-_Try": {
+                "actions": {
+                    "Condition_to_check_'S4SAsset_Code_IAC__c'": {
+                        "actions": {
+                            "Append_to_string_variable_'whereClause'": {
+                                "inputs": {
+                                    "name": "whereClause",
+                                    "value": "@concat('Id = ',string(''''),variables('S4SAsset_Code_IAC__c'),string(''''))"
+                                },
+                                "runAfter": {},
+                                "type": "AppendToStringVariable"
+                            }
+                        },
+                        "else": {
+                            "actions": {
+                                "Condition_to_check_'Name'": {
+                                    "actions": {
+                                        "set_WhereClause_with_Name": {
+                                            "inputs": {
+                                                "name": "whereClause",
+                                                "value": "@{concat('Name = ',string(''''),variables('Name'),string(''''))}"
+                                            },
+                                            "runAfter": {},
+                                            "type": "SetVariable"
+                                        }
+                                    },
+                                    "else": {
+                                        "actions": {
+                                            "Terminate": {
+                                                "inputs": {
+                                                    "runError": {
+                                                        "message": "No asset code information provided"
+                                                    },
+                                                    "runStatus": "Failed"
+                                                },
+                                                "runAfter": {},
+                                                "type": "Terminate"
+                                            }
+                                        }
+                                    },
+                                    "expression": {
+                                        "and": [
+                                            {
+                                                "not": {
+                                                    "equals": [
+                                                        "@variables('Name')",
+                                                        "@null"
+                                                    ]
+                                                }
+                                            },
+                                            {
+                                                "not": {
+                                                    "equals": [
+                                                        "@variables('Name')",
+                                                        "@string('')"
+                                                    ]
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    "runAfter": {},
+                                    "type": "If"
+                                }
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('S4SAsset_Code_IAC__c')",
+                                            "@string('')"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('S4SAsset_Code_IAC__c')",
+                                            "@null"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {},
+                        "type": "If"
+                    },
+                    "Condition_to_check_statusCode": {
+                        "actions": {
+                            "Success_Response": {
+                                "inputs": {
+                                    "body": "@body('S4SIAC')",
+                                    "headers": {
+                                        "Content-Type": "application/json"
+                                    },
+                                    "statusCode": 200
+                                },
+                                "kind": "http",
+                                "runAfter": {},
+                                "type": "Response"
+                            }
+                        },
+                        "else": {
+                            "actions": {
+                                "Failure_Response": {
+                                    "inputs": {
+                                        "body": "@body('S4SIAC')?['message']",
+                                        "headers": {
+                                            "Content-Type": "application/json"
+                                        },
+                                        "statusCode": "@outputs('S4SIAC')?['statusCode']"
+                                    },
+                                    "kind": "http",
+                                    "runAfter": {},
+                                    "type": "Response"
+                                },
+                                "Failure_Terminate": {
+                                    "inputs": {
+                                        "runStatus": "Failed"
+                                    },
+                                    "runAfter": {
+                                        "Failure_Response": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Terminate"
+                                }
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "equals": [
+                                        "@outputs('S4SIAC')?['statusCode']",
+                                        200
+                                    ]
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "S4SIAC": [
+                                "Succeeded",
+                                "Failed"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "S4SIAC": {
+                        "inputs": {
+                            "body": {
+                                "query": "select Id,OwnerId,IsDeleted,Name,CurrencyIsoCode,LastViewedDate,LastReferencedDate,S4SAsset_Group__c,S4SAsset_Type__c,Business_Unit_Text__c,S4SBusiness_Unit__c from S4SIAC where @{variables('whereClause')}\n\n"
+                            },
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                }
+                            },
+                            "method": "post",
+                            "path": "/soql/executesoqlquery",
+                            "retryPolicy": {
+                                "type": "none"
+                            }
+                        },
+                        "runAfter": {
+                            "Condition_to_check_'S4SAsset_Code_IAC__c'": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ApiConnection"
+                    }
+                },
+                "runAfter": {
+                    "Initialize_variable_'Name'": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_'S4SAsset_Code_IAC__c'": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_'response'": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_'whereClause'": [
+                        "Succeeded"
+                    ]
+                },
+                "trackedProperties": {
+                    "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+                    "citizenName": "c00031",
+                    "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'PShell')}",
+                    "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                    "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                    "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'fetchIAC')}",
+                    "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}"
+                },
+                "type": "Scope"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "manual": {
+                "inputs": {},
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+}

@@ -1,0 +1,628 @@
+{ 
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Scope-Catch": {
+                "actions": {
+                    "Terminate": {
+                        "inputs": {
+                            "runError": {
+                                "message": "Failure in executing the request"
+                            },
+                            "runStatus": "Failed"
+                        },
+                        "runAfter": {},
+                        "type": "Terminate"
+                    }
+                },
+                "runAfter": {
+                    "Scope-Try": [
+                        "Failed",
+                        "Skipped",
+                        "TimedOut"
+                    ]
+                },
+                "type": "Scope"
+            },
+            "Scope-Try": {
+                "actions": {
+                    "For_each": {
+                        "actions": {
+                            "Append_to_Output": {
+                                "inputs": {
+                                    "name": "output",
+                                    "value": "@body('Select')[0]"
+                                },
+                                "runAfter": {
+                                    "Select": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "AppendToArrayVariable"
+                            },
+                            "Condition_for_complementAdresseEtablissement": {
+                                "actions": {
+                                    "Prepare_final_street_info": {
+                                        "inputs": {
+                                            "name": "streetInfo",
+                                            "value": "@{concat(variables('temp'),' ',items('For_each')?['adresseEtablissement']?['complementAdresseEtablissement'])}"
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@items('For_each')?['adresseEtablissement']?['complementAdresseEtablissement']",
+                                                    "@string('')"
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@items('For_each')?['adresseEtablissement']?['complementAdresseEtablissement']",
+                                                    "@null"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "Condition_for_libelleVoieEtablissement": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "Condition_for_libelleVoieEtablissement": {
+                                "actions": {
+                                    "Prepare_street_info": {
+                                        "inputs": {
+                                            "name": "streetInfo",
+                                            "value": "@{concat(variables('temp'),' ',items('For_each')?['adresseEtablissement']?['libelleVoieEtablissement'])}"
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    },
+                                    "reset_temp_to_street_info": {
+                                        "inputs": {
+                                            "name": "temp",
+                                            "value": "@variables('streetInfo')"
+                                        },
+                                        "runAfter": {
+                                            "Prepare_street_info": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "SetVariable"
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@items('For_each')?['adresseEtablissement']?['libelleVoieEtablissement']",
+                                                    "@string('')"
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@items('For_each')?['adresseEtablissement']?['libelleVoieEtablissement']",
+                                                    "@null"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "Condition_for_typeVoieEtablissement": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "Condition_for_numeroVoieEtablissement": {
+                                "actions": {
+                                    "Set_Temp_variable": {
+                                        "inputs": {
+                                            "name": "temp",
+                                            "value": "@{items('For_each')?['adresseEtablissement']?['numeroVoieEtablissement']}"
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@items('For_each')?['adresseEtablissement']?['numeroVoieEtablissement']",
+                                                    "@string('')"
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@items('For_each')?['adresseEtablissement']?['numeroVoieEtablissement']",
+                                                    "@null"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {},
+                                "type": "If"
+                            },
+                            "Condition_for_typeVoieEtablissement": {
+                                "actions": {
+                                    "set_street_info": {
+                                        "inputs": {
+                                            "name": "streetInfo",
+                                            "value": "@{concat(variables('temp'),' ',items('For_each')?['adresseEtablissement']?['typeVoieEtablissement'])}"
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    },
+                                    "set_temp_value": {
+                                        "inputs": {
+                                            "name": "temp",
+                                            "value": "@variables('streetInfo')"
+                                        },
+                                        "runAfter": {
+                                            "set_street_info": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "SetVariable"
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@items('For_each')?['adresseEtablissement']?['typeVoieEtablissement']",
+                                                    "@string('')"
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@items('For_each')?['adresseEtablissement']?['typeVoieEtablissement']",
+                                                    "@null"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "Condition_for_numeroVoieEtablissement": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "Reset_StreetInfo": {
+                                "inputs": {
+                                    "name": "streetInfo",
+                                    "value": "@{null}"
+                                },
+                                "runAfter": {
+                                    "Select": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "SetVariable"
+                            },
+                            "Reset_Temp": {
+                                "inputs": {
+                                    "name": "temp",
+                                    "value": "@{null}"
+                                },
+                                "runAfter": {
+                                    "Select": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "SetVariable"
+                            },
+                            "Select": {
+                                "inputs": {
+                                    "from": "@variables('arrayInput')",
+                                    "select": {
+                                        "Address": "@trim(variables('streetInfo'))",
+                                        "AddressCompletion": "@items('For_each')?['adresseEtablissement']?['complementAdresseEtablissement']",
+                                        "Brand": "@items('For_each')?['periodesEtablissement']?[0]?['enseigne1Etablissement']",
+                                        "City": "@items('For_each')?['adresseEtablissement']?['libelleCommuneEtablissement']",
+                                        "Country": "France",
+                                        "NafId": "@items('For_each')?['uniteLegale']?['activitePrincipaleUniteLegale']",
+                                        "Name": "@items('For_each')?['uniteLegale']?['denominationUniteLegale']",
+                                        "Nature": "@items('For_each')?['uniteLegale']?['categorieJuridiqueUniteLegale']",
+                                        "SIRET": "@items('For_each')?['siret']",
+                                        "Status": "@items('For_each')?['etablissementSiege']",
+                                        "Validity": "@if(equals(items('For_each')?['periodesEtablissement']?[0]?['etatAdministratifEtablissement'],'A'),'Active',if(equals(items('For_each')?['periodesEtablissement']?[0]?['etatAdministratifEtablissement'],'F'),'In Liquidation',''))",
+                                        "ZIP": "@items('For_each')?['adresseEtablissement']?['codePostalEtablissement']"
+                                    }
+                                },
+                                "runAfter": {
+                                    "Condition_for_complementAdresseEtablissement": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Select"
+                            }
+                        },
+                        "foreach": "@triggerBody()?['etablissements']",
+                        "runAfter": {},
+                        "runtimeConfiguration": {
+                            "concurrency": {
+                                "repetitions": 1
+                            }
+                        },
+                        "type": "Foreach"
+                    },
+                    "Response": {
+                        "inputs": {
+                            "body": {
+                                "response": {
+                                    "SIE_SF4S_SireneV3_output": "@variables('output')"
+                                }
+                            },
+                            "statusCode": 200
+                        },
+                        "kind": "Http",
+                        "runAfter": {
+                            "For_each": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Response"
+                    }
+                },
+                "runAfter": {
+                    "StreetInfo": [
+                        "Succeeded"
+                    ],
+                    "temp": [
+                        "Succeeded"
+                    ],
+                    "varInput": [
+                        "Succeeded"
+                    ],
+                    "varOutput": [
+                        "Succeeded"
+                    ]
+                },
+                "trackedProperties": {
+                    "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+                    "citizenName": "c00031",
+                    "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'Sirene')}",
+                    "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                    "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'non-defined')}",
+                    "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'sireneFormatOutput')}",
+                    "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+                    "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                    "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+                    },
+                "type": "Scope"
+            },
+            "StreetInfo": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "streetInfo",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "temp": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "temp",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "varInput": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "arrayInput",
+                            "type": "array",
+                            "value": "@triggerBody()?['etablissements']"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "varOutput": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "output",
+                            "type": "array"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {},
+        "triggers": {
+            "manual": {
+                "inputs": {
+                    "schema": {
+                        "properties": {
+                            "body": {
+                                "properties": {
+                                    "etablissements": {
+                                        "items": {
+                                            "properties": {
+                                                "activitePrincipaleRegistreMetiersEtablissement": {},
+                                                "adresse2Etablissement": {
+                                                    "properties": {
+                                                        "codeCedex2Etablissement": {},
+                                                        "codeCommune2Etablissement": {},
+                                                        "codePaysEtranger2Etablissement": {},
+                                                        "codePostal2Etablissement": {},
+                                                        "complementAdresse2Etablissement": {},
+                                                        "distributionSpeciale2Etablissement": {},
+                                                        "indiceRepetition2Etablissement": {},
+                                                        "libelleCedex2Etablissement": {},
+                                                        "libelleCommune2Etablissement": {},
+                                                        "libelleCommuneEtranger2Etablissement": {},
+                                                        "libellePaysEtranger2Etablissement": {},
+                                                        "libelleVoie2Etablissement": {},
+                                                        "numeroVoie2Etablissement": {},
+                                                        "typeVoie2Etablissement": {}
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "adresseEtablissement": {
+                                                    "properties": {
+                                                        "codeCedexEtablissement": {},
+                                                        "codeCommuneEtablissement": {
+                                                            "type": "string"
+                                                        },
+                                                        "codePaysEtrangerEtablissement": {},
+                                                        "codePostalEtablissement": {
+                                                            "type": "string"
+                                                        },
+                                                        "complementAdresseEtablissement": {},
+                                                        "distributionSpecialeEtablissement": {},
+                                                        "indiceRepetitionEtablissement": {},
+                                                        "libelleCedexEtablissement": {},
+                                                        "libelleCommuneEtablissement": {
+                                                            "type": "string"
+                                                        },
+                                                        "libelleCommuneEtrangerEtablissement": {},
+                                                        "libellePaysEtrangerEtablissement": {},
+                                                        "libelleVoieEtablissement": {
+                                                            "type": "string"
+                                                        },
+                                                        "numeroVoieEtablissement": {},
+                                                        "typeVoieEtablissement": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "anneeEffectifsEtablissement": {},
+                                                "dateCreationEtablissement": {
+                                                    "type": "string"
+                                                },
+                                                "dateDernierTraitementEtablissement": {
+                                                    "type": "string"
+                                                },
+                                                "etablissementSiege": {
+                                                    "type": "boolean"
+                                                },
+                                                "nic": {
+                                                    "type": "string"
+                                                },
+                                                "nombrePeriodesEtablissement": {
+                                                    "type": "integer"
+                                                },
+                                                "periodesEtablissement": {
+                                                    "items": {
+                                                        "properties": {
+                                                            "activitePrincipaleEtablissement": {
+                                                                "type": "string"
+                                                            },
+                                                            "caractereEmployeurEtablissement": {
+                                                                "type": "string"
+                                                            },
+                                                            "changementActivitePrincipaleEtablissement": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "changementCaractereEmployeurEtablissement": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "changementDenominationUsuelleEtablissement": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "changementEnseigneEtablissement": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "changementEtatAdministratifEtablissement": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "dateDebut": {
+                                                                "type": "string"
+                                                            },
+                                                            "dateFin": {},
+                                                            "denominationUsuelleEtablissement": {},
+                                                            "enseigne1Etablissement": {},
+                                                            "enseigne2Etablissement": {},
+                                                            "enseigne3Etablissement": {},
+                                                            "etatAdministratifEtablissement": {
+                                                                "type": "string"
+                                                            },
+                                                            "nomenclatureActivitePrincipaleEtablissement": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "dateFin",
+                                                            "dateDebut",
+                                                            "etatAdministratifEtablissement",
+                                                            "changementEtatAdministratifEtablissement",
+                                                            "enseigne1Etablissement",
+                                                            "enseigne2Etablissement",
+                                                            "enseigne3Etablissement",
+                                                            "changementEnseigneEtablissement",
+                                                            "denominationUsuelleEtablissement",
+                                                            "changementDenominationUsuelleEtablissement",
+                                                            "activitePrincipaleEtablissement",
+                                                            "nomenclatureActivitePrincipaleEtablissement",
+                                                            "changementActivitePrincipaleEtablissement",
+                                                            "caractereEmployeurEtablissement",
+                                                            "changementCaractereEmployeurEtablissement"
+                                                        ],
+                                                        "type": "object"
+                                                    },
+                                                    "type": "array"
+                                                },
+                                                "siren": {
+                                                    "type": "string"
+                                                },
+                                                "siret": {
+                                                    "type": "string"
+                                                },
+                                                "statutDiffusionEtablissement": {
+                                                    "type": "string"
+                                                },
+                                                "trancheEffectifsEtablissement": {
+                                                    "type": "string"
+                                                },
+                                                "uniteLegale": {
+                                                    "properties": {
+                                                        "activitePrincipaleUniteLegale": {
+                                                            "type": "string"
+                                                        },
+                                                        "anneeCategorieEntreprise": {},
+                                                        "anneeEffectifsUniteLegale": {},
+                                                        "caractereEmployeurUniteLegale": {
+                                                            "type": "string"
+                                                        },
+                                                        "categorieEntreprise": {},
+                                                        "categorieJuridiqueUniteLegale": {
+                                                            "type": "string"
+                                                        },
+                                                        "dateCreationUniteLegale": {
+                                                            "type": "string"
+                                                        },
+                                                        "dateDernierTraitementUniteLegale": {
+                                                            "type": "string"
+                                                        },
+                                                        "denominationUniteLegale": {
+                                                            "type": "string"
+                                                        },
+                                                        "denominationUsuelle1UniteLegale": {},
+                                                        "denominationUsuelle2UniteLegale": {},
+                                                        "denominationUsuelle3UniteLegale": {},
+                                                        "economieSocialeSolidaireUniteLegale": {},
+                                                        "etatAdministratifUniteLegale": {
+                                                            "type": "string"
+                                                        },
+                                                        "identifiantAssociationUniteLegale": {},
+                                                        "nicSiegeUniteLegale": {
+                                                            "type": "string"
+                                                        },
+                                                        "nomUniteLegale": {},
+                                                        "nomUsageUniteLegale": {},
+                                                        "nomenclatureActivitePrincipaleUniteLegale": {
+                                                            "type": "string"
+                                                        },
+                                                        "prenom1UniteLegale": {},
+                                                        "prenom2UniteLegale": {},
+                                                        "prenom3UniteLegale": {},
+                                                        "prenom4UniteLegale": {},
+                                                        "prenomUsuelUniteLegale": {},
+                                                        "pseudonymeUniteLegale": {},
+                                                        "sexeUniteLegale": {},
+                                                        "sigleUniteLegale": {},
+                                                        "statutDiffusionUniteLegale": {
+                                                            "type": "string"
+                                                        },
+                                                        "trancheEffectifsUniteLegale": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "required": [
+                                                "siren",
+                                                "nic",
+                                                "siret",
+                                                "statutDiffusionEtablissement",
+                                                "dateCreationEtablissement",
+                                                "trancheEffectifsEtablissement",
+                                                "anneeEffectifsEtablissement",
+                                                "activitePrincipaleRegistreMetiersEtablissement",
+                                                "dateDernierTraitementEtablissement",
+                                                "etablissementSiege",
+                                                "nombrePeriodesEtablissement",
+                                                "uniteLegale",
+                                                "adresseEtablissement",
+                                                "adresse2Etablissement",
+                                                "periodesEtablissement"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        "type": "array"
+                                    },
+                                    "header": {
+                                        "properties": {
+                                            "debut": {
+                                                "type": "integer"
+                                            },
+                                            "message": {
+                                                "type": "string"
+                                            },
+                                            "nombre": {
+                                                "type": "integer"
+                                            },
+                                            "statut": {
+                                                "type": "integer"
+                                            },
+                                            "total": {
+                                                "type": "integer"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+    }

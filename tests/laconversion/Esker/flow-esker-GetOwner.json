@@ -1,0 +1,822 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "actions": {
+    "Scope": {
+      "actions": {
+        "Check_Email": {
+          "actions": {
+            "Fetch_Owner_by_Email": {
+              "inputs": {
+                "body": {
+                  "query": "@{variables('Select')} WHERE Email ='@{triggerBody()?['EMAIL']}' and IsActive = true"
+                },
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                  }
+                },
+                "method": "post",
+                "path": "/soql/executesoqlquery"
+              },
+              "runAfter": {},
+              "type": "ApiConnection"
+            },
+            "Response_Fail_by_Email": {
+              "inputs": {
+                "body": "@body('Fetch_Owner_by_Email')",
+                "statusCode": 400
+              },
+              "kind": "Http",
+              "runAfter": {
+                "Fetch_Owner_by_Email": ["Failed", "Skipped", "TimedOut"]
+              },
+              "type": "Response"
+            },
+            "Response_Success_by_Email": {
+              "inputs": {
+                "body": "@body('Fetch_Owner_by_Email')",
+                "statusCode": 200
+              },
+              "kind": "Http",
+              "runAfter": {
+                "Fetch_Owner_by_Email": ["Succeeded"]
+              },
+              "type": "Response"
+            },
+            "Terminate_Fail_by_Email": {
+              "inputs": {
+                "runError": {
+                  "code": "400",
+                  "message": "@{body('Fetch_Owner_by_Email')}"
+                },
+                "runStatus": "Failed"
+              },
+              "runAfter": {
+                "Response_Fail_by_Email": ["Succeeded"]
+              },
+              "type": "Terminate"
+            }
+          },
+          "expression": {
+            "and": [
+              {
+                "not": {
+                  "equals": ["@triggerBody()?['EMAIL']", "@null"]
+                }
+              },
+              {
+                "not": {
+                  "equals": ["@length(triggerBody()?['EMAIL'])", 0]
+                }
+              }
+            ]
+          },
+          "runAfter": {
+            "Check_Id": ["Succeeded"]
+          },
+          "type": "If"
+        },
+        "Check_GID": {
+          "actions": {
+            "Fetch_Owner_by_GID": {
+              "inputs": {
+                "body": {
+                  "query": "@{variables('Select')} WHERE s4sgid_technical__c ='@{triggerBody()?['GID']}' and IsActive = true"
+                },
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                  }
+                },
+                "method": "post",
+                "path": "/soql/executesoqlquery"
+              },
+              "runAfter": {},
+              "type": "ApiConnection"
+            },
+            "Response_Fail_by_GID": {
+              "inputs": {
+                "body": "@body('Fetch_Owner_by_GID')",
+                "statusCode": 400
+              },
+              "kind": "Http",
+              "runAfter": {
+                "Fetch_Owner_by_GID": ["Failed", "Skipped", "TimedOut"]
+              },
+              "type": "Response"
+            },
+            "Response_Success_by_GID": {
+              "inputs": {
+                "body": "@body('Fetch_Owner_by_GID')",
+                "statusCode": 200
+              },
+              "kind": "Http",
+              "runAfter": {
+                "Fetch_Owner_by_GID": ["Succeeded"]
+              },
+              "type": "Response"
+            },
+            "Terminate_Fail_by_GID": {
+              "inputs": {
+                "runError": {
+                  "code": "400",
+                  "message": "@{body('Fetch_Owner_by_GID')}"
+                },
+                "runStatus": "Failed"
+              },
+              "runAfter": {
+                "Response_Fail_by_GID": ["Succeeded"]
+              },
+              "type": "Terminate"
+            }
+          },
+          "expression": {
+            "and": [
+              {
+                "not": {
+                  "equals": ["@triggerBody()?['GID']", "@null"]
+                }
+              },
+              {
+                "not": {
+                  "equals": ["@length(triggerBody()?['GID'])", 0]
+                }
+              }
+            ]
+          },
+          "runAfter": {
+            "Check_Email": ["Succeeded"]
+          },
+          "type": "If"
+        },
+        "Check_GID_and_Email": {
+          "actions": {
+            "Fetch_Owner_by_Email_and_GID": {
+              "inputs": {
+                "body": {
+                  "query": "@{variables('Select')} WHERE Email ='@{triggerBody()?['EMAIL']}' and IsActive = true and s4sgid_technical__c ='@{triggerBody()?['GID']}'"
+                },
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                  }
+                },
+                "method": "post",
+                "path": "/soql/executesoqlquery"
+              },
+              "runAfter": {},
+              "type": "ApiConnection"
+            },
+            "Response_Fail_by_Email_and_GID": {
+              "inputs": {
+                "body": "@body('Fetch_Owner_by_Email_and_GID')",
+                "statusCode": 400
+              },
+              "kind": "Http",
+              "runAfter": {
+                "Fetch_Owner_by_Email_and_GID": [
+                  "Failed",
+                  "Skipped",
+                  "TimedOut"
+                ]
+              },
+              "type": "Response"
+            },
+            "Response_Success_by_Email_and_GID": {
+              "inputs": {
+                "body": "@body('Fetch_Owner_by_Email_and_GID')",
+                "statusCode": 200
+              },
+              "kind": "Http",
+              "runAfter": {
+                "Fetch_Owner_by_Email_and_GID": ["Succeeded"]
+              },
+              "type": "Response"
+            },
+            "Terminate_Fail_by_Email_and_GID": {
+              "inputs": {
+                "runError": {
+                  "code": "400",
+                  "message": "@{body('Fetch_Owner_by_Email_and_GID')}"
+                },
+                "runStatus": "Failed"
+              },
+              "runAfter": {
+                "Response_Fail_by_Email_and_GID": ["Succeeded"]
+              },
+              "type": "Terminate"
+            }
+          },
+          "expression": {
+            "and": [
+              {
+                "not": {
+                  "equals": ["@triggerBody()?['EMAIL']", "@null"]
+                }
+              },
+              {
+                "not": {
+                  "equals": ["@length(triggerBody()?['EMAIL'])", 0]
+                }
+              },
+              {
+                "not": {
+                  "equals": ["@triggerBody()?['GID']", "@null"]
+                }
+              },
+              {
+                "not": {
+                  "equals": ["@length(triggerBody()?['GID'])", 0]
+                }
+              }
+            ]
+          },
+          "runAfter": {
+            "Check_GID": ["Succeeded"]
+          },
+          "type": "If"
+        },
+        "Check_Id": {
+          "actions": {
+            "Fetch_Owner_by_Id": {
+              "inputs": {
+                "body": {
+                  "query": "@{variables('Select')} WHERE Id ='@{triggerBody()?['ID']}' and IsActive = true"
+                },
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                  }
+                },
+                "method": "post",
+                "path": "/soql/executesoqlquery"
+              },
+              "runAfter": {},
+              "type": "ApiConnection"
+            },
+            "Response_Fail_by_Id": {
+              "inputs": {
+                "body": "@body('Fetch_Owner_by_Id')",
+                "statusCode": 400
+              },
+              "kind": "Http",
+              "runAfter": {
+                "Fetch_Owner_by_Id": ["Failed", "Skipped", "TimedOut"]
+              },
+              "type": "Response"
+            },
+            "Response_Success_by_Id": {
+              "inputs": {
+                "body": "@body('Fetch_Owner_by_Id')",
+                "statusCode": 200
+              },
+              "kind": "Http",
+              "runAfter": {
+                "Fetch_Owner_by_Id": ["Succeeded"]
+              },
+              "type": "Response"
+            },
+            "Terminate_Fail_by_Id": {
+              "inputs": {
+                "runError": {
+                  "code": "400",
+                  "message": "@{body('Fetch_Owner_by_Id')}"
+                },
+                "runStatus": "Failed"
+              },
+              "runAfter": {
+                "Response_Fail_by_Id": ["Succeeded"]
+              },
+              "type": "Terminate"
+            }
+          },
+          "expression": {
+            "and": [
+              {
+                "not": {
+                  "equals": ["@triggerBody()?['ID']", "@null"]
+                }
+              },
+              {
+                "not": {
+                  "equals": ["@length(triggerBody()?['ID'])", 0]
+                }
+              }
+            ]
+          },
+          "runAfter": {},
+          "type": "If"
+        }
+      },
+      "runAfter": {
+        "Select": ["Succeeded"]
+      },
+      "trackedProperties": {
+        "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+        "citizenName": "c00031",
+        "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'Esker')}",
+        "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+        "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'non-defined')}",
+        "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'esker-GetOwner')}",
+        "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+        "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+        "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+        },
+      "type": "Scope"
+    },
+    "Select": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "Select",
+            "type": "string",
+            "value": "Select id from user"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "Terminate": {
+      "inputs": {
+        "runStatus": "Succeeded"
+      },
+      "runAfter": {
+        "Scope": ["Succeeded"]
+      },
+      "type": "Terminate"
+    }
+  },
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {
+    "$connections": {
+      "defaultValue": {},
+      "type": "Object"
+    }
+  },
+  "triggers": {
+    "manual": {
+      "inputs": {
+        "schema": {
+          "properties": {
+            "UPSERTCASE": {
+              "items": {
+                "properties": {
+                  "ACCOUNT": {
+                    "properties": {
+                      "EMAIL": {
+                        "type": "string"
+                      },
+                      "GID": {
+                        "type": "string"
+                      },
+                      "ID": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "ASSETID": {
+                    "type": "string"
+                  },
+                  "BUSINESSHOURSID": {
+                    "type": "string"
+                  },
+                  "CAID_RESOLUTION__C": {
+                    "type": "string"
+                  },
+                  "CLOSEDDATE": {
+                    "type": "string"
+                  },
+                  "COMMENTS": {
+                    "type": "string"
+                  },
+                  "CONTACT": {
+                    "properties": {
+                      "EMAIL": {
+                        "type": "string"
+                      },
+                      "ID": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "CONTACTEMAIL": {
+                    "type": "string"
+                  },
+                  "CONTACTFAX": {
+                    "type": "string"
+                  },
+                  "CONTACTMOBILE": {
+                    "type": "string"
+                  },
+                  "CONTACTPHONE": {
+                    "type": "string"
+                  },
+                  "CURRENCYISOCODE": {
+                    "type": "string"
+                  },
+                  "DESCRIPTION": {
+                    "type": "string"
+                  },
+                  "ENTITLEMENTID": {
+                    "type": "string"
+                  },
+                  "ID": {
+                    "type": "string"
+                  },
+                  "ISCLOSED": {
+                    "type": "string"
+                  },
+                  "ISCLOSEDONCREATE": {
+                    "type": "string"
+                  },
+                  "ISDELETED": {
+                    "type": "string"
+                  },
+                  "ISESCALATED": {
+                    "type": "string"
+                  },
+                  "ISSTOPPED": {
+                    "type": "string"
+                  },
+                  "LANGUAGE": {
+                    "type": "string"
+                  },
+                  "LASTREFERENCEDDATE": {
+                    "type": "string"
+                  },
+                  "MASTERRECORDID": {
+                    "type": "string"
+                  },
+                  "MILESTONESTATUS": {
+                    "type": "string"
+                  },
+                  "ORIGIN": {
+                    "type": "string"
+                  },
+                  "OWNER": {
+                    "properties": {
+                      "EMAIL": {
+                        "type": "string"
+                      },
+                      "GID": {
+                        "type": "string"
+                      },
+                      "ID": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "PARENTID": {
+                    "type": "string"
+                  },
+                  "PHILOS_REQUEST_ID__C": {
+                    "type": "string"
+                  },
+                  "PRIORITY": {
+                    "type": "string"
+                  },
+                  "PRODUCT": {
+                    "properties": {
+                      "ID": {
+                        "type": "string"
+                      },
+                      "S4SBusiness_Segment_Code__c": {
+                        "type": "string"
+                      },
+                      "S4SBusiness_Subsegment__c": {
+                        "type": "string"
+                      },
+                      "S4SBusiness_Unit__c": {
+                        "type": "string"
+                      },
+                      "S4SDepth_Structure_Level__c": {
+                        "type": "string"
+                      },
+                      "S4SDivisions__c": {
+                        "type": "string"
+                      },
+                      "S4SGCK__c": {
+                        "type": "string"
+                      },
+                      "S4SPCK__c": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "REASON": {
+                    "type": "string"
+                  },
+                  "RECORDTYPE": {
+                    "type": "string"
+                  },
+                  "S4SCAID_AMOUNT__C": {
+                    "type": "string"
+                  },
+                  "S4SCAID_ASSIGNMENT__C": {
+                    "type": "string"
+                  },
+                  "S4SCAID_DESCRIPTION__C": {
+                    "type": "string"
+                  },
+                  "S4SCAID_LOCATION_CODE__C": {
+                    "type": "string"
+                  },
+                  "S4SCAID_REASON_CODE__C": {
+                    "type": "string"
+                  },
+                  "S4SCAID_REFERENCE__C": {
+                    "type": "string"
+                  },
+                  "S4SCAID__C": {
+                    "type": "string"
+                  },
+                  "S4SCASE_LEGACYID__C": {
+                    "type": "string"
+                  },
+                  "S4SCASE_NUMBER__C": {
+                    "type": "string"
+                  },
+                  "S4SCORPORATE_RGA__C": {
+                    "type": "string"
+                  },
+                  "S4SCORP_LEAD_COUNTRY__C": {
+                    "type": "string"
+                  },
+                  "S4SCREDIT_MEMO__C": {
+                    "type": "string"
+                  },
+                  "S4SCUSTOMER_REFERENCE__C": {
+                    "type": "string"
+                  },
+                  "S4SDATE_OF_OCCURRENCE__C": {
+                    "type": "string"
+                  },
+                  "S4SDEBIT_MEMO__C": {
+                    "type": "string"
+                  },
+                  "S4SDELIVERY__C": {
+                    "type": "string"
+                  },
+                  "S4SDISCREPANCY_COUNT__C": {
+                    "type": "string"
+                  },
+                  "S4SEXTERNAL_SOURCE__C": {
+                    "type": "string"
+                  },
+                  "S4SFINAL_RESOLUTION__C": {
+                    "type": "string"
+                  },
+                  "S4SFIRST_RESPONSE__C": {
+                    "type": "string"
+                  },
+                  "S4SFOLLOW_UP_DATE__C": {
+                    "type": "string"
+                  },
+                  "S4SIMALL_INTEGRATION__C": {
+                    "type": "string"
+                  },
+                  "S4SINSTALLATION__C": {
+                    "type": "string"
+                  },
+                  "S4SINVALID__C": {
+                    "type": "string"
+                  },
+                  "S4SINVOICE__C": {
+                    "type": "string"
+                  },
+                  "S4SJOB_NOTIFICATION_NUMBER__C": {
+                    "type": "string"
+                  },
+                  "S4SORIGINALPO__C": {
+                    "type": "string"
+                  },
+                  "S4SORIGINAL_QUEUE__C": {
+                    "type": "string"
+                  },
+                  "S4SORIGIN_EQUALS_IMALL__C": {
+                    "type": "string"
+                  },
+                  "S4SPLANT__C": {
+                    "type": "string"
+                  },
+                  "S4SPRODUCT_DATA__C": {
+                    "type": "string"
+                  },
+                  "S4SPRODUCT_SAFETY_ISSUE__C": {
+                    "type": "string"
+                  },
+                  "S4SPROFIT_CENTER__C": {
+                    "properties": {
+                      "S4SPROFIT_CENTER": {
+                        "type": "string"
+                      },
+                      "SOURCESYSTEM": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "S4SPROPOSED_RESOLUTION__C": {
+                    "type": "string"
+                  },
+                  "S4SROOT_CAUSE__C": {
+                    "type": "string"
+                  },
+                  "S4SSAPSALESORDER__C": {
+                    "type": "string"
+                  },
+                  "S4SSAP_RMA_PO__C": {
+                    "type": "string"
+                  },
+                  "S4SSAP_RMA__C": {
+                    "type": "string"
+                  },
+                  "S4SSAP__C": {
+                    "type": "string"
+                  },
+                  "S4SSIEMENS_TERRITORY_STRUCTURE__C": {
+                    "properties": {
+                      "ID": {
+                        "type": "string"
+                      },
+                      "S4SLead_Country__c": {
+                        "type": "string"
+                      },
+                      "S4SLevel__c": {
+                        "type": "string"
+                      },
+                      "S4SSale_Country": {
+                        "type": "string"
+                      },
+                      "S4SSales_Branch__c": {
+                        "type": "string"
+                      },
+                      "S4SSales_Department__c": {
+                        "type": "string"
+                      },
+                      "S4SSales_Office__c": {
+                        "type": "string"
+                      },
+                      "S4SSales_SubRegion__c": {
+                        "type": "string"
+                      },
+                      "S4SSales_Territory__c": {
+                        "type": "string"
+                      },
+                      "S4SSales_district__c": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "S4SSUBTYPE__C": {
+                    "type": "string"
+                  },
+                  "S4SWEBSAP__C": {
+                    "type": "string"
+                  },
+                  "S4SWEB_PRODUCT__C": {
+                    "type": "string"
+                  },
+                  "SLAEXITDATE": {
+                    "type": "string"
+                  },
+                  "SLASTARTDATE": {
+                    "type": "string"
+                  },
+                  "SOURCEID": {
+                    "type": "string"
+                  },
+                  "STATUS": {
+                    "type": "string"
+                  },
+                  "STOPSTARTDATE": {
+                    "type": "string"
+                  },
+                  "SUBJECT": {
+                    "type": "string"
+                  },
+                  "SUPPLIEDCOMPANY": {
+                    "type": "string"
+                  },
+                  "SUPPLIEDEMAIL": {
+                    "type": "string"
+                  },
+                  "SUPPLIEDNAME": {
+                    "type": "string"
+                  },
+                  "SUPPLIEDPHONE": {
+                    "type": "string"
+                  },
+                  "TYPE": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "ACCOUNT",
+                  "ASSETID",
+                  "BUSINESSHOURSID",
+                  "CAID_RESOLUTION__C",
+                  "CLOSEDDATE",
+                  "COMMENTS",
+                  "CONTACT",
+                  "CONTACTEMAIL",
+                  "CONTACTFAX",
+                  "CONTACTMOBILE",
+                  "CONTACTPHONE",
+                  "CURRENCYISOCODE",
+                  "DESCRIPTION",
+                  "ENTITLEMENTID",
+                  "ID",
+                  "ISCLOSED",
+                  "ISCLOSEDONCREATE",
+                  "ISDELETED",
+                  "ISESCALATED",
+                  "ISSTOPPED",
+                  "LANGUAGE",
+                  "LASTREFERENCEDDATE",
+                  "MASTERRECORDID",
+                  "MILESTONESTATUS",
+                  "ORIGIN",
+                  "OWNER",
+                  "PARENTID",
+                  "PHILOS_REQUEST_ID__C",
+                  "PRIORITY",
+                  "PRODUCT",
+                  "REASON",
+                  "RECORDTYPE",
+                  "S4SCAID_AMOUNT__C",
+                  "S4SCAID_ASSIGNMENT__C",
+                  "S4SCAID_DESCRIPTION__C",
+                  "S4SCAID_LOCATION_CODE__C",
+                  "S4SCAID_REASON_CODE__C",
+                  "S4SCAID_REFERENCE__C",
+                  "S4SCAID__C",
+                  "S4SCASE_LEGACYID__C",
+                  "S4SCASE_NUMBER__C",
+                  "S4SCORPORATE_RGA__C",
+                  "S4SCORP_LEAD_COUNTRY__C",
+                  "S4SCREDIT_MEMO__C",
+                  "S4SCUSTOMER_REFERENCE__C",
+                  "S4SDATE_OF_OCCURRENCE__C",
+                  "S4SDEBIT_MEMO__C",
+                  "S4SDELIVERY__C",
+                  "S4SDISCREPANCY_COUNT__C",
+                  "S4SEXTERNAL_SOURCE__C",
+                  "S4SFINAL_RESOLUTION__C",
+                  "S4SFIRST_RESPONSE__C",
+                  "S4SFOLLOW_UP_DATE__C",
+                  "S4SIMALL_INTEGRATION__C",
+                  "S4SINSTALLATION__C",
+                  "S4SINVALID__C",
+                  "S4SINVOICE__C",
+                  "S4SJOB_NOTIFICATION_NUMBER__C",
+                  "S4SORIGINALPO__C",
+                  "S4SORIGINAL_QUEUE__C",
+                  "S4SORIGIN_EQUALS_IMALL__C",
+                  "S4SPLANT__C",
+                  "S4SPRODUCT_DATA__C",
+                  "S4SPRODUCT_SAFETY_ISSUE__C",
+                  "S4SPROFIT_CENTER__C",
+                  "S4SPROPOSED_RESOLUTION__C",
+                  "S4SROOT_CAUSE__C",
+                  "S4SSAPSALESORDER__C",
+                  "S4SSAP_RMA_PO__C",
+                  "S4SSAP_RMA__C",
+                  "S4SSAP__C",
+                  "S4SSIEMENS_TERRITORY_STRUCTURE__C",
+                  "S4SSUBTYPE__C",
+                  "S4SWEBSAP__C",
+                  "S4SWEB_PRODUCT__C",
+                  "SLAEXITDATE",
+                  "SLASTARTDATE",
+                  "SOURCEID",
+                  "STATUS",
+                  "STOPSTARTDATE",
+                  "SUBJECT",
+                  "SUPPLIEDCOMPANY",
+                  "SUPPLIEDEMAIL",
+                  "SUPPLIEDNAME",
+                  "SUPPLIEDPHONE",
+                  "TYPE"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "kind": "Http",
+      "type": "Request"
+    }
+  }
+}

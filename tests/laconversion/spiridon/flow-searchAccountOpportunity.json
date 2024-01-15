@@ -1,0 +1,970 @@
+{
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Initialize_ResponseMap_name": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "ResponseMap",
+                            "type": "string",
+                            "value": "@{coalesce(triggerOutputs()?['headers']?['responseMap'], 'map-c00031-spiridon-searchAccountOpportunity')}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_oppWhereClause": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "oppWhereClause",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable-S4SOpportunity_Industry_Search__c": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "S4SOpportunity_Industry_Search__c",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable-accountOpportunityArray": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "accountOpportunityArray",
+                            "type": "array"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_OpportunityArray": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "OpportunityArray",
+                            "type": "array"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_oppDetailExists": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "oppDetailExists",
+                            "type": "boolean",
+                            "value": true
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Scope_-_Catch": {
+                "actions": {
+                    "Failed_Response": {
+                        "inputs": {
+                            "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sie=\"http://demchdc8zkx.dc4ca.siemens.de/SIE.SF4S.Spiridon.Public.WebServices.Provider:SIE_SF4S_SPIRIDON\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <SIE_SF4S_searchAccOppResDatahub>\n<statusCode>E</statusCode>\n<message>Some error occured. Please try again later.</message>\n</SIE_SF4S_searchAccOppResDatahub>\n </soapenv:Body>\n</soapenv:Envelope>",
+                            "headers": {
+                                "Content-Type": "@{triggerOutputs()['headers']['Content-Type']}"
+                            },
+                            "statusCode": 500
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                        "type": "Response"
+                    },
+                    "Terminate": {
+                        "inputs": {
+                            "runStatus": "Failed"
+                        },
+                        "runAfter": {
+                            "Failed_Response": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Terminate"
+                    }
+                },
+                "runAfter": {
+                    "Scope_-_Try": [
+                        "Failed"
+                    ]
+                },
+                "type": "Scope"
+            },
+            "Scope_-_Try": {
+                "actions": {
+                    "Compose_Response": {
+                        "inputs": {
+                            "Response": {
+                                "searchAccOppResponse": "@variables('accountOpportunityArray')"
+                            }
+                        },
+                        "runAfter": {
+                            "Condition_to_check_if_OppDetailExists": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Compose"
+                    },
+                    "Condition_to_check_IFA_Number": {
+                        "actions": {
+                            "Condition_to_check_Opp_where": {
+                                "actions": {
+                                    "Append_to_string_variable_append_oppWhere_Clause": {
+                                        "inputs": {
+                                            "name": "oppWhereClause",
+                                            "value": " and Account.S4SIfA__c='@{xpath(xml(triggerBody()),'.//IfaNumber/text()')?[0]}'"
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToStringVariable"
+                                    }
+                                },
+                                "else": {
+                                    "actions": {
+                                        "Set_oppWhereclause_for_IFA": {
+                                            "inputs": {
+                                                "name": "oppWhereClause",
+                                                "value": "Account.S4SIfA__c='@{xpath(xml(triggerBody()),'.//IfaNumber/text()')?[0]}'"
+                                            },
+                                            "runAfter": {},
+                                            "type": "SetVariable"
+                                        },
+                                        "Set_variable_oppDetailsExists": {
+                                            "inputs": {
+                                                "name": "oppDetailExists",
+                                                "value": false
+                                            },
+                                            "runAfter": {
+                                                "Set_oppWhereclause_for_IFA": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "SetVariable"
+                                        }
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('oppWhereClause')",
+                                                    ""
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {},
+                                "type": "If"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@string(xpath(xml(triggerBody()),'.//company')?[0])",
+                                            ""
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@string(xpath(xml(triggerBody()),'.//IfaNumber/text()')?[0])",
+                                            ""
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Condition_to_check_Opportunity": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Condition_to_check_Opportunity": {
+                        "actions": {
+                            "Condition_to_check_OpportunityID": {
+                                "actions": {
+                                    "Set_oppWhereClause": {
+                                        "inputs": {
+                                            "name": "oppWhereClause",
+                                            "value": "Opportunity.Id = '@{xpath(xml(triggerBody()),'.//OpportunityId/text()')?[0]}'"
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@string(xpath(xml(triggerBody()),'.//OpportunityId/text()')?[0])",
+                                                    ""
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {},
+                                "type": "If"
+                            },
+                            "Condition_to_check_OpportunityUniqueID": {
+                                "actions": {
+                                    "Condition_to_check_oppWhereClause": {
+                                        "actions": {
+                                            "Append_to_string_variable_'oppWhereClause'": {
+                                                "inputs": {
+                                                    "name": "oppWhereClause",
+                                                    "value": " and Opportunity.S4SOPPORTUNITY_LegacyID__c = '@{xpath(xml(triggerBody()),'.//OpportunityUniqueId/text()')?[0]}'"
+                                                },
+                                                "runAfter": {},
+                                                "type": "AppendToStringVariable"
+                                            }
+                                        },
+                                        "else": {
+                                            "actions": {
+                                                "Append_to_string_variable_oppwhereClause": {
+                                                    "inputs": {
+                                                        "name": "oppWhereClause",
+                                                        "value": "Opportunity.S4SOPPORTUNITY_LegacyID__c = '@{xpath(xml(triggerBody()),'.//OpportunityUniqueId/text()')?[0]}'"
+                                                    },
+                                                    "runAfter": {},
+                                                    "type": "AppendToStringVariable"
+                                                }
+                                            }
+                                        },
+                                        "expression": {
+                                            "and": [
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@variables('oppWhereClause')",
+                                                            ""
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "runAfter": {},
+                                        "type": "If"
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@string(xpath(xml(triggerBody()),'.//OpportunityUniqueId/text()')?[0])",
+                                                    ""
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "Condition_to_check_OpportunityID": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@string(xpath(xml(triggerBody()),'.//opportunity'))",
+                                            ""
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@string(xpath(xml(triggerBody()),'.//opportunity'))",
+                                            "@null"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {},
+                        "type": "If"
+                    },
+                    "Condition_to_check_if_OppDetailExists": {
+                        "actions": {
+                            "Scope-Opportunity": {
+                                "actions": {
+                                    "Condition_to_check_if_Opportunity_records_exists_": {
+                                        "actions": {
+                                            "For_each_Opportunity": {
+                                                "actions": {
+                                                    "Append_to_array_variable_response": {
+                                                        "inputs": {
+                                                            "name": "accountOpportunityArray",
+                                                            "value": {
+                                                                "Account": {
+                                                                    "Account": "@body('OppAccount')",
+                                                                    "Opportunity": "@variables('OpportunityArray')"
+                                                                }
+                                                            }
+                                                        },
+                                                        "runAfter": {
+                                                            "Append_to_oppArray_variable": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "AppendToArrayVariable"
+                                                    },
+                                                    "Append_to_oppArray_variable": {
+                                                        "inputs": {
+                                                            "name": "OpportunityArray",
+                                                            "value": {
+                                                                "Bookinglineitem": "@body('FetchBookingLineItem')?['records']?[0]",
+                                                                "Opty": "@item()",
+                                                                "SISIC": "@body('SISIC')?['records']?[0]"
+                                                            }
+                                                        },
+                                                        "runAfter": {
+                                                            "Scope-OppAccount": [
+                                                                "Succeeded",
+                                                                "Failed"
+                                                            ],
+                                                            "Scope_-FetchBooking": [
+                                                                "Succeeded"
+                                                            ],
+                                                            "Scope_-SISIC": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "AppendToArrayVariable"
+                                                    },
+                                                    "Scope-OppAccount": {
+                                                        "actions": {
+                                                            "OppAccount": {
+                                                                "inputs": {
+                                                                    "host": {
+                                                                        "connection": {
+                                                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                        }
+                                                                    },
+                                                                    "method": "get",
+                                                                    "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Account'))}/items/@{encodeURIComponent(encodeURIComponent(items('For_each_Opportunity')?['AccountId']))}"
+                                                                },
+                                                                "runAfter": {},
+                                                                "type": "ApiConnection"
+                                                            }
+                                                        },
+                                                        "runAfter": {
+                                                            "Set_variable_'S4SOpportunity_Industry_Search__c'": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "Scope"
+                                                    },
+                                                    "Scope_-FetchBooking": {
+                                                        "actions": {
+                                                            "FetchBookingLineItem": {
+                                                                "inputs": {
+                                                                    "body": {
+                                                                        "query": "Select Id,IsDeleted,Name,CurrencyIsoCode,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastActivityDate,S4SOpportunity__c,S4SBusiness_Segment__c,S4SBusiness_Sub_Segment__c,S4SBusiness_Unit__c,S4SDepth_Structure__c,S4SDivisions__c,S4SGCK__c,S4SOrder_Intake_EUR__c,S4SOrder_Intake_USD__c,S4SOrder_Intake__c,S4SPrimary_Flag__c,S4SWeighted_Order_Intake_EUR__c,S4SWeighted_Order_Intake_USD__c,S4SWeighted_Order_Intake__c,S4SPCK__c,S4SQuantity__c,S4SSPG__c,S4SSales_Price__c,S4SExternal_Source__c,S4SProgram_Fund__c,S4SX1st_Year_return__c,S4SX2nd_Year_Return__c,X3rd_Year_Return__c From S4SBooking_Line_Item__c where S4sopportunity__c='@{items('For_each_Opportunity')?['Id']}'"
+                                                                    },
+                                                                    "host": {
+                                                                        "connection": {
+                                                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                        }
+                                                                    },
+                                                                    "method": "post",
+                                                                    "path": "/soql/executesoqlquery"
+                                                                },
+                                                                "runAfter": {},
+                                                                "type": "ApiConnection"
+                                                            }
+                                                        },
+                                                        "runAfter": {
+                                                            "Set_variable_'S4SOpportunity_Industry_Search__c'": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "Scope"
+                                                    },
+                                                    "Scope_-SISIC": {
+                                                        "actions": {
+                                                            "Condition": {
+                                                                "actions": {
+                                                                    "SISIC": {
+                                                                        "inputs": {
+                                                                            "body": {
+                                                                                "query": "Select Id,Name,S4SIndustry_Description__c,S4SIndustry_Segment__c From S4SSISIC__c where Id='@{items('For_each_Opportunity')?['S4SOpportunity_Industry_Search__c']}'"
+                                                                            },
+                                                                            "host": {
+                                                                                "connection": {
+                                                                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                                }
+                                                                            },
+                                                                            "method": "post",
+                                                                            "path": "/soql/executesoqlquery"
+                                                                        },
+                                                                        "runAfter": {},
+                                                                        "type": "ApiConnection"
+                                                                    }
+                                                                },
+                                                                "expression": {
+                                                                    "and": [
+                                                                        {
+                                                                            "not": {
+                                                                                "equals": [
+                                                                                    "@items('For_each_Opportunity')?['S4SOpportunity_Industry_Search__c']",
+                                                                                    "@null"
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "not": {
+                                                                                "equals": [
+                                                                                    "@items('For_each_Opportunity')?['S4SOpportunity_Industry_Search__c']",
+                                                                                    "@string('')"
+                                                                                ]
+                                                                            }
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "runAfter": {},
+                                                                "type": "If"
+                                                            }
+                                                        },
+                                                        "runAfter": {
+                                                            "Set_variable_'S4SOpportunity_Industry_Search__c'": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "Scope"
+                                                    },
+                                                    "Set_variable_'S4SOpportunity_Industry_Search__c'": {
+                                                        "inputs": {
+                                                            "name": "S4SOpportunity_Industry_Search__c",
+                                                            "value": "@{items('For_each_Opportunity')?['S4SOpportunity_Industry_Search__c']}"
+                                                        },
+                                                        "runAfter": {},
+                                                        "type": "SetVariable"
+                                                    }
+                                                },
+                                                "foreach": "@body('Opportunity')?['records']",
+                                                "runAfter": {},
+                                                "type": "Foreach"
+                                            }
+                                        },
+                                        "else": {
+                                            "actions": {
+                                                "Condition_if_Account_exists": {
+                                                    "actions": {
+                                                        "Append_to_array_variable_for_Account": {
+                                                            "inputs": {
+                                                                "name": "accountOpportunityArray",
+                                                                "value": {
+                                                                    "Account": {
+                                                                        "Account": "@body('Execute_a_SOQL_query_for_Account')?['records']"
+                                                                    }
+                                                                }
+                                                            },
+                                                            "runAfter": {
+                                                                "Execute_a_SOQL_query_for_Account": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "AppendToArrayVariable"
+                                                        },
+                                                        "Execute_a_SOQL_query_for_Account": {
+                                                            "inputs": {
+                                                                "body": {
+                                                                    "query": "select Id,IsDeleted,AccountId,RecordTypeId,Name,Description,StageName,Amount,Probability,S4SSold_To_SAP__c,ExpectedRevenue,TotalOpportunityQuantity,CloseDate,Type,NextStep,LeadSource,IsClosed,IsWon,ForecastCategory,ForecastCategoryName,CurrencyIsoCode,CampaignId,HasOpportunityLineItem,Pricebook2Id,OwnerId,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastActivityDate,FiscalQuarter,FiscalYear,Fiscal,LastViewedDate,LastReferencedDate,SyncedQuoteId,ContractId,HasOpenActivity,HasOverdueTask,Budget_Confirmed__c,Discovery_Completed__c,ROI_Analysis_Completed__c,Loss_Reason__c,S4SAcceptance_Closure__c,S4SAccount_Industry__c,S4SAlternative_Opportunity__c,S4SAmount_Financed__c,S4SAssigned_parental_Opportunity__c,S4SB2A_Outcome__c,S4SB2A_type__c,S4SBid_approval_PM040__c,S4SBooking_Funding_Date__c,S4SBusiness_Model_ZRG__c,S4SBusiness_Unit__c,S4SCAPEX__c,S4SChance_of_Execution__c,S4SChance_of_Success__c,S4SCity__c,S4SClosing_Date__c,S4SCommission_Country_1__c,S4SCommission_Country_2__c,S4SCommission_Country_3__c,S4SCommission_Country_4__c,S4SCommission_Percentage_1__c,S4SCommission_Percentage_2__c,S4SCommission_Percentage_3__c,S4SCommission_Percentage_4__c,S4SCompetitors__c,S4SContract_Duration_Month__c,S4SCorp_Lead_Country__c,S4SCountry_of_Installation__c,S4SCreated_from_Lead__c,S4SCross_Border_International_Business__c,S4SCustomer_Agreement_for_Data_Transfer__c,S4SCustomer_Rate__c,S4SDiscussion_in_PEF_Deal_Flow_Call__c,S4SDist_Channel__c,S4SDistribution_channel__c,S4SDivision__c,S4SEUR_Exchange_Rate__c,S4SEnd_Account_Account__c,S4SEnd_Account_Industry__c,S4SEnd_Account__c,S4SExpiry_Date_Risk_Approval__c,S4SField_of_Activity__c,S4SFinance_Product_Label__c,S4SFinancing_Demand_Division__c,S4SFinancing_Need__c,S4SFinancing_Product__c,S4SFunding_limit__c,S4SGross_Margin__c,S4SHas_Children__c,S4SIBIT__c,S4SInitial_Purchase_Price__c,S4SInstallation__c,S4SInternal_Interest_Rate__c,S4SIntroducer_Sales__c,S4SInvesting_ARE__c,S4SInvolded_Siemens_Entities__c,S4SInvolved_Competence_Center__c,S4SMain_Reason__c,S4SMarked_for_Deletion__c,S4SOPEX__c,S4SOPPORTUNITY_LegacyID__c,S4SOffer_Reference_ID__c,S4SOpportunity_Industry_Search__c,S4SOpportunity_Industry__c,S4SOpportunity_Type__c,S4SOrder_Intake_EUR__c,S4SOrder_Intake_USD__c,DB_Competitor__c,S4SOverdue_Time__c,S4SOwn_Content_Own_BU_Products__c,S4SOwn_Content_Own_DIV_Products__c,S4SOwn_Content_Own_DIV_Services__c,S4SOwn_Content_Siemens_Products_Services__c,S4SPEF_Advisory_Scope__c,S4SPM040_Released_Gross_Margin__c,S4SPM040_Released_Profit_EBIT__c,S4SPM040_Released_Risk_Contigency__c,S4SPM040_Released_Volume__c,S4SPM040_Transfer_date__c,S4SPM070_Transfer_Date__c,S4SPM070_Won_lost_Gross_Margin__c,S4SPM070_Won_lost_Profit_EBIT__c,S4SPM070_Won_lost_Risk_Contigency__c,S4SPM070_Won_lost_Volume__c,S4SAccount_Name_International__c,S4SPotential_Siemens_Volume__c,S4SPrevious_Stage__c,S4SPrevious_Status__c,S4SPrevious_System_Unique_ID__c,S4SPrimary_BookingItemID__c,S4SPrimary_CompetitorID__c,S4SProposed_to_COF__c,S4SProposed_to_Debt__c,S4SProposed_to_Equity__c,S4SROE__c,S4SReason_not_won__c,S4SReference_ID__c,S4SRelevant_for_Forecast__c,S4SSFS_Account_Rating_Date__c,S4SSFS_Account_Rating_Type__c,S4SSFS_Account_Rating__c,S4SSFS_Confidential__c,S4SSFS_Opportunity_Rating_Date__c,S4SSFS_Opportunity_Rating_Type__c,S4SSFS_Opportunity_Rating__c,S4SSOC_Category__c,S4SSale_Country__c,S4SSales_Branch__c,S4SSales_Department__c,S4SSales_District__c,S4SSales_Office__c,S4SSales_Status__c,S4SSales_Subregion__c,S4SSales_Territory__c,S4SSales_Type__c,S4SSalesforce_ID__c,S4SSenior_Leverage__c,S4SSite__c,S4SSolution_Support_End_Date__c,S4SSource__c,S4SSpread__c,S4SStart_project_PM080__c,S4SStatus_since__c,S4SStrategic_Priority__c,S4STarget_IRR__c,S4STerritory_Structure__c,S4STerritory__c,S4SThereof_SPV_SFS_Inc__c,S4STimestamp_to_COF__c,S4STimestamp_to_Debt__c,S4STimestamp_to_Equity__c,S4STotal_Debt_of_Opportunity__c,S4STotal_Equity_incl_Shareholder_Loans__c,S4STotal_Investment__c,S4STotal_Leverage__c,S4STotal_OI_Recurring_Business__c,S4STotal_Product_Amount_EUR__c,S4STotal_Product_Amount_USD__c,S4STotal_Project_Value__c,S4SType_of_Transaction__c,S4SUSD_Exchange_Rate__c,S4SWeighted_Order_Intake_EUR__c,S4SWeighted_Order_Intake_USD__c,S4SWeighted_Order_Intake__c,S4SWinner__c,S4SZip_Code__c,S4SBooking_Line_Item_Count__c,S4SCompetitorCount__c,S4SOrder_Intake__c,S4SPrimaryCompetitorCount__c,S4SPrimaryLineItemCount__c,S4STotal_SFS_Amount_to_fund_at_close__c,S4STotal_of_All_Tranches__c,S4STotal_of_Allocated_Amount__c,S4STotal_of_Approved_Amount__c,S4STotal_of_Requested_Amount__c,S4SAsset_Group__c,S4SAsset_Type__c,S4SBuy_America_n__c,S4SCOF_Country__c,S4SCategorization__c,S4SConfidentiality_Status__c,S4SContract_Schedule__c,S4SContract__c,S4SContractual_Insurance_requirements__c,S4SGovernmental_Agency__c,S4SGovernmental_Entity_Government_Funded__c,S4SInsurance_Database_ID__c,S4SIntroducer_Account_Name__c,S4SLOA_ID_Number__c,S4SOpportunity_Amount_EUR__c,S4SOpportunity_Amount_USD__c,S4SOur_Role__c,S4SPlanning_Tool__c,S4SProject_Volume__c,S4SRate_Spread__c,S4SSAP_Number__c,S4SSFS_Equity_Share__c,S4SSiemens_Equity__c,S4SWeighted_Total_Product_Amount_EUR__c,S4SWeighted_Total_Product_Amount_USD__c,S4SWeighted_Total_Product_Amount__c,S4SAdvisory_Volume__c,S4S_Total_SFS_Amount_Rollup__c,S4SApproval_Check__c,S4SApproval_Pending__c,S4SCreate_COMPAS_Quote__c,S4SExternal_Source__c,S4SLast_Sync_with_COMPAS__c,S4SOrder_Intake_Opportunity_Amount__c,S4SOriginal_Project_Solution_Opportunity__c,S4SProject_Category__c,S4SSystem_Installation_Type__c,S4SUserId__c,S4SWeighted_Opportunity_Amount__c,S4SWeighted_Order_Intake_Opp_Amount__c,S4SFinance_Product_Type__c from Opportunity where AccountId='@{body('Get_a_Account_by_External_ID_IFA')?['Id']}' Limit+50"
+                                                                },
+                                                                "host": {
+                                                                    "connection": {
+                                                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                    }
+                                                                },
+                                                                "method": "post",
+                                                                "path": "/soql/executesoqlquery"
+                                                            },
+                                                            "runAfter": {},
+                                                            "type": "ApiConnection"
+                                                        }
+                                                    },
+                                                    "else": {
+                                                        "actions": {
+                                                            "InvalidOpportunity_Response": {
+                                                                "inputs": {
+                                                                    "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">\n   <soapenv:Body>\n      <ser-root:searchAccOppResponse xmlns:ser-root=\"http://demchdc8zkx.dc4ca.siemens.de/SIE.SF4S.Spiridon.Public.WebServices.Provider:SIE_SF4S_SPIRIDON\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n         <SIE_SF4S_searchAccOppRes_Spiridon xsi:nil=\"true\"/>\n      </ser-root:searchAccOppResponse>\n   </soapenv:Body>\n</soapenv:Envelope>",
+                                                                    "headers": {
+                                                                        "Content-Type": "text/xml"
+                                                                    },
+                                                                    "statusCode": 200
+                                                                },
+                                                                "kind": "Http",
+                                                                "runAfter": {},
+                                                                "type": "Response"
+                                                            },
+                                                            "Invalid_Input_Terminate": {
+                                                                "inputs": {
+                                                                    "runStatus": "Succeeded"
+                                                                },
+                                                                "runAfter": {
+                                                                    "InvalidOpportunity_Response": [
+                                                                        "Succeeded"
+                                                                    ]
+                                                                },
+                                                                "type": "Terminate"
+                                                            }
+                                                        }
+                                                    },
+                                                    "expression": {
+                                                        "and": [
+                                                            {
+                                                                "equals": [
+                                                                    "@outputs('Get_a_Account_by_External_ID_IFA')?['statusCode']",
+                                                                    200
+                                                                ]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "runAfter": {
+                                                        "Get_a_Account_by_External_ID_IFA": [
+                                                            "Succeeded",
+                                                            "Failed"
+                                                        ]
+                                                    },
+                                                    "type": "If"
+                                                },
+                                                "Get_a_Account_by_External_ID_IFA": {
+                                                    "inputs": {
+                                                        "host": {
+                                                            "connection": {
+                                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                            }
+                                                        },
+                                                        "method": "get",
+                                                        "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Account'))}/externalIdFields/@{encodeURIComponent(encodeURIComponent('S4SIfA__c'))}/@{encodeURIComponent(encodeURIComponent(xpath(xml(triggerBody()),'.//IfaNumber/text()')?[0]))}"
+                                                    },
+                                                    "runAfter": {},
+                                                    "type": "ApiConnection"
+                                                }
+                                            }
+                                        },
+                                        "expression": {
+                                            "and": [
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@string(body('Opportunity')?['totalSize'])",
+                                                            "@string('0')"
+                                                        ]
+                                                    }
+                                                },
+                                                {
+                                                    "equals": [
+                                                        "@outputs('Opportunity')?['statusCode']",
+                                                        200
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        "runAfter": {
+                                            "Opportunity": [
+                                                "Succeeded",
+                                                "Failed"
+                                            ]
+                                        },
+                                        "type": "If"
+                                    },
+                                    "Opportunity": {
+                                        "inputs": {
+                                            "body": {
+                                                "query": "select Id,IsDeleted,AccountId,RecordTypeId,Name,Description,StageName,Amount,Probability,S4SSold_To_SAP__c,ExpectedRevenue,TotalOpportunityQuantity,CloseDate,Type,NextStep,LeadSource,IsClosed,IsWon,ForecastCategory,ForecastCategoryName,CurrencyIsoCode,CampaignId,HasOpportunityLineItem,Pricebook2Id,OwnerId,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastActivityDate,FiscalQuarter,FiscalYear,Fiscal,LastViewedDate,LastReferencedDate,SyncedQuoteId,ContractId,HasOpenActivity,HasOverdueTask,Budget_Confirmed__c,Discovery_Completed__c,ROI_Analysis_Completed__c,Loss_Reason__c,S4SAcceptance_Closure__c,S4SAccount_Industry__c,S4SAlternative_Opportunity__c,S4SAmount_Financed__c,S4SAssigned_parental_Opportunity__c,S4SB2A_Outcome__c,S4SB2A_type__c,S4SBid_approval_PM040__c,S4SBooking_Funding_Date__c,S4SBusiness_Model_ZRG__c,S4SBusiness_Unit__c,S4SCAPEX__c,S4SChance_of_Execution__c,S4SChance_of_Success__c,S4SCity__c,S4SClosing_Date__c,S4SCommission_Country_1__c,S4SCommission_Country_2__c,S4SCommission_Country_3__c,S4SCommission_Country_4__c,S4SCommission_Percentage_1__c,S4SCommission_Percentage_2__c,S4SCommission_Percentage_3__c,S4SCommission_Percentage_4__c,S4SCompetitors__c,S4SContract_Duration_Month__c,S4SCorp_Lead_Country__c,S4SCountry_of_Installation__c,S4SCreated_from_Lead__c,S4SCross_Border_International_Business__c,S4SCustomer_Agreement_for_Data_Transfer__c,S4SCustomer_Rate__c,S4SDiscussion_in_PEF_Deal_Flow_Call__c,S4SDist_Channel__c,S4SDistribution_channel__c,S4SDivision__c,S4SEUR_Exchange_Rate__c,S4SEnd_Account_Account__c,S4SEnd_Account_Industry__c,S4SEnd_Account__c,S4SExpiry_Date_Risk_Approval__c,S4SField_of_Activity__c,S4SFinance_Product_Label__c,S4SFinancing_Demand_Division__c,S4SFinancing_Need__c,S4SFinancing_Product__c,S4SFunding_limit__c,S4SGross_Margin__c,S4SHas_Children__c,S4SIBIT__c,S4SInitial_Purchase_Price__c,S4SInstallation__c,S4SInternal_Interest_Rate__c,S4SIntroducer_Sales__c,S4SInvesting_ARE__c,S4SInvolded_Siemens_Entities__c,S4SInvolved_Competence_Center__c,S4SMain_Reason__c,S4SRelevant_for_Forecast__c from Opportunity where @{variables('oppWhereClause')} Limit+50"
+                                            },
+                                            "host": {
+                                                "connection": {
+                                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                }
+                                            },
+                                            "method": "post",
+                                            "path": "/soql/executesoqlquery"
+                                        },
+                                        "runAfter": {},
+                                        "type": "ApiConnection"
+                                    }
+                                },
+                                "runAfter": {},
+                                "trackedProperties": {
+                                    "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+                                    "citizenName": "c00031",
+                                    "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'Spiridon')}",
+                                    "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                                    "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                                    "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'searchAccountOpportunity')}",
+                                    "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+                                    "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                                    "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+                                },
+                                "type": "Scope"
+                            }
+                        },
+                        "else": {
+                            "actions": {
+                                "Scope-Account": {
+                                    "actions": {
+                                        "Condition_check_if_account_exists": {
+                                            "actions": {
+                                                "AccountOpportunity": {
+                                                    "inputs": {
+                                                        "body": {
+                                                            "query": "select Id,IsDeleted,AccountId,RecordTypeId,Name,Description,StageName,Amount,Probability,S4SSold_To_SAP__c,ExpectedRevenue,TotalOpportunityQuantity,CloseDate,Type,NextStep,LeadSource,IsClosed,IsWon,ForecastCategory,ForecastCategoryName,CurrencyIsoCode,CampaignId,HasOpportunityLineItem,Pricebook2Id,OwnerId,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastActivityDate,FiscalQuarter,FiscalYear,Fiscal,LastViewedDate,LastReferencedDate,SyncedQuoteId,ContractId,HasOpenActivity,HasOverdueTask,Budget_Confirmed__c,Discovery_Completed__c,ROI_Analysis_Completed__c,Loss_Reason__c,S4SAcceptance_Closure__c,S4SAccount_Industry__c,S4SAlternative_Opportunity__c,S4SAmount_Financed__c,S4SAssigned_parental_Opportunity__c,S4SB2A_Outcome__c,S4SB2A_type__c,S4SBid_approval_PM040__c,S4SBooking_Funding_Date__c,S4SBusiness_Model_ZRG__c,S4SBusiness_Unit__c,S4SCAPEX__c,S4SChance_of_Execution__c,S4SChance_of_Success__c,S4SCity__c,S4SClosing_Date__c,S4SCommission_Country_1__c,S4SCommission_Country_2__c,S4SCommission_Country_3__c,S4SCommission_Country_4__c,S4SCommission_Percentage_1__c,S4SCommission_Percentage_2__c,S4SCommission_Percentage_3__c,S4SCommission_Percentage_4__c,S4SCompetitors__c,S4SContract_Duration_Month__c,S4SCorp_Lead_Country__c,S4SCountry_of_Installation__c,S4SCreated_from_Lead__c,S4SCross_Border_International_Business__c,S4SCustomer_Agreement_for_Data_Transfer__c,S4SCustomer_Rate__c,S4SDiscussion_in_PEF_Deal_Flow_Call__c,S4SDist_Channel__c,S4SDistribution_channel__c,S4SDivision__c,S4SEUR_Exchange_Rate__c,S4SEnd_Account_Account__c,S4SEnd_Account_Industry__c,S4SEnd_Account__c,S4SExpiry_Date_Risk_Approval__c,S4SField_of_Activity__c,S4SFinance_Product_Label__c,S4SFinancing_Demand_Division__c,S4SFinancing_Need__c,S4SFinancing_Product__c,S4SFunding_limit__c,S4SGross_Margin__c,S4SHas_Children__c,S4SIBIT__c,S4SInitial_Purchase_Price__c,S4SInstallation__c,S4SInternal_Interest_Rate__c,S4SIntroducer_Sales__c,S4SInvesting_ARE__c,S4SInvolded_Siemens_Entities__c,S4SInvolved_Competence_Center__c,S4SMain_Reason__c,S4SMarked_for_Deletion__c,S4SOPEX__c,S4SOPPORTUNITY_LegacyID__c,S4SOffer_Reference_ID__c,S4SOpportunity_Industry_Search__c,S4SOpportunity_Industry__c,S4SOpportunity_Type__c,S4SOrder_Intake_EUR__c,S4SOrder_Intake_USD__c,DB_Competitor__c,S4SOverdue_Time__c,S4SOwn_Content_Own_BU_Products__c,S4SOwn_Content_Own_DIV_Products__c,S4SOwn_Content_Own_DIV_Services__c,S4SOwn_Content_Siemens_Products_Services__c,S4SPEF_Advisory_Scope__c,S4SPM040_Released_Gross_Margin__c,S4SPM040_Released_Profit_EBIT__c,S4SPM040_Released_Risk_Contigency__c,S4SPM040_Released_Volume__c,S4SPM040_Transfer_date__c,S4SPM070_Transfer_Date__c,S4SPM070_Won_lost_Gross_Margin__c,S4SPM070_Won_lost_Profit_EBIT__c,S4SPM070_Won_lost_Risk_Contigency__c,S4SPM070_Won_lost_Volume__c,S4SAccount_Name_International__c,S4SPotential_Siemens_Volume__c,S4SPrevious_Stage__c,S4SPrevious_Status__c,S4SPrevious_System_Unique_ID__c,S4SPrimary_BookingItemID__c,S4SPrimary_CompetitorID__c,S4SProposed_to_COF__c,S4SProposed_to_Debt__c,S4SProposed_to_Equity__c,S4SROE__c,S4SReason_not_won__c,S4SReference_ID__c,S4SRelevant_for_Forecast__c,S4SSFS_Account_Rating_Date__c,S4SSFS_Account_Rating_Type__c,S4SSFS_Account_Rating__c,S4SSFS_Confidential__c,S4SSFS_Opportunity_Rating_Date__c,S4SSFS_Opportunity_Rating_Type__c,S4SSFS_Opportunity_Rating__c,S4SSOC_Category__c,S4SSale_Country__c,S4SSales_Branch__c,S4SSales_Department__c,S4SSales_District__c,S4SSales_Office__c,S4SSales_Status__c,S4SSales_Subregion__c,S4SSales_Territory__c,S4SSales_Type__c,S4SSalesforce_ID__c,S4SSenior_Leverage__c,S4SSite__c,S4SSolution_Support_End_Date__c,S4SSource__c,S4SSpread__c,S4SStart_project_PM080__c,S4SStatus_since__c,S4SStrategic_Priority__c,S4STarget_IRR__c,S4STerritory_Structure__c,S4STerritory__c,S4SThereof_SPV_SFS_Inc__c,S4STimestamp_to_COF__c,S4STimestamp_to_Debt__c,S4STimestamp_to_Equity__c,S4STotal_Debt_of_Opportunity__c,S4STotal_Equity_incl_Shareholder_Loans__c,S4STotal_Investment__c,S4STotal_Leverage__c,S4STotal_OI_Recurring_Business__c,S4STotal_Product_Amount_EUR__c,S4STotal_Product_Amount_USD__c,S4STotal_Project_Value__c,S4SType_of_Transaction__c,S4SUSD_Exchange_Rate__c,S4SWeighted_Order_Intake_EUR__c,S4SWeighted_Order_Intake_USD__c,S4SWeighted_Order_Intake__c,S4SWinner__c,S4SZip_Code__c,S4SBooking_Line_Item_Count__c,S4SCompetitorCount__c,S4SOrder_Intake__c,S4SPrimaryCompetitorCount__c,S4SPrimaryLineItemCount__c,S4STotal_SFS_Amount_to_fund_at_close__c,S4STotal_of_All_Tranches__c,S4STotal_of_Allocated_Amount__c,S4STotal_of_Approved_Amount__c,S4STotal_of_Requested_Amount__c,S4SAsset_Group__c,S4SAsset_Type__c,S4SBuy_America_n__c,S4SCOF_Country__c,S4SCategorization__c,S4SConfidentiality_Status__c,S4SContract_Schedule__c,S4SContract__c,S4SContractual_Insurance_requirements__c,S4SGovernmental_Agency__c,S4SGovernmental_Entity_Government_Funded__c,S4SInsurance_Database_ID__c,S4SIntroducer_Account_Name__c,S4SLOA_ID_Number__c,S4SOpportunity_Amount_EUR__c,S4SOpportunity_Amount_USD__c,S4SOur_Role__c,S4SPlanning_Tool__c,S4SProject_Volume__c,S4SRate_Spread__c,S4SSAP_Number__c,S4SSFS_Equity_Share__c,S4SSiemens_Equity__c,S4SWeighted_Total_Product_Amount_EUR__c,S4SWeighted_Total_Product_Amount_USD__c,S4SWeighted_Total_Product_Amount__c,S4SAdvisory_Volume__c,S4S_Total_SFS_Amount_Rollup__c,S4SApproval_Check__c,S4SApproval_Pending__c,S4SCreate_COMPAS_Quote__c,S4SExternal_Source__c,S4SLast_Sync_with_COMPAS__c,S4SOrder_Intake_Opportunity_Amount__c,S4SOriginal_Project_Solution_Opportunity__c,S4SProject_Category__c,S4SSystem_Installation_Type__c,S4SUserId__c,S4SWeighted_Opportunity_Amount__c,S4SWeighted_Order_Intake_Opp_Amount__c,S4SFinance_Product_Type__c from Opportunity where AccountId='@{body('Get_Account_By_Ifa')?['Id']}' AND @{variables('oppWhereClause')} and StageName = '2 - Bid Preparation' Limit+50"
+                                                        },
+                                                        "host": {
+                                                            "connection": {
+                                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                            }
+                                                        },
+                                                        "method": "post",
+                                                        "path": "/soql/executesoqlquery"
+                                                    },
+                                                    "runAfter": {},
+                                                    "type": "ApiConnection"
+                                                },
+                                                "Append_to_array_variable_account_opp": {
+                                                    "inputs": {
+                                                        "name": "accountOpportunityArray",
+                                                        "value": {
+                                                            "Account": {
+                                                                "Account": "@body('Get_Account_By_Ifa')",
+                                                                "Opportunity": "@variables('OpportunityArray')"
+                                                            }
+                                                        }
+                                                    },
+                                                    "runAfter": {
+                                                        "For_each_AccountOpportunity": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "AppendToArrayVariable"
+                                                },
+                                                "For_each_AccountOpportunity": {
+                                                    "actions": {
+                                                        "Append_to_oppArray_variable-AccountOpportunity": {
+                                                            "inputs": {
+                                                                "name": "OpportunityArray",
+                                                                "value": {
+                                                                    "Bookinglineitem": "@body('FetchBookingLineItem-AccountOpportunity')?['records']?[0]",
+                                                                    "Opty": "@item()",
+                                                                    "SISIC": "@body('SISIC-AccountOpportunity')?['records']?[0]"
+                                                                }
+                                                            },
+                                                            "runAfter": {
+                                                                "FetchBookingLineItem-AccountOpportunity": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "AppendToArrayVariable"
+                                                        },
+                                                        "Condition_SISIC_WhereClause-AccountOpportunity": {
+                                                            "actions": {
+                                                                "SISIC-AccountOpportunity": {
+                                                                    "inputs": {
+                                                                        "body": {
+                                                                            "query": "Select Id,Name,S4SIndustry_Description__c,S4SIndustry_Segment__c From S4SSISIC__c where Id='@{items('For_each_AccountOpportunity')?['S4SOpportunity_Industry_Search__c']}'\n"
+                                                                        },
+                                                                        "host": {
+                                                                            "connection": {
+                                                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                            }
+                                                                        },
+                                                                        "method": "post",
+                                                                        "path": "/soql/executesoqlquery"
+                                                                    },
+                                                                    "runAfter": {},
+                                                                    "type": "ApiConnection"
+                                                                }
+                                                            },
+                                                            "expression": {
+                                                                "and": [
+                                                                    {
+                                                                        "not": {
+                                                                            "equals": [
+                                                                                "@items('For_each_AccountOpportunity')?['S4SOpportunity_Industry_Search__c']",
+                                                                                "@string('')"
+                                                                            ]
+                                                                        }
+                                                                    },
+                                                                    {
+                                                                        "not": {
+                                                                            "equals": [
+                                                                                "@items('For_each_AccountOpportunity')?['S4SOpportunity_Industry_Search__c']",
+                                                                                "@null"
+                                                                            ]
+                                                                        }
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "runAfter": {},
+                                                            "type": "If"
+                                                        },
+                                                        "FetchBookingLineItem-AccountOpportunity": {
+                                                            "inputs": {
+                                                                "body": {
+                                                                    "query": "Select Id,IsDeleted,Name,CurrencyIsoCode,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastActivityDate,S4SOpportunity__c,S4SBusiness_Segment__c,S4SBusiness_Sub_Segment__c,S4SBusiness_Unit__c,S4SDepth_Structure__c,S4SDivisions__c,S4SGCK__c,S4SOrder_Intake_EUR__c,S4SOrder_Intake_USD__c,S4SOrder_Intake__c,S4SPrimary_Flag__c,S4SWeighted_Order_Intake_EUR__c,S4SWeighted_Order_Intake_USD__c,S4SWeighted_Order_Intake__c,S4SPCK__c,S4SQuantity__c,S4SSPG__c,S4SSales_Price__c,S4SExternal_Source__c,S4SProgram_Fund__c,S4SX1st_Year_return__c,S4SX2nd_Year_Return__c,X3rd_Year_Return__c From S4SBooking_Line_Item__c where S4sopportunity__c='@{items('For_each_AccountOpportunity')?['Id']}'"
+                                                                },
+                                                                "host": {
+                                                                    "connection": {
+                                                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                    }
+                                                                },
+                                                                "method": "post",
+                                                                "path": "/soql/executesoqlquery"
+                                                            },
+                                                            "runAfter": {
+                                                                "Condition_SISIC_WhereClause-AccountOpportunity": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "ApiConnection"
+                                                        }
+                                                    },
+                                                    "foreach": "@body('AccountOpportunity')?['records']",
+                                                    "runAfter": {
+                                                        "AccountOpportunity": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "Foreach"
+                                                }
+                                            },
+                                            "else": {
+                                                "actions": {
+                                                    "InvalidAccount_Response": {
+                                                        "inputs": {
+                                                            "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">\n   <soapenv:Body>\n      <ser-root:searchAccOppResponse xmlns:ser-root=\"http://demchdc8zkx.dc4ca.siemens.de/SIE.SF4S.Spiridon.Public.WebServices.Provider:SIE_SF4S_SPIRIDON\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n         <SIE_SF4S_searchAccOppRes_Spiridon xsi:nil=\"true\"/>\n      </ser-root:searchAccOppResponse>\n   </soapenv:Body>\n</soapenv:Envelope>",
+                                                            "headers": {
+                                                                "Content-Type": "text/xml"
+                                                            },
+                                                            "statusCode": 200
+                                                        },
+                                                        "kind": "Http",
+                                                        "runAfter": {},
+                                                        "type": "Response"
+                                                    },
+                                                    "InvalidAccount_Terminate": {
+                                                        "inputs": {
+                                                            "runStatus": "Succeeded"
+                                                        },
+                                                        "runAfter": {
+                                                            "InvalidAccount_Response": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "Terminate"
+                                                    }
+                                                }
+                                            },
+                                            "expression": {
+                                                "and": [
+                                                    {
+                                                        "equals": [
+                                                            "@outputs('Get_Account_By_Ifa')?['statusCode']",
+                                                            200
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "runAfter": {
+                                                "Get_Account_By_Ifa": [
+                                                    "Succeeded",
+                                                    "Failed"
+                                                ]
+                                            },
+                                            "type": "If"
+                                        },
+                                        "Get_Account_By_Ifa": {
+                                            "inputs": {
+                                                "host": {
+                                                    "connection": {
+                                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                    }
+                                                },
+                                                "method": "get",
+                                                "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Account'))}/externalIdFields/@{encodeURIComponent(encodeURIComponent('S4SIfA__c'))}/@{encodeURIComponent(encodeURIComponent(xpath(xml(triggerBody()),'.//IfaNumber/text()')?[0]))}"
+                                            },
+                                            "runAfter": {},
+                                            "type": "ApiConnection"
+                                        }
+                                    },
+                                    "runAfter": {},
+                                    "type": "Scope"
+                                }
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "equals": [
+                                        "@variables('oppDetailExists')",
+                                        true
+                                    ]
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Condition_to_check_oppwhereClause_is_empty": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Condition_to_check_oppwhereClause_is_empty": {
+                        "actions": {
+                            "Empty_Response_With_Read_Time_out_error": {
+                                "inputs": {
+                                    "statusCode": 408
+                                },
+                                "kind": "Http",
+                                "runAfter": {},
+                                "type": "Response"
+                            },
+                            "Terminate_When_Empty_Input_request": {
+                                "inputs": {
+                                    "runStatus": "Succeeded"
+                                },
+                                "runAfter": {
+                                    "Empty_Response_With_Read_Time_out_error": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Terminate"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "equals": [
+                                        "@variables('oppWhereClause')",
+                                        ""
+                                    ]
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Condition_to_check_IFA_Number": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "SuccessResponse": {
+                        "inputs": {
+                            "body": "@body('Transform_XML')",
+                            "headers": {
+                                "Content-Type": "text/xml"
+                            },
+                            "statusCode": 200
+                        },
+                        "kind": "Http",
+                        "runAfter": {
+                            "Transform_XML": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Response"
+                    },
+                    "Transform_XML": {
+                        "inputs": {
+                            "content": "@{xml(outputs('Compose_Response'))}",
+                            "integrationAccount": {
+                                "map": {
+                                    "name": "@variables('ResponseMap')"
+                                }
+                            },
+                            "transformOptions": "ApplyXsltOutputAttributes"
+                        },
+                        "runAfter": {
+                            "Compose_Response": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Xslt"
+                    }
+                },
+                "runAfter": {
+                    "Initialize_ResponseMap_name": [
+                        "Succeeded"
+                    ],
+                    "Initialize_oppWhereClause": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable-S4SOpportunity_Industry_Search__c": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable-accountOpportunityArray": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_OpportunityArray": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_oppDetailExists": [
+                        "Succeeded"
+                    ]
+                },
+                "trackedProperties": {
+                    "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'enternal')}",
+                    "citizenName": "c00031",
+                    "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'Spiridon')}",
+                    "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                    "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                    "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'SearchAccountOpportunity')}",
+                    "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+                    "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                    "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+                },
+                "type": "Scope"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "manual": {
+                "inputs": {},
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+    }

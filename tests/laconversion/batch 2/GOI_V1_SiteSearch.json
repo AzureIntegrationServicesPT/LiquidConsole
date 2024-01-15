@@ -1,0 +1,597 @@
+{
+	"$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+	"actions": {
+		"Initialize_variable_Installation_Array": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "installations_array",
+						"type": "array"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Initialize_variable_Sites_Array": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "sites_array",
+						"type": "array"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Scope_Catch": {
+			"actions": {
+				"Response_Error": {
+					"inputs": {
+						"body": {
+							"message": "Something went wrong."
+						},
+						"statusCode": 500
+					},
+					"kind": "Http",
+					"runAfter": {},
+					"type": "Response"
+				},
+				"Terminate": {
+					"inputs": {
+						"runError": {
+							"code": "500",
+							"message": "\"Something went wrong.\""
+						},
+						"runStatus": "Failed"
+					},
+					"runAfter": {
+						"Response_Error": [
+							"Succeeded"
+						]
+					},
+					"type": "Terminate"
+				}
+			},
+			"runAfter": {
+				"Scope_Try": [
+					"TimedOut",
+					"Skipped",
+					"Failed"
+				]
+			},
+			"type": "Scope"
+		},
+		"Scope_Try": {
+			"actions": {
+				"Check_AF_Match": {
+					"actions": {
+						"End_Execution_-_Success": {
+							"inputs": {
+								"runStatus": "Succeeded"
+							},
+							"runAfter": {
+								"Response_No_Match": [
+									"Succeeded"
+								]
+							},
+							"type": "Terminate"
+						},
+						"Response_No_Match": {
+							"inputs": {
+								"body": "@body('Get_Where_Clauses')",
+								"statusCode": 200
+							},
+							"kind": "Http",
+							"runAfter": {},
+							"type": "Response"
+						}
+					},
+					"else": {
+						"actions": {
+							"Check_resultSpecification": {
+								"actions": {
+									"For_each_Site": {
+										"actions": {
+											"Append_to_Sites_Array_Variable": {
+												"inputs": {
+													"name": "sites_array",
+													"value": "@outputs('Compose_Sites')"
+												},
+												"runAfter": {
+													"Compose_Sites": [
+														"Succeeded"
+													]
+												},
+												"type": "AppendToArrayVariable"
+											},
+											"Compose_Sites": {
+												"inputs": {
+													"CurrencyIsoCode": "@items('For_each_Site')?['CurrencyIsoCode']",
+													"Id": "@items('For_each_Site')?['Id']",
+													"Name": "@items('For_each_Site')?['Name']",
+													"Owner": {
+														"Name": "@items('For_each_Site')?['Owner']?['Name']"
+													},
+													"S4SAccount_Status__c": "@items('For_each_Site')?['S4SAccount_Status__c']",
+													"S4SAccount__c": {
+														"Name": "@items('For_each_Site')?['S4SAccount__r']?['Name']",
+														"S4SIfa__c": "@items('For_each_Site')?['S4SAccount__r']?['S4SIfa__c']"
+													},
+													"S4SArea_in_m2__c": "@items('For_each_Site')?['S4SArea_in_m2__c']",
+													"S4SBuilding__c": "@items('For_each_Site')?['S4SBuilding__c']",
+													"S4SBusiness_Unit__c": "@items('For_each_Site')?['S4SBusiness_Unit__c']",
+													"S4SCity__c": "@items('For_each_Site')?['S4SCity__c']",
+													"S4SCountry__c": "@items('For_each_Site')?['S4SCountry__c']",
+													"S4SDivision__c": "@items('For_each_Site')?['S4SDivision__c']",
+													"S4SExternal_ID__c": "@items('For_each_Site')?['S4SExternal_ID__c']",
+													"S4SExternal_Source__c": "@items('For_each_Site')?['S4SExternal_Source__c']",
+													"S4SFacility_Type__c": "@items('For_each_Site')?['S4SFacility_Type__c']",
+													"S4SFloor__c": "@items('For_each_Site')?['S4SFloor__c']",
+													"S4SGeolocation__Latitude__s": "@items('For_each_Site')?['S4SGeolocation__Latitude__s']",
+													"S4SGeolocation__Longitude__s": "@items('For_each_Site')?['S4SGeolocation__Longitude__s']",
+													"S4SGeolocation__c": "@items('For_each_Site')?['S4SGeolocation__c']",
+													"S4SInactivation_Reason__c": "@items('For_each_Site')?['S4SInactivation_Reason__c']",
+													"S4SLead_Country__c": "@items('For_each_Site')?['S4SLead_Country__c']",
+													"S4SNumber_of_Contact_Roles__c": "@items('For_each_Site')?['S4SNumber_of_Contact_Roles__c']",
+													"S4SNumber_of_Primary_Contact_Roles__c": "@items('For_each_Site')?['S4SNumber_of_Primary_Contact_Roles__c']",
+													"S4SParent_Site__c": "@items('For_each_Site')?['S4SParent_Site__c']",
+													"S4SPostal_Code__c": "@items('For_each_Site')?['S4SPostal_Code__c']",
+													"S4SPublic_Database_Number__c": "@items('For_each_Site')?['S4SPublic_Database_Number__c']",
+													"S4SRoom__c": "@items('For_each_Site')?['S4SRoom__c']",
+													"S4SSAP_FL_Number__c": "@items('For_each_Site')?['S4SSAP_FL_Number__c']",
+													"S4SSales_Branch__c": "@items('For_each_Site')?['S4SSales_Branch__c']",
+													"S4SSales_Country__c": "@items('For_each_Site')?['S4SSales_Country__c']",
+													"S4SSales_Department__c": "@items('For_each_Site')?['S4SSales_Department__c']",
+													"S4SSales_District__c": "@items('For_each_Site')?['S4SSales_District__c']",
+													"S4SSales_Office__c": "@items('For_each_Site')?['S4SSales_Office__c']",
+													"S4SSales_Subregion__c": "@items('For_each_Site')?['S4SSales_Subregion__c']",
+													"S4SSales_Territory__c": "@items('For_each_Site')?['S4SSales_Territory__c']",
+													"S4SShow_Location__c": "@items('For_each_Site')?['S4SShow_Location__c']",
+													"S4SSite_Description__c": "@items('For_each_Site')?['S4SSite_Description__c']",
+													"S4SSite_Legacy_ID__c": "@items('For_each_Site')?['S4SSite_Legacy_ID__c']",
+													"S4SSite_Status__c": "@items('For_each_Site')?['S4SSite_Status__c']",
+													"S4SState__c": "@items('For_each_Site')?['S4SState__c']",
+													"S4SStreet__c": "@items('For_each_Site')?['S4SStreet__c']",
+													"S4STerritory_Structure__c": {
+														"Name": "@items('For_each_Site')?['S4STerritory_Structure__r']?['Name']",
+														"S4SSales_Territory__c": "@items('For_each_Site')?['S4STerritory_Structure__r']?['S4SSales_Territory__c']"
+													},
+													"S4STypes_of_Site__c": "@items('For_each_Site')?['S4STypes_of_Site__c']"
+												},
+												"runAfter": {},
+												"type": "Compose"
+											}
+										},
+										"foreach": "@body('Get_Site_Information')?['records']",
+										"runAfter": {},
+										"type": "Foreach"
+									},
+									"Response_Sites_Only": {
+										"inputs": {
+											"body": {
+											"@{if(\r\n equals(triggerOutputs()?['headers']?['username'], 'SF4S_O2O_API_USER'),\r\n string('S4SSite_c'),\r\n string('S4SSite__c')\r\n)}": "@if(\r\n equals(triggerOutputs()?['headers']?['username'], 'SF4S_O2O_API_USER'),\r\n json(replace(string(variables('sites_array')), '__c', '_c')),\r\n variables('sites_array')\r\n)",
+											"message": "@{if(equals(toUpper(triggerBody()?['search']?['resultSpecification']),'SI'),if(greaterOrEquals(coalesce(body('Get_Site_Information')?['totalSize'],0),21),'Too many matching Sites. please refine the search criteria to also retrieve Installations',''),'')}"
+											},
+											"statusCode": 200
+										},
+										"kind": "Http",
+										"runAfter": {
+											"For_each_Site": [
+												"Succeeded"
+											]
+										},
+										"type": "Response"
+									}
+								},
+								"description": "If resultSpecification is \"S\", only Sites are necessary",
+								"else": {
+									"actions": {
+										"For_each_Site_ID_Search_Installation": {
+											"actions": {
+												"Append_to_array_variable": {
+													"inputs": {
+														"name": "sites_array",
+														"value": "@outputs('Compose_Site')"
+													},
+													"runAfter": {
+														"Compose_Site": [
+															"Succeeded"
+														]
+													},
+													"type": "AppendToArrayVariable"
+												},
+												"Compose_Site": {
+													"inputs": {
+														"CurrencyIsoCode": "@items('For_each_Site_ID_Search_Installation')?['CurrencyIsoCode']",
+														"Id": "@items('For_each_Site_ID_Search_Installation')?['Id']",
+														"Name": "@items('For_each_Site_ID_Search_Installation')?['Name']",
+														"Owner": {
+															"Name": "@items('For_each_Site_ID_Search_Installation')?['Owner']?['Name']"
+														},
+														"S4SAccount_Status__c": "@items('For_each_Site_ID_Search_Installation')?['S4SAccount_Status__c']",
+														"S4SAccount__c": {
+															"Name": "@items('For_each_Site_ID_Search_Installation')?['S4SAccount__r']?['Name']",
+															"S4SIfa__c": "@items('For_each_Site_ID_Search_Installation')?['S4SAccount__r']?['S4SIfa__c']"
+														},
+														"S4SArea_in_m2__c": "@items('For_each_Site_ID_Search_Installation')?['S4SArea_in_m2__c']",
+														"S4SBuilding__c": "@items('For_each_Site_ID_Search_Installation')?['S4SBuilding__c']",
+														"S4SBusiness_Unit__c": "@items('For_each_Site_ID_Search_Installation')?['S4SBusiness_Unit__c']",
+														"S4SCity__c": "@items('For_each_Site_ID_Search_Installation')?['S4SCity__c']",
+														"S4SCountry__c": "@items('For_each_Site_ID_Search_Installation')?['S4SCountry__c']",
+														"S4SDivision__c": "@items('For_each_Site_ID_Search_Installation')?['S4SDivision__c']",
+														"S4SExternal_ID__c": "@items('For_each_Site_ID_Search_Installation')?['S4SExternal_ID__c']",
+														"S4SExternal_Source__c": "@items('For_each_Site_ID_Search_Installation')?['S4SExternal_Source__c']",
+														"S4SFacility_Type__c": "@items('For_each_Site_ID_Search_Installation')?['S4SFacility_Type__c']",
+														"S4SFloor__c": "@items('For_each_Site_ID_Search_Installation')?['S4SFloor__c']",
+														"S4SGeolocation__Latitude__s": "@items('For_each_Site_ID_Search_Installation')?['S4SGeolocation__Latitude__s']",
+														"S4SGeolocation__Longitude__s": "@items('For_each_Site_ID_Search_Installation')?['S4SGeolocation__Longitude__s']",
+														"S4SGeolocation__c": "@items('For_each_Site_ID_Search_Installation')?['S4SGeolocation__c']",
+														"S4SInactivation_Reason__c": "@items('For_each_Site_ID_Search_Installation')?['S4SInactivation_Reason__c']",
+														"S4SInstallation__c": "@body('Prepare_Installations')?['S4SInstallation__c']",
+														"S4SLead_Country__c": "@items('For_each_Site_ID_Search_Installation')?['S4SLead_Country__c']",
+														"S4SNumber_of_Contact_Roles__c": "@items('For_each_Site_ID_Search_Installation')?['S4SNumber_of_Contact_Roles__c']",
+														"S4SNumber_of_Primary_Contact_Roles__c": "@items('For_each_Site_ID_Search_Installation')?['S4SNumber_of_Primary_Contact_Roles__c']",
+														"S4SParent_Site__c": "@items('For_each_Site_ID_Search_Installation')?['S4SParent_Site__c']",
+														"S4SPostal_Code__c": "@items('For_each_Site_ID_Search_Installation')?['S4SPostal_Code__c']",
+														"S4SPublic_Database_Number__c": "@items('For_each_Site_ID_Search_Installation')?['S4SPublic_Database_Number__c']",
+														"S4SRoom__c": "@items('For_each_Site_ID_Search_Installation')?['S4SRoom__c']",
+														"S4SSAP_FL_Number__c": "@items('For_each_Site_ID_Search_Installation')?['S4SSAP_FL_Number__c']",
+														"S4SSales_Branch__c": "@items('For_each_Site_ID_Search_Installation')?['S4SSales_Branch__c']",
+														"S4SSales_Country__c": "@items('For_each_Site_ID_Search_Installation')?['S4SSales_Country__c']",
+														"S4SSales_Department__c": "@items('For_each_Site_ID_Search_Installation')?['S4SSales_Department__c']",
+														"S4SSales_District__c": "@items('For_each_Site_ID_Search_Installation')?['S4SSales_District__c']",
+														"S4SSales_Office__c": "@items('For_each_Site_ID_Search_Installation')?['S4SSales_Office__c']",
+														"S4SSales_Subregion__c": "@items('For_each_Site_ID_Search_Installation')?['S4SSales_Subregion__c']",
+														"S4SSales_Territory__c": "@items('For_each_Site_ID_Search_Installation')?['S4SSales_Territory__c']",
+														"S4SShow_Location__c": "@items('For_each_Site_ID_Search_Installation')?['S4SShow_Location__c']",
+														"S4SSite_Description__c": "@items('For_each_Site_ID_Search_Installation')?['S4SSite_Description__c']",
+														"S4SSite_Legacy_ID__c": "@items('For_each_Site_ID_Search_Installation')?['S4SSite_Legacy_ID__c']",
+														"S4SSite_Status__c": "@items('For_each_Site_ID_Search_Installation')?['S4SSite_Status__c']",
+														"S4SState__c": "@items('For_each_Site_ID_Search_Installation')?['S4SState__c']",
+														"S4SStreet__c": "@items('For_each_Site_ID_Search_Installation')?['S4SStreet__c']",
+														"S4STerritory_Structure__c": {
+															"Name": "@items('For_each_Site_ID_Search_Installation')?['S4STerritory_Structure__r']?['Name']",
+															"S4SSales_Territory__c": "@items('For_each_Site_ID_Search_Installation')?['S4STerritory_Structure__r']?['S4SSales_Territory__c']"
+														},
+														"S4STypes_of_Site__c": "@items('For_each_Site_ID_Search_Installation')?['S4STypes_of_Site__c']"
+													},
+													"runAfter": {
+														"Prepare_Installations": [
+															"Succeeded"
+														]
+													},
+													"type": "Compose"
+												},
+												"Installation_Query_based_on_Site_Id": {
+													"inputs": {
+														"body": {
+															"query": "SELECT Id, Owner.Name, Name, CurrencyIsoCode, S4SActive_Contract__c, S4SAge_Years__c, S4SBOM_items_Number__c, S4SCity__c, S4SCountry__c, S4SData_Point_Total__c, S4SInstallation_Description__c, S4SInstallation_Number__c, S4SLicense_Information__c, S4SOwned_by__r.Name, S4SOwned_by__r.S4SIfa__c, S4SPostal_Code__c, S4SRemote_Access__c, S4SSite__c, S4SSold_to_Party__r.Name, S4SSold_to_Party__r.S4SIfa__c, S4SStart_Up_Date__c, S4SState__c, S4SStreet__c, S4SSystem_Portfolio__c, S4SExternal_ID__c, S4SWarranty_End_Date__c, S4SWarranty_Start_Date__c, S4SNumber_of_Active_Contracts__c, S4SMarked_for_Deletion__c, S4SDivision__c, S4SExternal_Source__c, S4SLead_Country__c FROM S4SInstallation__c @{if(equals(body('Get_Where_Clauses')?['installation_clause'], string('WHERE S4SSite__c = ')),\r\n    concat(string('WHERE S4SSite__c = '), '''', string(items('For_Each_Site_ID_Search_Installation')?['Id']), ''''),\r\n    body('Get_Where_Clauses')?['installation_clause']\r\n)}"
+														},
+														"host": {
+															"connection": {
+																"name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+															}
+														},
+														"method": "post",
+														"path": "/soql/executesoqlquery"
+													},
+													"runAfter": {},
+													"type": "ApiConnection"
+												},
+												"Prepare_AF_Body": {
+													"inputs": {
+														"curr_site": "@items('For_each_Site_ID_Search_Installation')",
+														"installations": "@body('Installation_Query_based_on_Site_Id')?['records']"
+													},
+													"runAfter": {
+														"Installation_Query_based_on_Site_Id": [
+															"Succeeded"
+														]
+													},
+													"type": "Compose"
+												},
+												"Prepare_Installations": {
+													"inputs": {
+														"body": "@outputs('Prepare_AF_Body')",
+														"authentication": {
+															"type": "Raw",
+															"value": "[parameters('functionAppKey')]"
+														},
+														"function": {
+															"id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+														},
+														"headers": {
+															"Accept": "application/json",
+															"Content-Type": "application/json",
+															"Filename": "${liquid_installation}"
+														},
+														"retryPolicy": {
+															"count": 2,
+                                                            "interval": "PT5S",
+                                                            "type": "fixed"
+														}
+													},
+													"runAfter": {
+														"Prepare_AF_Body": [
+															"Succeeded"
+														]
+													},
+													"type": "Function"
+												}
+											},
+											"foreach": "@body('Get_Site_Information')?['records']",
+											"runAfter": {},
+											"type": "Foreach"
+										},
+										"Response_Sites_and_Installations": {
+											"inputs": {
+												"body": {
+                                                    "@{if(\n    equals(triggerOutputs()?['headers']?['username'], 'SF4S_O2O_API_USER'),\n    string('S4SSite_c'),\n    string('S4SSite__c')\n)}": "@if(\n    equals(triggerOutputs()?['headers']?['username'], 'SF4S_O2O_API_USER'),\n    json(replace(string(variables('sites_array')), '__c', '_c')),\n    variables('sites_array')\n)"
+                                                },
+												"statusCode": 200
+											},
+											"kind": "Http",
+											"runAfter": {
+												"For_each_Site_ID_Search_Installation": [
+													"Succeeded"
+												]
+											},
+											"type": "Response"
+										}
+									}
+								},
+								"expression": {
+									"and": [
+										{
+											"equals": [
+											"@if(greaterOrEquals(coalesce(body('Get_Site_Information')?['totalSize'],0),21),'S',toUpper(triggerBody()?['search']?['resultSpecification']))",
+											"@string('S')"
+											]
+										}
+									]
+								},
+								"runAfter": {
+									"Get_Site_Information": [
+										"Succeeded"
+									]
+								},
+								"type": "If"
+							},
+							"Get_Site_Information": {
+								"inputs": {
+									"body": {
+										"query": "SELECT Id, S4SSAP_FL_Number__c, Name, CurrencyIsoCode, S4SArea_in_m2__c, S4SBuilding__c, S4SBusiness_Unit__c, S4SCity__c, S4SCountry__c, S4SDivision__c, S4SFacility_Type__c, S4SFloor__c, S4SGeolocation__Latitude__s, S4SGeolocation__Longitude__s, S4SGeolocation__c, S4SInactivation_Reason__c, S4SLead_Country__c, S4SAccount__r.Name, S4SAccount_Status__c, S4SAccount__r.S4SIfA__c, S4SParent_Site__c, S4SPostal_Code__c, S4SPublic_Database_Number__c, S4SRoom__c, S4SSales_Branch__c, S4SSales_Country__c, S4SSales_Department__c, S4SSales_District__c, S4SSales_Office__c, S4SSales_Subregion__c, S4SSales_Territory__c, S4SSite_Description__c, S4SState__c, S4SStreet__c, S4STerritory_Structure__r.Name, S4SExternal_ID__c, S4STerritory_Structure__r.S4SSales_Territory__c, S4STypes_of_Site__c, S4SNumber_of_Contact_Roles__c, S4SNumber_of_Primary_Contact_Roles__c, S4SShow_Location__c, S4SSite_Legacy_ID__c, S4SSite_Status__c,  S4SExternal_Source__c, Owner.Name from S4SSite__c @{body('Get_Where_Clauses')?['site_clause']} LIMIT 200"
+									},
+									"host": {
+										"connection": {
+											"name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+										}
+									},
+									"method": "post",
+									"path": "/soql/executesoqlquery",
+									"retryPolicy": {
+										"type": "none"
+									}
+								},
+								"runAfter": {},
+								"type": "ApiConnection"
+							}
+						}
+					},
+					"expression": {
+						"and": [
+							{
+								"not": {
+									"equals": [
+										"@body('Get_Where_Clauses')?['message']",
+										"@null"
+									]
+								}
+							},
+							{
+								"not": {
+									"equals": [
+										"@body('Get_Where_Clauses')?['message']",
+										"@string('')"
+									]
+								}
+							}
+						]
+					},
+					"runAfter": {
+						"Get_Where_Clauses": [
+							"Succeeded"
+						]
+					},
+					"type": "If"
+				},
+				"Compose_JSON_for_Azure_Function": {
+					"description": "JSON Body that's going to be sent to the Azure Function with account Id and S4SSite",
+					"inputs": {
+						"S4SAccount_var": "@body('getAccountId_SiteAccount_IFA')?['Id']",						
+						"S4SOwned_by_var": "@body('getAccountId_InstallationOwnedBy_IFA')?['Id']",						
+						"S4SSold_to_Party_var": "@body('getAccountId_InstallationSoldToParty_IFA')?['Id']",
+						"body": "@triggerBody()"
+					},
+					"runAfter": {},
+					"type": "Compose"
+				},
+				"Get_Where_Clauses": {
+					"inputs": {
+						"body": "@outputs('Compose_JSON_for_Azure_Function')",
+						"authentication": {
+							"type": "Raw",
+							"value": "[parameters('functionAppKey')]"
+						},
+						"function": {
+							"id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+						},
+						"headers": {
+							"Accept": "application/json",
+							"Content-Type": "application/json",
+							"Filename": "${liquid_where}"
+						},
+						"retryPolicy": {
+							"type": "none"
+						}
+					},
+					"runAfter": {
+						"Compose_JSON_for_Azure_Function": [
+							"Succeeded"
+						]
+					},
+					"type": "Function"
+				}
+			},
+			"runAfter": {
+				"Initialize_variable_Installation_Array": [
+					"Succeeded"
+				],
+				"Initialize_variable_Sites_Array": [
+					"Succeeded"
+				],
+				"getAccountId_InstallationOwnedBy_IFA": [
+					"Succeeded"
+				],
+				"getAccountId_InstallationSoldToParty_IFA": [
+					"Succeeded"
+				],
+				"getAccountId_SiteAccount_IFA": [
+					"Succeeded"
+				]
+			},
+			"type": "Scope"
+		},
+		"getAccountId_InstallationOwnedBy_IFA": {
+			"inputs": {
+				"body": {
+					"S4SIfA__c": "@triggerBody()?['search']?['S4SInstallation__c']?['S4SOwned_by__c']?['S4SIfa__c']"
+				},
+				"host": {
+					"triggerName": "manual",
+					"workflow": {
+						"id": "${int_getAccountId_logicAppId}"
+					}
+				}
+			},
+			"runAfter": {},
+			"type": "Workflow"
+		},
+		"getAccountId_InstallationSoldToParty_IFA": {
+			"inputs": {
+				"body": {
+					"S4SIfA__c": "@triggerBody()?['search']?['S4SInstallation__c']?['S4SSold_to_Party__c']?['S4SIfa__c']"
+				},
+				"host": {
+					"triggerName": "manual",
+					"workflow": {
+						"id": "${int_getAccountId_logicAppId}"
+					}
+				}
+			},
+			"runAfter": {},
+			"type": "Workflow"
+		},
+		"getAccountId_SiteAccount_IFA": {
+			"inputs": {
+				"body": {
+					"S4SIfA__c": "@triggerBody()?['search']?['S4SSite__c']?['S4SAccount__c']?['S4SIfa__c']"
+				},
+				"host": {
+					"triggerName": "manual",
+					"workflow": {
+						"id": "${int_getAccountId_logicAppId}"
+					}
+				}
+			},
+			"runAfter": {},
+			"type": "Workflow"
+		}
+	},
+	"contentVersion": "1.0.0.0",
+	"outputs": {},
+	"parameters": {
+		"$connections": {
+			"defaultValue": {},
+			"type": "Object"
+		}
+	},
+	"triggers": {
+		"manual": {
+			"inputs": {
+				"schema": {
+					"properties": {
+						"search": {
+							"properties": {
+								"S4SInstallation__c": {
+									"properties": {
+										"Id": {
+											"type": "string"
+										},
+										"S4SInstallation_Number__c": {
+											"type": "string"
+										},
+										"S4SOwned_by__c": {
+											"properties": {
+												"Id": {
+													"type": "string"
+												},
+												"S4SIfa__c": {
+													"type": "string"
+												}
+											},
+											"type": "object"
+										},
+										"S4SSold_to_Party__c": {
+											"properties": {
+												"Id": {
+													"type": "string"
+												},
+												"S4SIfa__c": {
+													"type": "string"
+												}
+											},
+											"type": "object"
+										}
+									},
+									"type": "object"
+								},
+								"S4SSite__c": {
+									"properties": {
+										"Id": {
+											"type": "string"
+										},
+										"S4SAccount__c": {
+											"properties": {
+												"Id": {
+													"type": "string"
+												},
+												"S4SIfa__c": {
+													"type": "string"
+												}
+											},
+											"type": "object"
+										},
+										"S4SSAP_FL_Number__c": {
+											"type": "string"
+										}
+									},
+									"type": "object"
+								},
+								"resultSpecification": {
+									"type": "string"
+								}
+							},
+							"type": "object"
+						}
+					},
+					"type": "object"
+				}
+			},
+			"kind": "Http",
+			"type": "Request"
+		}
+	}
+}

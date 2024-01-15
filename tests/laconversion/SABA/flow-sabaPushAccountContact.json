@@ -1,0 +1,399 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "actions": {
+    "Initialize_date_time_variable": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "datetime",
+            "type": "String",
+            "value": "yyyy-MM-dd'T'HH:mm:ss.SSS"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "Main": {
+      "actions": {
+        "Catch": {
+          "actions": {
+            "Catch_block_Terminate": {
+              "inputs": {
+                "runError": {
+                  "message": "Control entered Catch block"
+                },
+                "runStatus": "Failed"
+              },
+              "runAfter": {},
+              "type": "Terminate"
+            }
+          },
+          "runAfter": {
+            "Try": [
+              "Failed",
+              "Skipped",
+              "TimedOut"
+            ]
+          },
+          "type": "Scope"
+        },
+        "Try": {
+          "actions": {
+            "Account_getRecords": {
+              "inputs": {
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                  }
+                },
+                "method": "get",
+                "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Account'))}/items",
+                "queries": {
+                  "$filter": "@parameters('accountFilter')",
+                  "$select": "@parameters('accountFields')"
+                }
+              },
+              "runAfter": {
+                "Set_variable": [
+                  "Succeeded"
+                ]
+              },
+              "runtimeConfiguration": {
+                "paginationPolicy": {
+                  "minimumItemCount": 20000
+                }
+              },
+              "type": "ApiConnection"
+            },
+            "Contacts_getRecords": {
+              "inputs": {
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                  }
+                },
+                "method": "get",
+                "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Contact'))}/items",
+                "queries": {
+                  "$filter": "@parameters('contactFilter')",
+                  "$select": "@parameters('contactFields')"
+                }
+              },
+              "runAfter": {
+                "Set_variable": [
+                  "Succeeded"
+                ]
+              },
+              "runtimeConfiguration": {
+                "paginationPolicy": {
+                  "minimumItemCount": 20000
+                }
+              },
+              "type": "ApiConnection"
+            },
+            "Create_Accounts_CSV": {
+              "inputs": {
+                "columns": [
+                  {
+                    "header": "ID",
+                    "value": "@item()?['Id']"
+                  },
+                  {
+                    "header": "S4SIFA__C",
+                    "value": "@item()?['S4SIfA__c']"
+                  },
+                  {
+                    "header": "NAME",
+                    "value": "@item()?['Name']"
+                  },
+                  {
+                    "header": "S4SACCOUNT_NAME_INTERNATIONAL__C",
+                    "value": "@item()?['S4SAccount_Name_International__c']"
+                  },
+                  {
+                    "header": "RECORDTYPEID",
+                    "value": "@item()?['RecordTypeId']"
+                  },
+                  {
+                    "header": "S4SPARTNER_GROUP__C",
+                    "value": "@item()?['S4SPartner_Group__c']"
+                  },
+                  {
+                    "header": "S4SPARTNERSHIP_STATUS__C",
+                    "value": "@item()?['S4SPartnership_Status__c']"
+                  },
+                  {
+                    "header": "S4SIS_PARTNER__C",
+                    "value": "@item()?['S4SIs_Partner__c']"
+                  },
+                  {
+                    "header": "S4SPARTNER_TYPE__C",
+                    "value": "@replace(replace(replace(string(item()?['S4SPartner_Type__c']),'[\"',''),'\"]',''),'\",\"',';')"
+                  },
+                  {
+                    "header": "S4SLEAD_COUNTRY__C",
+                    "value": "@item()?['S4SLead_Country__c']"
+                  },
+                  {
+                    "header": "S4SSALESCOUNTRY__C",
+                    "value": "@item()?['S4SSalesCountry__c']"
+                  },
+                  {
+                    "header": "S4SINTERNATIONAL_COUNTRYGP__C",
+                    "value": "@item()?['S4SInternational_CountryGP__c']"
+                  },
+                  {
+                    "header": "S4SINTERNATIONAL_REGIONGP__C",
+                    "value": "@item()?['S4SInternational_RegionGP__c']"
+                  },
+                  {
+                    "header": "S4SINTERNATIONAL_CITY__C",
+                    "value": "@item()?['S4SInternational_City__c']"
+                  },
+                  {
+                    "header": "S4SINTERNATIONAL_POSTAL_CODE__C",
+                    "value": "@item()?['S4SInternational_Postal_Code__c']"
+                  },
+                  {
+                    "header": "S4SINTERNATIONAL_STREET_NAME_1__C",
+                    "value": "@item()?['S4SInternational_Street_Name_1__c']"
+                  },
+                  {
+                    "header": "S4SINTERNATIONAL_STEET_NAME_2__C",
+                    "value": "@item()?['S4SInternational_Steet_Name_2__c']"
+                  }
+                ],
+                "format": "CSV",
+                "from": "@body('Account_getRecords')?['value']"
+              },
+              "runAfter": {
+                "Account_getRecords": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Table"
+            },
+            "Create_Accounts_file": {
+              "inputs": {
+                "body": "@body('Create_Accounts_CSV')",
+                "headers": {
+                  "ReadFileMetadataFromServer": true
+                },
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['conn_aws_saba_sftp']['connectionId']"
+                  }
+                },
+                "method": "post",
+                "path": "/datasets/default/files",
+                "queries": {
+                  "folderPath": "@parameters('folderPath')",
+                  "name": "accounts_@{utcNow()}.csv",
+                  "queryParametersSingleEncoded": true
+                }
+              },
+              "runAfter": {
+                "Create_Accounts_CSV": [
+                  "Succeeded"
+                ]
+              },
+              "type": "ApiConnection"
+            },
+            "Create_Contacts_CSV": {
+              "inputs": {
+                "columns": [
+                  {
+                    "header": "ID",
+                    "value": "@item()?['Id']"
+                  },
+                  {
+                    "header": "S4SWEBSSO_U_ID__C",
+                    "value": "@item()?['S4SWebSSO_U_ID__c']"
+                  },
+                  {
+                    "header": "S4SWEBSSO_LOGIN__C",
+                    "value": "@item()?['S4SWEBSSO_LOGIN__C']"
+                  },
+                  {
+                    "header": "S4SSIEMENSID__C",
+                    "value": "@item()?['S4SSIEMENSID__C']"
+                  },
+                  {
+                    "header": "S4SPARTNER_EXTRANET_ACCESS__C",
+                    "value": "@item()?['S4SPartner_Extranet_Access__c']"
+                  },
+                  {
+                    "header": "FIRSTNAME",
+                    "value": "@item()?['FirstName']"
+                  },
+                  {
+                    "header": "LASTNAME",
+                    "value": "@item()?['LastName']"
+                  },
+                  {
+                    "header": "EMAIL",
+                    "value": "@item()?['Email']"
+                  },
+                  {
+                    "header": "ACCOUNTID",
+                    "value": "@item()?['AccountId']"
+                  },
+                  {
+                    "header": "S4SCONTACT_LEGACYID__C",
+                    "value": "@item()?['S4SCONTACT_LegacyID__c']"
+                  },
+                  {
+                    "header": "S4SPARTNER_CONTACT_ROLE__C",
+                    "value": "@item()?['S4SPartner_Contact_Role__c']"
+                  },
+                  {
+                    "header": "S4SDATA_ADMIN__C",
+                    "value": "@item()?['S4SDATA_ADMIN__C']"
+                  },
+                  {
+                    "header": "S4SSTATUS__C",
+                    "value": "@item()?['S4SStatus__c']"
+                  }
+                ],
+                "format": "CSV",
+                "from": "@body('Contacts_getRecords')?['value']"
+              },
+              "runAfter": {
+                "Contacts_getRecords": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Table"
+            },
+            "Create_Contacts_file": {
+              "inputs": {
+                "body": "@body('Create_Contacts_CSV')",
+                "headers": {
+                  "ReadFileMetadataFromServer": true
+                },
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['conn_aws_saba_sftp']['connectionId']"
+                  }
+                },
+                "method": "post",
+                "path": "/datasets/default/files",
+                "queries": {
+                  "folderPath": "@parameters('folderPath')",
+                  "name": "Contacts_@{utcNow()}.csv",
+                  "queryParametersSingleEncoded": true
+                }
+              },
+              "runAfter": {
+                "Create_Contacts_CSV": [
+                  "Succeeded"
+                ]
+              },
+              "type": "ApiConnection"
+            },
+            "Set_variable": {
+              "inputs": {
+                "name": "datetime",
+                "value": "@{utcNow()}"
+              },
+              "runAfter": {},
+              "type": "SetVariable"
+            },
+            "Terminate": {
+              "inputs": {
+                "runStatus": "Succeeded"
+              },
+              "runAfter": {
+                "Create_Accounts_file": [
+                  "Succeeded"
+                ],
+                "Create_Contacts_file": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Terminate"
+            }
+          },
+          "runAfter": {},
+          "trackedProperties": {
+            "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+            "citizenName": "c00031",
+            "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+            "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'SABA')}",
+            "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+            "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'non-defined')}",
+            "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'sabaPushAccountContact')}",
+            "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+            "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+            "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+          },
+          "type": "Scope"
+        }
+      },
+      "runAfter": {
+        "Initialize_date_time_variable": [
+          "Succeeded"
+        ]
+      },
+      "type": "Scope"
+    }
+  },
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {
+    "$connections": {
+      "defaultValue": {},
+      "type": "Object"
+    },
+    "accountFields": {
+      "defaultValue": "Id,S4SIfA__c,Name,S4SAccount_Name_International__c,RecordTypeId,S4SPartner_Group__c,S4SPartnership_Status__c,S4SIs_Partner__c,S4SPartner_Type__c,S4SLead_Country__c,S4SSalesCountry__c,S4SInternational_CountryGP__c,S4SInternational_RegionGP__c,S4SInternational_City__c,S4SInternational_Postal_Code__c,S4SInternational_Street_Name_1__c,S4SInternational_Steet_Name_2__c",
+      "type": "String"
+    },
+    "accountFilter": {
+      "defaultValue": "((RecordTypeID eq '0120N000000onFiQAI') OR (RecordTypeID eq '0120N000000onFeQAI')) AND S4SIs_Partner__c eq true and isDeleted eq false",
+      "type": "String"
+    },
+    "contactFields": {
+      "defaultValue": "Id,S4SWebSSO_U_ID__c,S4SWebSSO_Login__c,S4SSiemensID__c,S4SPartner_Extranet_Access__c,FirstName,LastName,Email,AccountId,S4SCONTACT_LegacyID__c,S4SPartner_Contact_Role__c,S4SData_Admin__c,S4SStatus__c",
+      "type": "String"
+    },
+    "contactFilter": {
+      "defaultValue": "S4SPartner_Extranet_Access__c ne false and isDeleted eq false",
+      "type": "String"
+    },
+    "datetime": {
+      "defaultValue": "yyyy-MM-dd'T'HH:mm:ss.SSS",
+      "type": "String"
+    },
+    "folderPath": {
+      "defaultValue": "${folderPath}",
+      "type": "String"
+    },
+    "frequency": {
+      "defaultValue": "Month",
+      "type": "String"
+    },
+    "recurrence": {
+      "defaultValue": 1,
+      "type": "Int"
+    }
+  },
+  "triggers": {
+    "Recurrence": {
+      "evaluatedRecurrence": {
+        "frequency": "Hour",
+        "interval": 1,
+        "startTime": "2017-03-10T09:00:00Z",
+        "timeZone": "W. Europe Standard Time"
+      },
+      "recurrence": {
+        "frequency": "Hour",
+        "interval": 1,
+        "startTime": "2017-03-10T09:00:00Z",
+        "timeZone": "W. Europe Standard Time"
+      },
+      "type": "Recurrence"
+    }
+  }
+}

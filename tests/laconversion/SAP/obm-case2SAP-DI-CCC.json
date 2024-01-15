@@ -1,0 +1,275 @@
+{
+	"$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+	"actions": {
+		"Catch_Error_Scope": {
+			"actions": {
+				"Set_Response_-_Error_Message": {
+					"inputs": {
+						"body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <out:notificationsResponse>\n         <out:Ack>true</out:Ack>\n      </out:notificationsResponse>\n   </soapenv:Body>\n</soapenv:Envelope>",
+						"headers": {
+							"Content-Type": "application/xml"
+						},
+						"statusCode": 500
+					},
+					"kind": "Http",
+					"runAfter": {},
+					"type": "Response"
+				},
+				"Terminate": {
+					"inputs": {
+						"runError": {
+							"code": "500"
+						},
+						"runStatus": "Failed"
+					},
+					"runAfter": {
+						"Set_Response_-_Error_Message": [
+							"Succeeded"
+						]
+					},
+					"type": "Terminate"
+				}
+			},
+			"runAfter": {
+				"Scope": [
+					"TimedOut",
+					"Skipped",
+					"Failed"
+				]
+			},
+			"type": "Scope"
+		},
+		"Scope": {
+			"actions": {
+				"For_each": {
+					"actions": {
+						"Data_Mapping_-_SieSales_to_SAP": {
+							"inputs": {
+								"_x002F_SIE_x002F_E_SD_2413_SIESALES_RFC": {
+									"I_CONTAINERID": "@items('For_each')?['sObject']?['Id']",
+									"I_CUSTOMER": "@items('For_each')?['sObject']?['S4SSAP__c']",
+									"I_PARTNUMBER": "@items('For_each')?['sObject']?['S4SPart_Ordered__c']",
+									"I_QUANTITY": "@items('For_each')?['sObject']?['S4SQuantity_Ordered__c']",
+									"I_SALESDOCUMENT": "@items('For_each')?['sObject']?['S4SSAP_Sales_Order__c']",
+									"I_SALESITEM": "@items('For_each')?['sObject']?['S4SSales_Order_Line__c']"
+								}
+							},
+							"runAfter": {},
+							"type": "Compose"
+						},
+						"SAP_Call": {
+							"inputs": {
+								"body": "@outputs('Data_Mapping_-_SieSales_to_SAP')",
+								"headers": {
+									"Content-Type": "application/json",
+									"Ocp-Apim-Subscription-Key": "@{json(body('GetConfiguration'))?['case2SAPDICCC']?['subscriptionkey']}"
+								},
+								"method": "POST",
+								"retryPolicy": {
+									"type": "none"
+								},
+								"uri": "@{json(body('GetConfiguration'))?['case2SAPDICCC']?['url']}"
+							},
+							"runAfter": {
+								"Data_Mapping_-_SieSales_to_SAP": [
+									"Succeeded"
+								]
+							},
+							"type": "Http"
+						},
+						"Update_Discrepancy_Record": {
+							"inputs": {
+								"body": {
+									"S4SAutomated_Process__c": "@if(equals(body('SAP_Call')?['E_SD_2413_SIESALES_RFCResponse']?['T_RETURN']?['E_SD_ERROR_LOG']?['OBJECT'],'SUCCESS'),'true','false')",
+									"S4SComments__c": "@{if(equals(body('SAP_Call')?['E_SD_2413_SIESALES_RFCResponse']?['T_RETURN']?['E_SD_ERROR_LOG']?['OBJECT'],'SUCCESS'),'',body('SAP_Call')?['E_SD_2413_SIESALES_RFCResponse']?['T_RETURN']?['E_SD_ERROR_LOG']?['MESSAGE'])}",
+									"S4SSAP_Sync_Status__c": "@{if(equals(body('SAP_Call')?['E_SD_2413_SIESALES_RFCResponse']?['T_RETURN']?['E_SD_ERROR_LOG']?['OBJECT'],'SUCCESS'),'Success','Failure')}"
+								},
+								"host": {
+									"connection": {
+										"name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+									}
+								},
+								"method": "patch",
+								"path": "/v3/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SDiscrepancy__c'))}/items/@{encodeURIComponent(encodeURIComponent(items('For_each')?['sObject']?['Id']))}",
+								"retryPolicy": {
+									"type": "none"
+								}
+							},
+							"runAfter": {
+								"SAP_Call": [
+									"Succeeded"
+								]
+							},
+							"type": "ApiConnection"
+						}
+					},
+					"foreach": "@body('LiquidTransformer')?['notifications']",
+					"runAfter": {
+						"GetConfiguration": [
+							"Succeeded"
+						]
+					},
+					"type": "Foreach"
+				},
+				"GetConfiguration": {
+					"inputs": {
+						"body": {
+							"key": "obm-config"
+						},
+						"host": {
+							"triggerName": "manual",
+							"workflow": {
+								"id": "${getConfiguration_logicAppId}"
+							}
+						},
+						"retryPolicy": {
+							"type": "none"
+						}
+					},
+					"runAfter": {
+						"Parse_JSON": [
+							"Succeeded"
+						]
+					},
+					"type": "Workflow"
+				},
+				"LiquidTransformer": {
+					"inputs": {
+						"body": "@triggerBody()",
+						"authentication": {
+							"type": "Raw",
+							"value": "[parameters('functionAppKey')]"
+						},
+						"function": {
+							"id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+						},
+						"headers": {
+							"Accept": "application/json",
+							"Content-Type": "application/xml",
+							"Filename": "${liquid}"
+						},
+						"retryPolicy": {
+							"type": "none"
+						}
+					},
+					"runAfter": {},
+					"type": "Function"
+				},
+				"Parse_JSON": {
+					"inputs": {
+						"content": "@body('LiquidTransformer')",
+						"schema": {
+							"type": "object",
+							"properties": {
+								"notifications": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"properties": {
+											"Id": {
+												"type": "string"
+											},
+											"sObject": {
+												"type": "object",
+												"properties": {
+													"@@xsi:type": {
+														"type": "string"
+													},
+													"@@xmlns:sf": {
+														"type": "string"
+													},
+													"Id": {
+														"type": "string"
+													},
+													"S4SPart_Ordered__c": {
+														"type": "string"
+													},
+													"S4SQuantity_Ordered__c": {
+														"type": "string"
+													},
+													"S4SSAP_Sales_Order__c": {
+														"type": "string"
+													},
+													"S4SSAP__c": {
+														"type": "string"
+													},
+													"S4SSales_Order_Line__c": {
+														"type": "string"
+													}
+												}
+											}
+										},
+										"required": [
+											"Id",
+											"sObject"
+										]
+									}
+								}
+							}
+						}
+					},
+					"runAfter": {
+						"LiquidTransformer": [
+							"Succeeded"
+						]
+					},
+					"type": "ParseJson"
+				},
+				"Set_Response": {
+					"inputs": {
+						"body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <out:notificationsResponse>\n         <out:Ack>true</out:Ack>\n      </out:notificationsResponse>\n   </soapenv:Body>\n</soapenv:Envelope>",
+						"headers": {
+							"Content-Type": "application/xml"
+						},
+						"statusCode": 200
+					},
+					"kind": "Http",
+					"runAfter": {
+						"For_each": [
+							"Succeeded"
+						]
+					},
+					"type": "Response"
+				}
+			},
+			"runAfter": {},
+			"type": "Scope"
+		}
+	},
+	"contentVersion": "1.0.0.0",
+	"outputs": {},
+	"parameters": {
+		"$connections": {
+			"defaultValue": {},
+			"type": "Object"
+		}
+	},
+	"triggers": {
+		"manual": {
+			"inputs": {
+				"schema": {
+					"properties": {
+						"S4SPart_Ordered__c": {
+							"type": "string"
+						},
+						"S4SQuantity_Ordered__c": {
+							"type": "string"
+						},
+						"S4SSAP_Sales_Order__c": {
+							"type": "string"
+						},
+						"S4SSAP__c": {
+							"type": "string"
+						},
+						"S4SSales_Order_Line__c": {
+							"type": "string"
+						}
+					},
+					"type": "object"
+				}
+			},
+			"kind": "Http",
+			"type": "Request"
+		}
+	}
+}

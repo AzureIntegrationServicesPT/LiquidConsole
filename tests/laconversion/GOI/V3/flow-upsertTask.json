@@ -1,0 +1,420 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Scope_Catch": {
+                "actions": {
+                    "Response_in_Catch": {
+                        "inputs": {
+                            "body": {
+                                "errormessagedetails": "@concat('Some error occurred while connection. Please find more details using tracking id : ', workflow()['run']['name'])"
+                            },
+                            "headers": {
+                                "Content-Type": "application/json"
+                            },
+                            "statusCode": 500
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                        "type": "Response"
+                    },
+                    "Terminate": {
+                        "inputs": {
+                            "runStatus": "Failed"
+                        },
+                        "runAfter": {
+                            "Response_in_Catch": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Terminate"
+                    }
+                },
+                "runAfter": {
+                    "Scope_Try": [
+                        "Failed",
+                        "Skipped",
+                        "TimedOut"
+                    ]
+                },
+                "type": "Scope"
+            },
+            "Scope_Try": {
+                "actions": {
+                    "Compose_Request_Body": {
+                        "inputs": "@triggerBody()?['Task']",
+                        "runAfter": {},
+                        "type": "Compose"
+                    },
+                    "Condition_check_for_Task_Validity": {
+                        "actions": {
+                            "Condition_check_for_ActivityId": {
+                                "actions": {
+                                    "Compose_Request_for_update_Record": {
+                                        "inputs": {
+                                            "ActivityDate": "@{outputs('Compose_Request_Body')?['DueDate']}",
+                                            "Description": "@{outputs('Compose_Request_Body')?['Comments']}",
+                                            "OwnerId": "@{outputs('Compose_Request_Body')?['Assigned_to_ID']}",
+                                            "Priority": "@{outputs('Compose_Request_Body')?['Priority']}",
+                                            "S4SAdditional_Information__c": "@{outputs('Compose_Request_Body')?['S4SAdditional_Information__c']}",
+                                            "S4SBU__c": "@{outputs('Compose_Request_Body')?['S4SBU__c']}",
+                                            "S4SCompleted_Date__c": "@{outputs('Compose_Request_Body')?['S4SCompleted_Date__c']}",
+                                            "S4SDelegated_By__c": "@{outputs('Compose_Request_Body')?['Delegated_by_ID']}",
+                                            "S4SDivision__c": "@{outputs('Compose_Request_Body')?['S4SDivision__c']}",
+                                            "S4SDocLocation_BeLux__c": "@{outputs('Compose_Request_Body')?['S4SDocLocation_BeLux__c']}",
+                                            "S4SExternal_Source__c": "@{outputs('Compose_Request_Body')?['S4SExternal_Source__c']}",
+                                            "S4SOpportunity_Milestone__c": "@{outputs('Compose_Request_Body')?['S4SOpportunity_Milestone__c']}",
+                                            "S4SOther_Topics__c": "@{outputs('Compose_Request_Body')?['S4SOther_Topic__c']}",
+                                            "S4SReason__c": "@{outputs('Compose_Request_Body')?['S4SReason__c']}",
+                                            "Status": "@{outputs('Compose_Request_Body')?['S4SStatus__c']}",
+                                            "S4STraining_Topic__c": "@{outputs('Compose_Request_Body')?['S4STraining_Topic__c']}",
+                                            "Subject": "@{outputs('Compose_Request_Body')?['Subject']}",
+                                            "Type": "@{outputs('Compose_Request_Body')?['Type']}",
+                                            "WhatId": "@{coalesce(if(equals(outputs('Compose_Request_Body')?['AccountId'],''),null,outputs('Compose_Request_Body')?['AccountId']),if(equals(outputs('Compose_Request_Body')?['OpportunityId'],''),null,outputs('Compose_Request_Body')?['OpportunityId']))}",
+                                            "WhoId": "@{outputs('Compose_Request_Body')?['ContactId']}"
+                                        },
+                                        "runAfter": {},
+                                        "type": "Compose"
+                                    },
+                                    "Condition_check_for_StatusCode_in_Update": {
+                                        "actions": {
+                                            "Response_for_Update_Record": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "SIE_SF4S_upsertTaskOutput": {
+                                                            "result": [
+                                                                {
+                                                                    "created": "false",
+                                                                    "id": "@{body('Insert_or_Update_(Upsert)_a_Record_by_External_ID')?['Id']}",
+                                                                    "success": "true"
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    "headers": {
+                                                        "Content-Type": "application/json"
+                                                    },
+                                                    "statusCode": "@outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID')?['statusCode']"
+                                                },
+                                                "kind": "Http",
+                                                "runAfter": {},
+                                                "type": "Response"
+                                            }
+                                        },
+                                        "else": {
+                                            "actions": {
+                                                "Error_Response": {
+                                                    "inputs": {
+                                                        "body": {
+                                                            "SIE_SF4S_upsertTaskOutput": {
+                                                                "result": [
+                                                                    {
+                                                                        "created": "false",
+                                                                        "errors": "@{body('Insert_or_Update_(Upsert)_a_Record_by_External_ID')?['message']}",
+                                                                        "id": "@{outputs('Compose_Request_Body')?['ActivityId']}",
+                                                                        "success": "false"
+                                                                    }
+                                                                ]
+                                                            }
+                                                        },
+                                                        "headers": {
+                                                            "Content-Type": "application/json"
+                                                        },
+                                                        "statusCode": "@outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID')?['statusCode']"
+                                                    },
+                                                    "kind": "Http",
+                                                    "runAfter": {},
+                                                    "type": "Response"
+                                                },
+                                                "Terminate_Update": {
+                                                    "inputs": {
+                                                        "runStatus": "Failed"
+                                                    },
+                                                    "runAfter": {
+                                                        "Error_Response": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "Terminate"
+                                                }
+                                            }
+                                        },
+                                        "expression": {
+                                            "and": [
+                                                {
+                                                    "equals": [
+                                                        "@outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID')?['statusCode']",
+                                                        200
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        "runAfter": {
+                                            "Insert_or_Update_(Upsert)_a_Record_by_External_ID": [
+                                                "Succeeded",
+                                                "Failed"
+                                            ]
+                                        },
+                                        "type": "If"
+                                    },
+                                    "Insert_or_Update_(Upsert)_a_Record_by_External_ID": {
+                                        "inputs": {
+                                            "body": "@outputs('Compose_Request_for_update_Record')",
+                                            "host": {
+                                                "connection": {
+                                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                }
+                                            },
+                                            "method": "patch",
+                                            "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Task'))}/externalIdFields/@{encodeURIComponent(encodeURIComponent('Id'))}/@{encodeURIComponent(encodeURIComponent(outputs('Compose_Request_Body')?['ActivityId']))}",
+                                            "retryPolicy": {
+                                                "type": "none"
+                                            }
+                                        },
+                                        "runAfter": {
+                                            "Compose_Request_for_update_Record": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "ApiConnection"
+                                    }
+                                },
+                                "else": {
+                                    "actions": {
+                                        "Condition_check_for_Subject": {
+                                            "actions": {
+                                                "Condition_check_for_statusCode": {
+                                                    "actions": {
+                                                        "Response_Success": {
+                                                            "inputs": {
+                                                                "body": {
+                                                                    "SIE_SF4S_upsertTaskOutput": {
+                                                                        "result": [
+                                                                            {
+                                                                                "created": "true",
+                                                                                "id": "@{body('Recurrence_sub_logic')?['Id']}",
+                                                                                "success": "true"
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                "headers": {
+                                                                    "Content-Type": "applicatin/json"
+                                                                },
+                                                                "statusCode": "@outputs('Recurrence_sub_logic')?['statusCode']"
+                                                            },
+                                                            "kind": "Http",
+                                                            "runAfter": {},
+                                                            "type": "Response"
+                                                        }
+                                                    },
+                                                    "else": {
+                                                        "actions": {
+                                                            "Response_Failure": {
+                                                                "inputs": {
+                                                                    "body": {
+                                                                        "SIE_SF4S_upsertTaskOutput": {
+                                                                            "result": [
+                                                                                {
+                                                                                    "created": "false",
+                                                                                    "errors": "@{body('Recurrence_sub_logic')}",
+                                                                                    "id": "@{outputs('Compose_Request_Body')?['ActivityId']}",
+                                                                                    "success": "false"
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    },
+                                                                    "headers": {
+                                                                        "Content-Type": "application/json"
+                                                                    },
+                                                                    "statusCode": "@outputs('Recurrence_sub_logic')?['statusCode']"
+                                                                },
+                                                                "kind": "Http",
+                                                                "runAfter": {},
+                                                                "type": "Response"
+                                                            },
+                                                            "Terminate_Insert": {
+                                                                "inputs": {
+                                                                    "runStatus": "Failed"
+                                                                },
+                                                                "runAfter": {
+                                                                    "Response_Failure": [
+                                                                        "Succeeded"
+                                                                    ]
+                                                                },
+                                                                "type": "Terminate"
+                                                            }
+                                                        }
+                                                    },
+                                                    "expression": {
+                                                        "and": [
+                                                            {
+                                                                "equals": [
+                                                                    "@outputs('Recurrence_sub_logic')?['statusCode']",
+                                                                    200
+                                                                ]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "runAfter": {
+                                                        "Recurrence_sub_logic": [
+                                                            "Succeeded",
+                                                            "Failed"
+                                                        ]
+                                                    },
+                                                    "type": "If"
+                                                },
+                                                "Recurrence_sub_logic": {
+                                                    "inputs": {
+                                                        "body": "@triggerBody()",
+                                                        "host": {
+                                                            "triggerName": "manual",
+                                                            "workflow": {
+                                                                "id": "${goi_internal_upsertTaskRecurrence_logicAppId}"
+                                                            }
+                                                        },
+                                                        "retryPolicy": {
+                                                            "type": "none"
+                                                        }
+                                                    },
+                                                    "runAfter": {},
+                                                    "type": "Workflow"
+                                                }
+                                            },
+                                            "else": {
+                                                "actions": {
+                                                    "422_Response_Event_Invalid": {
+                                                        "inputs": {
+                                                            "body": {
+                                                                "Message": "Required input parameters not  provided!"
+                                                            },
+                                                            "headers": {
+                                                                "Content-Type": "application/json"
+                                                            },
+                                                            "statusCode": 422
+                                                        },
+                                                        "kind": "Http",
+                                                        "runAfter": {},
+                                                        "type": "Response"
+                                                    }
+                                                }
+                                            },
+                                            "expression": {
+                                                "and": [
+                                                    {
+                                                        "not": {
+                                                            "equals": [
+                                                                "@outputs('Compose_Request_Body')?['Subject']",
+                                                                ""
+                                                            ]
+                                                        }
+                                                    },
+                                                    {
+                                                        "not": {
+                                                            "equals": [
+                                                                "@outputs('Compose_Request_Body')?['Subject']",
+                                                                "@null"
+                                                            ]
+                                                        }
+                                                    }
+                                                ]
+                                            },
+                                            "runAfter": {},
+                                            "type": "If"
+                                        }
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@outputs('Compose_Request_Body')?['ActivityId']",
+                                                    ""
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@outputs('Compose_Request_Body')?['ActivityId']",
+                                                    "@null"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {},
+                                "type": "If"
+                            }
+                        },
+                        "else": {
+                            "actions": {
+                                "422_Response_Task_Invalid": {
+                                    "inputs": {
+                                        "body": {
+                                            "Message": "Required input parameters not  provided!"
+                                        },
+                                        "headers": {
+                                            "Content-Type": "application/json"
+                                        },
+                                        "statusCode": 422
+                                    },
+                                    "kind": "Http",
+                                    "runAfter": {},
+                                    "type": "Response"
+                                }
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@outputs('Compose_Request_Body')",
+                                            "@null"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Compose_Request_Body": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    }
+                },
+                "runAfter": {},
+                "trackedProperties": {
+                  "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+                  "citizenName": "c00031",
+                  "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                  "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'GOI')}",
+                  "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                  "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'V3')}",
+                  "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'upsertTask')}",
+                  "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+                  "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                  "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+              },
+                "type": "Scope"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "manual": {
+                "inputs": {},
+                "kind": "Http",
+                "type": "Request"
+            }
+       
+    }
+  }

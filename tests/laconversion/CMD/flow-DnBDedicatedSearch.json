@@ -1,0 +1,253 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "actions": {
+    "Condition": {
+      "actions": {
+        "Append_to_string_variable": {
+          "inputs": {
+            "name": "Request",
+            "value": "@concat('duns=',string(triggerBody()['duns']))"
+          },
+          "runAfter": {},
+          "type": "AppendToStringVariable"
+        }
+      },
+      "else": {
+        "actions": {
+          "Append_to_string_variable_2": {
+            "inputs": {
+              "name": "Request",
+              "value": "@concat('name=',replace(string(triggerBody()['name']),' ','%20'),'&','countryISOAlpha2Code=',string(triggerBody()['country']),'&','streetAddressLine1=',replace(string(triggerBody()['address']),' ','%20'),'&','postalCode=',replace(string(triggerBody()['zipcode']),' ','%20'),'&','addressLocality=',replace(string(triggerBody()['city']),' ','%20'),'&','addressRegion=',replace(string(triggerBody()['region']),' ','%20'))"
+            },
+            "runAfter": {},
+            "type": "AppendToStringVariable"
+          }
+        }
+      },
+      "expression": {
+        "and": [
+          {
+            "not": {
+              "equals": ["@triggerBody()['duns']", null]
+            }
+          },
+          {
+            "not": {
+              "equals": ["@triggerBody()['duns']", "@null"]
+            }
+          },
+          {
+            "not": {
+              "equals": ["@triggerBody()['duns']", "000000000"]
+            }
+          }
+        ]
+      },
+      "runAfter": {
+        "Get_DnB_Token": ["Succeeded"],
+        "HTTP_Get_Certificate_Password": ["Succeeded"],
+        "Initialize_array_accounts": ["Succeeded"],
+        "Initialize_variable_'Region'": ["Succeeded"],
+        "Initialize_variable_Request": ["Succeeded"],
+        "Initialize_variable_split_region": ["Succeeded"]
+      },
+      "type": "If"
+    },
+    "Get_DnB_Token": {
+      "inputs": {
+        "host": {
+          "triggerName": "manual",
+          "workflow": {
+            "id": "${dnbToken_logicAppId}"
+          }
+        }
+      },
+      "runAfter": {},
+      "type": "Workflow"
+    },
+    "HTTP_Get_Certificate_Password": {
+      "inputs": {
+        "body": {
+          "key": "integration-platform-certificate-password"
+        },
+        "host": {
+          "triggerName": "manual",
+          "workflow": {
+            "id": "${getConfiguration_logicAppId}"
+          }
+        },
+        "retryPolicy": {
+          "type": "none"
+        }
+      },
+      "runAfter": {},
+      "type": "Workflow"
+    },
+    "Initialize_array_accounts": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "accounts",
+            "type": "string"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "Initialize_variable_'Region'": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "region",
+            "type": "Array"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "Initialize_variable_Request": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "Request",
+            "type": "string"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "Initialize_variable_split_region": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "split region",
+            "type": "String"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "Scope_-_Catch": {
+      "actions": {
+        "Failed_Response": {
+          "inputs": {
+            "body": {
+              "statusResponse": {
+                "message": "",
+                "type": ""
+              }
+            },
+            "statusCode": "@outputs('Invoke_MDG')['statusCode']"
+          },
+          "kind": "Http",
+          "runAfter": {},
+          "type": "Response"
+        },
+        "Terminate_Flow": {
+          "inputs": {
+            "runStatus": "Failed"
+          },
+          "runAfter": {
+            "Failed_Response": ["Succeeded"]
+          },
+          "type": "Terminate"
+        }
+      },
+      "runAfter": {
+        "Scope_-_Try": ["Failed", "TimedOut"]
+      },
+      "type": "Scope"
+    },
+    "Scope_-_Try": {
+      "actions": {
+        "Invoke_MDG": {
+          "inputs": {
+            "headers": {
+              "Authorization": "Bearer @{body('Get_DnB_Token')}",
+              "Content-Type": "application/json"
+            },
+            "method": "GET",
+            "retryPolicy": {
+              "type": "none"
+            },
+            "uri": "https://plus.dnb.com/v1/match/cleanseMatch?@{variables('Request')}"
+          },
+          "runAfter": {},
+          "type": "Http"
+        },
+        "Send__CMD_DandB_Dedicated_Response": {
+          "inputs": {
+            "body": "@body('Invoke_MDG')",
+            "headers": {
+              "Content-Type": "@{triggerOutputs()['headers']?['Content-Type']}"
+            },
+            "statusCode": "@outputs('Invoke_MDG')['statusCode']"
+          },
+          "kind": "Http",
+          "runAfter": {
+            "Invoke_MDG": ["Succeeded"]
+          },
+          "type": "Response"
+        }
+      },
+      "runAfter": {
+        "Condition": ["Succeeded"]
+      },
+      "trackedProperties": {
+        "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+        "citizenName": "c00031",
+        "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'CMD')}",
+        "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'CMD')}",
+        "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+        "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'DnBDedicatedSearch')}",
+        "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+        "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+        "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+      },
+      "type": "Scope"
+    }
+  },
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {},
+  "triggers": {
+    "manual": {
+      "inputs": {
+        "schema": {
+          "properties": {
+            "address": {
+              "type": "string"
+            },
+            "city": {
+              "type": "string"
+            },
+            "country": {
+              "type": "string"
+            },
+            "duns": {
+              "type": "string"
+            },
+            "imaxhits": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "region": {},
+            "zipcode": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "kind": "Http",
+      "type": "Request"
+    }
+  }
+}

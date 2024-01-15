@@ -23,6 +23,8 @@
 				{{each.Key | json}}:{%include_local "Switch" content: each.Value %}
 		{% when "If"%}
 				{{each.Key | json}}:{%include_local "If" content: each.Value %}
+		{% when "Xslt"%}
+				{{each.Key | json}}:{%include_local "Xslt" content: each.Value %}
 		{%else%}
 		{{each.Key | json}}:{{each.Value | json}}
 		{%endcase%}

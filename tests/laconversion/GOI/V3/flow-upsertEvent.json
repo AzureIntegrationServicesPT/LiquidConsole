@@ -1,0 +1,527 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "actions": {
+    "Catch_Scope": {
+      "actions": {
+          "Response": {
+              "inputs": {
+                  "body": {
+                      "errormessagedetails": "@concat('Some error occurred while connection. Please find more details using tracking id : ', workflow()['run']['name'])"
+                  },
+                  "headers": {
+                      "Content-Type": "application/json"
+                  },
+                  "statusCode": 500
+              },
+              "kind": "Http",
+              "runAfter": {},
+              "type": "Response"
+          },
+          "Terminate": {
+              "inputs": {
+                  "runStatus": "Failed"
+              },
+              "runAfter": {
+                  "Response": [
+                      "Succeeded"
+                  ]
+              },
+              "type": "Terminate"
+          }
+      },
+      "runAfter": {
+          "Try_Scope": [
+              "Failed",
+              "Skipped",
+              "TimedOut"
+          ]
+      },
+      "type": "Scope"
+  },
+  "Try_Scope": {
+      "actions": {
+          "Compose_request_Body": {
+              "inputs": "@triggerBody()?['Event']",
+              "runAfter": {},
+              "type": "Compose"
+          },
+          "Condition_check_Event_Validity": {
+              "actions": {
+                  "Check_ActivityID": {
+                      "actions": {
+                          "Compose_for_Update_Record": {
+                              "inputs": {
+                                  "ActivityDate": "@{outputs('Compose_request_Body')?['ActivityDate']}",
+                                  "Description": "@{outputs('Compose_request_Body')?['Description']}",
+                                  "EndDateTime": "@{outputs('Compose_request_Body')?['EndDateTime']}",
+                                  "IsAllDayEvent": "@bool(outputs('Compose_request_Body')?['IsAllDayEvent'])",
+                                  "Location": "@{outputs('Compose_request_Body')?['Location']}",
+                                  "OwnerId": "@{outputs('Compose_request_Body')?['Assigned_to_ID']}",
+                                  "S4SAdditional_Information__c": "@{outputs('Compose_request_Body')?['S4SAdditional_Information__c']}",
+                                  "S4SBU__c": "@{outputs('Compose_request_Body')?['S4SBU__c']}",
+                                  "S4SCompleted_Date__c": "@{outputs('Compose_request_Body')?['S4SCompleted_Date__c']}",
+                                  "S4SDelegated_By__c": "@{outputs('Compose_request_Body')?['Delegated_by_ID']}",
+                                  "S4SDivision__c": "@{outputs('Compose_request_Body')?['S4SDivision__c']}",
+                                  "S4SExternal_Source__c": "@{outputs('Compose_request_Body')?['S4SExternal_Source__c']}",
+                                  "S4SOpportunity_Milestone__c": "@{outputs('Compose_request_Body')?['S4SOpportunity_Milestone__c']}",
+                                  "S4SOther_Topics__c": "@{outputs('Compose_request_Body')?['S4SOther_Topic__c']}",
+                                  "S4SReason__c": "@{outputs('Compose_request_Body')?['S4SReason__c']}",
+                                  "S4SStatus__c": "@{outputs('Compose_request_Body')?['S4SStatus__c']}",
+                                  "S4STraining_Topic__c": "@{outputs('Compose_request_Body')?['S4STraining_Topic__c']}",
+                                  "StartDateTime": "@{outputs('Compose_request_Body')?['StartDateTime']}",
+                                  "Subject": "@{outputs('Compose_request_Body')?['Subject']}",
+                                  "Type": "@{outputs('Compose_request_Body')?['Type']}",
+                                  "WhatId": "@{coalesce(if(equals(outputs('Compose_request_Body')?['AccountId'],''),null,outputs('Compose_request_Body')?['AccountId']),if(equals(outputs('Compose_request_Body')?['OpportunityId'],''),null,outputs('Compose_request_Body')?['OpportunityId']))}",
+                                  "WhoId": "@{outputs('Compose_request_Body')?['ContactId']}"
+                              },
+                              "runAfter": {},
+                              "type": "Compose"
+                          },
+                          "Condition_check_if_success": {
+                              "actions": {
+                                  "Response_update_record": {
+                                      "inputs": {
+                                          "body": {
+                                              "SIE_SF4S_upsertEventOutput": {
+                                                  "result": [
+                                                      {
+                                                          "created": "false",
+                                                          "id": "@{body('Insert_or_Update_(Upsert)_a_Record_by_External_ID')?['Id']}",
+                                                          "success": "true"
+                                                      }
+                                                  ]
+                                              }
+                                          },
+                                          "headers": {
+                                              "Content-Type": "application/json"
+                                          },
+                                          "statusCode": "@outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID')?['statusCode']"
+                                      },
+                                      "kind": "Http",
+                                      "runAfter": {},
+                                      "type": "Response"
+                                  }
+                              },
+                              "else": {
+                                  "actions": {
+                                      "Error": {
+                                          "inputs": {
+                                              "body": {
+                                                  "SIE_SF4S_upsertEventOutput": {
+                                                      "result": [
+                                                          {
+                                                              "created": "false",
+                                                              "errors": "@{body('Insert_or_Update_(Upsert)_a_Record_by_External_ID')?['message']}",
+                                                              "id": "@{outputs('Compose_request_Body')?['ActivityId']}",
+                                                              "success": "false"
+                                                          }
+                                                      ]
+                                                  }
+                                              },
+                                              "headers": {
+                                                  "Content-Type": "application/json"
+                                              },
+                                              "statusCode": "@outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID')?['statusCode']"
+                                          },
+                                          "kind": "Http",
+                                          "runAfter": {},
+                                          "type": "Response"
+                                      },
+                                      "Terminate_2": {
+                                          "inputs": {
+                                              "runStatus": "Failed"
+                                          },
+                                          "runAfter": {
+                                              "Error": [
+                                                  "Succeeded"
+                                              ]
+                                          },
+                                          "type": "Terminate"
+                                      }
+                                  }
+                              },
+                              "expression": {
+                                  "and": [
+                                      {
+                                          "equals": [
+                                              "@outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID')?['statusCode']",
+                                              200
+                                          ]
+                                      }
+                                  ]
+                              },
+                              "runAfter": {
+                                  "Insert_or_Update_(Upsert)_a_Record_by_External_ID": [
+                                      "Succeeded",
+                                      "Failed"
+                                  ]
+                              },
+                              "type": "If"
+                          },
+                          "Insert_or_Update_(Upsert)_a_Record_by_External_ID": {
+                              "inputs": {
+                                  "body": "@outputs('Compose_for_Update_Record')",
+                                  "host": {
+                                      "connection": {
+                                          "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                      }
+                                  },
+                                  "method": "patch",
+                                  "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Event'))}/externalIdFields/@{encodeURIComponent(encodeURIComponent('Id'))}/@{encodeURIComponent(encodeURIComponent(outputs('Compose_request_Body')?['ActivityId']))}",
+                                  "retryPolicy": {
+                                      "type": "none"
+                                  }
+                              },
+                              "runAfter": {
+                                  "Compose_for_Update_Record": [
+                                      "Succeeded"
+                                  ]
+                              },
+                              "type": "ApiConnection"
+                          }
+                      },
+                      "else": {
+                          "actions": {
+                              "Check_Subject": {
+                                  "actions": {
+                                      "Condition": {
+                                          "actions": {
+                                              "Recurrence_sub_logic": {
+                                                  "inputs": {
+                                                      "body": {
+                                                          "requestContent": "@{outputs('Compose_request_Body')}"
+                                                      },
+                                                      "host": {
+                                                          "triggerName": "manual",
+                                                          "workflow": {
+                                                            "id": "${goi_internal_upsertEventRecurrence_logicAppId}"
+                                                          }
+                                                      },
+                                                      "retryPolicy": {
+                                                          "type": "none"
+                                                      }
+                                                  },
+                                                  "runAfter": {},
+                                                  "type": "Workflow"
+                                              },
+                                              "check_statuscode": {
+                                                  "actions": {
+                                                      "Compose_success_response_for_insert_record": {
+                                                          "inputs": {
+                                                              "SIE_SF4S_upsertEventOutput": {
+                                                                  "result": [
+                                                                      {
+                                                                          "created": "true",
+                                                                          "id": "@body('Recurrence_sub_logic')?['Id']",
+                                                                          "success": "true"
+                                                                      }
+                                                                  ]
+                                                              }
+                                                          },
+                                                          "runAfter": {},
+                                                          "type": "Compose"
+                                                      },
+                                                      "Response_200": {
+                                                          "inputs": {
+                                                              "body": "@outputs('Compose_success_response_for_insert_record')",
+                                                              "headers": {
+                                                                  "Content-Type": "application/json"
+                                                              },
+                                                              "statusCode": 200
+                                                          },
+                                                          "kind": "Http",
+                                                          "runAfter": {
+                                                              "Compose_success_response_for_insert_record": [
+                                                                  "Succeeded"
+                                                              ]
+                                                          },
+                                                          "type": "Response"
+                                                      }
+                                                  },
+                                                  "else": {
+                                                      "actions": {
+                                                          "Error_Response": {
+                                                              "inputs": {
+                                                                  "body": {
+                                                                      "SIE_SF4S_upsertEventOutput": {
+                                                                          "result": [
+                                                                              {
+                                                                                  "created": "false",
+                                                                                  "errors": "@{body('Recurrence_sub_logic')}",
+                                                                                  "id": "@{outputs('Compose_request_Body')?['ActivityId']}",
+                                                                                  "success": "false"
+                                                                              }
+                                                                          ]
+                                                                      }
+                                                                  },
+                                                                  "headers": {
+                                                                      "Content-Type": "application/json"
+                                                                  },
+                                                                  "statusCode": "@outputs('Recurrence_sub_logic')['statusCode']"
+                                                              },
+                                                              "kind": "Http",
+                                                              "runAfter": {},
+                                                              "type": "Response"
+                                                          },
+                                                          "Terminate_3": {
+                                                              "inputs": {
+                                                                  "runStatus": "Failed"
+                                                              },
+                                                              "runAfter": {
+                                                                  "Error_Response": [
+                                                                      "Succeeded"
+                                                                  ]
+                                                              },
+                                                              "type": "Terminate"
+                                                          }
+                                                      }
+                                                  },
+                                                  "expression": {
+                                                      "and": [
+                                                          {
+                                                              "equals": [
+                                                                  "@outputs('Recurrence_sub_logic')['statusCode']",
+                                                                  200
+                                                              ]
+                                                          }
+                                                      ]
+                                                  },
+                                                  "runAfter": {
+                                                      "Recurrence_sub_logic": [
+                                                          "Succeeded",
+                                                          "Failed"
+                                                      ]
+                                                  },
+                                                  "type": "If"
+                                              }
+                                          },
+                                          "else": {
+                                              "actions": {
+                                                  "Response_422_invalid_input": {
+                                                      "inputs": {
+                                                          "body": {
+                                                              "Message": "Required input parameters not  provided!"
+                                                          },
+                                                          "headers": {
+                                                              "Content-Type": "application/json"
+                                                          },
+                                                          "statusCode": 422
+                                                      },
+                                                      "kind": "Http",
+                                                      "runAfter": {},
+                                                      "type": "Response"
+                                                  }
+                                              }
+                                          },
+                                          "expression": {
+                                              "and": [
+                                                  {
+                                                      "not": {
+                                                          "equals": [
+                                                              "@outputs('Compose_request_Body')?['StartDateTime']",
+                                                              ""
+                                                          ]
+                                                      }
+                                                  },
+                                                  {
+                                                      "not": {
+                                                          "equals": [
+                                                              "@outputs('Compose_request_Body')?['StartDateTime']",
+                                                              "@null"
+                                                          ]
+                                                      }
+                                                  },
+                                                  {
+                                                      "not": {
+                                                          "equals": [
+                                                              "@outputs('Compose_request_Body')?['EndDateTime']",
+                                                              ""
+                                                          ]
+                                                      }
+                                                  },
+                                                  {
+                                                      "not": {
+                                                          "equals": [
+                                                              "@outputs('Compose_request_Body')?['EndDateTime']",
+                                                              "@null"
+                                                          ]
+                                                      }
+                                                  },
+                                                  {
+                                                      "not": {
+                                                          "equals": [
+                                                              "@outputs('Compose_request_Body')?['Type']",
+                                                              "@null"
+                                                          ]
+                                                      }
+                                                  },
+                                                  {
+                                                      "not": {
+                                                          "equals": [
+                                                              "@outputs('Compose_request_Body')?['Type']",
+                                                              ""
+                                                          ]
+                                                      }
+                                                  },
+                                                  {
+                                                      "not": {
+                                                          "equals": [
+                                                              "@outputs('Compose_request_Body')?['S4SDivision__c']",
+                                                              "@null"
+                                                          ]
+                                                      }
+                                                  },
+                                                  {
+                                                      "not": {
+                                                          "equals": [
+                                                              "@outputs('Compose_request_Body')?['S4SDivision__c']",
+                                                              ""
+                                                          ]
+                                                      }
+                                                  }
+                                              ]
+                                          },
+                                          "runAfter": {},
+                                          "type": "If"
+                                      }
+                                  },
+                                  "else": {
+                                      "actions": {
+                                          "Response_422_invalid": {
+                                              "inputs": {
+                                                  "body": {
+                                                      "Message": "Required input parameters not  provided!"
+                                                  },
+                                                  "headers": {
+                                                      "Content-Type": "application/json"
+                                                  },
+                                                  "statusCode": 422
+                                              },
+                                              "kind": "Http",
+                                              "runAfter": {},
+                                              "type": "Response"
+                                          }
+                                      }
+                                  },
+                                  "expression": {
+                                      "and": [
+                                          {
+                                              "not": {
+                                                  "equals": [
+                                                      "@outputs('Compose_request_Body')?['Subject']",
+                                                      ""
+                                                  ]
+                                              }
+                                          },
+                                          {
+                                              "not": {
+                                                  "equals": [
+                                                      "@outputs('Compose_request_Body')?['Subject']",
+                                                      "@null"
+                                                  ]
+                                              }
+                                          }
+                                      ]
+                                  },
+                                  "runAfter": {},
+                                  "type": "If"
+                              }
+                          }
+                      },
+                      "expression": {
+                          "and": [
+                              {
+                                  "not": {
+                                      "equals": [
+                                          "@outputs('Compose_request_Body')?['ActivityId']",
+                                          ""
+                                      ]
+                                  }
+                              },
+                              {
+                                  "not": {
+                                      "equals": [
+                                          "@outputs('Compose_request_Body')?['ActivityId']",
+                                          "@null"
+                                      ]
+                                  }
+                              }
+                          ]
+                      },
+                      "runAfter": {},
+                      "type": "If"
+                  }
+              },
+              "else": {
+                  "actions": {
+                      "422_Response_Event_invalid": {
+                          "inputs": {
+                              "body": {
+                                  "Message": "Required input parameters not provided!"
+                              },
+                              "headers": {
+                                  "Content-Type": "application/json"
+                              },
+                              "statusCode": 422
+                          },
+                          "kind": "Http",
+                          "runAfter": {},
+                          "type": "Response"
+                      }
+                  }
+              },
+              "expression": {
+                  "and": [
+                      {
+                          "not": {
+                              "equals": [
+                                  "@outputs('Compose_request_Body')",
+                                  "@null"
+                              ]
+                          }
+                      }
+                  ]
+              },
+              "runAfter": {
+                  "Compose_request_Body": [
+                      "Succeeded"
+                  ]
+              },
+              "type": "If"
+          }
+      },
+      "runAfter": {},
+    
+      "trackedProperties": {
+        "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+        "citizenName": "c00031",
+        "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'GOI')}",
+        "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+        "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'V3')}",
+        "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'upsertEvent')}",
+        "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+        "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+        "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+    },
+      "type": "Scope"
+    }
+  },
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {
+    "$connections": {
+      "defaultValue": {},
+      "type": "Object"
+    }
+  },
+  "triggers": {
+    "manual": {
+      "inputs": {
+        "schema": {}
+      },
+      "kind": "Http",
+      "type": "Request"
+    }
+  }
+}

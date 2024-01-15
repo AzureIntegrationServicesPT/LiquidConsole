@@ -1,0 +1,236 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "actions": {
+    "Scope-Non-SFS": {
+      "actions": {
+        "Get_accounts": {
+          "inputs": {
+            "host": {
+              "connection": {
+                "name": "@parameters('$connections')['nonsfs-connection']['connectionId']"
+              }
+            },
+            "method": "get",
+            "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Account'))}/items",
+            "queries": {
+              "$filter": "S4SData_Visibility__c eq 'Non-Confidential'",
+              "$top": 5
+            },
+            "retryPolicy": {
+              "type": "none"
+            }
+          },
+          "runAfter": {
+            "Get_opportunities": ["Succeeded"]
+          },
+          "type": "ApiConnection"
+        },
+        "Get_opportunities": {
+          "inputs": {
+            "host": {
+              "connection": {
+                "name": "@parameters('$connections')['nonsfs-connection']['connectionId']"
+              }
+            },
+            "method": "get",
+            "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Opportunity'))}/items",
+            "queries": {
+              "$filter": "S4SData_Visibility__c eq 'Non-Confidential'",
+              "$top": 5
+            },
+            "retryPolicy": {
+              "type": "none"
+            }
+          },
+          "runAfter": {},
+          "type": "ApiConnection"
+        }
+      },
+      "runAfter": {},
+      "type": "Scope"
+    },
+    "Scope-Non-SFSAPI": {
+      "actions": {
+        "HTTP_Get_Nonsfs_Account": {
+          "inputs": {
+            "headers": {
+              "Authorization": "Bearer @{body('HTTP_Get_SF_Token_for_Non__SFS')}"
+            },
+            "method": "GET",
+            "queries": {
+              "q": "@parameters('Query for Non SFS')"
+            },
+            "uri": "${instance_NonSFS_URL}/query"
+          },
+          "runAfter": {
+            "HTTP_Get_SF_Token_for_Non__SFS": ["Succeeded"]
+          },
+          "type": "Http"
+        },
+        "HTTP_Get_Nonsfs_Opportunites": {
+          "inputs": {
+            "headers": {
+              "Authorization": "Bearer @{body('HTTP_Get_SF_Token_for_Non__SFS')}"
+            },
+            "method": "GET",
+            "queries": {
+              "q": "@parameters('Query for Non SFS')"
+            },
+            "uri": "${instance_NonSFS_URL}/query"
+          },
+          "runAfter": {
+            "HTTP_Get_SF_Token_for_Non__SFS": ["Succeeded"]
+          },
+          "type": "Http"
+        },
+        "HTTP_Get_SF_Token_for_Non__SFS": {
+          "inputs": {
+            "headers": {
+              "Ocp-Apim-Subscription-Key": "${apimKey}",
+                                "forceRefresh": "T"
+            },
+            "method": "POST",
+            "uri": "${apimURL}"
+          },
+          "runAfter": {},
+          "type": "Http"
+        }
+      },
+      "runAfter": {},
+      "type": "Scope"
+    },
+    "Scope-SFS": {
+      "actions": {
+        "Get_accounts_sfs": {
+          "inputs": {
+            "host": {
+              "connection": {
+                "name": "@parameters('$connections')['sfs-connection']['connectionId']"
+              }
+            },
+            "method": "get",
+            "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Account'))}/items",
+            "queries": {
+              "$filter": "S4SData_Visibility__c eq 'Confidential'",
+              "$top": 5
+            },
+            "retryPolicy": {
+              "type": "none"
+            }
+          },
+          "runAfter": {
+            "Get_opportunities_sfs": ["Succeeded"]
+          },
+          "type": "ApiConnection"
+        },
+        "Get_opportunities_sfs": {
+          "inputs": {
+            "host": {
+              "connection": {
+                "name": "@parameters('$connections')['sfs-connection']['connectionId']"
+              }
+            },
+            "method": "get",
+            "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Opportunity'))}/items",
+            "queries": {
+              "$filter": "S4SData_Visibility__c eq 'Confidential'",
+              "$top": 5
+            },
+            "retryPolicy": {
+              "type": "none"
+            }
+          },
+          "runAfter": {},
+          "type": "ApiConnection"
+        }
+      },
+      "runAfter": {},
+      "type": "Scope"
+    },
+    "Scope-SFSAPI": {
+      "actions": {
+        "HTTP_Get_SF_Token_for_SFS": {
+          "inputs": {
+            "headers": {
+              "Ocp-Apim-Subscription-Key": "${apimKey}",
+                                "forceRefresh": "T"
+            },
+            "method": "POST",
+            "uri": "${apimSFSURL}"
+          },
+          "runAfter": {},
+          "type": "Http"
+        },
+        "HTTP_get_SFS_Accounts": {
+          "inputs": {
+            "headers": {
+              "Authorization": "Bearer @{body('HTTP_Get_SF_Token_for_SFS')}"
+            },
+            "method": "GET",
+            "queries": {
+              "q": "@parameters('Query for SFS')"
+            },
+            "uri": "${instance_SFS_URL}/query"
+          },
+          "runAfter": {
+            "HTTP_Get_SF_Token_for_SFS": ["Succeeded"]
+          },
+          "type": "Http"
+        },
+        "HTTP_get_SFS_Opportunities": {
+          "inputs": {
+            "headers": {
+              "Authorization": "Bearer @{body('HTTP_Get_SF_Token_for_SFS')}"
+            },
+            "method": "GET",
+            "queries": {
+              "q": "@parameters('Query for SFS')"
+            },
+            "uri": "${instance_SFS_URL}/query"
+          },
+          "runAfter": {
+            "HTTP_Get_SF_Token_for_SFS": ["Succeeded"]
+          },
+          "type": "Http"
+        }
+      },
+      "runAfter": {},
+      "type": "Scope"
+    },
+    "Terminate": {
+      "inputs": {
+        "runStatus": "Succeeded"
+      },
+      "runAfter": {
+        "Scope-Non-SFS": ["Succeeded"],
+        "Scope-Non-SFSAPI": ["Succeeded"],
+        "Scope-SFS": ["Succeeded"],
+        "Scope-SFSAPI": ["Succeeded"]
+      },
+      "type": "Terminate"
+    }
+  },
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {
+    "$connections": {
+      "defaultValue": {},
+      "type": "Object"
+    },
+    "Query for Non SFS": {
+      "defaultValue": "Select Id, Name, Description from opportunity where S4SData_Visibility__c = 'Non-Confidential' LIMIT 5",
+      "type": "String"
+    },
+    "Query for SFS": {
+      "defaultValue": "Select Id, Name, Description from opportunity where S4SData_Visibility__c = 'Confidential' LIMIT 5",
+      "type": "String"
+    }
+  },
+  "triggers": {
+    "manual": {
+      "inputs": {},
+      "kind": "Http",
+      "type": "Request"
+    }
+  }
+}

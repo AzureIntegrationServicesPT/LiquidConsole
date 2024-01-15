@@ -1,0 +1,182 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+        "HTTP-GetToken": {
+            "inputs": {
+                "headers": {
+                    "Ocp-Apim-Subscription-Key": "${apimKey}"
+                },
+                "method": "POST",
+                "uri": "${apimURL}"
+            },
+            "runAfter": {},
+            "type": "Http"
+        },
+        "Scope-UpsertInvolvedAccounts": {
+            "actions": {
+                "Condition_check_on_StatusCode_of_InvolvedAccounts": {
+                    "actions": {
+                        "Success_Response": {
+                            "inputs": {
+                                "body": "@coalesce(outputs('Create_record_InvolvedAccounts')?['body'],outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID_InvolvedAccounts')?['body'])",
+                                "statusCode": "@coalesce(outputs('Create_record_InvolvedAccounts')?['statusCode'],outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID_InvolvedAccounts')?['statusCode'])"
+                            },
+                            "kind": "Http",
+                            "runAfter": {},
+                            "type": "Response"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Failed_Response": {
+                                "inputs": {
+                                    "body": "@coalesce(outputs('Create_record_InvolvedAccounts')?['body'],outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID_InvolvedAccounts')?['body'])",
+                                    "statusCode": "@coalesce(outputs('Create_record_InvolvedAccounts')?['statusCode'],outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID_InvolvedAccounts')?['statusCode'])"
+                                },
+                                "kind": "Http",
+                                "runAfter": {},
+                                "type": "Response"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "or": [
+                            {
+                                "equals": [
+                                    "@coalesce(outputs('Create_record_InvolvedAccounts')?['statusCode'],outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID_InvolvedAccounts')?['statusCode'])",
+                                    200
+                                ]
+                            },
+                            {
+                                "equals": [
+                                    "@coalesce(outputs('Create_record_InvolvedAccounts')?['statusCode'],outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID_InvolvedAccounts')?['statusCode'])",
+                                    201
+                                ]
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Condition_to_check_Id_InvolvedAccounts": [
+                            "Succeeded",
+                            "Failed"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Condition_to_check_Id_InvolvedAccounts": {
+                    "actions": {
+                        "Create_record_InvolvedAccounts": {
+                            "inputs": {
+                                "body": "@removeProperty(triggerBody(),'Id')",
+                                "headers": {
+                                    "Authorization": "Bearer @{body('HTTP-GetToken')}",
+                                    "Content-Type": "application/json"
+                                },
+                                "host": {},
+                                "method": "POST",
+                                "uri": "${instance_NonSFS_URL}/sobjects/S4SInvolved_Accounts__c/"
+                            },
+                            "runAfter": {},
+                            "type": "Http"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Insert_or_Update_(Upsert)_a_Record_by_External_ID_InvolvedAccounts": {
+                                "inputs": {
+                                    "body": "@removeProperty(triggerBody(),'Id')",
+                                    "headers": {
+                                        "Authorization": "Bearer @{body('HTTP-GetToken')}",
+                                        "Content-Type": "application/json"
+                                    },
+                                    "host": {},
+                                    "method": "PATCH",
+                                    "uri": "${instance_NonSFS_URL}/sobjects/S4SInvolved_Accounts__c/Id/@{triggerBody()?['Id']}"
+                                },
+                                "runAfter": {},
+                                "type": "Http"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "or": [
+                            {
+                                "equals": [
+                                    "@triggerBody()?['Id']",
+                                    "@null"
+                                ]
+                            },
+                            {
+                                "equals": [
+                                    "@triggerBody()?['Id']",
+                                    "@string('')"
+                                ]
+                            }
+                        ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                }
+            },
+            "runAfter": {
+                "HTTP-GetToken": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope_Catch": {
+            "actions": {
+                "Response_in_Catch": {
+                    "inputs": {
+                        "body": {
+                            "Message": "@concat('Some error occurred while Logic App execution. Please find more details using tracking id : ', workflow()['run']['name'])",
+                            "Status": "Failure"
+                        },
+                        "headers": {
+                            "Content-Type": "application/json"
+                        },
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                },
+                "Terminate": {
+                    "inputs": {
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Response_in_Catch": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Scope-UpsertInvolvedAccounts": [
+                    "Failed",
+                    "Skipped",
+                    "TimedOut"
+                ]
+            },
+            "type": "Scope"
+        }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "manual": {
+                "inputs": {},
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+}

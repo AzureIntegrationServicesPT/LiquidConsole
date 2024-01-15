@@ -1,0 +1,102 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Failed_Response": {
+            "inputs": {
+                "statusCode": 400
+            },
+            "kind": "Http",
+            "runAfter": {
+                "shared_Sent_Email__(V3)": [
+                    "Failed"
+                ]
+            },
+            "type": "Response"
+        },
+        "Success_Response": {
+            "inputs": {
+                "statusCode": 200
+            },
+            "kind": "Http",
+            "runAfter": {
+                "shared_Sent_Email__(V3)": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Response"
+        },
+        "shared_Sent_Email__(V3)": {
+            "inputs": {
+                "body": {
+                    "Bcc": "@triggerBody()?['Bcc']",
+                    "Body": "<p>@{triggerBody()['Body']}</p>",
+                    "CC": "@triggerBody()?['Cc']",
+                    "From": "@triggerBody()?['From']",
+                    "Subject": "@triggerBody()?['Subject']",
+                    "To": "@triggerBody()?['To']"
+                },
+                "host": {
+                    "connection": {
+                        "name": "@parameters('$connections')['emailConnection']['connectionId']"
+                    }
+                },
+                "method": "post",
+                "path": "/SendEmailV3",
+                "retryPolicy": {
+                    "type": "none"
+                }
+            },
+            "runAfter": {},
+            "type": "ApiConnection"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {
+                "schema": {
+                    "properties": {
+                        "Bcc": {
+                            "description": "list of emailid whom email need to send in CC",
+                            "type": "string"
+                        },
+                        "Body": {
+                            "description": "Mandatory-The request body to be sent to email",
+                            "required": "true",
+                            "type": "string"
+                        },
+                        "Cc": {
+                            "description": "list of emailid whom email need to send in CC",
+                            "type": "string"
+                        },
+                        "From": {
+                            "description": "Mandatory-Email id for from in email",
+                            "required": "true",
+                            "type": "string"
+                        },
+                        "Subject": {
+                            "description": "Mandatory-Email subject",
+                            "required": "true",
+                            "type": "string"
+                        },
+                        "To": {
+                            "description": "Mandatory-list of emailid whom email need to send",
+                            "required": "true",
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                }
+            },
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

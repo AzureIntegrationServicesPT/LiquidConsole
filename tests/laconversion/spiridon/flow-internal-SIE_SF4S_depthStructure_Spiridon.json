@@ -1,0 +1,773 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Initialize_variable_Depth_Structure": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "DepthStructure",
+                        "type": "object",
+                        "value": "@triggerBody()"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_ErrorMessage": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "ErrorMessage",
+                        "type": "boolean",
+                        "value": "@false"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_ProductID": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "ProductID",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_ProductInfo": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "Product",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_ProductName": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "ProductName",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Scope_Catch": {
+            "actions": {
+                "Error_Response": {
+                    "inputs": {
+                        "body": "Internal Server Error",
+                        "headers": {
+                            "Content-Type": "application/json"
+                        },
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                },
+                "Error_Terminate": {
+                    "inputs": {
+                        "runError": {
+                            "code": "500"
+                        },
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Error_Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Scope_Try": [
+                    "Failed",
+                    "Skipped",
+                    "TimedOut"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope_Try": {
+            "actions": {
+                "Compose_ProductId_and_ErrorMsg": {
+                    "inputs": {
+                        "IsErrorMsg": "@{if(empty(coalesce(outputs('Compose_DepthStructurePId'),outputs('Compose_DepthStructSPGPId'),outputs('Compose_DepthStructPCKPId'),outputs('Compose_DepthStructGCKPId'),outputs('Compose_BizSubSegPId'),outputs('Compose_BizSegPId'),outputs('Compose_BizUnitPId'),outputs('Compose_DivisionPId'))),bool(1),bool(0))}",
+                        "PId": "@{coalesce(outputs('Compose_DepthStructurePId'),outputs('Compose_DepthStructSPGPId'),outputs('Compose_DepthStructPCKPId'),outputs('Compose_DepthStructGCKPId'),outputs('Compose_BizSubSegPId'),outputs('Compose_BizSegPId'),outputs('Compose_BizUnitPId'),outputs('Compose_DivisionPId'))}"
+                    },
+                    "runAfter": {
+                        "Condition_DepthStructure_GCK": [
+                            "Succeeded"
+                        ],
+                        "Condition_DepthStructure_PCK": [
+                            "Succeeded"
+                        ],
+                        "Condition_Depth_Structure_Exists": [
+                            "Succeeded"
+                        ],
+                        "Condition__DepthStructure_SPG_exists": [
+                            "Succeeded"
+                        ],
+                        "Condition_businessSegment": [
+                            "Succeeded"
+                        ],
+                        "Condition_businessSubSegment": [
+                            "Succeeded"
+                        ],
+                        "Condition_businessUnit": [
+                            "Succeeded"
+                        ],
+                        "Condition_division": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Compose"
+                },
+                "Compose_RootNode": {
+                    "inputs": "Rootnode",
+                    "runAfter": {},
+                    "type": "Compose"
+                },
+                "Condition_DepthStructure_GCK": {
+                    "actions": {
+                        "Compose_DepthStructGCKPId": {
+                            "inputs": "@body('FetchProduct_from_SalesForce_2')?['records']?[0]?['Id']",
+                            "runAfter": {
+                                "FetchProduct_from_SalesForce_2": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Compose"
+                        },
+                        "FetchProduct_from_SalesForce_2": {
+                            "inputs": {
+                                "body": {
+                                    "query": "select Id,Name from Product2 where IsActive=true and S4SGCK__c = '@{variables('DepthStructure')?['GCK']}' and S4SPCK__c='' and S4SSPG__c =''"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/soql/executesoqlquery"
+                            },
+                            "runAfter": {},
+                            "type": "ApiConnection"
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('DepthStructure')?['GCK']",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('DepthStructure')?['GCK']",
+                                        "@string('')"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Compose_RootNode": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Condition_DepthStructure_PCK": {
+                    "actions": {
+                        "Compose_DepthStructPCKPId": {
+                            "inputs": "@body('FetchProduct_from_SalesForce_1')?['records']?[0]?['Id']",
+                            "runAfter": {
+                                "FetchProduct_from_SalesForce_1": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Compose"
+                        },
+                        "FetchProduct_from_SalesForce_1": {
+                            "inputs": {
+                                "body": {
+                                    "query": "select Id,Name from Product2 where IsActive=true and S4SPCK__c = '@{variables('DepthStructure')?['PCK']}' and S4SSPG__c =' '"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/soql/executesoqlquery"
+                            },
+                            "runAfter": {},
+                            "type": "ApiConnection"
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('DepthStructure')?['PCK']",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('DepthStructure')?['PCK']",
+                                        "@string('')"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Compose_RootNode": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Condition_Depth_Structure_Exists": {
+                    "actions": {
+                        "Compose_DepthStructurePId": {
+                            "inputs": "@body('FetchAccount_from_SalesForce')?['records']?[0]?['Id']",
+                            "runAfter": {
+                                "FetchAccount_from_SalesForce": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Compose"
+                        },
+                        "FetchAccount_from_SalesForce": {
+                            "inputs": {
+                                "body": {
+                                    "query": "select \nId,Name from Product2 @{outputs('where_clause_')}"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/soql/executesoqlquery"
+                            },
+                            "runAfter": {
+                                "where_clause_": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection"
+                        },
+                        "where_clause_": {
+                            "inputs": "where IsActive=true and   S4SDivisions__c =  '@{variables('DepthStructure')?['DIVISION']}' and \n  S4SBusiness_Unit__c = '@{variables('DepthStructure')?['BUSINESS_UNIT']}' and \n  S4SBusiness_Segment_Code__c = '@{variables('DepthStructure')?['BUSINESS_SEGMENT']}' and \n  S4SBusiness_Subsegment__c = '@{variables('DepthStructure')?['BUSINESS_SUBSEGMENT']}' and  \n  S4SGCK__c ='@{variables('DepthStructure')?['GCK']}' and\n  S4SPCK__c = '' and S4SSPG__c  = ''\n",
+                            "runAfter": {},
+                            "type": "Compose"
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('DepthStructure')",
+                                        "@null"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Compose_RootNode": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Condition__DepthStructure_SPG_exists": {
+                    "actions": {
+                        "Compose_DepthStructSPGPId": {
+                            "inputs": "@body('FetchProduct_from_SalesForce')?['records']?[0]?['Id']",
+                            "runAfter": {
+                                "FetchProduct_from_SalesForce": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Compose"
+                        },
+                        "FetchProduct_from_SalesForce": {
+                            "inputs": {
+                                "body": {
+                                    "query": "select Id,Name from Product2 where IsActive=true and S4SSPG__c ='@{variables('DepthStructure')?['SPG']}'"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/soql/executesoqlquery"
+                            },
+                            "runAfter": {},
+                            "type": "ApiConnection"
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('DepthStructure')?['SPG']",
+                                        "@string('')"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('DepthStructure')?['SPG']",
+                                        "@null"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Compose_RootNode": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Condition_businessSegment": {
+                    "actions": {
+                        "Compose_BizSegPId": {
+                            "inputs": "@body('FetchProduct_from_SalesForce_4')?['records']?[0]?['Id']",
+                            "runAfter": {
+                                "FetchProduct_from_SalesForce_4": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Compose"
+                        },
+                        "FetchProduct_from_SalesForce_4": {
+                            "inputs": {
+                                "body": {
+                                    "query": "select Id,Name from Product2 where IsActive=true and S4SBusiness_Segment_Code__c = '@{variables('DepthStructure')?['BUSINESS_SEGMENT']}' and S4SBusiness_Subsegment__c = '' and S4SGCK__c='' and S4SPCK__c = '' and S4SSPG__c ='' "
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/soql/executesoqlquery"
+                            },
+                            "runAfter": {},
+                            "type": "ApiConnection"
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('DepthStructure')?['BUSINESS_SEGMENT']",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('DepthStructure')?['BUSINESS_SEGMENT']",
+                                        "@string('')"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Compose_RootNode": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Condition_businessSubSegment": {
+                    "actions": {
+                        "Compose_BizSubSegPId": {
+                            "inputs": "@body('FetchProduct_from_SalesForce_3')?['records']?[0]?['Id']",
+                            "runAfter": {
+                                "FetchProduct_from_SalesForce_3": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Compose"
+                        },
+                        "FetchProduct_from_SalesForce_3": {
+                            "inputs": {
+                                "body": {
+                                    "query": "select Id,Name from Product2 where IsActive=true and S4SBusiness_Subsegment__c = '@{variables('DepthStructure')?['BUSINESS_SUBSEGMENT']}' and S4SGCK__c='' and       \n                                    S4SPCK__c = '' and S4SSPG__c =''\n"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/soql/executesoqlquery"
+                            },
+                            "runAfter": {},
+                            "type": "ApiConnection"
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('DepthStructure')?['BUSINESS_SUBSEGMENT']",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('DepthStructure')?['BUSINESS_SUBSEGMENT']",
+                                        "@string('')"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Compose_RootNode": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Condition_businessUnit": {
+                    "actions": {
+                        "Compose_BizUnitPId": {
+                            "inputs": "@body('FetchProduct_from_SalesForce_5')?['records']?[0]?['Id']",
+                            "runAfter": {
+                                "FetchProduct_from_SalesForce_5": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Compose"
+                        },
+                        "FetchProduct_from_SalesForce_5": {
+                            "inputs": {
+                                "body": {
+                                    "query": "select Id,Name from Product2 where IsActive=true and S4SBusiness_Unit__c = '@{variables('DepthStructure')?['BUSINESS_UNIT']}' and S4SBusiness_Segment_Code__c= '' and S4SBusiness_Subsegment__c = '' and S4SGCK__c='' and S4SPCK__c = '' and S4SSPG__c ='' "
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/soql/executesoqlquery"
+                            },
+                            "runAfter": {},
+                            "type": "ApiConnection"
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('DepthStructure')?['BUSINESS_UNIT']",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('DepthStructure')?['BUSINESS_UNIT']",
+                                        "@string('')"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Compose_RootNode": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Condition_division": {
+                    "actions": {
+                        "Compose_DivisionPId": {
+                            "inputs": "@body('FetchProduct_from_SalesForce_6')?['records']?[0]?['Id']",
+                            "runAfter": {
+                                "FetchProduct_from_SalesForce_6": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Compose"
+                        },
+                        "FetchProduct_from_SalesForce_6": {
+                            "inputs": {
+                                "body": {
+                                    "query": "select Id,Name from Product2 where IsActive=true and S4SDivisions__c  = '@{variables('DepthStructure')?['DIVISION']}'  and S4SBusiness_Unit__c='' and S4SBusiness_Segment_Code__c= '' and S4SBusiness_Subsegment__c = '' and S4SGCK__c='' and S4SPCK__c = '' and S4SSPG__c =''"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/soql/executesoqlquery"
+                            },
+                            "runAfter": {},
+                            "type": "ApiConnection"
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('DepthStructure')?['DIVISION']",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('DepthStructure')?['DIVISION']",
+                                        "@string('')"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Compose_RootNode": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Condition_to_check_ProductID_existed": {
+                    "actions": {
+                        "Condition_to_check_Error_Message": {
+                            "actions": {
+                                "Compose_ProductMsg": {
+                                    "inputs": "Received the Depth Structure details as follows:   #<Division>'@{variables('DepthStructure')?['division']}'</Division>#<BusinessUnit>'@{variables('DepthStructure')?['businessUnit']}'</BusinessUnit>#<BusinessSegment>'@{variables('DepthStructure')?['businessSegment']}'</BusinessSegment>#<BusinessSubsegment>'@{variables('DepthStructure')?['businessSubSegment']}'</BusinessSubsegment>#<GCK>'@{variables('DepthStructure')?['GCK']}'</GCK>but inserted the Depth structure as follows: <Division>'@{body('FetchProduct_from_SalesForce_9')?['records']?[0]?['S4SDivisions__c']}'</Division>#<BusinessUnit>'@{body('FetchProduct_from_SalesForce_9')?['records']?[0]?['S4SBusiness_Unit__c']}'</BusinessUnit>#>#<BusinessSegment>'@{body('FetchProduct_from_SalesForce_9')?['records']?[0]?['S4SBusiness_Subsegment__c']}'</BusinessSegment>#<BusinessSubsegment>'@{body('FetchProduct_from_SalesForce_9')?['records']?[0]?['S4SBusiness_Subsegment__c']}'</BusinessSubsegment>#<GCK>'@{body('FetchProduct_from_SalesForce_9')?['records']?[0]?['S4SGCK__c']}'</GCK>",
+                                    "runAfter": {},
+                                    "type": "Compose"
+                                },
+                                "Compose_ProductWithMsg": {
+                                    "inputs": {
+                                        "Id": "@{body('FetchProduct_from_SalesForce_9')?['records']?[0]?['Id']}",
+                                        "Name": "@{body('FetchProduct_from_SalesForce_9')?['records']?[0]?['Name']}",
+                                        "Status": "",
+                                        "isPrimary": "",
+                                        "message": "@{outputs('Compose_ProductMsg')}"
+                                    },
+                                    "runAfter": {
+                                        "Compose_ProductMsg": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Compose"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "Compose_ProductWithoutMsg": {
+                                        "inputs": {
+                                            "Id": "@{body('FetchProduct_from_SalesForce_9')?['records']?[0]?['Id']}",
+                                            "Name": "@{body('FetchProduct_from_SalesForce_9')?['records']?[0]?['Name']}",
+                                            "Status": "",
+                                            "isPrimary": "",
+                                            "message": ""
+                                        },
+                                        "runAfter": {},
+                                        "type": "Compose"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "equals": [
+                                            "@outputs('Compose_ProductId_and_ErrorMsg')?['IsErrorMsg']",
+                                            true
+                                        ]
+                                    }
+                                ]
+                            },
+                            "runAfter": {
+                                "FetchProduct_from_SalesForce_9": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "FetchProduct_from_SalesForce_9": {
+                            "inputs": {
+                                "body": {
+                                    "query": "select Id,Name,S4SBusiness_Segment_Code__c,S4SBusiness_Subsegment__c,S4SGCK__c,S4SPCK__c,S4SSPG__c,S4SBusiness_Unit__c,S4SDivisions__c from Product2 where  IsActive=true and Id = '@{outputs('Compose_ProductId_and_ErrorMsg')?['PId']}'"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/soql/executesoqlquery"
+                            },
+                            "runAfter": {},
+                            "type": "ApiConnection"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Set_variable_Product1": {
+                                "inputs": {
+                                    "name": "Product",
+                                    "value": "{\n\"Id\": \"@{variables('ProductID')}\",\n\"Name\": \"@{variables('ProductName')}\",\n\"Status\": \"False\",\n\"message\": \"Could not fetch any fields from Depth Structure\",\n\"isPrimary\": \"\"\n}"
+                                },
+                                "runAfter": {},
+                                "type": "SetVariable"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@outputs('Compose_ProductId_and_ErrorMsg')?['PId']",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@outputs('Compose_ProductId_and_ErrorMsg')?['PId']",
+                                        "@string(' ')"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Compose_ProductId_and_ErrorMsg": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Success_Response": {
+                    "inputs": {
+                        "body": "@coalesce(outputs('Compose_ProductWithMsg'),outputs('Compose_ProductWithoutMsg'))",
+                        "headers": {
+                            "Content-Type": "application/json"
+                        },
+                        "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "Condition_to_check_ProductID_existed": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
+                },
+                "Success_Terminate": {
+                    "inputs": {
+                        "runStatus": "Succeeded"
+                    },
+                    "runAfter": {
+                        "Success_Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Initialize_variable_Depth_Structure": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_ErrorMessage": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_ProductID": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_ProductInfo": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_ProductName": [
+                    "Succeeded"
+                ]
+            },
+            "trackedProperties": {
+                "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+                "citizenName": "c00031",
+                "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'Spiridon')}",
+                "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'depthstructure')}",
+                "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}"
+            },
+            "type": "Scope"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {
+                "schema": {}
+            },
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

@@ -1,0 +1,108 @@
+{
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Condition": {
+                "actions": {
+                    "Response_2": {
+                        "inputs": {
+                            "body": "@variables('num')",
+                            "statusCode": 200
+                        },
+                        "kind": "Http",
+                        "runAfter": {
+                            "Set_variable": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Response"
+                    },
+                    "Set_variable": {
+                        "inputs": {
+                            "name": "num",
+                            "value": "@{if(contains(variables('number'),'.'),float(variables('number')),concat(variables('number'),'.0'))}"
+                        },
+                        "runAfter": {},
+                        "type": "SetVariable"
+                    }
+                },
+                "else": {
+                    "actions": {
+                        "Response": {
+                            "inputs": {
+                                "body": "@variables('number')",
+                                "statusCode": 200
+                            },
+                            "kind": "Http",
+                            "runAfter": {},
+                            "type": "Response"
+                        }
+                    }
+                },
+                "expression": {
+                    "and": [
+                        {
+                            "not": {
+                                "equals": [
+                                    "@variables('number')",
+                                    "@string('')"
+                                ]
+                            }
+                        },
+                        {
+                            "not": {
+                                "equals": [
+                                    "@variables('number')",
+                                    "@null"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Initialize_variable_'num'": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "If"
+            },
+            "Initialize_variable_'num'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "num",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Initialize_variable_'number'": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_'number'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "number",
+                            "type": "string",
+                            "value": "@{triggerBody()}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {},
+        "triggers": {
+            "manual": {
+                "inputs": {},
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+}

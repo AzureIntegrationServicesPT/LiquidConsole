@@ -1,0 +1,60 @@
+{
+    {%assign compose_installation = ""%}
+    {%assign final_installation = ""%}
+    {%assign helper = 0%}
+    {% for installation in content.installations %}
+        {%if content.curr_site.Id == installation.S4SSite__c%}
+            {%if helper != 0%}
+                {%assign final_installation = final_installation | append: ","%}
+            {%endif%}
+            {%capture compose_installation%}
+                {
+                    "CurrencyIsoCode": "{{installation.CurrencyIsoCode}}",
+                    "Id": "{{installation.Id}}",
+                    "Name": "{{installation.Name | remove : '"' | replace: '\\', '\\\\'}}",
+                    "Owner": {
+                        "Name": "{{installation.Owner.Name | remove : '"'}}"
+                    },
+                    "S4SActive_Contract__c": "{{installation.S4SActive_Contract__c}}",
+                    "S4SAge_Years__c": "{{installation.S4SAge_Years__c}}",
+                    "S4SBOM_items_Number__c": "{{installation.S4SBOM_items_Number__c}}",
+                    "S4SCity__c": "{{installation.S4SCity__c}}",
+                    "S4SCountry__c": "{{installation.S4SCountry__c}}",
+                    "S4SData_Point_Total__c": "{{installation.S4SData_Point_Total__c}}",
+                    "S4SDivision__c": "{{installation.S4SDivision__c}}",
+                    "S4SExternal_ID__c": "{{installation.S4SExternal_ID__c}}",
+                    "S4SExternal_Source__c": "{{installation.S4SExternal_Source__c}}",
+                    "S4SInstallation_Description__c": {{installation.S4SInstallation_Description__c | json}},
+                    "S4SInstallation_Number__c": "{{installation.S4SInstallation_Number__c}}",
+                    "S4SLead_Country__c": "{{installation.S4SLead_Country__c}}",
+                    "S4SLicense_Information__c": "{{installation.S4SLicense_Information__c}}",
+                    "S4SMarked_for_Deletion__c": "{{installation.S4SMarked_for_Deletion__c}}",
+                    "S4SNumber_of_Active_Contracts__c": "{{installation.S4SNumber_of_Active_Contracts__c}}",
+                    "S4SOwned_by__c": {
+                        "Name": "{{installation.S4SOwned_by__r.Name | remove : '"'}}",
+                        "S4SIfa__c": "{{installation.S4SOwned_by__r.S4SIfA__c}}"
+                    },
+                    "S4SPostal_Code__c": "{{installation.S4SPostal_Code__c}}",
+                    "S4SRemote_Access__c": "{{installation.S4SRemote_Access__c}}",
+                    "S4SSite__c": "{{installation.S4SSite__c}}",
+                    "S4SSold_to_Party__c": {
+                        "Name": "{{installation.S4SSold_to_Party__r.Name | remove : '"'}}",
+                        "S4SIfa__c": "{{installation.S4SSold_to_Party__r.S4SIfA__c}}"
+                    },
+                    "S4SStart_Up_Date__c": "{{installation.S4SStart_Up_Date__c}}",
+                    "S4SState__c": "{{installation.S4SState__c}}",
+                    "S4SStreet__c": "{{installation.S4SStreet__c}}",
+                    "S4SSystem_Portfolio__c": "{{installation.S4SSystem_Portfolio__c}}",
+                    "S4SWarranty_End_Date__c": "{{installation.S4SWarranty_End_Date__c}}",
+                    "S4SWarranty_Start_Date__c": "{{installation.S4SWarranty_Start_Date__c}}"
+                }
+            {%endcapture%}
+            {%assign helper = helper | plus: 1%}
+            {%assign final_installation = final_installation | append: compose_installation%}
+        {%endif%}
+    {% endfor %}
+
+    "S4SInstallation__c": [
+        {{final_installation}}
+    ]
+}

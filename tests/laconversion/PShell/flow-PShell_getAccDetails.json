@@ -1,0 +1,795 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Initialize_variable_AccountTeamMember": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "AccountTeamMember",
+                        "type": "array"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_Contact": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "Contact",
+                        "type": "array"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_S4SIdentification_Number": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "S4SIdentification_Number",
+                        "type": "array"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_S4SRole": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "S4SRole",
+                        "type": "array"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_S4SSISIC": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "S4SSISIC",
+                        "type": "array"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Scope_Catch": {
+            "actions": {
+                "Response_in_catch": {
+                    "inputs": {
+                        "body": {
+                            "message": "@concat('Some error occurred while processing the request. Please find more details using tracking id : ', workflow()['run']['name'])",
+                            "status": "Failure"
+                        },
+                        "headers": {
+                            "Content-Type": "application/json"
+                        },
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                },
+                "Terminate_in_catch": {
+                    "inputs": {
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Response_in_catch": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Scope_Try": [
+                    "Failed"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope_Try": {
+            "actions": {
+                "Check_Id_in_response": {
+                    "actions": {
+                        "Check_S4SSISIC_Direct__c_in_response": {
+                            "actions": {
+                                "Compose_Request_Body_for_fetchSISIC_logic_app": {
+                                    "inputs": {
+                                        "SIE_SF4S_fetchSISICRequest": {
+                                            "sisicId": "@body('fetchAccount')?['records']?[0]?['S4SSISIC_Direct__c']",
+                                            "sisicName": ""
+                                        }
+                                    },
+                                    "runAfter": {},
+                                    "type": "Compose"
+                                },
+                                "fetchSISIC": {
+                                    "inputs": {
+                                        "body": "@outputs('Compose_Request_Body_for_fetchSISIC_logic_app')",
+                                        "host": {
+                                            "triggerName": "manual",
+                                            "workflow": {
+                                                "id": "${fetchSISIC_logicApp_id}"
+                                            }
+                                        }
+                                    },
+                                    "runAfter": {
+                                        "Compose_Request_Body_for_fetchSISIC_logic_app": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Workflow"
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@body('fetchAccount')?['records']?[0]?['S4SSISIC_Direct__c']",
+                                                "@null"
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@body('fetchAccount')?['records']?[0]?['S4SSISIC_Direct__c']",
+                                                "@string('')"
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "runAfter": {
+                                "For_each_Role": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "Compose_Final_Response": {
+                            "inputs": {
+                                "response": {
+                                    "Account": {
+                                        "AccountNumber": "@{body('fetchAccount')?['records']?[0]?['AccountNumber']}",
+                                        "AccountSource": "@{body('fetchAccount')?['records']?[0]?['AccountSource']}",
+                                        "AccountTeamMember": "@variables('AccountTeamMember')",
+                                        "AnnualRevenue": "@{body('fetchAccount')?['records']?[0]?['AnnualRevenue']}",
+                                        "BillingAddress": "@{body('fetchAccount')?['records']?[0]?['BillingAddress']}",
+                                        "BillingCity": "@{body('fetchAccount')?['records']?[0]?['BillingCity']}",
+                                        "BillingCountry": "@{body('fetchAccount')?['records']?[0]?['BillingCountry']}",
+                                        "BillingCountryCode": "@{body('fetchAccount')?['records']?[0]?['BillingCountryCode']}",
+                                        "BillingGeocodeAccuracy": "@{body('fetchAccount')?['records']?[0]?['BillingGeocodeAccuracy']}",
+                                        "BillingLatitude": "@{body('fetchAccount')?['records']?[0]?['BillingLatitude']}",
+                                        "BillingLongitude": "@{body('fetchAccount')?['records']?[0]?['BillingLongitude']}",
+                                        "BillingPostalCode": "@{body('fetchAccount')?['records']?[0]?['BillingPostalCode']}",
+                                        "BillingState": "@{body('fetchAccount')?['records']?[0]?['BillingState']}",
+                                        "BillingStateCode": "@{body('fetchAccount')?['records']?[0]?['BillingStateCode']}",
+                                        "BillingStreet": "@{body('fetchAccount')?['records']?[0]?['BillingStreet']}",
+                                        "ChannelProgramLevelName": "@{body('fetchAccount')?['records']?[0]?['ChannelProgramLevelName']}",
+                                        "ChannelProgramName": "@{body('fetchAccount')?['records']?[0]?['ChannelProgramName']}",
+                                        "Contact": "@variables('Contact')",
+                                        "CreatedById": "@{body('fetchAccount')?['records']?[0]?['CreatedById']}",
+                                        "CreatedDate": "@replace(coalesce(body('fetchAccount')?['records']?[0]?['CreatedDate'],''),'+00:00','.000Z')",
+                                        "CurrencyIsoCode": "@{body('fetchAccount')?['records']?[0]?['CurrencyIsoCode']}",
+                                        "Description": "@{body('fetchAccount')?['records']?[0]?['Description']}",
+                                        "Fax": "@{body('fetchAccount')?['records']?[0]?['Fax']}",
+                                        "Id": "@{body('fetchAccount')?['records']?[0]?['Id']}",
+                                        "Industry": "@{body('fetchAccount')?['records']?[0]?['Industry']}",
+                                        "IsCustomerPortal": "@{body('fetchAccount')?['records']?[0]?['IsCustomerPortal']}",
+                                        "IsDeleted": "@{body('fetchAccount')?['records']?[0]?['IsDeleted']}",
+                                        "IsPartner": "@{body('fetchAccount')?['records']?[0]?['IsPartner']}",
+                                        "Jigsaw": "@{body('fetchAccount')?['records']?[0]?['Jigsaw']}",
+                                        "JigsawCompanyId": "@{body('fetchAccount')?['records']?[0]?['JigsawCompanyId']}",
+                                        "LastActivityDate": "@replace(coalesce(body('fetchAccount')?['records']?[0]?['LastActivityDate'],''),'+00:00','.000Z')",
+                                        "LastModifiedById": "@{body('fetchAccount')?['records']?[0]?['LastModifiedById']}",
+                                        "LastModifiedDate": "@replace(coalesce(body('fetchAccount')?['records']?[0]?['LastModifiedDate'],''),'+00:00','.000Z')",
+                                        "LastReferencedDate": "@replace(coalesce(body('fetchAccount')?['records']?[0]?['LastReferencedDate'],''),'+00:00','.000Z')",
+                                        "LastViewedDate": "@replace(coalesce(body('fetchAccount')?['records']?[0]?['LastViewedDate'],''),'+00:00','.000Z')",
+                                        "MasterRecordId": "@{body('fetchAccount')?['records']?[0]?['MasterRecordId']}",
+                                        "Name": "@{body('fetchAccount')?['records']?[0]?['Name']}",
+                                        "NumberOfEmployees": "@{body('fetchAccount')?['records']?[0]?['NumberOfEmployees']}",
+                                        "OwnerId": "@{body('fetchAccount')?['records']?[0]?['OwnerId']}",
+                                        "Ownership": "@{body('fetchAccount')?['records']?[0]?['Ownership']}",
+                                        "ParentId": "@{body('fetchAccount')?['records']?[0]?['ParentId']}",
+                                        "Phone": "@{body('fetchAccount')?['records']?[0]?['Phone']}",
+                                        "PhotoUrl": "@{body('fetchAccount')?['records']?[0]?['PhotoUrl']}",
+                                        "Rating": "@{body('fetchAccount')?['records']?[0]?['Rating']}",
+                                        "RecordTypeId": "@{body('fetchAccount')?['records']?[0]?['RecordTypeId']}",
+                                        "S4SACCOUNT_LegacyID__c": "@{body('fetchAccount')?['records']?[0]?['S4SACCOUNT_LegacyID__c']}",
+                                        "S4SARE__c": "@{body('fetchAccount')?['records']?[0]?['S4SARE__c']}",
+                                        "S4SAccount_Assignment__c": "@{body('fetchAccount')?['records']?[0]?['S4SAccount_Assignment__c']}",
+                                        "S4SAccount_Current_Record_Link__c": "@{body('fetchAccount')?['records']?[0]?['S4SAccount_Current_Record_Link__c']}",
+                                        "S4SAccount_Group_Type__c": "@{body('fetchAccount')?['records']?[0]?['S4SAccount_Group_Type__c']}",
+                                        "S4SAccount_Life_Cycle__c": "@{body('fetchAccount')?['records']?[0]?['S4SAccount_Life_Cycle__c']}",
+                                        "S4SAccount_Name_International__c": "@{body('fetchAccount')?['records']?[0]?['S4SAccount_Name_International__c']}",
+                                        "S4SAccount_Role__c": "@{body('fetchAccount')?['records']?[0]?['S4SAccount_Role__c']}",
+                                        "S4SBusiness_Unit__c": "@{body('fetchAccount')?['records']?[0]?['S4SBusiness_Unit__c']}",
+                                        "S4SCID_Number__c": "@{body('fetchAccount')?['records']?[0]?['S4SCID_Number__c']}",
+                                        "S4SCMD_IfA_Update__c": "@{body('fetchAccount')?['records']?[0]?['S4SCMD_IfA_Update__c']}",
+                                        "S4SCMD_KUKLA__c": "@{body('fetchAccount')?['records']?[0]?['S4SCMD_KUKLA__c']}",
+                                        "S4SCMD_NAME1_I__c": "@{body('fetchAccount')?['records']?[0]?['S4SCMD_NAME1_I__c']}",
+                                        "S4SCMD_NAME1__c": "@{body('fetchAccount')?['records']?[0]?['S4SCMD_NAME1__c']}",
+                                        "S4SCMD_NAME2_I__c": "@{body('fetchAccount')?['records']?[0]?['S4SCMD_NAME2_I__c']}",
+                                        "S4SCMD_NAME2__c": "@{body('fetchAccount')?['records']?[0]?['S4SCMD_NAME2__c']}",
+                                        "S4SCMD_NAME3_I__c": "@{body('fetchAccount')?['records']?[0]?['S4SCMD_NAME3_I__c']}",
+                                        "S4SCMD_NAME3__c": "@{body('fetchAccount')?['records']?[0]?['S4SCMD_NAME3__c']}",
+                                        "S4SCMD_REGION__c": "@{body('fetchAccount')?['records']?[0]?['S4SCMD_REGION__c']}",
+                                        "S4SCMD_STREET2__c": "@{body('fetchAccount')?['records']?[0]?['S4SCMD_STREET2__c']}",
+                                        "S4SCMD_STREET__c": "@{body('fetchAccount')?['records']?[0]?['S4SCMD_STREET__c']}",
+                                        "S4SCMD_Subscription_Rejected_Date__c": "@replace(coalesce(body('fetchAccount')?['records']?[0]?['S4SCMD_Subscription_Rejected_Date__c'],''),'+00:00','.000Z')",
+                                        "S4SChange_n__c": "@{body('fetchAccount')?['records']?[0]?['S4SChange_n__c']}",
+                                        "S4SChange_of_NPS__c": "@{body('fetchAccount')?['records']?[0]?['S4SChange_of_NPS__c']}",
+                                        "S4SCity_PO_Box_International__c": "@{body('fetchAccount')?['records']?[0]?['S4SCity_PO_Box_International__c']}",
+                                        "S4SCity_PO_Box__c": "@{body('fetchAccount')?['records']?[0]?['S4SCity_PO_Box__c']}",
+                                        "S4SCompany_Postal_Code__c": "@{body('fetchAccount')?['records']?[0]?['S4SCompany_Postal_Code__c']}",
+                                        "S4SCompany_Summary__c": "@{body('fetchAccount')?['records']?[0]?['S4SCompany_Summary__c']}",
+                                        "S4SCurrent_FY_NPS__c": "@{body('fetchAccount')?['records']?[0]?['S4SCurrent_FY_NPS__c']}",
+                                        "S4SDAndBCreated__c": "@{body('fetchAccount')?['records']?[0]?['S4SDAndBCreated__c']}",
+                                        "S4SDUNS__c": "@{body('fetchAccount')?['records']?[0]?['S4SDUNS__c']}",
+                                        "S4SDivision__c": "@{body('fetchAccount')?['records']?[0]?['S4SDivision__c']}",
+                                        "S4SDomestic_Ultimate_DUNS__c": "@{body('fetchAccount')?['records']?[0]?['S4SDomestic_Ultimate_DUNS__c']}",
+                                        "S4SDuns_Information__c": "@{body('fetchAccount')?['records']?[0]?['S4SDuns_Information__c']}",
+                                        "S4SDuplicate_IfA_Number__c": "@{body('fetchAccount')?['records']?[0]?['S4SDuplicate_IfA_Number__c']}",
+                                        "S4SEmail__c": "@{body('fetchAccount')?['records']?[0]?['S4SEmail__c']}",
+                                        "S4SExternal_Account_HelpText__c": "@{body('fetchAccount')?['records']?[0]?['S4SExternal_Account_HelpText__c']}",
+                                        "S4SFacebook__c": "@{body('fetchAccount')?['records']?[0]?['S4SFacebook__c']}",
+                                        "S4SFrom_Search__c": "@{body('fetchAccount')?['records']?[0]?['S4SFrom_Search__c']}",
+                                        "S4SGlobal_Frame_Agreement_Database__c": "@{body('fetchAccount')?['records']?[0]?['S4SGlobal_Frame_Agreement_Database__c']}",
+                                        "S4SGlobal_Ultimate_DUNS__c": "@{body('fetchAccount')?['records']?[0]?['S4SGlobal_Ultimate_DUNS__c']}",
+                                        "S4SISIC__c": "@{body('fetchAccount')?['records']?[0]?['S4SISIC__c']}",
+                                        "S4SIdentification_Number": "@variables('S4SIdentification_Number')",
+                                        "S4SIfAAutoNumber__c": "@{body('fetchAccount')?['records']?[0]?['S4SIfAAutoNumber__c']}",
+                                        "S4SIfA_Siemens_Location__c": "@{body('fetchAccount')?['records']?[0]?['S4SIfA_Siemens_Location__c']}",
+                                        "S4SIfA__c": "@{body('fetchAccount')?['records']?[0]?['S4SIfA__c']}",
+                                        "S4SIndustry_Direct__c": "@{body('fetchAccount')?['records']?[0]?['S4SIndustry_Direct__c']}",
+                                        "S4SIndustry_Segment_Direct__c": "@{body('fetchAccount')?['records']?[0]?['S4SIndustry_Segment_Direct__c']}",
+                                        "S4SIndustry_Segment_Ship_To__c": "@{body('fetchAccount')?['records']?[0]?['S4SIndustry_Segment_Ship_To__c']}",
+                                        "S4SIndustry_Ship_To__c": "@{body('fetchAccount')?['records']?[0]?['S4SIndustry_Ship_To__c']}",
+                                        "S4SInternational_City__c": "@{body('fetchAccount')?['records']?[0]?['S4SInternational_City__c']}",
+                                        "S4SInternational_CountryGP__c": "@{body('fetchAccount')?['records']?[0]?['S4SInternational_CountryGP__c']}",
+                                        "S4SInternational_Country__c": "@{body('fetchAccount')?['records']?[0]?['S4SInternational_Country__c']}",
+                                        "S4SInternational_Postal_Code__c": "@{body('fetchAccount')?['records']?[0]?['S4SInternational_Postal_Code__c']}",
+                                        "S4SInternational_RegionGP__c": "@{body('fetchAccount')?['records']?[0]?['S4SInternational_RegionGP__c']}",
+                                        "S4SInternational_Region__c": "@{body('fetchAccount')?['records']?[0]?['S4SInternational_Region__c']}",
+                                        "S4SInternational_Steet_Name_2__c": "@{body('fetchAccount')?['records']?[0]?['S4SInternational_Steet_Name_2__c']}",
+                                        "S4SInternational_Street_Name_1__c": "@{body('fetchAccount')?['records']?[0]?['S4SInternational_Street_Name_1__c']}",
+                                        "S4SIsOwnerCMDUser__c": "@{body('fetchAccount')?['records']?[0]?['S4SIsOwnerCMDUser__c']}",
+                                        "S4SIs_Partner__c": "@{body('fetchAccount')?['records']?[0]?['S4SIs_Partner__c']}",
+                                        "S4SLead_BU__c": "@{body('fetchAccount')?['records']?[0]?['S4SLead_BU__c']}",
+                                        "S4SLead_Country__c": "@{body('fetchAccount')?['records']?[0]?['S4SLead_Country__c']}",
+                                        "S4SLead_OC__c": "@{body('fetchAccount')?['records']?[0]?['S4SLead_OC__c']}",
+                                        "S4SLead_Org__c": "@{body('fetchAccount')?['records']?[0]?['S4SLead_Org__c']}",
+                                        "S4SLegalOwner__c": "@{body('fetchAccount')?['records']?[0]?['S4SLegalOwner__c']}",
+                                        "S4SLegal_Status__c": "@{body('fetchAccount')?['records']?[0]?['S4SLegal_Status__c']}",
+                                        "S4SLocal_Search_Term__c": "@{body('fetchAccount')?['records']?[0]?['S4SLocal_Search_Term__c']}",
+                                        "S4SMD_Status__c": "@{body('fetchAccount')?['records']?[0]?['S4SMD_Status__c']}",
+                                        "S4SNPS_Trend__c": "@{body('fetchAccount')?['records']?[0]?['S4SNPS_Trend__c']}",
+                                        "S4SNat_Company_ID__c": "@{body('fetchAccount')?['records']?[0]?['S4SNat_Company_ID__c']}",
+                                        "S4SNo_Legal_Form_available__c": "@{body('fetchAccount')?['records']?[0]?['S4SNo_Legal_Form_available__c']}",
+                                        "S4SNotification_from_CMD__c": "@{body('fetchAccount')?['records']?[0]?['S4SNotification_from_CMD__c']}",
+                                        "S4SNumber_of_Pricing_Primary__c": "@{body('fetchAccount')?['records']?[0]?['S4SNumber_of_Pricing_Primary__c']}",
+                                        "S4SOrganization_Code__c": "@{body('fetchAccount')?['records']?[0]?['S4SOrganization_Code__c']}",
+                                        "S4SPO_Box_Postcode__c": "@{body('fetchAccount')?['records']?[0]?['S4SPO_Box_Postcode__c']}",
+                                        "S4SPO_box__c": "@{body('fetchAccount')?['records']?[0]?['S4SPO_box__c']}",
+                                        "S4SParent_Account_Group__c": "@{body('fetchAccount')?['records']?[0]?['S4SParent_Account_Group__c']}",
+                                        "S4SParent_DUNS__c": "@{body('fetchAccount')?['records']?[0]?['S4SParent_DUNS__c']}",
+                                        "S4SPrevious_FY_NPS__c": "@{body('fetchAccount')?['records']?[0]?['S4SPrevious_FY_NPS__c']}",
+                                        "S4SPrevious_FY_n__c": "@{body('fetchAccount')?['records']?[0]?['S4SPrevious_FY_n__c']}",
+                                        "S4SPrevious_IfA_Number__c": "@{body('fetchAccount')?['records']?[0]?['S4SPrevious_IfA_Number__c']}",
+                                        "S4SPulse_Link__c": "@{body('fetchAccount')?['records']?[0]?['S4SPulse_Link__c']}",
+                                        "S4SResponders_current_FY_n__c": "@{body('fetchAccount')?['records']?[0]?['S4SResponders_current_FY_n__c']}",
+                                        "S4SRole": "@variables('S4SRole')",
+                                        "S4SSFS_Confidential__c": "@{body('fetchAccount')?['records']?[0]?['S4SSFS_Confidential__c']}",
+                                        "S4SSISIC": {
+                                            "CreatedById": "@body('fetchSISIC')?['SIE_SF4S_fetchSISICResponse']?['S4SSISIC__c']?['CreatedById']",
+                                            "CreatedDate": "@replace(coalesce(body('fetchSISIC')?['SIE_SF4S_fetchSISICResponse']?['S4SSISIC__c']?['CreatedDate'],''),'+00:00','.000Z')",
+                                            "CurrencyIsoCode": "@body('fetchSISIC')?['SIE_SF4S_fetchSISICResponse']?['S4SSISIC__c']?['CurrencyIsoCode']",
+                                            "Id": "@body('fetchSISIC')?['SIE_SF4S_fetchSISICResponse']?['S4SSISIC__c']?['Id']",
+                                            "IsDeleted": "@body('fetchSISIC')?['SIE_SF4S_fetchSISICResponse']?['S4SSISIC__c']?['IsDeleted']",
+                                            "LastModifiedById": "@body('fetchSISIC')?['SIE_SF4S_fetchSISICResponse']?['S4SSISIC__c']?['LastModifiedById']",
+                                            "LastModifiedDate": "@replace(coalesce(body('fetchSISIC')?['SIE_SF4S_fetchSISICResponse']?['S4SSISIC__c']?['LastModifiedDate'],''),'+00:00','.000Z')",
+                                            "LastReferencedDate": "@replace(coalesce(body('fetchSISIC')?['SIE_SF4S_fetchSISICResponse']?['S4SSISIC__c']?['LastReferencedDate'],''),'+00:00','.000Z')",
+                                            "LastViewedDate": "@replace(coalesce(body('fetchSISIC')?['SIE_SF4S_fetchSISICResponse']?['S4SSISIC__c']?['LastViewedDate'],''),'+00:00','.000Z')",
+                                            "Name": "@body('fetchSISIC')?['SIE_SF4S_fetchSISICResponse']?['S4SSISIC__c']?['Name']",
+                                            "OwnerId": "@body('fetchSISIC')?['SIE_SF4S_fetchSISICResponse']?['S4SSISIC__c']?['OwnerId']",
+                                            "S4SExternal_ID__c": "@body('fetchSISIC')?['SIE_SF4S_fetchSISICResponse']?['S4SSISIC__c']?['S4SExternal_ID__c']",
+                                            "S4SIndustry_Description__c": "@body('fetchSISIC')?['SIE_SF4S_fetchSISICResponse']?['S4SSISIC__c']?['S4SIndustry_Description__c']",
+                                            "S4SIndustry_Segment__c": "@body('fetchSISIC')?['SIE_SF4S_fetchSISICResponse']?['S4SSISIC__c']?['S4SIndustry_Segment__c']",
+                                            "S4SIndustry__c": "@body('fetchSISIC')?['SIE_SF4S_fetchSISICResponse']?['S4SSISIC__c']?['S4SIndustry__c']",
+                                            "S4SNAF_ID__c": "@body('fetchSISIC')?['SIE_SF4S_fetchSISICResponse']?['S4SSISIC__c']?['S4SNAF_ID__c']",
+                                            "SystemModstamp": "@replace(coalesce(body('fetchSISIC')?['SIE_SF4S_fetchSISICResponse']?['S4SSISIC__c']?['SystemModstamp'],''),'+00:00','.000Z')"
+                                        },
+                                        "S4SSISIC_Direct_Description__c": "@{body('fetchAccount')?['records']?[0]?['S4SSISIC_Direct_Description__c']}",
+                                        "S4SSISIC_Direct__c": "@{body('fetchAccount')?['records']?[0]?['S4SSISIC_Direct__c']}",
+                                        "S4SSISIC_Ship_To_Description__c": "@{body('fetchAccount')?['records']?[0]?['S4SSISIC_Ship_To_Description__c']}",
+                                        "S4SSISIC_Ship_To__c": "@{body('fetchAccount')?['records']?[0]?['S4SSISIC_Ship_To__c']}",
+                                        "S4SSalesCountry__c": "@{body('fetchAccount')?['records']?[0]?['S4SSalesCountry__c']}",
+                                        "S4SSales_Branch__c": "@{body('fetchAccount')?['records']?[0]?['S4SSales_Branch__c']}",
+                                        "S4SSales_Country__c": "@{body('fetchAccount')?['records']?[0]?['S4SSales_Country__c']}",
+                                        "S4SSales_Org_Type__c": "@{body('fetchAccount')?['records']?[0]?['S4SSales_Org_Type__c']}",
+                                        "S4SSieSmart_Information": {
+                                            "CreatedById": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['CreatedById']}",
+                                            "CreatedDate": "@replace(coalesce(body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['CreatedDate'],''),'+00:00','.000Z')",
+                                            "CurrencyIsoCode": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['CurrencyIsoCode']}",
+                                            "Id": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['Id']}",
+                                            "IsDeleted": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['IsDeleted']}",
+                                            "LastActivityDate": "@replace(coalesce(body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['LastActivityDate'],''),'+00:00','.000Z')",
+                                            "LastModifiedById": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['LastModifiedById']}",
+                                            "LastModifiedDate": "@replace(coalesce(body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['LastModifiedDate'],''),'+00:00','.000Z')",
+                                            "Name": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['Name']}",
+                                            "S4SAccount__c": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['S4SAccount__c']}",
+                                            "S4SCassiopeia_ID__c": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['S4SCassiopeia_ID__c']}",
+                                            "S4SCreated_Country__c": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['S4SCreated_Country__c']}",
+                                            "S4SCustomer_of_Siemens__c": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['S4SCustomer_of_Siemens__c']}",
+                                            "S4SExpiry_Date_Financial_Framework__c": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['S4SExpiry_Date_Financial_Framework__c']}",
+                                            "S4SExpiry_Date_Risk_Approval__c": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['S4SExpiry_Date_Risk_Approval__c']}",
+                                            "S4SExternal_Source__c": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['S4SExternal_Source__c']}",
+                                            "S4SFinancial_Framework__c": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['S4SFinancial_Framework__c']}",
+                                            "S4SGovernmental_Registration_Number__c": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['S4SGovernmental_Registration_Number__c']}",
+                                            "S4SIntroducer_Approval_Status__c": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['S4SIntroducer_Approval_Status__c']}",
+                                            "S4SLocal_ID__c": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['S4SLocal_ID__c']}",
+                                            "S4SOrigination_ID__c": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['S4SOrigination_ID__c']}",
+                                            "S4SPhilos_ID__c": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['S4SPhilos_ID__c']}",
+                                            "S4SRelationship_Status__c": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['S4SRelationship_Status__c']}",
+                                            "S4SRoles__c": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['S4SRoles__c']}",
+                                            "S4SSFS_Rating_Date__c": "@replace(coalesce(body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['S4SSFS_Rating_Date__c'],''),'+00:00','.000Z')",
+                                            "S4SSFS_Rating_Status__c": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['S4SSFS_Rating_Status__c']}",
+                                            "S4SSFS_Rating__c": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['S4SSFS_Rating__c']}",
+                                            "S4SSieSmart_Information_Legacy_ID__c": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['S4SSieSmart_Information_Legacy_ID__c']}",
+                                            "S4SSupplier_to_Siemens__c": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['S4SSupplier_to_Siemens__c']}",
+                                            "S4STarget_Volume__c": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['S4STarget_Volume__c']}",
+                                            "S4SUltimate_Parent_Account__c": "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['S4SUltimate_Parent_Account__c']}",
+                                            "SystemModstamp": "@{replace(coalesce(body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['SystemModstamp'],''),'+00:00','.000Z')}",
+                                            "fieldsToNull": [
+                                                "@{body('fetchAccount')?['records']?[0]?['S4SSieSmart_Information']?['fieldsToNull']}"
+                                            ]
+                                        },
+                                        "S4SSiemens_Account_Type__c": "@{body('fetchAccount')?['records']?[0]?['S4SSiemens_Account_Type__c']}",
+                                        "S4STax_ID__c": "@{body('fetchAccount')?['records']?[0]?['S4STax_ID__c']}",
+                                        "S4SVertical_Name__c": "@{body('fetchAccount')?['records']?[0]?['S4SVertical_Name__c']}",
+                                        "S4S_No_Matched_Accounts_Found__c": "@{body('fetchAccount')?['records']?[0]?['S4S_No_Matched_Accounts_Found__c']}",
+                                        "ShippingAddress": "@{body('fetchAccount')?['records']?[0]?['ShippingAddress']}",
+                                        "ShippingCity": "@{body('fetchAccount')?['records']?[0]?['ShippingCity']}",
+                                        "ShippingCountry": "@{body('fetchAccount')?['records']?[0]?['ShippingCountry']}",
+                                        "ShippingCountryCode": "@{body('fetchAccount')?['records']?[0]?['ShippingCountryCode']}",
+                                        "ShippingGeocodeAccuracy": "@{body('fetchAccount')?['records']?[0]?['ShippingGeocodeAccuracy']}",
+                                        "ShippingLatitude": "@{body('fetchAccount')?['records']?[0]?['ShippingLatitude']}",
+                                        "ShippingLongitude": "@{body('fetchAccount')?['records']?[0]?['ShippingLongitude']}",
+                                        "ShippingPostalCode": "@{body('fetchAccount')?['records']?[0]?['ShippingPostalCode']}",
+                                        "ShippingState": "@{body('fetchAccount')?['records']?[0]?['ShippingState']}",
+                                        "ShippingStateCode": "@{body('fetchAccount')?['records']?[0]?['ShippingStateCode']}",
+                                        "ShippingStreet": "@{body('fetchAccount')?['records']?[0]?['ShippingStreet']}",
+                                        "Sic": "@{body('fetchAccount')?['records']?[0]?['Sic']}",
+                                        "SicDesc": "@{body('fetchAccount')?['records']?[0]?['SicDesc']}",
+                                        "Site": "@{body('fetchAccount')?['records']?[0]?['Site']}",
+                                        "SystemModstamp": "@{body('fetchAccount')?['records']?[0]?['SystemModstamp']}",
+                                        "TickerSymbol": "@{body('fetchAccount')?['records']?[0]?['TickerSymbol']}",
+                                        "Type": "@{body('fetchAccount')?['records']?[0]?['Type']}",
+                                        "Website": "@{body('fetchAccount')?['records']?[0]?['Website']}"
+                                    }
+                                }
+                            },
+                            "runAfter": {
+                                "For_each_ContactRelation": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Compose"
+                        },
+                        "Compose_Request_Body_for_fetchAccTeamMember_logic_app": {
+                            "inputs": {
+                                "accountId": "@{body('fetchAccount')?['records']?[0]?['Id']}",
+                                "role": ""
+                            },
+                            "runAfter": {
+                                "Check_S4SSISIC_Direct__c_in_response": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Compose"
+                        },
+                        "Compose_Request_Body_for_fetchAccountContactRelation_logic_app": {
+                            "inputs": {
+                                "accountId": "@{body('fetchAccount')?['records']?[0]?['Id']}",
+                                "contactId": ""
+                            },
+                            "runAfter": {
+                                "For_each_TeamMember": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Compose"
+                        },
+                        "Compose_Request_Body_for_fetchIdentificationNumber_logic_app": {
+                            "inputs": {
+                                "accountId": "@body('fetchAccount')?['records']?[0]?['Id']"
+                            },
+                            "runAfter": {},
+                            "type": "Compose"
+                        },
+                        "Compose_Request_Body_for_fetchRolesByAccount_logic_app": {
+                            "inputs": {
+                                "accountId": "@body('fetchAccount')?['records']?[0]?['Id']"
+                            },
+                            "runAfter": {
+                                "For_each_IdentificationNumber": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Compose"
+                        },
+                        "For_each_ContactRelation": {
+                            "actions": {
+                                "Append_to_array_variable_Contact": {
+                                    "inputs": {
+                                        "name": "Contact",
+                                        "value": "@items('For_each_ContactRelation')"
+                                    },
+                                    "runAfter": {},
+                                    "type": "AppendToArrayVariable"
+                                }
+                            },
+                            "foreach": "@body('fetchAccountContactRelation')['Contact']",
+                            "runAfter": {
+                                "fetchAccountContactRelation": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Foreach"
+                        },
+                        "For_each_IdentificationNumber": {
+                            "actions": {
+                                "Append_to_array_variable_S4SIdentification_Number": {
+                                    "inputs": {
+                                        "name": "S4SIdentification_Number",
+                                        "value": "@items('For_each_IdentificationNumber')"
+                                    },
+                                    "runAfter": {},
+                                    "type": "AppendToArrayVariable"
+                                }
+                            },
+                            "foreach": "@body('fetchIdentificationNumber')['SIE_SF4S_fetchIdentNumberResponse']",
+                            "runAfter": {
+                                "fetchIdentificationNumber": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Foreach"
+                        },
+                        "For_each_Role": {
+                            "actions": {
+                                "Append_to_array_variable_S4SRole": {
+                                    "inputs": {
+                                        "name": "S4SRole",
+                                        "value": "@items('For_each_Role')"
+                                    },
+                                    "runAfter": {},
+                                    "type": "AppendToArrayVariable"
+                                }
+                            },
+                            "foreach": "@body('fetchRolesByAccount')?['SIE_SF4S_fetchRoleOutput']?['S4SRole__C']",
+                            "runAfter": {
+                                "fetchRolesByAccount": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "runtimeConfiguration": {
+                                "concurrency": {
+                                    "repetitions": 1
+                                }
+                            },
+                            "type": "Foreach"
+                        },
+                        "For_each_TeamMember": {
+                            "actions": {
+                                "Append_to_array_variable_AccountTeamMember": {
+                                    "inputs": {
+                                        "name": "AccountTeamMember",
+                                        "value": "@items('For_each_TeamMember')"
+                                    },
+                                    "runAfter": {},
+                                    "type": "AppendToArrayVariable"
+                                }
+                            },
+                            "foreach": "@body('fetchAccTeamMember')['SIE_SF4S_fetchAccountTeamOutput']['AccountTeamMember']",
+                            "runAfter": {
+                                "fetchAccTeamMember": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Foreach"
+                        },
+                        "Final_Response": {
+                            "inputs": {
+                                "body": "@outputs('Compose_Final_Response')",
+                                "statusCode": 200
+                            },
+                            "kind": "Http",
+                            "runAfter": {
+                                "Compose_Final_Response": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Response"
+                        },
+                        "Success_Terminate": {
+                            "inputs": {
+                                "runStatus": "Succeeded"
+                            },
+                            "runAfter": {
+                                "Final_Response": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Terminate"
+                        },
+                        "fetchAccTeamMember": {
+                            "inputs": {
+                                "body": "@outputs('Compose_Request_Body_for_fetchAccTeamMember_logic_app')",
+                                "host": {
+                                    "triggerName": "manual",
+                                    "workflow": {
+                                        "id": "${fetchAccTeamMember_logicApp_id}"
+                                    }
+                                },
+                                "retryPolicy": {
+                                    "type": "none"
+                                }
+                            },
+                            "runAfter": {
+                                "Compose_Request_Body_for_fetchAccTeamMember_logic_app": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Workflow"
+                        },
+                        "fetchAccountContactRelation": {
+                            "inputs": {
+                                "body": "@outputs('Compose_Request_Body_for_fetchAccountContactRelation_logic_app')",
+                                "host": {
+                                    "triggerName": "manual",
+                                    "workflow": {
+                                        "id": "${fetchAccountContactRelation_logicApp_id}"
+                                    }
+                                },
+                                "retryPolicy": {
+                                    "type": "none"
+                                }
+                            },
+                            "runAfter": {
+                                "Compose_Request_Body_for_fetchAccountContactRelation_logic_app": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Workflow"
+                        },
+                        "fetchIdentificationNumber": {
+                            "inputs": {
+                                "body": "@outputs('Compose_Request_Body_for_fetchIdentificationNumber_logic_app')",
+                                "host": {
+                                    "triggerName": "manual",
+                                    "workflow": {
+                                        "id": "${fetchIdentificationNumber_logicApp_id}"
+                                    }
+                                },
+                                "retryPolicy": {
+                                    "type": "none"
+                                }
+                            },
+                            "runAfter": {
+                                "Compose_Request_Body_for_fetchIdentificationNumber_logic_app": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Workflow"
+                        },
+                        "fetchRolesByAccount": {
+                            "inputs": {
+                                "body": "@outputs('Compose_Request_Body_for_fetchRolesByAccount_logic_app')",
+                                "host": {
+                                    "triggerName": "manual",
+                                    "workflow": {
+                                        "id": "${fetchRolesByAccount_logicApp_id}"
+                                    }
+                                },
+                                "retryPolicy": {
+                                    "type": "none"
+                                }
+                            },
+                            "runAfter": {
+                                "Compose_Request_Body_for_fetchRolesByAccount_logic_app": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Workflow"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Response_when_Id_not_exist": {
+                                "inputs": {
+                                    "body": {
+                                        "message": "accountId not found.",
+                                        "status": "Failure"
+                                    },
+                                    "headers": {
+                                        "Content-Type": "application/json"
+                                    },
+                                    "statusCode": 400
+                                },
+                                "kind": "Http",
+                                "runAfter": {},
+                                "type": "Response"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@body('fetchAccount')?['records']?[0]?['Id']",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@body('fetchAccount')?['records']?[0]?['Id']",
+                                        "@string('')"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Check_accountId": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Check_accountId": {
+                    "actions": {
+                        "Compose_Request_Body_for_fetchAccount_logic_app": {
+                            "inputs": {
+                                "fetchAccountRequest": {
+                                    "IfANumber": "",
+                                    "accountId": "@{outputs('Compose_Request_Body')}"
+                                }
+                            },
+                            "runAfter": {},
+                            "type": "Compose"
+                        },
+                        "fetchAccount": {
+                            "inputs": {
+                                "body": "@outputs('Compose_Request_Body_for_fetchAccount_logic_app')",
+                                "host": {
+                                    "triggerName": "manual",
+                                    "workflow": {
+                                        "id": "${shellfecthAccount_logicApp_id}"
+                                    }
+                                },
+                                "retryPolicy": {
+                                    "type": "none"
+                                }
+                            },
+                            "runAfter": {
+                                "Compose_Request_Body_for_fetchAccount_logic_app": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Workflow"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Response_when_input_is_invalid": {
+                                "inputs": {
+                                    "body": {
+                                        "message": "Input is invalid or not in correct format.",
+                                        "status": "Failure"
+                                    },
+                                    "headers": {
+                                        "Content-Type": "application/json"
+                                    },
+                                    "statusCode": 400
+                                },
+                                "kind": "Http",
+                                "runAfter": {},
+                                "type": "Response"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@triggerOutputs()?['relativePathParameters']?['accountId']",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@triggerOutputs()?['relativePathParameters']?['accountId']",
+                                        "@string('')"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Compose_Request_Body": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Compose_Request_Body": {
+                    "inputs": "@triggerOutputs()?['relativePathParameters']?['accountId']",
+                    "runAfter": {},
+                    "type": "Compose"
+                }
+            },
+            "runAfter": {
+                "Initialize_variable_AccountTeamMember": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_Contact": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_S4SIdentification_Number": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_S4SRole": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_S4SSISIC": [
+                    "Succeeded"
+                ]
+            },
+            "trackedProperties": {
+                "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+                "citizenName": "c00031",
+                "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'PShell')}",
+                "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'getAccountDetails')}",
+                "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+                "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+            },
+            "type": "Scope"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {},
+    "triggers": {
+        "manual": {
+            "inputs": {
+                "method": "POST",
+                "relativePath": "Account/{accountId}"
+            },
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

@@ -1,0 +1,209 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "HTTP-GetToken": {
+            "inputs": {
+                "headers": {
+                    "Ocp-Apim-Subscription-Key": "${apimKey}"
+                },
+                "method": "POST",
+                "uri": "${apimURL}"
+            },
+            "runAfter": {},
+            "type": "Http"
+        },
+        "Scope-UpsertQuoteLine": {
+            "actions": {
+                "Condition_check_on_StatusCode_of_UpsertQuoteLine": {
+                    "actions": {
+                        "Success_Response": {
+                            "inputs": {
+                                "body": "@coalesce(outputs('Create_record_QuoteLine')?['body'],outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID_QuoteLine')?['body'])",
+                                "statusCode": "@coalesce(outputs('Create_record_QuoteLine')?['statusCode'],outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID_QuoteLine')?['statusCode'])"
+                            },
+                            "kind": "Http",
+                            "runAfter": {},
+                            "type": "Response"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Failed_Response_Upsert_QuoteLine": {
+                                "inputs": {
+                                    "body": {
+                                        "ERROR_MSG": "@{coalesce(outputs('Create_record_QuoteLine')?['body']?[0],outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID_QuoteLine')?['body']?[0])}",
+                                        "success": false
+                                    },
+                                    "headers": {
+                                        "Content-Type": "application/json"
+                                    },
+                                    "statusCode": "@coalesce(outputs('Create_record_QuoteLine')?['statusCode'],outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID_QuoteLine')?['statusCode'])"
+                                },
+                                "kind": "Http",
+                                "runAfter": {},
+                                "type": "Response"
+                            },
+                            "Terminate-Failed-Upsert-QuoteLine": {
+                                "inputs": {
+                                    "runStatus": "Failed"
+                                },
+                                "runAfter": {
+                                    "Failed_Response_Upsert_QuoteLine": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Terminate"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "or": [
+                            {
+                                "equals": [
+                                    "@coalesce(outputs('Create_record_QuoteLine')?['statusCode'],outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID_QuoteLine')?['statusCode'])",
+                                    200
+                                ]
+                            },
+                            {
+                                "equals": [
+                                    "@coalesce(outputs('Create_record_QuoteLine')?['statusCode'],outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID_QuoteLine')?['statusCode'])",
+                                    201
+                                ]
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Condition_to_check_Id_QuoteLine": [
+                            "Succeeded",
+                            "Failed"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Condition_to_check_Id_QuoteLine": {
+                    "actions": {
+                        "Create_record_QuoteLine": {
+                            "inputs": {
+                                "body": "@removeProperty(triggerBody(),'Id')",
+                                "headers": {
+                                    "Authorization": "Bearer @{body('HTTP-GetToken')}",
+                                    "Content-Type": "application/json"
+                                },
+                                "host": {},
+                                "method": "POST",
+                                "uri": "${instance_NonSFS_URL}/sobjects/QuoteLineItem/"
+                            },
+                            "runAfter": {},
+                            "type": "Http"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Insert_or_Update_(Upsert)_a_Record_by_External_ID_QuoteLine": {
+                                "inputs": {
+                                    "body": "@removeProperty(triggerBody(),'Id')",
+                                    "headers": {
+                                        "Authorization": "Bearer @{body('HTTP-GetToken')}",
+                                        "Content-Type": "application/json"
+                                    },
+                                    "host": {},
+                                    "method": "PATCH",
+                                    "uri": "${instance_NonSFS_URL}/sobjects/QuoteLineItem/Id/@{triggerBody()?['Id']}"
+                                },
+                                "runAfter": {},
+                                "type": "Http"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "or": [
+                            {
+                                "equals": [
+                                    "@triggerBody()?['Id']",
+                                    "@null"
+                                ]
+                            },
+                            {
+                                "equals": [
+                                    "@triggerBody()?['Id']",
+                                    "@string('')"
+                                ]
+                            }
+                        ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                }
+            },
+            "runAfter": {
+                "HTTP-GetToken": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope_Catch": {
+            "actions": {
+                "Catch-Response": {
+                    "inputs": {
+                        "body": {
+                            "ERROR_MSG": "@{concat('Some error occurred while Logic App Execution. Please find more details using tracking id : ', workflow()['run']['name'])}",
+                            "success": false
+                        },
+                        "headers": {
+                            "": "application/json"
+                        },
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                },
+                "Catch-Terminate": {
+                    "inputs": {
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Catch-Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Scope-UpsertQuoteLine": [
+                    "Failed",
+                    "Skipped",
+                    "TimedOut"
+                ]
+            },
+            "trackedProperties": {
+                "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+                "citizenName": "c00031",
+                "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'shared')}",
+                "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'internal_insert_update_QuoteLine')}",
+                "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}"
+            },
+            "type": "Scope"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {},
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

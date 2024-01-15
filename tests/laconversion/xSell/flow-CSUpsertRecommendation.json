@@ -1,0 +1,426 @@
+{
+	"$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+	"actions": {
+		"Initialize_Recommendations_Response": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "RecommendationsResponse",
+						"type": "array"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Initialize_Record_Id": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "RecordId",
+						"type": "string"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Scope": {
+			"actions": {
+				"Check_if_recommendations_are_present_in_request": {
+					"actions": {
+						"For_each": {
+							"actions": {
+								"Append_to_array_variable": {
+									"inputs": {
+										"name": "RecommendationsResponse",
+										"value": "@body('call_recommendations_logic')"
+									},
+									"runAfter": {
+										"call_recommendations_logic": [
+											"Succeeded"
+										]
+									},
+									"type": "AppendToArrayVariable"
+								},
+								"call_recommendations_logic": {
+									"inputs": {
+										"body": {
+											"Attachment": {
+												"content": "@items('For_each')?['Attachment']?['content']",
+												"filename": "@items('For_each')?['Attachment']?['filename']"
+											},
+											"CurrencyIsoCode": "@items('For_each')?['CurrencyIsoCode']",
+											"Id": "@items('For_each')?['Id']",
+											"Name": "@items('For_each')?['Name']",
+											"S4SAccount_Name__c": "@items('For_each')?['S4SAccount_Name__c']",
+											"S4SExpert_Based_Cross_Selling_ID__c": "@items('For_each')?['S4SExpert_Based_Cross_Selling_ID__c']",
+											"S4SExpiry_Time__c": "@items('For_each')?['S4SExpiry_Time__c']",
+											"S4SExternal_Source__c": "@items('For_each')?['S4SExternal_Source__c']",
+											"S4SFollow_Up_Duration__c": "@items('For_each')?['S4SFollow_Up_Duration__c']",
+											"S4SGCK__c": "@items('For_each')?['S4SGCK__c']",
+											"S4SInsight__c": "@items('For_each')?['S4SInsight__c']",
+											"S4SSub_Type__c": "@items('For_each')?['S4SSub_Type__c']",
+											"S4SMarked_for_Deletion__c": "@items('For_each')?['S4SMarked_for_Deletion__c']",
+											"S4SOwner__c": "@items('For_each')?['S4SOwner__c']",
+											"S4SRecommendation_ID__c": "@items('For_each')?['S4SRecommendation_ID__c']",
+											"S4SSales_Country_Picklist__c": "@items('For_each')?['S4SSales_Country_Picklist__c']",
+											"S4SLead_Country__c": "@items('For_each')?['S4SLead_Country__c']",
+											"S4SStage__c": "@items('For_each')?['S4SStage__c']"
+										},
+										"host": {
+											"triggerName": "manual",
+											"workflow": {
+												"id": "${internal-CSUpsertRecommendation_logicAppId}"
+											}
+										}
+									},
+									"runAfter": {},
+									"type": "Workflow"
+								}
+							},
+							"foreach": "@triggerBody()?['Recommendations']",
+							"runAfter": {},
+							"runtimeConfiguration": {
+								"concurrency": {
+									"repetitions": 20
+								}
+							},
+							"type": "Foreach"
+						}
+					},
+					"else": {
+						"actions": {
+							"Send_error_response": {
+								"inputs": {
+									"body": "No Recommendation list provided",
+									"statusCode": 400
+								},
+								"kind": "Http",
+								"runAfter": {},
+								"type": "Response"
+							}
+						}
+					},
+					"expression": {
+						"and": [
+							{
+								"not": {
+									"equals": [
+										"@triggerBody()?['Recommendations']",
+										"@null"
+									]
+								}
+							},
+							{
+								"greater": [
+									"@length(triggerBody()?['Recommendations'])",
+									0
+								]
+							}
+						]
+					},
+					"runAfter": {},
+					"type": "If"
+				}
+			},
+			"runAfter": {
+				"Initialize_Recommendations_Response": [
+					"Succeeded"
+				],
+				"Initialize_Record_Id": [
+					"Succeeded"
+				]
+			},
+			"trackedProperties": {
+				"apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+				"citizenName": "c00031",
+				"correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+				"interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'xSell')}",
+				"interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+				"interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'non-defined')}",
+				"operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'CSUpsertRecommendation')}",
+				"parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+				"clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+				"clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+			},
+			"type": "Scope"
+		},
+		"Scope-Catch": {
+			"actions": {
+				"Create_Error_Response": {
+					"inputs": {
+						"content": {
+							"response": {
+								"Attachment": [],
+								"created": "false",
+								"errors": [
+									{
+										"message": "Unexpected error occured. Please find more details using tracking id : @{workflow()['run']['name']}",
+										"statusCode": "Error"
+									}
+								],
+								"id": "@variables('RecordId')",
+								"success": "false"
+							}
+						},
+						"schema": {
+							"properties": {
+								"response": {
+									"properties": {
+										"Attachment": {
+											"items": {
+												"properties": {
+													"created": {
+														"type": "string"
+													},
+													"errors": {
+														"items": {
+															"properties": {
+																"message": {
+																	"type": "string"
+																},
+																"statusCode": {
+																	"type": "string"
+																}
+															},
+															"required": [
+																"message",
+																"statusCode"
+															],
+															"type": "object"
+														},
+														"type": "array"
+													},
+													"id": {
+														"type": "string"
+													},
+													"success": {
+														"type": "string"
+													}
+												},
+												"required": [
+													"id",
+													"created",
+													"success",
+													"errors"
+												],
+												"type": "object"
+											},
+											"type": "array"
+										},
+										"created": {
+											"type": "string"
+										},
+										"errors": {
+											"items": {
+												"properties": {
+													"message": {
+														"type": "string"
+													},
+													"statusCode": {
+														"type": "string"
+													}
+												},
+												"required": [
+													"message",
+													"statusCode"
+												],
+												"type": "object"
+											},
+											"type": "array"
+										},
+										"id": {
+											"type": "string"
+										},
+										"success": {
+											"type": "string"
+										}
+									},
+									"type": "object"
+								}
+							},
+							"type": "object"
+						}
+					},
+					"runAfter": {},
+					"type": "ParseJson"
+				},
+				"Response": {
+					"inputs": {
+						"body": "@body('Create_Error_Response')",
+						"statusCode": 400
+					},
+					"kind": "Http",
+					"runAfter": {
+						"Create_Error_Response": [
+							"Succeeded"
+						]
+					},
+					"type": "Response"
+				},
+				"Terminate_as_failure": {
+					"inputs": {
+						"runStatus": "Failed"
+					},
+					"runAfter": {
+						"Response": [
+							"Succeeded"
+						]
+					},
+					"type": "Terminate"
+				}
+			},
+			"runAfter": {
+				"Send_Success_Response": [
+					"Failed",
+					"Skipped",
+					"TimedOut"
+				]
+			},
+			"type": "Scope"
+		},
+		"Scope_-_Sort_Recommendations": {
+			"actions": {
+				"SortRecommendations": {
+					"inputs": {
+						"body": "@variables('RecommendationsResponse')",
+						"authentication": {
+							"type": "Raw",
+							"value": "[parameters('functionAppKey')]"
+						},
+						"function": {
+							"id": "[concat(parameters('funcApp'), '/functions/SortRecommendations')]"
+						}
+					},
+					"runAfter": {},
+					"type": "Function"
+				}
+			},
+			"runAfter": {
+				"Scope": [
+					"Succeeded"
+				]
+			},
+			"type": "Scope"
+		},
+		"Send_Success_Response": {
+			"inputs": {
+				"body": {
+					"response": "@body('SortRecommendations')"
+				},
+				"statusCode": 200
+			},
+			"kind": "Http",
+			"runAfter": {
+				"Scope_-_Sort_Recommendations": [
+					"Succeeded"
+				]
+			},
+			"type": "Response"
+		}
+	},
+	"contentVersion": "1.0.0.0",
+	"outputs": {},
+	"parameters": {},
+	"triggers": {
+		"manual": {
+			"inputs": {
+				"schema": {
+					"properties": {
+						"Recommendations": {
+							"items": {
+								"properties": {
+									"Attachment": {
+										"properties": {
+											"content": {
+												"type": "string"
+											},
+											"filename": {
+												"type": "string"
+											}
+										},
+										"type": "object"
+									},
+									"CurrencyIsoCode": {
+										"type": "string"
+									},
+									"Id": {
+										"type": "string"
+									},
+									"Name": {
+										"type": "string"
+									},
+									"S4SAccount_Name__c": {
+										"type": "string"
+									},
+									"S4SExpert_Based_Cross_Selling_ID__c": {
+										"type": "string"
+									},
+									"S4SExpiry_Time__c": {
+										"type": "string"
+									},
+									"S4SExternal_Source__c": {
+										"type": "string"
+									},
+									"S4SFollow_Up_Duration__c": {
+										"type": "string"
+									},
+									"S4SGCK__c": {
+										"type": "string"
+									},
+									"S4SInsight__c": {
+										"type": "string"
+									},
+									"S4SSub_Type__c": {
+										"type": "string"
+									},
+									"S4SLead_Country__c": {
+										"type": "string"
+									},
+									"S4SMarked_for_Deletion__c": {
+										"type": "string"
+									},
+									"S4SOwner__c": {
+										"type": "string"
+									},
+									"S4SRecommendation_ID__c": {
+										"type": "string"
+									},
+									"S4SSales_Country_Picklist__c": {
+										"type": "string"
+									},
+									"S4SStage__c": {
+										"type": "string"
+									}
+								},
+								"required": [
+									"Id",
+									"Name",
+									"CurrencyIsoCode",
+									"S4SAccount_Name__c",
+									"S4SExpert_Based_Cross_Selling_ID__c",
+									"S4SFollow_Up_Duration__c",
+									"S4SGCK__c",
+									"S4SInsight__c",
+									"S4SMarked_for_Deletion__c",
+									"S4SRecommendation_ID__c",
+									"S4SSales_Country_Picklist__c",
+									"S4SLead_Country__c",
+									"S4SStage__c",
+									"S4SExternal_Source__c",
+									"Attachment"
+								],
+								"type": "object"
+							},
+							"type": "array"
+						}
+					},
+					"type": "object"
+				}
+			},
+			"kind": "Http",
+			"type": "Request"
+		}
+	}
+}

@@ -1,0 +1,525 @@
+{
+	"$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+	"actions": {
+		"Convert_to_Json": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "inputJson",
+						"type": "string",
+						"value": "@{json(xml(triggerBody()))}"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Generate_Token": {
+			"actions": {
+				"Generate_Access_Token": {
+					"inputs": {
+						"authentication": {
+							"password": "@json(body('GetConfiguration'))?['myid-secret']",
+							"pfx": "@json(body('GetConfiguration'))?['myid-pfx']",
+							"type": "ClientCertificate"
+						},
+						"body": "@concat('client_id=', encodeUriComponent(json(body('GetConfiguration'))?['client_id']),'&grant_type=',encodeUriComponent('client_credentials'))\r\n",
+						"headers": {
+							"Content-Type": "application/x-www-form-urlencoded"
+						},
+						"method": "POST",
+						"uri": "@{json(body('GetConfiguration'))?['myidUrl']}/@{json(body('GetConfiguration'))?['pathUrl']}"
+					},
+					"runAfter": {
+						"GetConfiguration": [
+							"Succeeded"
+						]
+					},
+					"type": "Http"
+				},
+				"GetConfiguration": {
+					"inputs": {
+						"body": {
+							"key": "pega-config"
+						},
+						"host": {
+							"triggerName": "manual",
+							"workflow": {
+								"id": "${getConfiguration_logicAppId}"
+							}
+						},
+						"retryPolicy": {
+							"type": "none"
+						}
+					},
+					"runAfter": {},
+					"type": "Workflow"
+				}
+			},
+			"runAfter": {
+				"Scope_-_Notifications": [
+					"Succeeded"
+				]
+			},
+			"type": "Scope"
+		},
+		"Initialize_Adr2Item": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "Adr2Item",
+						"type": "array"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Initialize_AdrcItem": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "AdrcItem",
+						"type": "array"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Initialize_CufldsItem": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "CufldsItem",
+						"type": "array"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Initialize_Knb1Item": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "Knb1Item",
+						"type": "array"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Notifications_Array": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "Notifications",
+						"type": "array"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Scope_-_Catch": {
+			"actions": {
+				"Send_error_response": {
+					"inputs": {
+						"body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n    <soapenv:Header/>\n    <soapenv:Body>\n        <out:notificationsResponse>\n            <out:Ack>0</out:Ack>\n        </out:notificationsResponse>\n    </soapenv:Body>\n</soapenv:Envelope>",
+						"headers": {
+							"Content-Type": "application/xml"
+						},
+						"statusCode": 500
+					},
+					"kind": "Http",
+					"runAfter": {},
+					"type": "Response"
+				},
+				"Terminate_Failed": {
+					"inputs": {
+						"runStatus": "Failed"
+					},
+					"runAfter": {
+						"Send_error_response": [
+							"Succeeded"
+						]
+					},
+					"type": "Terminate"
+				}
+			},
+			"runAfter": {
+				"Scope_-_Try": [
+					"Failed",
+					"Skipped",
+					"TimedOut"
+				]
+			},
+			"type": "Scope"
+		},
+		"Scope_-_Notifications": {
+			"actions": {
+				"Compose": {
+					"inputs": "@if(greater(int(xpath(xml(replace(string(replace(string(triggerBody()) , 'soapenv:Body' , 'Body')),'soapenv:Envelope' , 'Envelope')), \r\n'count(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"notifications\"]/*[local-name()=\"Notification\"])')), 1),\r\nbody('Parse_JSON')?['soapenv:Envelope']?['soapenv:Body']?['notifications']?['Notification'],\r\ncreateArray(body('Parse_JSON')?['soapenv:Envelope']?['soapenv:Body']?['notifications']?['Notification']))",
+					"runAfter": {
+						"Parse_JSON": [
+							"Succeeded"
+						]
+					},
+					"type": "Compose"
+				},
+				"Parse_JSON": {
+					"inputs": {
+						"content": "@variables('inputJson')",
+						"schema": {
+							"properties": {
+								"Body": {
+									"properties": {
+										"notifications": {
+											"properties": {
+												"ActionId": {
+													"type": "string"
+												},
+												"EnterpriseUrl": {
+													"type": "string"
+												},
+												"Notification": {
+													"items": {
+														"properties": {
+															"Id": {
+																"type": "string"
+															},
+															"sObject": {
+																"properties": {
+																	"BillingCity": {
+																		"type": "string"
+																	},
+																	"BillingCountry": {
+																		"type": "string"
+																	},
+																	"BillingPostalCode": {
+																		"type": "string"
+																	},
+																	"BillingState": {
+																		"type": "string"
+																	},
+																	"BillingStreet": {
+																		"type": "string"
+																	},
+																	"Id": {
+																		"type": "string"
+																	},
+																	"Name": {
+																		"type": "string"
+																	},
+																	"Ownership": {
+																		"type": "string"
+																	},
+																	"Phone": {
+																		"type": "string"
+																	},
+																	"S4SIfA__c": {
+																		"type": "string"
+																	},
+																	"S4SMilitary_Non_Military_Use__c": {
+																		"type": "string"
+																	},
+																	"fieldsToNull": {
+																		"type": "string"
+																	}
+																},
+																"type": "object"
+															}
+														},
+														"required": [
+															"Id",
+															"sObject"
+														],
+														"type": "object"
+													},
+													"type": "array"
+												},
+												"OrganizationId": {
+													"type": "string"
+												},
+												"PartnerUrl": {
+													"type": "string"
+												},
+												"SessionId": {
+													"type": "string"
+												}
+											},
+											"type": "object"
+										}
+									},
+									"type": "object"
+								}
+							},
+							"type": "object"
+						}
+					},
+					"runAfter": {},
+					"type": "ParseJson"
+				},
+				"Set_Notifications": {
+					"inputs": {
+						"name": "Notifications",
+						"value": "@outputs('Compose')"
+					},
+					"runAfter": {
+						"Compose": [
+							"Succeeded"
+						]
+					},
+					"type": "SetVariable"
+				}
+			},
+			"runAfter": {
+				"Convert_to_Json": [
+					"Succeeded"
+				],
+				"Initialize_Adr2Item": [
+					"Succeeded"
+				],
+				"Initialize_AdrcItem": [
+					"Succeeded"
+				],
+				"Initialize_CufldsItem": [
+					"Succeeded"
+				],
+				"Initialize_Knb1Item": [
+					"Succeeded"
+				],
+				"Notifications_Array": [
+					"Succeeded"
+				]
+			},
+			"type": "Scope"
+		},
+		"Scope_-_Try": {
+			"actions": {
+				"For_each": {
+					"actions": {
+						"Initiate_Pega_Request": {
+							"inputs": {
+								"body": {
+									"Customer": {
+										"KNA1": {
+											"ADR2": {
+												"item": "@variables('Adr2Item')"
+											},
+											"ADRC": {
+												"item": "@variables('AdrcItem')"
+											},
+											"CIVVE": "@if(equals(items('For_each')?['sObject']?['sf:Ownership'],'Mainly civilian use' ),'X','')\r\n",
+											"CuFlds": {
+												"item": "@variables('CufldsItem')"
+											},
+											"KTOKD": "@json(body('GetConfiguration'))?['KNA1-KTOKD']",
+											"KUKLA": "@if(equals(items('For_each')?['sObject']?['sf:Ownership'],'Governmental' ),'G','NG')",
+											"MILVE": "X",
+											"STCD4": "@items('For_each')?['sObject']?['sf:S4SIfA__c']"
+										},
+										"KNB1": {
+											"item": [
+												{
+													"BUKRS": "@json(body('GetConfiguration'))?['KNB1-BUKRS']",
+													"KNVV": {
+														"item": "@variables('Knb1Item')"
+													}
+												}
+											]
+										}
+									},
+									"Header": {
+										"EXTERNALID": "@items('For_each')?['sObject']?['sf:Id']",
+										"PEGAHOST": "@json(body('GetConfiguration'))?['PEGAserverURL']",
+										"PEGALAYER": "@json(body('GetConfiguration'))?['PEGALAYER']"
+									}
+								},
+								"headers": {
+									"Authorization": "Bearer @{body('Generate_Access_Token')?['access_token']}"
+								},
+								"method": "POST",
+								"uri": "@{json(body('GetConfiguration'))?['PEGAserverURL']}/prweb/PRRestService/SIEFWMDMIntBpWebServiceMyID/v1/BpCustomerCaseCreate"
+							},
+							"runAfter": {
+								"Set_ADRCItem": [
+									"Succeeded"
+								],
+								"Set_Adr2Item": [
+									"Succeeded"
+								],
+								"Set_CuFIdsItem": [
+									"Succeeded"
+								],
+								"Set_Knb1item": [
+				
+					 
+									"Succeeded"
+								]
+							},
+							"type": "Http"
+						},						
+						"Set_Adr2Item": {
+							"inputs": {
+								"name": "Adr2Item",
+                                "value": [{
+								"TEL_NUMBER": "@items('For_each')?['sObject']?['sf:Phone']"
+								}]
+							},
+							"runAfter": {
+								"Split_Street": [
+									"Succeeded"
+								]
+							},
+							"type": "SetVariable"
+						},
+						"Set_ADRCItem": {
+							"inputs": {
+								"name": "AdrcItem",
+								"value":[{
+								"CITY1": "@items('For_each')?['sObject']?['sf:BillingCity']",
+								"COUNTRY": "@items('For_each')?['sObject']?['sf:BillingCountry']",
+								"NAME1": "@body('NameSplitter35chars')?[0]",
+								"NAME2": "@body('NameSplitter35chars')?[1]",
+								"NAME3": "@body('NameSplitter35chars')?[2]",
+								"POST_CODE1": "@items('For_each')?['sObject']?['sf:BillingPostalCode']",
+								"REGION": "@items('For_each')?['sObject']?['sf:BillingState']",
+								"STREET": "@body('StreetSplitter35chars')?[0]",
+								"STR_SUPPL1": "@body('StreetSplitter35chars')?[1]",
+								"STR_SUPPL2": "@body('StreetSplitter35chars')?[2]"
+								}]
+							},
+							"runAfter": {
+								"Split_Street": [
+									"Succeeded"
+								]
+							},
+							"type": "SetVariable"
+						},
+						"Set_CuFIdsItem": {
+							"inputs": {
+								"name": "CufldsItem",
+								"value": [{
+								"FNAM": "@json(body('GetConfiguration'))?['KNA1-CUFLDS-ITEM-FNAM']",
+								"FVAL": "@if(equals(items('For_each')?['sObject']?['sf:Ownership'],'Governmental'),items('For_each')?['sObject']?['sf:Ownership'],'')"
+								}]
+							},
+							"runAfter": {
+								"Split_Street": [
+									"Succeeded"
+								]
+							},
+							"type": "SetVariable"
+						},
+						"Set_Knb1item": {
+							"inputs": {
+								"name": "Knb1Item",
+                                "value": [{
+								"INCO1": "@json(body('GetConfiguration'))?['KNVV-INCO1']",
+								"INCO2": "@json(body('GetConfiguration'))?['KNVV-INCO2']",
+								"SPART": "@json(body('GetConfiguration'))?['KNVV-SPART']",
+								"VKORG": "@json(body('GetConfiguration'))?['KNVV-VKORG']",
+								"VSBED": "@json(body('GetConfiguration'))?['KNVV-VSBED']",
+								"VTWEG": "@json(body('GetConfiguration'))?['KNVV-VTWEG']"
+								}]
+							},
+							"runAfter": {
+								"Split_Street": [
+									"Succeeded"
+								]
+							},
+							"type": "SetVariable"
+						},
+						"Split_Name": {
+							"actions": {
+								"NameSplitter35chars": {
+									"inputs": {
+										"body": "@items('For_each')?['sObject']?['sf:Name']",
+										"authentication": {
+											"type": "Raw",
+											"value": "[parameters('functionAppKey')]"
+										},
+										"function": {
+											"id": "[concat(parameters('funcApp'), '/functions/FieldSplitter35chars')]"
+										}
+									},
+									"runAfter": {},
+									"type": "Function"
+								}
+							},
+							"runAfter": {},
+							"type": "Scope"
+						},
+						"Split_Street": {
+							"actions": {
+								"StreetSplitter35chars": {
+									"inputs": {
+										"body": "@items('For_each')?['sObject']?['sf:BillingStreet']",
+										"authentication": {
+											"type": "Raw",
+											"value": "[parameters('functionAppKey')]"
+										},
+										"function": {
+											"id": "[concat(parameters('funcApp'), '/functions/FieldSplitter35chars')]"
+										}
+									},
+									"runAfter": {},
+									"type": "Function"
+								}
+							},
+							"runAfter": {
+								"Split_Name": [
+									"Succeeded"
+								]
+							},
+							"type": "Scope"
+						}
+					},
+					"foreach": "@variables('Notifications')",
+					"runAfter": {},
+					"runtimeConfiguration": {
+						"concurrency": {
+							"repetitions": 1
+						}
+					},
+					"type": "Foreach"
+				},
+				"Response": {
+					"inputs": {
+						"body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n    <soapenv:Header/>\n    <soapenv:Body>\n        <out:notificationsResponse>\n            <out:Ack>1</out:Ack>\n        </out:notificationsResponse>\n    </soapenv:Body>\n</soapenv:Envelope>",
+						"headers": {
+							"Content-Type": "application/xml"
+						},
+						"statusCode": 200
+					},
+					"kind": "Http",
+					"runAfter": {
+						"For_each": [
+							"Succeeded"
+						]
+					},
+					"type": "Response"
+				}
+			},
+			"runAfter": {
+				"Generate_Token": [
+					"Succeeded"
+				]
+			},
+			"type": "Scope"
+		}
+	},
+	"contentVersion": "1.0.0.0",
+	"outputs": {},
+	"parameters": {},
+	"triggers": {
+		"manual": {
+			"inputs": {},
+			"kind": "Http",
+			"type": "Request"
+		}
+	}
+}

@@ -1,0 +1,362 @@
+{
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Initialize_variable_finalWhereClause": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "finalWhereClause",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_initilaizeWhereClauseAppend": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "initilaizeWhereClauseAppend",
+                            "type": "string",
+                            "value": "@{null}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_response": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "response",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_whereClause": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "whereClause",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Scope-Catch": {
+                "actions": {
+                    "Error_Response": {
+                        "inputs": {
+                            "body": {
+                                "Message": "@concat('Some error occurred while processing the request. Please find more details using tracking id : ', workflow()['run']['name'])",
+                                "Status": "Failure"
+                            },
+                            "headers": {
+                                "Content-Type": "application/json"
+                            },
+                            "statusCode": 500
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                        "type": "Response"
+                    },
+                    "Terminate_in_Catch": {
+                        "inputs": {
+                            "runStatus": "Failed"
+                        },
+                        "runAfter": {
+                            "Error_Response": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Terminate"
+                    }
+                },
+                "runAfter": {
+                    "Scope-Try": [
+                        "Failed",
+                        "Skipped",
+                        "TimedOut"
+                    ]
+                },
+                "type": "Scope"
+            },
+            "Scope-Try": {
+                "actions": {
+                    "Check_sisicId": {
+                        "actions": {
+                            "Set_variable_initializeWhereClauseAppend": {
+                                "inputs": {
+                                    "name": "initilaizeWhereClauseAppend",
+                                    "value": "@{string(' ')}"
+                                },
+                                "runAfter": {
+                                    "Set_variable_whereClause": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "SetVariable"
+                            },
+                            "Set_variable_whereClause": {
+                                "inputs": {
+                                    "name": "whereClause",
+                                    "value": "Id='@{outputs('Compose_SISIC_Request')?['sisicId']}'"
+                                },
+                                "runAfter": {},
+                                "type": "SetVariable"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@outputs('Compose_SISIC_Request')?['sisicId']",
+                                            "@null"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@outputs('Compose_SISIC_Request')?['sisicId']",
+                                            "@string('')"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Compose_SISIC_Request": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Check_sisicName": {
+                        "actions": {
+                            "Check_initializeWhereClauseAppend": {
+                                "actions": {
+                                    "Set_variable_initializeWhereClauseAppend_if_it_exists": {
+                                        "inputs": {
+                                            "name": "initilaizeWhereClauseAppend",
+                                            "value": "and Name='@{outputs('Compose_SISIC_Request')?['sisicName']}'"
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    }
+                                },
+                                "else": {
+                                    "actions": {
+                                        "Set_variable_initializeWhereClauseAppend_if_it_doesn't_exist": {
+                                            "inputs": {
+                                                "name": "initilaizeWhereClauseAppend",
+                                                "value": "Name='@{outputs('Compose_SISIC_Request')?['sisicName']}'"
+                                            },
+                                            "runAfter": {},
+                                            "type": "SetVariable"
+                                        }
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('initilaizeWhereClauseAppend')",
+                                                    "@string('')"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {},
+                                "type": "If"
+                            },
+                            "Set_variable_finalWhereClause": {
+                                "inputs": {
+                                    "name": "finalWhereClause",
+                                    "value": "@{concat(variables('whereClause'),variables('initilaizeWhereClauseAppend'))}"
+                                },
+                                "runAfter": {
+                                    "Check_initializeWhereClauseAppend": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "SetVariable"
+                            },
+                            "Set_variable_whereClause_with_finalWhereClause": {
+                                "inputs": {
+                                    "name": "whereClause",
+                                    "value": "@variables('finalWhereClause')"
+                                },
+                                "runAfter": {
+                                    "Set_variable_finalWhereClause": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "SetVariable"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@outputs('Compose_SISIC_Request')?['sisicName']",
+                                            "@null"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@outputs('Compose_SISIC_Request')?['sisicName']",
+                                            "@string('')"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Check_sisicId": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Compose_SISIC_Request": {
+                        "inputs": "@triggerBody()?['SIE_SF4S_fetchSISICRequest']",
+                        "runAfter": {},
+                        "type": "Compose"
+                    },
+                    "Compose_Response": {
+                        "inputs": {
+                            "CreatedById": "@body('Execute_a_SOQL_query')?['records']?[0]?['CreatedById']",
+                            "CreatedDate": "@replace(coalesce(body('Execute_a_SOQL_query')?['records']?[0]?['CreatedDate'],''),'+00:00','.000Z')",
+                            "CurrencyIsoCode": "@body('Execute_a_SOQL_query')?['records']?[0]?['CurrencyIsoCode']",
+                            "Id": "@body('Execute_a_SOQL_query')?['records']?[0]?['Id']",
+                            "IsDeleted": "@body('Execute_a_SOQL_query')?['records']?[0]?['IsDeleted']",
+                            "LastModifiedById": "@body('Execute_a_SOQL_query')?['records']?[0]?['LastModifiedById']",
+                            "LastModifiedDate": "@replace(coalesce(body('Execute_a_SOQL_query')?['records']?[0]?['LastModifiedDate'],''),'+00:00','.000Z')",
+                            "LastReferencedDate": "@replace(coalesce(body('Execute_a_SOQL_query')?['records']?[0]?['LastReferencedDate'],''),'+00:00','.000Z')",
+                            "LastViewedDate": "@replace(coalesce(body('Execute_a_SOQL_query')?['records']?[0]?['LastViewedDate'],''),'+00:00','.000Z')",
+                            "Name": "@body('Execute_a_SOQL_query')?['records']?[0]?['Name']",
+                            "OwnerId": "@body('Execute_a_SOQL_query')?['records']?[0]?['OwnerId']",
+                            "S4SExternal_ID__c": "@body('Execute_a_SOQL_query')?['records']?[0]?['S4SExternal_ID__c']",
+                            "S4SIndustry_Description__c": "@body('Execute_a_SOQL_query')?['records']?[0]?['S4SIndustry_Description__c']",
+                            "S4SIndustry_Segment__c": "@body('Execute_a_SOQL_query')?['records']?[0]?['S4SIndustry_Segment__c']",
+                            "S4SIndustry__c": "@body('Execute_a_SOQL_query')?['records']?[0]?['S4SIndustry__c']",
+                            "S4SNAF_ID__c": "@body('Execute_a_SOQL_query')?['records']?[0]?['S4SNAF_ID__c']",
+                            "SystemModstamp": "@replace(coalesce(body('Execute_a_SOQL_query')?['records']?[0]?['SystemModstamp'],''),'+00:00','.000Z')"
+                        },
+                        "runAfter": {
+                            "Execute_a_SOQL_query": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Compose"
+                    },
+                    "Execute_a_SOQL_query": {
+                        "inputs": {
+                            "body": {
+                                "query": "select Id,OwnerId,IsDeleted,Name,CurrencyIsoCode,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastViewedDate,LastReferencedDate,S4SExternal_ID__c,S4SIndustry_Description__c,S4SIndustry_Segment__c,S4SIndustry__c,S4SNAF_ID__c from S4SSISIC__c where @{variables('whereClause')}"
+                            },
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                }
+                            },
+                            "method": "post",
+                            "path": "/soql/executesoqlquery"
+                        },
+                        "runAfter": {
+                            "Check_sisicName": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ApiConnection"
+                    },
+                    "Final_Response": {
+                        "inputs": {
+                            "body": "@json(variables('response'))",
+                            "statusCode": 200
+                        },
+                        "kind": "Http",
+                        "runAfter": {
+                            "Set_variable_response": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Response"
+                    },
+                    "Set_variable_response": {
+                        "inputs": {
+                            "name": "response",
+                            "value": "@{concat('{\"SIE_SF4S_fetchSISICResponse\": {\"S4SSISIC__c\": ', outputs('Compose_Response'), '}}')}"
+                        },
+                        "runAfter": {
+                            "Compose_Response": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "SetVariable"
+                    }
+                },
+                "runAfter": {
+                    "Initialize_variable_finalWhereClause": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_initilaizeWhereClauseAppend": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_response": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_whereClause": [
+                        "Succeeded"
+                    ]
+                },
+                "trackedProperties": {
+                    "citizenName": "c00031",
+                    "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'PShell')}",
+                    "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                    "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                    "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'fetchSISIC')}",
+                    "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+                    "parentWorkflow" : "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}"
+                    },
+                "type": "Scope"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "manual": {
+                "inputs": {
+                    "schema": {
+                        "SIE_SF4S_fetchSISICRequest": {
+                            "sisicId": "string",
+                            "sisicName": "string"
+                        }
+                    }
+                },
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+}

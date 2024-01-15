@@ -1,0 +1,380 @@
+{
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Initialize_Request": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "Request",
+                            "type": "array"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_dataStream": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "dataStream",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_BulkState": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "BulkState",
+                            "type": "boolean",
+                            "value": false
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_error_response": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "SoapErrorResponse",
+                            "type": "string",
+                            "value": "<soap-env:Envelope xmlns:soap-env=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap-env:Header/><soap-env:Body><soap-env:Fault><faultcode>soap-env:Server</faultcode><faultstring>{errormessagedetails}</faultstring><detail/></soap-env:Fault></soap-env:Body></soap-env:Envelope>"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Scope-Catch": {
+                "actions": {
+                    "Failed_Response": {
+                        "inputs": {
+                            "body": "@replace(variables('SoapErrorResponse'),'{errormessagedetails}',concat('Some error occurred while connection. Please find more details using tracking id : ', workflow()['run']['name']))",
+                            "headers": {
+                                "Content-Type": "application/xml"
+                            },
+                            "statusCode": 500
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                        "type": "Response"
+                    },
+                    "Terminate-Failed": {
+                        "inputs": {
+                            "runStatus": "Failed"
+                        },
+                        "runAfter": {
+                            "Failed_Response": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Terminate"
+                    }
+                },
+                "runAfter": {
+                    "Scope-Try": [
+                        "TimedOut",
+                        "Skipped",
+                        "Failed"
+                    ]
+                },
+                "type": "Scope"
+            },
+            "Scope-Try": {
+                "actions": {
+                    "Condition_to_check_bookingLineOrQuoteLine": {
+                        "actions": {
+                            "Close_or_abort_a_job-BL": {
+                                "inputs": {
+                                    "body": {
+                                        "state": "UploadComplete"
+                                    },
+                                    "host": {
+                                        "connection": {
+                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                        }
+                                    },
+                                    "method": "patch",
+                                    "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Create_a_job_(V2)-BL')?['id'])}"
+                                },
+                                "runAfter": {
+                                    "Upload_job_data-BL": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "ApiConnection"
+                            },
+                            "ComposeDataStream-BL": {
+                                "inputs": "CurrencyIsoCode;S4SOpportunity__c;S4SPrimary_Flag__c;S4SDepth_Structure__c;S4SQuantity__c;S4SSales_Price__c;S4SExternal_Source__c\n@{variables('dataStream')}",
+                                "runAfter": {
+                                    "For_each-BL": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Compose"
+                            },
+                            "Create_a_job_(V2)-BL": {
+                                "inputs": {
+                                    "body": {
+                                        "columnDelimiter": "SEMICOLON",
+                                        "contentType": "CSV",
+                                        "externalIdFieldName": "Id",
+                                        "object": "S4SBooking_Line_Item__c",
+                                        "operation": "upsert"
+                                    },
+                                    "host": {
+                                        "connection": {
+                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                        }
+                                    },
+                                    "method": "post",
+                                    "path": "/bulk/createjob"
+                                },
+                                "runAfter": {
+                                    "ComposeDataStream-BL": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "ApiConnection"
+                            },
+                            "For_each-BL": {
+                                "actions": {
+                                    "Append_to_string_variable-BL": {
+                                        "inputs": {
+                                            "name": "dataStream",
+                                            "value": "@concat(items('For_each-BL')?['CurrencyIsoCode'],string(';'),items('For_each-BL')?['S4SOpportunity__c'],string(';'),\r\nitems('For_each-BL')?['S4SPrimary_Flag__c'],string(';'),items('For_each-BL')?['S4SDepth_Structure__c'],string(';'),items('For_each-BL')?['S4SQuantity__c'],string(';'),items('For_each-BL')?['S4SSales_Price__c'],string(';'),items('For_each-BL')?['S4SExternal_Source__c']\r\n,decodeUriComponent('%0A') )"
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToStringVariable"
+                                    }
+                                },
+                                "foreach": "@variables('Request')",
+                                "runAfter": {
+                                    "Set_BookingLineRequest": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Foreach"
+                            },
+                            "Set_BookingLineRequest": {
+                                "inputs": {
+                                    "name": "Request",
+                                    "value": "@triggerBody()?['requestBody']"
+                                },
+                                "runAfter": {},
+                                "type": "SetVariable"
+                            },
+                            "Upload_job_data-BL": {
+                                "inputs": {
+                                    "body": "@outputs('ComposeDataStream-BL')",
+                                    "host": {
+                                        "connection": {
+                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                        }
+                                    },
+                                    "method": "put",
+                                    "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Create_a_job_(V2)-BL')?['id'])}/batches"
+                                },
+                                "runAfter": {
+                                    "Create_a_job_(V2)-BL": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "ApiConnection"
+                            }
+                        },
+                        "else": {
+                            "actions": {
+                                "Close_or_abort_a_job-QL": {
+                                    "inputs": {
+                                        "body": {
+                                            "state": "UploadComplete"
+                                        },
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                            }
+                                        },
+                                        "method": "patch",
+                                        "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Create_a_job_(V2)-QL')?['id'])}"
+                                    },
+                                    "runAfter": {
+                                        "Upload_job_data-QL": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ApiConnection"
+                                },
+                                "ComposeDataStream-QL": {
+                                    "inputs": "PricebookEntryId;Product2Id;Quantity;QuoteId;S4SExternal_Source__c;UnitPrice\n@{variables('dataStream')}",
+                                    "runAfter": {
+                                        "For_each-QL": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Compose"
+                                },
+                                "Create_a_job_(V2)-QL": {
+                                    "inputs": {
+                                        "body": {
+                                            "columnDelimiter": "SEMICOLON",
+                                            "contentType": "CSV",
+                                            "externalIdFieldName": "Id",
+                                            "object": "QuoteLineItem",
+                                            "operation": "upsert"
+                                        },
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "path": "/bulk/createjob"
+                                    },
+                                    "runAfter": {
+                                        "ComposeDataStream-QL": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ApiConnection"
+                                },
+                                "For_each-QL": {
+                                    "actions": {
+                                        "Append_to_string_variable-QL": {
+                                            "inputs": {
+                                                "name": "dataStream",
+                                                "value": "@concat(items('For_each-QL')?['PricebookEntryId'],string(';'),items('For_each-QL')?['Product2Id'],string(';'),\r\nitems('For_each-QL')?['Quantity'],string(';'),items('For_each-QL')?['QuoteId'],string(';'),items('For_each-QL')?['S4SExternal_Source__c'],string(';'),items('For_each-QL')?['UnitPrice'],decodeUriComponent('%0A') )"
+                                            },
+                                            "runAfter": {},
+                                            "type": "AppendToStringVariable"
+                                        }
+                                    },
+                                    "foreach": "@variables('Request')",
+                                    "runAfter": {
+                                        "Set_QuoteLineRequest": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Foreach"
+                                },
+                                "Set_QuoteLineRequest": {
+                                    "inputs": {
+                                        "name": "Request",
+                                        "value": "@triggerBody()?['requestBody']"
+                                    },
+                                    "runAfter": {},
+                                    "type": "SetVariable"
+                                },
+                                "Upload_job_data-QL": {
+                                    "inputs": {
+                                        "body": "@outputs('ComposeDataStream-QL')",
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                            }
+                                        },
+                                        "method": "put",
+                                        "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Create_a_job_(V2)-QL')?['id'])}/batches"
+                                    },
+                                    "runAfter": {
+                                        "Create_a_job_(V2)-QL": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ApiConnection"
+                                }
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "equals": [
+                                        "@triggerBody()?['IsBookingBulkUpsert']",
+                                        true
+                                    ]
+                                }
+                            ]
+                        },
+                        "runAfter": {},
+                        "type": "If"
+                    },
+                    "Response-Success": {
+                        "inputs": {
+                            "statusCode": 200
+                        },
+                        "kind": "Http",
+                        "runAfter": {
+                            "Condition_to_check_bookingLineOrQuoteLine": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Response"
+                    }
+                },
+                "runAfter": {
+                    "Initialize_Request": [
+                        "Succeeded"
+                    ],
+                    "Initialize_dataStream": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_BulkState": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_error_response": [
+                        "Succeeded"
+                    ]
+                },
+                "trackedProperties": {
+                    "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+                    "citizenName": "c00031",
+                    "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'Compas')}",
+                    "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                    "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                    "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'internal_bulkUpsert')}",
+                    "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+                    "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                    "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+                },
+                "type": "Scope"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "manual": {
+                "inputs": {
+                    "schema": {
+                        "properties": {
+                            "IsBookingBulkUpsert": {
+                                "description": "To check if request if for Booking Line Bulk Upsert",
+                                "required": "true",
+                                "type": "boolean"
+                            },
+                            "requestBody": {
+                                "description": "The request body to be sent to target service. The body should be sent as base64Encoded string",
+                                "required": "true",
+                                "type": "object"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+}

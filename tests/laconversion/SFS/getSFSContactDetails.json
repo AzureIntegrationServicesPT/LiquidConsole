@@ -1,0 +1,527 @@
+{
+	"$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+	"actions": {
+        "Catch_Scope": {
+            "actions": {
+                "Compose_Error_Message": {
+                    "inputs": {
+                        "input": "@createArray(result('Condition_to_Check_Contact_Query_Size'),result('For_each'),result('Try_Scope'))"
+                    },
+                    "runAfter": {},
+                    "type": "Compose"
+                },
+                "Error_Response": {
+                    "inputs": {
+                        "body": {
+                            "searchSFSContactResponse": {
+                                "message": "Unable to get the Contact details for the request combination at current time; If you are seeing this error message from long please reach out to the AMC team with the Workflow Run ID.",
+                                "success": "@false",
+                                "workflowRunId": "@workflow()?['run']?['name']"
+                            }
+                        },
+                        "statusCode": 400
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "Set_Error_Message": [
+                            "Succeeded"
+                        ]
+                    },
+                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                    "type": "Response"
+                },
+                "Logging_Error": {
+                    "inputs": {
+                        "body": {
+                            "message": "Error: @{body('Set_Error_Message')}",
+                            "severity": "ERROR"
+                        },
+                        "host": {
+                            "triggerName": "manual",
+                            "workflow": {
+                                "id": "[parameters('sf4sLog_logicApp_id')]"
+                            }
+                        }
+                    },
+                    "runAfter": {
+                        "Set_Error_Message": [
+                            "Succeeded"
+                        ]
+                    },
+                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                    "type": "Workflow"
+                },
+                "Set_Error_Message": {
+                    "inputs": {
+                        "authentication": {
+                            "type": "Raw",
+                            "value": "[parameters('functionAppKey')]"
+                        },
+                        "body": "@outputs('Compose_Error_Message')",
+                        "function": {
+                            "id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+                        },
+                        "headers": {
+                            "Accept": "application/json",
+                            "Content-Type": "application/json",
+                            "Filename": "${liquid_setError}"
+                        },
+                        "method": "POST",
+                        "retryPolicy": {
+                            "type": "none"
+                        }
+                    },
+                    "runAfter": {
+                        "Compose_Error_Message": [
+                            "Succeeded"
+                        ]
+                    },
+                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                    "type": "Function"
+                }
+            },
+            "runAfter": {
+                "Try_Scope": [
+                    "TimedOut",
+                    "Failed"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Initialize_Array_Variable": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "Attributes",
+                        "type": "array"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Logging_Request": {
+            "inputs": {
+                "body": {
+                    "message": "@{base64(triggerBody())}",
+                    "severity": "DEBUG"
+                },
+                "host": {
+                    "triggerName": "manual",
+                    "workflow": {
+                        "id": "[parameters('sf4sLog_logicApp_id')]"
+                    }
+                }
+            },
+            "runAfter": {},
+             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+            "type": "Workflow"
+        },
+        "Try_Scope": {
+            "actions": {
+                "Condition_to_Check_Contact_Query_Size": {
+                    "actions": {
+                        "For_each": {
+                            "actions": {
+                                "Append_to_array_variable": {
+                                    "inputs": {
+                                        "name": "Attributes",
+                                        "value": {
+                                            "attribute": "@body('HTTP_Query_SF_Attributes')?['records']",
+                                            "contact": "@items('For_each')"
+                                        }
+                                    },
+                                    "runAfter": {
+                                        "HTTP_Query_SF_Attributes": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "AppendToArrayVariable"
+                                },
+                                "HTTP_Query_SF_Attributes": {
+                                    "inputs": {
+                                        "body": {
+                                            "query": "SELECT Id,OwnerId,IsDeleted,Name,CurrencyIsoCode,RecordTypeId,LastActivityDate,LastViewedDate,LastReferencedDate,S4SATTRIBUTE_ASSIGNMENT_LegacyID__c,S4SAccount__c,S4SCategory__c,S4SContact__c,S4SDescription__c,S4SFormat_Date__c,S4SFormat_Number__c,S4SFormat_Text__c,S4SGroup__c,S4SName__c,S4SOpportunity__c,S4SRelatedObjectType__c,S4SRelated_Object__c,S4SSet__c,S4SValue__c FROM S4SAttribute_Assignment__c  WHERE S4SCONTACT__C = '@{items('For_each')?['Id']}' LIMIT 100"
+                                        },
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "path": "/soql/executesoqlquery",
+                                        "retryPolicy": {
+                                            "type": "none"
+                                        }
+                                    },
+                                    "runAfter": {},
+                                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                    "type": "ApiConnection"
+                                },
+                                "Logging_ContactID": {
+                                    "inputs": {
+                                        "body": {
+                                            "message": "Contact ID: @{items('For_each')?['Id']}",
+                                            "severity": "INFO"
+                                        },
+                                        "host": {
+                                            "triggerName": "manual",
+                                            "workflow": {
+                                                "id": "[parameters('sf4sLog_logicApp_id')]"
+                                            }
+                                        }
+                                    },
+                                    "runAfter": {
+                                        "HTTP_Query_SF_Attributes": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                    "type": "Workflow"
+                                }
+                            },
+                            "foreach": "@body('HTTP_Query_SF_Contact_')?['records']",
+                            "runAfter": {},
+                            "type": "Foreach"
+                        },
+                        "Logging_Response": {
+                            "inputs": {
+                                "body": {
+                                    "message": "Contact: @{body('Set_Response_Result')}",
+                                    "severity": "DEBUG"
+                                },
+                                "host": {
+                                    "triggerName": "manual",
+                                    "workflow": {
+                                        "id": "[parameters('sf4sLog_logicApp_id')]"
+                                    }
+                                }
+                            },
+                            "runAfter": {
+                                "Set_Response_Result": [
+                                    "Succeeded"
+                                ]
+                            },
+                             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                            "type": "Workflow"
+                        },
+                        "Set_Response_Result": {
+                            "inputs": {
+                                "authentication": {
+                                    "type": "Raw",
+                                    "value": "[parameters('functionAppKey')]"
+                                },
+                                "body": {
+                                    "excludeNulls": "@triggerBody()?['searchSFSContact']?['excludeNulls']",
+                                    "input": "@variables('Attributes')"
+                                },
+                                "function": {
+                                    "id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+                                },
+                                "headers": {
+                                    "Accept": "application/json",
+                                    "Content-Type": "application/json",
+                                    "Filename": "${liquid_responseContactDetails}"
+                                },
+                                "method": "POST",
+                                "retryPolicy": {
+                                    "type": "none"
+                                }
+                            },
+                            "runAfter": {
+                                "For_each": [
+                                    "Succeeded"
+                                ]
+                            },
+                             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                            "type": "Function"
+                        },
+                        "Success_Response": {
+                            "inputs": {
+                                "body": {
+                                    "searchSFSContactResponse": {
+                                        "Contact": "@body('Set_Response_Result')",
+                                        "success": "@true",
+                                        "workflowRunId": "@workflow()?['run']?['name']"
+                                    }
+                                },
+                                "statusCode": 200
+                            },
+                            "kind": "Http",
+                            "runAfter": {
+                                "Set_Response_Result": [
+                                "Succeeded"
+                            ]
+                        },
+                         "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                        "type": "Response"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "No_Contact_Found_Response": {
+                                "inputs": {
+                                    "body": {
+                                        "searchSFSContactResponse": {
+                                            "message": "No contact found with the information provided!",
+                                            "success": "@false",
+                                            "workflowRunId": "@workflow()?['run']?['name']"
+                                        }
+                                    },
+                                    "statusCode": 200
+                                },
+                                "kind": "Http",
+                                "runAfter": {},
+                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                                "type": "Response"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "greater": [
+                                    "@length(body('HTTP_Query_SF_Contact_')?['records'])",
+                                    "@int(0)"
+                                ]
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "HTTP_Query_SF_Contact_": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "HTTP_Query_SF_Contact_": {
+                    "inputs": {
+                        "body": {
+                                "query": "SELECT Id,IsDeleted,MasterRecordId,LastName,FirstName,Salutation,MiddleName,Suffix,Name,OtherStreet,OtherCity,OtherState,OtherPostalCode,OtherCountry,OtherStateCode,OtherCountryCode,OtherLatitude,OtherLongitude,OtherGeocodeAccuracy,MailingStreet,MailingCity,MailingState,MailingPostalCode,MailingCountry,MailingStateCode,MailingCountryCode,MailingLatitude,MailingLongitude,MailingGeocodeAccuracy,Phone,Fax,MobilePhone,HomePhone,OtherPhone,AssistantPhone,ReportsToId,Email,Title,Department,AssistantName,LeadSource,Birthdate,Description,CurrencyIsoCode,HasOptedOutOfEmail,HasOptedOutOfFax,DoNotCall,LastActivityDate,LastCURequestDate,LastCUUpdateDate,LastViewedDate,LastReferencedDate,EmailBouncedReason,EmailBouncedDate,IsEmailBounced,PhotoUrl,Jigsaw,JigsawContactId,DPML__Employee_Number__c,LID__LinkedIn_Company_Id__c,LID__LinkedIn_Member_Token__c,S4SAcademic_Title__c,S4SAccount_Address__c,S4SBranch_Office__c,S4SCONTACT_LegacyID__c,S4SContact_Name__c,S4SDepartment_Type__c,S4SDistrict__c,S4SDouble_Opt_In_Date__c,S4SDouble_Opt_In__c,S4SEmail_Duplicate__c,S4SExcluded_from_Eloqua_Sync__c,S4SFull_Name__c,S4SFurigana_First_Name__c,S4SFurigana_Last_Name__c,S4SGender__c,S4SInitial__c,S4SJob_Description__c,S4SJob_Role__c,S4SJob_Specification__c,S4SLanguage__c,S4SLead_Source_Type_Eloqua__c,S4SLegitimate_Interest__c,S4SManagement_Level__c,S4SMarked_for_Deletion__c,S4SMarketing_Block_Text__c,S4SNever_Email__c,S4SNever_Mail__c,S4SNo_Marketing__c,S4SOpt_Out_Date__c,S4SOpt_Out__c,S4SPartner_Contact_Role__c,S4SRestricted_Email_Address__c,S4SRestricted_Phone__c,S4SSelf_Employed__c,S4SStatus__c,S4SSubregion__c,S4SSynced_with_Eloqua__c, S4SSync_invalidated_Origination_ID__c, S4SSync_with_Ext_Source_Invalidated_Date__c, S4SSync_with_External_Source_invalidated__c, S4SDeletion_According_GDPR_Rules__c, S4SVisibility__c,S4SAccountName__c,S4SConfidentiality_Status__c,S4SCopado_testing__c,S4SEloqua_Profiler__c,S4SLinkedIn_URL__c,S4SNever_Survey__c,S4SOwner_Lead_Country__c,S4SOwner_Sales_Country__c,S4SLead_Central_Enabled_Contact__c,S4SUserId__c,S4SSFS_Confidential__c,Account.Id,Account.Name,Account.BillingState,Account.BillingStreet,Account.BillingCity,Account.BillingPostalCode,Account.BillingCountry,Account.ShippingStreet,Account.ShippingCity,Account.ShippingPostalCode,Account.ShippingCountry,Account.S4SAccount_Name_International__c,Account.S4SCity_PO_Box_International__c,Account.S4SCity_PO_Box__c,Account.S4SIfA__c,Account.S4SInternational_City__c,Account.S4SInternational_Country__c,Account.S4SInternational_Postal_Code__c,Account.S4SInternational_Steet_Name_2__c,Account.S4SInternational_Street_Name_1__c,Account.S4SNat_Company_ID__c,Account.S4SPO_Box_Postcode__c,Account.S4SPO_box__c,Account.S4STax_ID__c,Account.S4SACCOUNT_LegacyID__c,Owner.Id,Owner.Name,Owner.Email,Owner.S4SGID_Technical__c,S4SOrigination_ID_Account_Contact__c,S4SOrigination_ID__c FROM Contact  @{body('Query_Contact_Details')?['clause']} LIMIT 100"
+                        },
+                        "host": {
+                            "connection": {
+                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                            }
+                        },
+                        "method": "post",
+                        "path": "/soql/executesoqlquery",
+                        "retryPolicy": {
+                            "type": "none"
+                        }
+                    },
+                    "runAfter": {
+                        "Query_Contact_Details": [
+                            "Succeeded"
+                        ]
+                    },
+                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                    "type": "ApiConnection"
+                },
+                "Query_Contact_Details": {
+                    "inputs": {
+                        "authentication": {
+                            "type": "Raw",
+                            "value": "[parameters('functionAppKey')]"
+                        },
+                        "body": {
+                            "searchContact": "@triggerBody()?['searchSFSContact']"
+                        },
+                        "function": {
+                            "id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+                        },
+                        "headers": {
+                            "Accept": "application/json",
+                            "Content-Type": "application/json",
+                            "Filename": "${liquid_ContactSearchQuery}"
+                        },
+                        "method": "POST",
+                        "retryPolicy": {
+                            "type": "none"
+                        }
+                    },
+                    "runAfter": {},
+                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                    "type": "Function"
+                }
+            },
+            "runAfter": {
+                "Initialize_Array_Variable": [
+                    "Succeeded" 
+                ]
+            },
+            "type": "Scope"
+        }
+    },
+	"contentVersion": "1.0.0.0",
+	"outputs": {},
+	"parameters": {
+		"$connections": {
+			"defaultValue": {},
+			"type": "Object"
+		}
+	},
+	"triggers": {
+        "manual": {
+            "inputs": {
+                "schema": {
+                    "searchContact": {
+                        "excludeNulls": {
+                            "type": "boolean"
+                        },
+                        "Contact": {
+                            "Account": {
+                                "Id": {
+                                    "type": "string"
+                                },
+                                "Name": {
+                                    "type": "string"
+                                },
+                                "S4SACCOUNT_LegacyID__c": {
+                                    "type": "string"
+                                },
+                                "S4SIfa__c": {
+                                    "type": "string"
+                                }
+                            },
+                            "DPML__Employee_Number__c": {
+                                "type": "string"
+                            },
+                            "Department": {
+                                "type": "string"
+                            },
+                            "Email": {
+                                "type": "string"
+                            },
+                            "FirstName": {
+                                "type": "string"
+                            },
+                            "Id": {
+                                "type": "string"
+                            },
+                            "LastName": {
+                                "type": "string"
+                            },
+                            "MiddleName": {
+                                "type": "string"
+                            },
+                            "Name": {
+                                "type": "string"
+                            },
+                            "Owner": {
+                                "Email": {
+                                    "type": "string"
+                                },
+                                "Id": {
+                                    "type": "string"
+                                },
+                                "Name": {
+                                    "type": "string"
+                                },
+                                "S4SGID_Technical__c": {
+                                    "type": "string"
+                                }
+                            },
+                            "S4SCONTACT_LegacyID__c": {
+                                "type": "string"
+                            },
+                            "type": "object"
+                        }
+                    }
+                }
+            },
+            "kind": "Http",
+            "operationOptions": "EnableSchemaValidation",
+             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+            "type": "Request"
+        }
+    }
+}

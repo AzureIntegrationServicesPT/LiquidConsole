@@ -1,0 +1,248 @@
+{
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Catch-S4SIdentification": {
+                "actions": {
+                    "S4SIdentification_ErrorResponse": {
+                        "inputs": "S4SIdentification_ErrorResponse",
+                        "runAfter": {},
+                        "type": "Compose"
+                    }
+                },
+                "runAfter": {
+                    "Try-S4SIdentification": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Scope"
+            },
+            "Initialize_variable'S4SIdentification_WhereClause'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "S4SIdentification_WhereClause",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_'DebitorNumber'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "DebitorNumber",
+                            "type": "string",
+                            "value": "@{trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"SIE_SF4S_iQuote_CompanyDetailsReq\"]/*[local-name()=\"debitorNumber\"])'))}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_'varIfaList'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "varIfaList",
+                            "type": "array",
+                            "value": "@null"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_'varIfaNumber'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "varIfaNumber",
+                            "type": "string",
+                            "value": "@{trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"SIE_SF4S_iQuote_CompanyDetailsReq\"]/*[local-name()=\"ifaNumber\"])'))}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_'varWhereClause'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "varWhereClause",
+                            "type": "string",
+                            "value": "@{null}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_'varWhereClauseArray'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "varWhereClauseArray",
+                            "type": "array",
+                            "value": "@null"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Try-S4SIdentification": {
+                "actions": {
+                    "Append_to_string_variable": {
+                        "inputs": {
+                            "name": "S4SIdentification_WhereClause",
+                            "value": "@concat('s4sidentification_number__c  like ',string(''''),variables('DebitorNumber'),string(''''))"
+                        },
+                        "runAfter": {},
+                        "type": "AppendToStringVariable"
+                    },
+                    "Condition-CheckTotalSize": {
+                        "actions": {
+                            "Compose-RemovingDuplicatesIFA": {
+                                "inputs": "@string(union(variables('varIfaList'),variables('varIfaList')))",
+                                "runAfter": {
+                                    "For_each": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Compose"
+                            },
+                            "For_each": {
+                                "actions": {
+                                    "Append_to_array_variable_'varIfaList'": {
+                                        "inputs": {
+                                            "name": "varIfaList",
+                                            "value": "@items('For_each')?['S4SIfA__c']"
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToArrayVariable"
+                                    }
+                                },
+                                "foreach": "@variables('varWhereClauseArray')",
+                                "runAfter": {
+                                    "Set_variable_'varWhereClauseArray'": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Foreach"
+                            },
+                            "Set_variable_'varWhereClauseArray'": {
+                                "inputs": {
+                                    "name": "varWhereClauseArray",
+                                    "value": "@if(greater(body('ExecuteSOQL-S4SIdentificationNumber')?['totalSize'],0),body('ExecuteSOQL-S4SIdentificationNumber')?['records'],null)"
+                                },
+                                "runAfter": {},
+                                "type": "SetVariable"
+                            },
+                            "Set_variable_3_'varWhereClause'": {
+                                "inputs": {
+                                    "name": "varWhereClause",
+                                    "value": "@{concat('S4SIfA__c in ',replace(replace(replace(string(union(variables('varIfaList'),variables('varIfaList'))),'[','('),']',')'),'\"',''''))}"
+                                },
+                                "runAfter": {
+                                    "Compose-RemovingDuplicatesIFA": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "SetVariable"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "greater": [
+                                        "@body('ExecuteSOQL-S4SIdentificationNumber')?['totalSize']",
+                                        "@0"
+                                    ]
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "ExecuteSOQL-S4SIdentificationNumber": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "ExecuteSOQL-S4SIdentificationNumber": {
+                        "inputs": {
+                            "body": {
+                                "query": "select id,S4SIfA__c from S4SIdentification_Number__c where @{variables('S4SIdentification_WhereClause')}"
+                            },
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                }
+                            },
+                            "method": "post",
+                            "path": "/soql/executesoqlquery"
+                        },
+                        "runAfter": {
+                            "Append_to_string_variable": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ApiConnection"
+                    },
+                    "Success_Response": {
+                        "inputs": {
+                            "body": "@variables('varWhereClause')",
+                            "statusCode": 200
+                        },
+                        "kind": "Http",
+                        "runAfter": {
+                            "Condition-CheckTotalSize": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Response"
+                    }
+                },
+                "runAfter": {
+                    "Initialize_variable'S4SIdentification_WhereClause'": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_'DebitorNumber'": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_'varIfaList'": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_'varIfaNumber'": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_'varWhereClause'": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_'varWhereClauseArray'": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Scope"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "manual": {
+                "inputs": {
+                    "schema": {}
+                },
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+    }

@@ -1,0 +1,750 @@
+{
+	"$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+	"actions": {
+		"Initialize_InvolvedAccount": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "InvolvedAccount",
+						"type": "array"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Initialize_var_bomId": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "bomId",
+						"type": "string"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Initialize_var_flag": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "flag",
+						"type": "string",
+						"value": "@{triggerBody()?['flag']}"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Initialize_var_response": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "response",
+						"type": "string",
+						"value": "<soapenv:Envelope \nxmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" \nxmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <out:notificationsResponse>\n         <out:Ack>##RESULT##</out:Ack>\n      </out:notificationsResponse>\n   </soapenv:Body>\n</soapenv:Envelope>"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Initialize_var_token": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "token",
+						"type": "string",
+						"value": "@{triggerBody()?['token']}"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Scope_Catch": {
+			"actions": {
+				"Response_NACK": {
+					"inputs": {
+						"body": "@replace(variables('Response'),'##RESULT##','0')",
+						"headers": {
+							"Content-Type": "text/xml"
+						},
+						"statusCode": 500
+					},
+					"kind": "Http",
+					"runAfter": {},
+					"type": "Response"
+				},
+				"Terminate": {
+					"inputs": {
+						"runStatus": "Failed"
+					},
+					"runAfter": {
+						"Response_NACK": [
+							"Succeeded"
+						]
+					},
+					"type": "Terminate"
+				}
+			},
+			"runAfter": {
+				"Scope_Try": [
+					"Failed"
+				]
+			},
+			"type": "Scope"
+		},
+		"Scope_Try": {
+			"actions": {
+				"Condition_token": {
+					"actions": {
+						"Condition_check_bomId": {
+							"actions": {
+								"Condition_flag_is_insert": {
+									"actions": {
+										"Compose_updateOpportunity": {
+											"inputs": {
+												"Id": " @{triggerBody()?['SOQL_Opportunity']?['Id']}",
+												"S4SCreate_COMPAS_Quote__c": "false"
+											},
+											"runAfter": {},
+											"type": "Compose"
+										},
+										"SubLogic-update-Opportunity": {
+											"inputs": {
+												"body": "@outputs('Compose_updateOpportunity')",
+												"host": {
+													"triggerName": "manual",
+													"workflow": {
+														"id": "[parameters('InsertUpdateOpportunity_logicApp_id')]"
+													}
+												}
+											},
+											"runAfter": {
+												"Compose_updateOpportunity": [
+													"Succeeded"
+												]
+											},
+											"type": "Workflow"
+										}
+									},
+									"expression": {
+										"and": [
+											{
+												"equals": [
+													"@variables('flag')",
+													"@string('insert')"
+												]
+											}
+										]
+									},
+									"runAfter": {},
+									"type": "If"
+								}
+							},
+							"else": {
+								"actions": {
+									"Condition_if_flag_is_insert": {
+										"actions": {
+											"Compose_to_CreateQuote": {
+												"inputs": {
+													"Name": "@{triggerBody()?['SOQL_Opportunity']?['Name']}",
+													"OpportunityId": "@{triggerBody()?['SOQL_Opportunity']?['Id']}",
+													"S4SOffer_ID__c": "@{variables('bomId')}"
+												},
+												"runAfter": {},
+												"type": "Compose"
+											},
+											"Compose_to_updateOpp": {
+												"inputs": {
+													"Id": "@{triggerBody()?['SOQL_Opportunity']?['Id']}",
+													"S4SCreate_COMPAS_Quote__c": "true",
+													"S4SLast_Sync_with_COMPAS__c": "@{utcNow()}",
+													"S4SReference_ID__c": "@{variables('bomId')}"
+												},
+												"runAfter": {
+													"SubLogic-CreateQuote": [
+														"Succeeded"
+													]
+												},
+												"type": "Compose"
+											},
+											"SubLogic-CreateQuote": {
+												"inputs": {
+													"body": "@outputs('Compose_to_CreateQuote')",
+													"host": {
+														"triggerName": "manual",
+														"workflow": {
+															"id": "[parameters('internal_insert_update_quote_logicAppId')]"
+														}
+													}
+												},
+												"runAfter": {
+													"Compose_to_CreateQuote": [
+														"Succeeded"
+													]
+												},
+												"type": "Workflow"
+											},
+											"SubLogic-updateOpp": {
+												"inputs": {
+													"body": "@outputs('Compose_to_updateOpp')",
+													"host": {
+														"triggerName": "manual",
+														"workflow": {
+															"id": "[parameters('InsertUpdateOpportunity_logicApp_id')]"
+														}
+													}
+												},
+												"runAfter": {
+													"Compose_to_updateOpp": [
+														"Succeeded"
+													]
+												},
+												"type": "Workflow"
+											}
+										},
+										"else": {
+											"actions": {
+												"Compose_to_updateOpportunity": {
+													"inputs": {
+														"Id": "@{triggerBody()?['SOQL_Opportunity']?['Id']}",
+														"S4SCreate_COMPAS_Quote__c": "true",
+														"S4SLast_Sync_with_COMPAS__c": "@{utcNow()}",
+														"S4SReference_ID__c": "@{variables('bomId')}"
+													},
+													"runAfter": {},
+													"type": "Compose"
+												},
+												"SubLogic_updateOpp": {
+													"inputs": {
+														"body": "@outputs('Compose_to_updateOpportunity')",
+														"host": {
+															"triggerName": "manual",
+															"workflow": {
+																"id": "[parameters('InsertUpdateOpportunity_logicApp_id')]"
+															}
+														}
+													},
+													"runAfter": {
+														"Compose_to_updateOpportunity": [
+															"Succeeded"
+														]
+													},
+													"type": "Workflow"
+												}
+											}
+										},
+										"expression": {
+											"and": [
+												{
+													"equals": [
+														"@variables('flag')",
+														"@string('insert')"
+													]
+												}
+											]
+										},
+										"runAfter": {},
+										"type": "If"
+									}
+								}
+							},
+							"expression": {
+								"or": [
+									{
+										"equals": [
+											"@variables('bomId')",
+											"@null"
+										]
+									},
+									{
+										"equals": [
+											"@variables('bomId')",
+											"@string('')"
+										]
+									}
+								]
+							},
+							"runAfter": {
+								"Condition_flag_insert": [
+									"Succeeded"
+								]
+							},
+							"type": "If"
+						},
+						"Condition_flag_insert": {
+							"actions": {
+								"HTTP_Insert": {
+									"inputs": {
+										"body": {
+											"SIE_SF4S_upsertOfferReq": {
+												"Opportunity": {
+													"Account_SAP_Number": "@{triggerBody()?['SOQL_Opportunity']?['S4SSold_To_SAP__c']}",
+													"CloseDate": "@{triggerBody()?['SOQL_Opportunity']?['CloseDate']}",
+													"CurrencyIsoCode": "@{triggerBody()?['SOQL_Opportunity']?['CurrencyIsoCode']}",
+													"S4SDefense_Priorities_Allocations_System__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SDefense_Priorities_Allocations_System__c']}",
+													"Description": "@{triggerBody()?['SOQL_Opportunity']?['Description']}",
+													"EndAccount_SAP_Number": "@{triggerBody()?['EndAccount_SAP_Number']}",
+													"Id": "@{triggerBody()?['SOQL_Opportunity']?['Id']}",
+													"Name": "@{triggerBody()?['SOQL_Opportunity']?['Name']}",
+													"OwnerEmail": "@{triggerBody()?['SOQL_Opportunity']?['Owner']?['Email']}",
+													"S4SBid_approval_PM040__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SBid_approval_PM040__c']}",
+													"S4SBuy_America_n__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SBuy_America_n__c']}",
+													"S4SChance_of_Execution__c": "@{replace(coalesce(triggerBody()?['SOQL_Opportunity']?['S4SChance_of_Execution__c'], ''), '%', '')}",
+													"S4SChance_of_Success__c": "@{replace(coalesce(triggerBody()?['SOQL_Opportunity']?['S4SChance_of_Success__c'], ''), '%', '')}",
+													"S4SCompetitors__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SCompetitors__c']}",
+													"S4SContract_Schedule__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SContract_Schedule__c']}",
+													"S4SExternal_Source__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SExternal_Source__c']}",
+													"S4SGovernmental_Agency__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SGovernmental_Agency__c']}",
+													"S4SGovernmental_Entity_Government_Funded__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SGovernmental_Entity_Government_Funded__c']}",
+													"S4SMain_Reason__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SMain_Reason__c']}",
+													"S4SOpportunity_Competitor__c": "@body('Liquid_Prepare_Involved_Accounts_Competitors')?['S4SOpportunity_Competitor__c']",
+													"S4SOpportunity_Industry_Search__c": "@{triggerBody()?['Compose_SISIC_Code']}",
+													"S4SOrder_Intake__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SOrder_Intake__c']}",
+													"S4SReference_ID__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SReference_ID__c']}",
+													"S4SSALES_BRANCH__C": "@{triggerBody()?['SOQL_Opportunity']?['S4SSales_Branch__c']}",
+													"S4SSALES_DEPARTMENT__C": "@{triggerBody()?['SOQL_Opportunity']?['S4SSales_Department__c']}",
+													"S4SSALES_DISTRICT__C": "@{triggerBody()?['SOQL_Opportunity']?['S4SSales_District__c']}",
+													"S4SSALES_OFFICE__C": "@{triggerBody()?['SOQL_Opportunity']?['S4SSALES_OFFICE__C']}",
+													"S4SSALES_SUBREGION__C": "@{triggerBody()?['SOQL_Opportunity']?['S4SSales_Subregion__c']}",
+													"S4SSALES_TERRITORY__C": "@{triggerBody()?['SOQL_Opportunity']?['S4SSALES_TERRITORY__C']}",
+													"S4SSALE_COUNTRY__C": "@{triggerBody()?['SOQL_Opportunity']?['S4SSale_Country__c']}",
+													"S4SSAP_Number__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SSAP_Number__c']}",
+													"Type": "@{triggerBody()?['SOQL_Opportunity']?['Type']}",
+													"bookingLine": [
+														{
+															"Id": "@{triggerBody()?['SOQL_BookingLineItem']?['Id']}",
+															"Product_Name": "@{triggerBody()?['SOQL_BookingLineItem']?['Name']}",
+															"S4SExternal_Source__c": "@{triggerBody()?['SOQL_BookingLineItem']?['S4SExternal_Source__c']}",
+															"S4SGCK__c": "@{triggerBody()?['SOQL_BookingLineItem']?['S4SGCK__c']}",
+															"S4SPCK__c": "@{triggerBody()?['SOQL_BookingLineItem']?['S4SPCK__c']}",
+															"S4SPrimary_Flag__c": "@{triggerBody()?['SOQL_BookingLineItem']?['S4SPrimary_Flag__c']}",
+															"S4SQuantity__c": "@{triggerBody()?['SOQL_BookingLineItem']?['S4SQuantity__c']}",
+															"S4SSPG__c": "@{triggerBody()?['SOQL_BookingLineItem']?['S4SSPG__c']}",
+															"S4SSales_Price__c": "@{triggerBody()?['SOQL_BookingLineItem']?['S4SSales_Price__c']}"
+														}
+													],
+													"involvedAccounts": "@body('Liquid_Prepare_Involved_Accounts_Competitors')?['involvedAccounts']",
+													"quote": {
+														"Id": "@{triggerBody()?['SOQL_Quote']?['Id']}",
+														"Name": "@{triggerBody()?['SOQL_Quote']?['Name']}",
+														"S4SExternal_Source__c": "@{triggerBody()?['SOQL_Quote']?['S4SExternal_Source__c']}",
+														"S4SOFFER_DATE__c": "@{triggerBody()?['SOQL_Quote']?['S4SOffer_Date__c']}",
+														"S4SOffer_Engineer__c": "@{triggerBody()?['SOQL_Quote']?['S4SOffer_Engineer__c']}",
+														"S4SOffer_ID__c": "@{triggerBody()?['SOQL_Quote']?['S4SOffer_ID__c']}",
+														"S4SSource_System__c": "@{triggerBody()?['SOQL_Quote']?['S4SSource_System__c']}",
+														"S4SValid_until__c": "@{triggerBody()?['SOQL_Quote']?['S4SValid_until__c']}"
+													}
+												}
+											},
+											"applicationType": "200"
+										},
+										"headers": {
+											"Accept": "application/json",
+											"Content-Type": "application/json",
+											"st_token": "@variables('token')"
+										},
+										"method": "POST",
+										"uri": "@{json(body('GetConfiguration'))?['Compas']?['urlCreate']}"
+									},
+									"runAfter": {},
+									"type": "Http"
+								},
+								"Set_var_bomId_Insert": {
+									"inputs": {
+										"name": "bomId",
+										"value": "@{body('HTTP_Insert')?['bomId']}"
+									},
+									"runAfter": {
+										"HTTP_Insert": [
+											"Succeeded"
+										]
+									},
+									"type": "SetVariable"
+								}
+							},
+							"else": {
+								"actions": {
+									"HTTP_Update": {
+										"inputs": {
+											"body": {
+												"SIE_SF4S_upsertOfferReq": {
+													"Opportunity": {
+														"Account_SAP_Number": "@{triggerBody()?['SOQL_Opportunity']?['S4SSold_To_SAP__c']}",
+														"CloseDate": "@{triggerBody()?['SOQL_Opportunity']?['CloseDate']}",
+														"CurrencyIsoCode": "@{triggerBody()?['SOQL_Opportunity']?['CurrencyIsoCode']}",
+														"S4SDefense_Priorities_Allocations_System__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SDefense_Priorities_Allocations_System__c']}",
+														"Description": "@{triggerBody()?['SOQL_Opportunity']?['Description']}",
+														"EndAccount_SAP_Number": "@{triggerBody()?['EndAccount_SAP_Number']}",
+														"Id": "@{triggerBody()?['SOQL_Opportunity']?['Id']}",
+														"Name": "@{triggerBody()?['SOQL_Opportunity']?['Name']}",
+														"OwnerEmail": "@{triggerBody()?['SOQL_Opportunity']?['Owner']?['Email']}",
+														"S4SBid_approval_PM040__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SBid_approval_PM040__c']}",
+														"S4SBuy_America_n__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SBuy_America_n__c']}",
+														"S4SChance_of_Execution__c": "@{replace(coalesce(triggerBody()?['SOQL_Opportunity']?['S4SChance_of_Execution__c'], ''), '%', '')}",
+														"S4SChance_of_Success__c": "@{replace(coalesce(triggerBody()?['SOQL_Opportunity']?['S4SChance_of_Success__c'], ''), '%', '')}",
+														"S4SCompetitors__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SCompetitors__c']}",
+														"S4SContract_Schedule__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SContract_Schedule__c']}",
+														"S4SExternal_Source__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SExternal_Source__c']}",
+														"S4SGovernmental_Agency__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SGovernmental_Agency__c']}",
+														"S4SGovernmental_Entity_Government_Funded__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SGovernmental_Entity_Government_Funded__c']}",
+														"S4SMain_Reason__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SMain_Reason__c']}",
+														"S4SOpportunity_Competitor__c": "@body('Liquid_Prepare_Involved_Accounts_Competitors')?['S4SOpportunity_Competitor__c']",
+														"S4SOpportunity_Industry_Search__c": "@{triggerBody()?['Compose_SISIC_Code']}",
+														"S4SOrder_Intake__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SOrder_Intake__c']}",
+														"S4SReference_ID__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SReference_ID__c']}",
+														"S4SSALES_BRANCH__C": "@{triggerBody()?['SOQL_Opportunity']?['S4SSales_Branch__c']}",
+														"S4SSALES_DEPARTMENT__C": "@{triggerBody()?['SOQL_Opportunity']?['S4SSales_Department__c']}",
+														"S4SSALES_DISTRICT__C": "@{triggerBody()?['SOQL_Opportunity']?['S4SSales_District__c']}",
+														"S4SSALES_OFFICE__C": "@{triggerBody()?['SOQL_Opportunity']?['S4SSALES_OFFICE__C']}",
+														"S4SSALES_SUBREGION__C": "@{triggerBody()?['SOQL_Opportunity']?['S4SSales_Subregion__c']}",
+														"S4SSALES_TERRITORY__C": "@{triggerBody()?['SOQL_Opportunity']?['S4SSALES_TERRITORY__C']}",
+														"S4SSALE_COUNTRY__C": "@{triggerBody()?['SOQL_Opportunity']?['S4SSale_Country__c']}",
+														"S4SSAP_Number__c": "@{triggerBody()?['SOQL_Opportunity']?['S4SSAP_Number__c']}",
+														"Type": "@{triggerBody()?['SOQL_Opportunity']?['Type']}",
+														"bookingLine": [
+															{
+																"Id": "@{triggerBody()?['SOQL_BookingLineItem']?['Id']}",
+																"Product_Name": "@{triggerBody()?['SOQL_BookingLineItem']?['Name']}",
+																"S4SExternal_Source__c": "@{triggerBody()?['SOQL_BookingLineItem']?['S4SExternal_Source__c']}",
+																"S4SGCK__c": "@{triggerBody()?['SOQL_BookingLineItem']?['S4SGCK__c']}",
+																"S4SPCK__c": "@{triggerBody()?['SOQL_BookingLineItem']?['S4SPCK__c']}",
+																"S4SPrimary_Flag__c": "@{triggerBody()?['SOQL_BookingLineItem']?['S4SPrimary_Flag__c']}",
+																"S4SQuantity__c": "@{triggerBody()?['SOQL_BookingLineItem']?['S4SQuantity__c']}",
+																"S4SSPG__c": "@{triggerBody()?['SOQL_BookingLineItem']?['S4SSPG__c']}",
+																"S4SSales_Price__c": "@{triggerBody()?['SOQL_BookingLineItem']?['S4SSales_Price__c']}"
+															}
+														],
+														"involvedAccounts": "@body('Liquid_Prepare_Involved_Accounts_Competitors')?['involvedAccounts']",
+														"quote": {
+															"Id": "@{triggerBody()?['SOQL_Quote']?['Id']}",
+															"Name": "@{triggerBody()?['SOQL_Quote']?['Name']}",
+															"S4SExternal_Source__c": "@{triggerBody()?['SOQL_Quote']?['S4SExternal_Source__c']}",
+															"S4SOFFER_DATE__c": "@{triggerBody()?['SOQL_Quote']?['S4SOffer_Date__c']}",
+															"S4SOffer_Engineer__c": "@{triggerBody()?['SOQL_Quote']?['S4SOffer_Engineer__c']}",
+															"S4SOffer_ID__c": "@{triggerBody()?['SOQL_Quote']?['S4SOffer_ID__c']}",
+															"S4SSource_System__c": "@{triggerBody()?['SOQL_Quote']?['S4SSource_System__c']}",
+															"S4SValid_until__c": "@{triggerBody()?['SOQL_Quote']?['S4SValid_until__c']}"
+														}
+													}
+												},
+												"applicationType": "200"
+											},
+											"headers": {
+												"Accept": "application/json",
+												"Content-Type": "application/json",
+												"st_token": "@variables('token')"
+											},
+											"method": "POST",
+											"uri": "@{json(body('GetConfiguration'))?['Compas']?['urlUpdate']}"
+										},
+										"runAfter": {},
+										"type": "Http"
+									},
+									"Set_var_bomId_Update": {
+										"inputs": {
+											"name": "bomId",
+											"value": "@{body('HTTP_Update')?['bomId']}"
+										},
+										"runAfter": {
+											"HTTP_Update": [
+												"Succeeded"
+											]
+										},
+										"type": "SetVariable"
+									}
+								}
+							},
+							"expression": {
+								"and": [
+									{
+										"equals": [
+											"@variables('flag')",
+											"@string('insert')"
+										]
+									}
+								]
+							},
+							"runAfter": {},
+							"type": "If"
+						}
+					},
+					"description": "Check if token is null/empty",
+					"expression": {
+						"and": [
+							{
+								"not": {
+									"equals": [
+										"@variables('token')",
+										"@null"
+									]
+								}
+							},
+							{
+								"not": {
+									"equals": [
+										"@variables('token')",
+										"@string('')"
+									]
+								}
+							}
+						]
+					},
+					"runAfter": {
+						"Liquid_Prepare_Involved_Accounts_Competitors": [
+							"Succeeded"
+						]
+					},
+					"type": "If"
+				},
+				"Count_Involved_Accounts": {
+					"actions": {
+						"For_each": {
+							"actions": {
+								"Append_to_array_InvolvedAccount": {
+									"inputs": {
+										"name": "InvolvedAccount",
+										"value": "@addProperty(json(replace(string(items('For_each')),body('Fetch_Involved_Account_Names')?['records']?[0]?['s4saccount__c'],body('Fetch_Involved_Account_Names')?['records']?[0]?['S4SAccount__r']?['Name'])),'Account_SAP_Number',body('Fetch_Involved_Account_Names')?['records']?[0]?['s4sidentification_number__c'])"
+									},
+									"runAfter": {
+										"Fetch_Involved_Account_Names": [
+											"Succeeded"
+										]
+									},
+									"type": "AppendToArrayVariable"
+								},
+								"Fetch_Involved_Account_Names": {
+									"inputs": {
+										"body": {
+											"query": "select s4saccount__c,S4sAccount__r.name,s4sidentification_number__c from s4sidentification_number__c WHERE s4slocal_source_system__c in ('E1P Spiridon USA','E1P Spiridon USA ICB') and s4saccount__c= '@{items('For_each')?['S4SAccount_Name__c']}'"
+										},
+										"host": {
+											"connection": {
+												"name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+											}
+										},
+										"method": "post",
+										"path": "/soql/executesoqlquery"
+									},
+									"runAfter": {},
+									"type": "ApiConnection"
+								}
+							},
+							"foreach": "@body('ExecuteSOQL-InvolvedAccounts')?['records']",
+							"runAfter": {},
+							"type": "Foreach"
+						}
+					},
+					"expression": {
+						"and": [
+							{
+								"greater": [
+									"@coalesce(body('ExecuteSOQL-InvolvedAccounts')?['totalSize'],0)",
+									0
+								]
+							}
+						]
+					},
+					"runAfter": {
+						"ExecuteSOQL-InvolvedAccounts": [
+							"Succeeded"
+						]
+					},
+					"type": "If"
+				},
+				"ExecuteSOQL-Competitor": {
+					"inputs": {
+						"body": {
+							"query": "SELECT S4SCompetitor__r.name, S4SDivision__c,s4sprimary__c FROM s4sopportunity_competitor__c WHERE s4sopportunity__c = '@{triggerBody()?['SOQL_Opportunity']?['Id']}'\n"
+						},
+						"host": {
+							"connection": {
+								"name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+							}
+						},
+						"method": "post",
+						"path": "/soql/executesoqlquery"
+					},
+					"runAfter": {
+						"GetConfiguration": [
+							"Succeeded"
+						]
+					},
+					"type": "ApiConnection"
+				},
+				"ExecuteSOQL-InvolvedAccount-IdentificationNumber": {
+					"inputs": {
+						"body": {
+							"query": "SELECT s4sidentification_number__c FROM s4sidentification_number__c WHERE s4slocal_source_system__c in ('E1P Spiridon USA','E1P Spiridon USA ICB') and s4saccount__c= '@{triggerBody()?['Account_Id']}'"
+						},
+						"host": {
+							"connection": {
+								"name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+							}
+						},
+						"method": "post",
+						"path": "/soql/executesoqlquery"
+					},
+					"runAfter": {
+						"GetConfiguration": [
+							"Succeeded"
+						]
+					},
+					"type": "ApiConnection"
+				},
+				"ExecuteSOQL-InvolvedAccounts": {
+					"inputs": {
+						"body": {
+							"query": "select S4SAccount_Name__c, S4SExternal_Source__c, s4sprimary_flag__c, S4SOpportunity__c, s4swinning_chance__c, s4srole__c from s4sinvolved_accounts__c WHERE s4sopportunity__c = '@{triggerBody()?['SOQL_Opportunity']?['Id']}'"
+						},
+						"host": {
+							"connection": {
+								"name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+							}
+						},
+						"method": "post",
+						"path": "/soql/executesoqlquery"
+					},
+					"runAfter": {
+						"GetConfiguration": [
+							"Succeeded"
+						]
+					},
+					"type": "ApiConnection"
+				},
+				"GetConfiguration": {
+					"inputs": {
+						"body": {
+							"key": "obm-config"
+						},
+						"host": {
+							"triggerName": "manual",
+							"workflow": {
+								"id": "${getConfiguration_logicAppId}"
+							}
+						}
+					},
+					"runAfter": {},
+					"type": "Workflow"
+				},
+				"Liquid_Prepare_Involved_Accounts_Competitors": {
+					"inputs": {
+						"body": {
+							"competitors": "@body('ExecuteSOQL-Competitor')?['records']",
+							"involved_accounts": "@variables('InvolvedAccount')"
+						},
+						"authentication": {
+							"type": "Raw",
+							"value": "[parameters('functionAppKey')]"
+						},
+						"function": {
+							"id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+						},
+						"headers": {
+							"Accept": "application/json",
+							"Content-Type": "application/json",
+							"Filename": "${int_obm_compas_upsert_liquid}"
+						},
+						"retryPolicy": {
+							"type": "none"
+						}
+					},
+					"runAfter": {
+						"Count_Involved_Accounts": [
+							"Succeeded"
+						],
+						"ExecuteSOQL-Competitor": [
+							"Succeeded"
+						],
+						"ExecuteSOQL-InvolvedAccount-IdentificationNumber": [
+							"Succeeded"
+						]
+					},
+					"type": "Function"
+				},
+				"Response_OK": {
+					"inputs": {
+						"statusCode": 200
+					},
+					"kind": "Http",
+					"runAfter": {
+						"Condition_token": [
+							"Succeeded"
+						]
+					},
+					"type": "Response"
+				}
+			},
+			"runAfter": {
+				"Initialize_InvolvedAccount": [
+					"Succeeded"
+				],
+				"Initialize_var_bomId": [
+					"Succeeded"
+				],
+				"Initialize_var_flag": [
+					"Succeeded"
+				],
+				"Initialize_var_response": [
+					"Succeeded"
+				],
+				"Initialize_var_token": [
+					"Succeeded"
+				]
+			},
+			"type": "Scope"
+		}
+	},
+	"contentVersion": "1.0.0.0",
+	"outputs": {},
+	"parameters": {
+		"$connections": {
+			"defaultValue": {},
+			"type": "Object"
+		}
+	},
+	"triggers": {
+		"manual": {
+			"inputs": {
+				"schema": {
+					"properties": {
+						"Account_Id": {
+							"type": "string"
+						},
+						"Compose_SISIC_Code": {
+							"type": "string"
+						},
+						"EndAccount_SAP_Number": {
+							"type": "string"
+						},
+						"SOQL_BookingLineItem": {
+							"properties": {},
+							"type": "object"
+						},
+						"SOQL_Opportunity": {
+							"properties": {},
+							"type": "object"
+						},
+						"SOQL_Quote": {
+							"properties": {},
+							"type": "object"
+						},
+						"flag": {
+							"type": "string"
+						},
+						"token": {
+							"type": "string"
+						}
+					},
+					"type": "object"
+				}
+			},
+			"kind": "Http",
+			"type": "Request"
+		}
+	}
+}

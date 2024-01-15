@@ -1,0 +1,296 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "workflow_name": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "integrationAccount": {
+			"defaultValue": "",
+			"type": "String"
+		},
+        "iseEnvironment": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "iseResourceGroup": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "keyVaultSecretBaseUri": {
+            "type": "String",
+            "defaultValue" : ""
+        },
+        "logicAppWorkflowBaseUri": {
+            "type": "String",
+            "defaultValue" : ""
+        },
+        "Tacton-InitialTokenValue":{
+            "defaultValue": "",
+            "type": "String"
+        },
+        "apiVersion": {
+            "defaultValue": "2016-10-01",
+            "type": "String"
+        },
+        "location": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "ip_filter_vnet": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "funcApp": {
+			"defaultValue": "",
+			"type": "String"
+		},
+		"functionAppKey": {
+			"defaultValue": "",
+			"type": "String"
+		},
+		"frameworkapp": {
+			"defaultValue": "",
+			"type": "String"
+		},
+		"frameworkAppKey": {
+			"defaultValue": "",
+			"type": "String"
+		},
+        "GOI_V2_S4SIdentification_logicApp_id": {
+			"defaultValue": "",
+            "type": "String"
+		},
+        "SireneFormatOutput_logicApp_id": {
+			"defaultValue": "",
+            "type": "String"
+		},
+        "fetchBookingLineItem_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+		 "fetchAttributeSettings_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+
+        "fetchUser_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "fetchQuote_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+         "fetchTerritory_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "fetchInvolvedAccounts_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+         "sf4sRecurranceEvent_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+          "sf4sRecurranceTask_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "sf4sLog_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+		 "sendEmail_Common_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+		 "websso_InitiateModuleSync_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+         "websso_InitiateOBMSync_processRecord_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+		"userBasedLogic_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "quote_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "quoteline_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "upsertOppObjects_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "sf4sQuoteUpsert_logicApp_id":{
+             "defaultValue": "",
+			"type": "String"
+        },
+         "upsertOpportunity_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+         "fetchAccount_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "shellfecthAccount_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "fetchSISIC_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "fetchIdentificationNumber_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+         "fetchRolesByAccount_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+         "fetchAccTeamMember_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+         "fetchAccountContactRelation_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+         "kvUrl-searchCMD-commonConfig": {
+			"defaultValue": "",
+			"type": "String"
+		},
+        "ElanKVconfigUrl":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "NenaKVconfigUrl":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "upsertOpp_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "createOpp_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "createQuote_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "Kv_compasConfigurl":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "searchAccount_logicAppId":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "searchOpportunity_logicAppId":{
+            "defaultValue": "",
+			"type": "String"
+        },
+         "Pshell_upsertOppObjects_logicAppId":{
+            "defaultValue": "",
+			"type": "String"
+        },
+         "InsertUpdateOpportunity_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "getConfiguration_logicAppId":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "internal_insert_update_quote_logicAppId":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "kv_upsertOfferSpiridon":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "SIE_SF4S_InternalupsertAccountTeam_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "internalUpsertAccountV2_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "userbasedLogic-mapupsertAccLOS_logicApp_id":{
+            "defaultValue": "",
+			"type": "String"
+        },
+        "internal-insert_update_AccTeamMmbr_logicAppId":{
+            "defaultValue": "",
+			"type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Logic/workflows",
+            "apiVersion": "[parameters('apiVersion')]",
+            "name": "[parameters('workflow_name')]",
+            "location": "[parameters('location')]",
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "state": "Enabled",
+                "integrationServiceEnvironment": {
+                    "name": "[parameters('iseEnvironment')]",
+                    "id": "[resourceId(parameters('iseResourceGroup'),'Microsoft.Logic/integrationServiceEnvironments/',parameters('iseEnvironment'))]",
+                    "type": "Microsoft.Logic/integrationServiceEnvironments"
+                },
+                "integrationAccount": {
+                    "id": "[parameters('integrationAccount')]"
+                },
+                "endpointsConfiguration": {},
+                "definition": ${logicAppDefinition},
+                "parameters" : {
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "logicappId": {
+            "type": "string",
+            "value": "[resourceId('Microsoft.Logic/workflows', parameters('workflow_name'))]"
+        },
+        "endpointUrl": {
+            "type": "string",
+            "value": "[listCallbackUrl(resourceId('Microsoft.Logic/workflows/triggers', parameters('workflow_name'), 'manual'), parameters('apiVersion')).value]"
+        },
+        "path": {
+            "type": "string",
+            "value": "[listCallbackUrl(resourceId('Microsoft.Logic/workflows/triggers', parameters('workflow_name'), 'manual'), parameters('apiVersion')).basePath]"
+        },
+        "querystring": {
+            "type": "string",
+            "value": "[concat('api-version=', parameters('apiVersion'), '&sp=/triggers/manual/run', '&sv=', listCallbackUrl(resourceId('Microsoft.Logic/workflows/triggers', parameters('workflow_name'), 'manual'), parameters('apiVersion')).queries.sv, '&sig=', listCallbackUrl(resourceId('Microsoft.Logic/workflows/triggers', parameters('workflow_name'), 'manual'), parameters('apiVersion')).queries.sig)]"
+        },
+        "sasToken": {
+            "type": "string",
+            "value": "[concat('sp=', uriComponent(listCallbackUrl(resourceId('Microsoft.Logic/workflows', parameters('workflow_name')), parameters('apiVersion')).queries.sp), '&sv=', listCallbackUrl(resourceId('Microsoft.Logic/workflows/triggers', parameters('workflow_name'), 'manual'), parameters('apiVersion')).queries.sv, '&sig=', listCallbackUrl(resourceId('Microsoft.Logic/workflows/triggers', parameters('workflow_name'), 'manual'), parameters('apiVersion')).queries.sig)]"
+        },
+        "principalId": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.Logic/workflows', parameters('workflow_name')),parameters('apiVersion'), 'Full').identity.principalId]"
+        }
+    }
+}

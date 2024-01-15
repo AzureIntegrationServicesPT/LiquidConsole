@@ -1,0 +1,108 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "workflow_name": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "integrationAccount": {
+			"defaultValue": "",
+			"type": "String"
+		},
+        "iseEnvironment": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "iseResourceGroup": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "apiVersion": {
+            "defaultValue": "2016-10-01",
+            "type": "String"
+        },
+        "location": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "ip_filter_vnet": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "mail_from":{
+           "defaultValue": "",
+            "type": "String" 
+        },
+        "mail_to":{
+           "defaultValue": "",
+            "type": "String" 
+        },
+        "environment":{
+           "defaultValue": "dev",
+            "type": "String" 
+        },
+        "funcApp": {
+			"defaultValue": "",
+			"type": "String"
+		},
+		"functionAppKey": {
+			"defaultValue": "",
+			"type": "String"
+		},
+		"frameworkapp": {
+			"defaultValue": "",
+			"type": "String"
+		},
+		"frameworkAppKey": {
+			"defaultValue": "",
+			"type": "String"
+		}
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Logic/workflows",
+            "apiVersion": "[parameters('apiVersion')]",
+            "name": "[parameters('workflow_name')]",
+            "location": "[parameters('location')]",
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "state": "Enabled",
+                "integrationServiceEnvironment": {
+                    "name": "[parameters('iseEnvironment')]",
+                    "id": "[resourceId(parameters('iseResourceGroup'),'Microsoft.Logic/integrationServiceEnvironments/',parameters('iseEnvironment'))]",
+                    "type": "Microsoft.Logic/integrationServiceEnvironments"
+                },
+                "integrationAccount": {
+                    "id": "[parameters('integrationAccount')]"
+                },
+                "accessControl": {
+                    "triggers": {
+                        "allowedCallerIpAddresses": [
+                            {
+                                "addressRange": "[parameters('ip_filter_vnet')]"
+                            }
+                        ]
+                    }
+                },
+                "endpointsConfiguration": {},
+                "definition": ${logicAppDefinition},
+                "parameters" : { 
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "logicappId": {
+            "type": "string",
+            "value": "[resourceId('Microsoft.Logic/workflows', parameters('workflow_name'))]"
+        },
+        "principalId": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.Logic/workflows', parameters('workflow_name')),parameters('apiVersion'), 'Full').identity.principalId]"
+        }
+    }
+}

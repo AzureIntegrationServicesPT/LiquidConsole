@@ -1,0 +1,261 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "GetConfiguration": {
+            "inputs": {
+                "body": {
+                    "key": "obm-config"
+                },
+                "host": {
+                    "triggerName": "manual",
+                    "workflow": {
+                        "id": "${getConfiguration_logicAppId}"
+                    }
+                },
+                "retryPolicy": {
+                    "type": "none"
+                }
+            },
+            "runAfter": {},
+             "runtimeConfiguration": {
+                    "secureData": {
+                        "properties": [
+                            "outputs"
+                        ]
+                    }
+                },
+            "type": "Workflow"
+        },
+        "Initialize_variable_'OpportunityId'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "OpportunityId",
+                        "type": "string",
+                        "value": "@{trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"notifications\"]/*[local-name()=\"Notification\"]/*[local-name()=\"sObject\"]/*[local-name()=\"Id\"])'))}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_'varAckResponse'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varAckResponse",
+                        "type": "string",
+                        "value": "<soapenv:Envelope \nxmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" \nxmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <out:notificationsResponse>\n         <out:Ack>##RESULT##</out:Ack>\n      </out:notificationsResponse>\n   </soapenv:Body>\n</soapenv:Envelope>"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Scope-Catch": {
+            "actions": { 
+			"Response_2": {
+                        "inputs": {
+                            "body": "@replace(variables('varAckResponse'),'##RESULT##','0')",
+                            "headers": {
+                                "Content-Type": "text/xml"
+                            },
+                            "statusCode": 500
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                        "type": "Response"
+                    },
+                    "Terminate_2": {
+                        "inputs": {
+                            "runStatus": "Failed"
+                        },
+                        "runAfter": {
+                            "Response_2": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Terminate"
+                    }
+                },
+            "runAfter": {
+                "Scope-Try": [
+                    "Failed",
+                    "Skipped",
+                    "TimedOut"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope-Try": {
+            "actions": {
+                "Scope-CatchExternalSpiridonService": {
+                    "actions": {
+                        "Response": {
+                            "inputs": {
+                                "body": "@replace(variables('varAckResponse'),'##RESULT##','0')",
+                                "headers": {
+                                    "Content-Type": "text/xml"
+                                },
+                                "statusCode": 500
+                            },
+                            "kind": "Http",
+                            "runAfter": {},
+                            "type": "Response"
+                        },
+                        "Terminate": {
+                            "inputs": {
+                                "runStatus": "Failed"
+                            },
+                            "runAfter": {
+                                "Response": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Terminate"
+                        }
+                    },
+                    "runAfter": {
+                        "Scope-TryExternalSpiridonService": [
+                            "Failed",
+                            "Skipped",
+                            "TimedOut"
+                        ]
+                    },
+                    "type": "Scope"
+                },
+                "Scope-TryExternalSpiridonService": {
+                    "actions": {
+                        "CheckSpiridonServiceResponse": {
+                            "actions": {
+                                "SuccessResponse": {
+                                    "inputs": {
+                                        "body": "@replace(variables('varAckResponse'),'##RESULT##','1')",
+                                        "headers": {
+                                            "Content-Type": "text/xml"
+                                        },
+                                        "statusCode": "@outputs('HTTP-ExternalSpiridonService')['statusCode']"
+                                    },
+                                    "kind": "Http",
+                                    "runAfter": {},
+                                    "type": "Response"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "FailedResponse": {
+                                        "inputs": {
+                                            "body": "@replace(variables('varAckResponse'),'##RESULT##','0')",
+                                            "headers": {
+                                                "Content-Type": "text/xml"
+                                            },
+                                            "statusCode": "@outputs('HTTP-ExternalSpiridonService')['statusCode']"
+                                        },
+                                        "kind": "Http",
+                                        "runAfter": {},
+                                        "type": "Response"
+                                    },
+                                    "Terminate-FailedResponse": {
+                                        "inputs": {
+                                            "runStatus": "Failed"
+                                        },
+                                        "runAfter": {
+                                            "FailedResponse": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "Terminate"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "equals": [
+                                            "@outputs('GetConfiguration')?['statusCode']",
+                                            200
+                                        ]
+                                    }
+                                ]
+                            },
+                            "runAfter": {
+                                "HTTP-ExternalSpiridonService": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "Compose-SpiridonServiceSoapRequest": {
+                            "inputs": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:urn=\"urn:sap-com:document:sap:soap:functions:mc-style\">\n<soapenv:Header/>\n<soapenv:Body>\n<urn:_-sie_-ssaSdPhilosUpdateSap>\n<IRequest>\n<RowId>@{variables('OpportunityId')}</RowId>\n<Status>@{trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"notifications\"]/*[local-name()=\"Notification\"]/*[local-name()=\"sObject\"]/*[local-name()=\"StageName\"])'))}</Status>\n<Vertriebsphase>@{trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"notifications\"]/*[local-name()=\"Notification\"]/*[local-name()=\"sObject\"]/*[local-name()=\"S4SSales_Status__c\"])'))}</Vertriebsphase>\n</IRequest>\n</urn:_-sie_-ssaSdPhilosUpdateSap>\n</soapenv:Body>\n</soapenv:Envelope>",
+                            "runAfter": {},
+                            "type": "Compose"
+                        },
+                        "HTTP-ExternalSpiridonService": {
+                            "inputs": {
+                                "authentication": {
+                                    "password": "@json(body('GetConfiguration'))?['Spiridon']['password']",
+                                    "type": "Basic",
+                                    "username": "@json(body('GetConfiguration'))?['Spiridon']['username']"
+                                },
+                                "body": "@outputs('Compose-SpiridonServiceSoapRequest')",
+                                "headers": {
+                                    "Accept": "text/xml",
+                                    "Content-Type": "text/xml"
+                                },
+                                "method": "POST",
+                                "retryPolicy": {
+                                    "type": "none"
+                                },
+                                "uri": "@{json(body('GetConfiguration'))?['Spiridon']['url']}"
+                            },
+                            "runAfter": {
+                                "Compose-SpiridonServiceSoapRequest": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Http"
+                        }
+                    },
+                    "runAfter": {},
+                    "type": "Scope"
+                }
+            },
+            "runAfter": {
+                "GetConfiguration": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_'OpportunityId'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_'varAckResponse'": [
+                    "Succeeded"
+                ]
+            },
+            "trackedProperties": {
+                "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+                "citizenName": "c00031",
+                "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'spiridon')}",
+                "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'obmopportunity')}",
+                "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+                "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+              },
+            "type": "Scope"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {},
+    "triggers": {
+        "manual": {
+            "inputs": {
+                "schema": {}
+            },
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

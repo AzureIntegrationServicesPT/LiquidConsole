@@ -1,0 +1,328 @@
+{
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Initialize_variable_'Id'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "Id",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_'opportunityId'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "opportunityId",
+                            "type": "string",
+                            "value": "@{triggerBody()['records']?[0]?['Id']}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_'response'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "response",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_'whereClause'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "whereClause",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Scope_-_Catch": {
+                "actions": {
+                    "Error_Response": {
+                        "inputs": {
+                            "body": {
+                                "Message": "@concat('Some error occurred while processing the request. Please find more details using tracking id : ', workflow()['run']['name'])",
+                                "Status": "Failure"
+                            },
+                            "headers": {
+                                "Content-Type": "application/json"
+                            },
+                            "statusCode": 500
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                        "type": "Response"
+                    },
+                    "Terminate_in_Catch": {
+                        "inputs": {
+                            "runStatus": "Failed"
+                        },
+                        "runAfter": {
+                            "Error_Response": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Terminate"
+                    }
+                },
+                "runAfter": {
+                    "Scope_-_Try": [
+                        "Failed",
+                        "Skipped",
+                        "TimedOut"
+                    ]
+                },
+                "type": "Scope"
+            },
+            "Scope_-_Try": {
+                "actions": {
+                    "Condition_to_check_'Id'": {
+                        "actions": {
+                            "Condition_to_check_'whereClause'": {
+                                "actions": {
+                                    "Append_to_string_variable": {
+                                        "inputs": {
+                                            "name": "whereClause",
+                                            "value": "@concat(' AND ','Id = ',string(''''),variables('Id'),string(''''))"
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToStringVariable"
+                                    }
+                                },
+                                "else": {
+                                    "actions": {
+                                        "Set_variable_'whereClause'": {
+                                            "inputs": {
+                                                "name": "whereClause",
+                                                "value": "@{concat('Id = ',string(''''),variables('Id'),string(''''))}"
+                                            },
+                                            "runAfter": {},
+                                            "type": "SetVariable"
+                                        }
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('whereClause')",
+                                                    "@string('')"
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('whereClause')",
+                                                    "@null"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {},
+                                "type": "If"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('Id')",
+                                            "@string('')"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('Id')",
+                                            "@null"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Condition_to_check_'opportunityId'": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Condition_to_check_'opportunityId'": {
+                        "actions": {
+                            "Append_to_string_variable_'whereClause'": {
+                                "inputs": {
+                                    "name": "whereClause",
+                                    "value": "@concat('Opportunity.Id = ',string(''''),variables('opportunityId'),string(''''))"
+                                },
+                                "runAfter": {},
+                                "type": "AppendToStringVariable"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('opportunityId')",
+                                            "@string('')"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('opportunityId')",
+                                            "@null"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {},
+                        "type": "If"
+                    },
+                    "Condition_to_check_statusCode": {
+                        "actions": {
+                            "Success_Response": {
+                                "inputs": {
+                                    "headers": {
+                                        "Content-Type": "application/json"
+                                    },
+                                    "statusCode": 200
+                                },
+                                "kind": "http",
+                                "runAfter": {},
+                                "type": "Response"
+                            }
+                        },
+                        "else": {
+                            "actions": {
+                                "Failure_Response": {
+                                    "inputs": {
+                                        "body": "@body('OpportunityLineItem')?['message']",
+                                        "headers": {
+                                            "Content-Type": "application/json"
+                                        },
+                                        "statusCode": "@outputs('OpportunityLineItem')?['statusCode']"
+                                    },
+                                    "kind": "http",
+                                    "runAfter": {},
+                                    "type": "Response"
+                                },
+                                "Terminate_at_Failure_Response": {
+                                    "inputs": {
+                                        "runStatus": "Failed"
+                                    },
+                                    "runAfter": {
+                                        "Failure_Response": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Terminate"
+                                }
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "equals": [
+                                        "@outputs('OpportunityLineItem')?['statusCode']",
+                                        200
+                                    ]
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "OpportunityLineItem": [
+                                "Succeeded",
+                                "Failed"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "OpportunityLineItem": {
+                        "inputs": {
+                            "body": {
+                                "query": "select Id,OpportunityId,SortOrder,PricebookEntryId,Product2Id,ProductCode,Name,CurrencyIsoCode,Quantity,Discount,Subtotal,\nTotalPrice,UnitPrice,ListPrice,ServiceDate,Description,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,\nSystemModstamp,IsDeleted,S4SBU__c,S4SCategory__c,S4STotal_Price_EUR__c,S4STotal_Price_USD__c,S4SWeighted_Order_Intake_EUR__c,\nS4SWeighted_Order_Intake_USD__c,S4SWeighted_Order_Intake__c from OpportunityLineItem where @{variables('whereClause')}"
+                            },
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                }
+                            },
+                            "method": "post",
+                            "path": "/soql/executesoqlquery",
+                            "retryPolicy": {
+                                "type": "none"
+                            }
+                        },
+                        "runAfter": {
+                            "Condition_to_check_'Id'": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ApiConnection"
+                    }
+                },
+                "runAfter": {
+                    "Initialize_variable_'Id'": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_'opportunityId'": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_'response'": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_'whereClause'": [
+                        "Succeeded"
+                    ]
+                },
+                "trackedProperties": {
+                    "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+                    "citizenName": "c00031",
+                    "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'PShell')}",
+                    "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                    "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                    "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'fetchOpportiunityLineItem')}",
+                    "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}"
+                },
+                "type": "Scope"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "manual": {
+                "inputs": {},
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+}

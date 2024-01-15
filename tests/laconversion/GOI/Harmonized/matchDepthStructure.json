@@ -1,0 +1,139 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "actions": {
+    "Compose_Output": {
+      "inputs": {
+        "Id": "@{triggerBody()?['records'][outputs('Execute_JavaScript_Calc_Rank')?['body']]?['Id']}",
+        "ProductFamily": "@{triggerBody()?['records'][outputs('Execute_JavaScript_Calc_Rank')?['body']]?['family']}",
+        "ProductName": "@{triggerBody()?['records'][outputs('Execute_JavaScript_Calc_Rank')?['body']]?['Name']}"
+      },
+      "runAfter": {
+        "Execute_JavaScript_Calc_Rank": ["Succeeded"]
+      },
+      "type": "Compose"
+    },
+    "Execute_JavaScript_Calc_Rank": {
+      "inputs": {
+        "code": "var records = workflowContext.trigger.outputs.body.records;\r\nvar request = workflowContext.actions.Execute_JavaScript_Replace_Nulls.outputs.body;\r\nvar index = 0;\r\nvar MaxRank = -1;\r\nfor (var i = 0; i < records.length; i++) {\r\n\tvar Rank = 0;\r\n\tRank +=(records[i].S4SDivisions__c == request.S4SDivisions__c)?128 : 0;\r\n\tRank +=(records[i].S4SBusiness_Unit__c == request.S4SBusiness_Unit__c)?64 : 0;\r\n\tRank +=(records[i].S4SBusiness_Segment_Code__c == request.S4SBusiness_Segment_Code__c)?32 : 0;\r\n\tRank +=(records[i].S4SBusiness_Subsegment__c == request.S4SBusiness_Subsegment__c)?16 : 0;\r\n\tRank +=(records[i].S4SGCK__c == request.S4SGCK__c)?8 : 0;\r\n\tRank +=(records[i].S4SSPG__c == request.S4SSPG__c)?4 : 0;\r\n\tRank +=(records[i].S4SPCK__c == request.S4SPCK__c)?2 : 0;\r\n\tif( Rank > MaxRank)\r\n\t{\r\n\t\tMaxRank = Rank;\r\n\t\tindex = i;\r\n\t}\t\r\n}\r\nreturn index;"
+      },
+      "runAfter": {
+        "Execute_JavaScript_Replace_Nulls": ["Succeeded"]
+      },
+      "type": "JavaScriptCode"
+    },
+    "Execute_JavaScript_Replace_Nulls": {
+      "inputs": {
+        "code": "var obj = workflowContext.trigger.outputs.body.request;\r\nfor (var propName in obj) {\r\n    if (obj[propName] == null || obj[propName] == undefined ||  obj[propName] == \"\") {\r\n      obj[propName]='NA';\r\n    }\r\n  }\r\nreturn obj;"
+      },
+      "runAfter": {},
+      "type": "JavaScriptCode"
+    },
+    "Response": {
+      "inputs": {
+        "body": "@outputs('Compose_Output')",
+        "statusCode": 200
+      },
+      "kind": "Http",
+      "runAfter": {
+        "Compose_Output": ["Succeeded"]
+      },
+      "type": "Response"
+    }
+  },
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {
+    "$connections": {
+      "defaultValue": {},
+      "type": "Object"
+    }
+  },
+  "triggers": {
+    "manual": {
+      "inputs": {
+        "method": "POST",
+        "schema": {
+          "properties": {
+            "records": {
+              "items": {
+                "properties": {
+                  "Family": {
+                    "type": "string"
+                  },
+                  "Id": {
+                    "type": "string"
+                  },
+                  "Name": {
+                    "type": "string"
+                  },
+                  "S4SBusiness_Segment_Code__c": {},
+                  "S4SBusiness_Subsegment__c": {},
+                  "S4SBusiness_Unit__c": {},
+                  "S4SDivisions__c": {
+                    "type": "string"
+                  },
+                  "S4SGCK__c": {},
+                  "S4SPCK__c": {},
+                  "S4SSPG__c": {},
+                  "attributes": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "attributes",
+                  "Id",
+                  "Name",
+                  "S4SPCK__c",
+                  "S4SSPG__c",
+                  "S4SGCK__c",
+                  "S4SBusiness_Subsegment__c",
+                  "S4SBusiness_Segment_Code__c",
+                  "S4SBusiness_Unit__c",
+                  "S4SDivisions__c",
+                  "Family"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "request": {
+              "properties": {
+                "S4SBusiness_Segment_Code__c": {
+                  "type": "string"
+                },
+                "S4SBusiness_Subsegment__c": {},
+                "S4SBusiness_Unit__c": {
+                  "type": "string"
+                },
+                "S4SDivisions__c": {
+                  "type": "string"
+                },
+                "S4SGCK__c": {
+                  "type": "string"
+                },
+                "S4SPCK__c": {
+                  "type": "string"
+                },
+                "S4SSPG__c": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "kind": "Http",
+      "type": "Request"
+    }
+  }
+}

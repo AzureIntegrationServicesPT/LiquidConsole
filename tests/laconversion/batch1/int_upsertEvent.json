@@ -1,0 +1,627 @@
+{
+	"$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+	"actions": {
+		"Compose_handle_Booleans": {
+			"inputs": "@json( replace(replace(string(triggerBody()),'False','false'),'True','true'))",
+			"runAfter": {},
+			"type": "Compose"
+		},
+		"Initialize_variable": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "eventResponse",
+						"type": "object",
+						"value": {
+							"Created": "",
+							"Id": "",
+							"Message": "",
+							"Status": ""
+						}
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"JsonRemoveNullOrEmptyFunc": {
+			"inputs": {
+				"body": {
+					"CorrelationId": "@{triggerOutputs()['headers']?['correlationid']}",
+					"InputRequestBase64": "@{base64(outputs('Compose_handle_Booleans'))}",
+					"InterfaceName": "upsertEvent",
+					"Username": "@{triggerOutputs()['headers']?['Username']}",
+					"operation": "JsonRemoveNullOrEmpty"
+				},
+				"authentication": {
+					"type": "Raw",
+					"value": "[parameters('functionAppKey')]"
+				},
+				"function": {
+					"id": "[concat(parameters('funcApp'), '/functions/JsonRemoveNullOrEmptyFunc')]"
+				},
+				"method": "POST",
+				"retryPolicy": {
+					"type": "none"
+				}
+			},
+			"runAfter": {
+				"Compose_handle_Booleans": [
+					"Succeeded"
+				]
+			},
+			"type": "Function"
+		},
+		"Main": {
+			"actions": {
+				"Catch": {
+					"actions": {
+						"Set_Catch_Response": {
+							"inputs": {
+								"body": {
+									"Created": "@{or(if(equals(outputs('Create_Event')?['statusCode'],500),'false','true'),if(equals(outputs('Update_Event')?['statusCode'],500),'false','true'))}",
+									"Id": "@{coalesce(triggerBody()?['Id'],'')}",
+									"Message": "@{coalesce(body('Create_Event')?['message'],body('Update_Event')?['message'])}",
+									"Status": "@{or(if(equals(outputs('Create_Event')?['statusCode'],500),'failure','success'),if(equals(outputs('Update_Event')?['statusCode'],500),'failure','success'))}"
+								},
+								"statusCode": 500
+							},
+							"kind": "Http",
+							"runAfter": {
+								"Terminate": [
+									"Succeeded"
+								]
+							},
+							"type": "Response"
+						},
+						"Terminate": {
+							"inputs": {
+								"runError": {
+									"message": "Upsert Activity Failure"
+								},
+								"runStatus": "Failed"
+							},
+							"runAfter": {},
+							"type": "Terminate"
+						}
+					},
+					"runAfter": {
+						"Try": [
+							"Failed",
+							"Skipped",
+							"TimedOut"
+						]
+					},
+					"type": "Scope"
+				},
+				"Try": {
+					"actions": {
+						"Condition": {
+							"actions": {
+								"Set_Response_for_update": {
+									"inputs": {
+										"name": "eventResponse",
+										"value": {
+											"Created": "false",
+											"Id": "@{triggerBody()?['Event']?['Id']}",
+											"Message": "@{coalesce(body('Update_Event')?['message'],'')}",
+											"Status": "@{if(equals(outputs('Update_Event')?['statusCode'],200),'success',if(equals(outputs('Update_Event')?['statusCode'],201),'success','failure'))}"
+										}
+									},
+									"runAfter": {
+										"Update_Event": [
+											"Succeeded",
+											"TimedOut",
+											"Failed"
+										]
+									},
+									"type": "SetVariable"
+								},
+								"Update_Event": {
+									"inputs": {
+										"body": "@body('Parse_JSON')?['Event']",
+										"headers": {
+											"Content-Type": "application/json"
+										},
+										"host": {
+											"connection": {
+												"name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+											}
+										},
+										"method": "patch",
+										"path": "/v3/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Event'))}/items/@{encodeURIComponent(encodeURIComponent(triggerBody()?['Event']?['Id']))}"
+									},
+									"runAfter": {},
+									"type": "ApiConnection"
+								}
+							},
+							"else": {
+								"actions": {
+									"Create_Event": {
+										"inputs": {
+											"body": "@body('Parse_JSON')?['Event']",
+											"headers": {
+												"Content-Type": "application/json"
+											},
+											"host": {
+												"connection": {
+													"name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+												}
+											},
+											"method": "post",
+											"path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Event'))}/items",
+											"retryPolicy": {
+												"type": "none"
+											}
+										},
+										"runAfter": {},
+										"type": "ApiConnection"
+									},
+									"Set_Response_for_creation": {
+										"inputs": {
+											"name": "eventResponse",
+											"value": {
+												"Created": "@{if(equals(outputs('Create_Event')?['statusCode'],201),'true','false')}",
+												"Id": "@{coalesce(body('Create_Event')?['Id'],'')}",
+												"Message": "@{coalesce(body('Create_Event')?['message'],body('Create_Event')?['message'])}",
+												"Status": "@{if(equals(outputs('Create_Event')?['statusCode'],200),'success',if(equals(outputs('Create_Event')?['statusCode'],201),'success','failure'))}"
+											}
+										},
+										"runAfter": {
+											"Create_Event": [
+												"Succeeded",
+												"TimedOut",
+												"Failed"
+											]
+										},
+										"type": "SetVariable"
+									}
+								}
+							},
+							"expression": {
+								"and": [
+									{
+										"not": {
+											"equals": [
+												"@triggerBody()?['Event']?['Id']",
+												"@null"
+											]
+										}
+									},
+									{
+										"not": {
+											"equals": [
+												"@triggerBody()?['Event']?['Id']",
+												""
+											]
+										}
+									}
+								]
+							},
+							"runAfter": {},
+							"type": "If"
+						},
+						"Set_Try_Response": {
+							"inputs": {
+								"body": "@variables('eventResponse')",
+								"statusCode": 200
+							},
+							"kind": "Http",
+							"runAfter": {
+								"Condition": [
+									"Succeeded"
+								]
+							},
+							"type": "Response"
+						}
+					},
+					"runAfter": {},
+					"type": "Scope"
+				}
+			},
+			"runAfter": {
+				"Initialize_variable": [
+					"Succeeded"
+				],
+				"Parse_JSON": [
+					"Succeeded"
+				]
+			},
+			"type": "Scope"
+		},
+		"Parse_JSON": {
+			"inputs": {
+				"content": "@json(body('JsonRemoveNullOrEmptyFunc')?['result']?['restructuredJson'])",
+				"schema": {
+					"properties": {
+						"properties": {
+							"properties": {
+								"ActivityDate": {
+									"properties": {
+										"type": {
+											"type": "string"
+										}
+									},
+									"type": "object"
+								},
+								"ActivityDateTime": {
+									"properties": {
+										"type": {
+											"type": "string"
+										}
+									},
+									"type": "object"
+								},
+								"Confidential": {
+									"properties": {
+										"type": {
+											"type": "string"
+										}
+									},
+									"type": "object"
+								},
+								"CurrencyIsoCode": {
+									"properties": {
+										"type": {
+											"type": "string"
+										}
+									},
+									"type": "object"
+								},
+								"Description": {
+									"properties": {
+										"type": {
+											"type": "string"
+										}
+									},
+									"type": "object"
+								},
+								"DurationInMinutes": {
+									"properties": {
+										"type": {
+											"type": "string"
+										}
+									},
+									"type": "object"
+								},
+								"Email": {
+									"properties": {
+										"type": {
+											"type": "string"
+										}
+									},
+									"type": "object"
+								},
+								"EndDateTime": {
+									"properties": {
+										"type": {
+											"type": "string"
+										}
+									},
+									"type": "object"
+								},
+								"EventSubtype": {
+									"properties": {
+										"type": {
+											"type": "string"
+										}
+									},
+									"type": "object"
+								},
+								"ExternalSource": {
+									"properties": {
+										"type": {
+											"type": "string"
+										}
+									},
+									"type": "object"
+								},
+								"Id": {
+									"properties": {
+										"type": {
+											"type": "string"
+										}
+									},
+									"type": "object"
+								},
+								"IsAllDayEvent": {
+									"properties": {
+										"type": {
+											"type": "boolean"
+										}
+									},
+									"type": "object"
+								},
+								"IsPrivate": {
+									"properties": {
+										"type": {
+											"type": "boolean"
+										}
+									},
+									"type": "object"
+								},
+								"IsRecurrence2": {
+									"properties": {
+										"type": {
+											"type": "boolean"
+										}
+									},
+									"type": "object"
+								},
+								"IsReminderSet": {
+									"properties": {
+										"type": {
+											"type": "boolean"
+										}
+									},
+									"type": "object"
+								},
+								"IsVisibleInSelfService": {
+									"properties": {
+										"type": {
+											"type": "boolean"
+										}
+									},
+									"type": "object"
+								},
+								"Location": {
+									"properties": {
+										"type": {
+											"type": "string"
+										}
+									},
+									"type": "object"
+								},
+								"OwnerId": {
+									"properties": {
+										"properties": {
+											"properties": {
+												"Email": {
+													"properties": {
+														"type": {
+															"type": "string"
+														}
+													},
+													"type": "object"
+												},
+												"GIDTechnical": {
+													"properties": {
+														"type": {
+															"type": "string"
+														}
+													},
+													"type": "object"
+												}
+											},
+											"type": "object"
+										},
+										"type": {
+											"type": "string"
+										}
+									},
+									"type": "object"
+								},
+								"Phone": {
+									"properties": {
+										"type": {
+											"type": "string"
+										}
+									},
+									"type": "object"
+								},
+								"ShowAs": {
+									"properties": {
+										"type": {
+											"type": "string"
+										}
+									},
+									"type": "object"
+								},
+								"StartDateTime": {
+									"properties": {
+										"type": {
+											"type": "string"
+										}
+									},
+									"type": "object"
+								},
+								"Subject": {
+									"properties": {
+										"type": {
+											"type": "string"
+										}
+									},
+									"type": "object"
+								},
+								"Type": {
+									"properties": {
+										"type": {
+											"type": "string"
+										}
+									},
+									"type": "object"
+								},
+								"WhatId": {
+									"properties": {
+										"properties": {
+											"properties": {
+												"Id": {
+													"properties": {
+														"type": {
+															"type": "string"
+														}
+													},
+													"type": "object"
+												}
+											},
+											"type": "object"
+										},
+										"type": {
+											"type": "string"
+										}
+									},
+									"type": "object"
+								},
+								"WhoId": {
+									"properties": {
+										"properties": {
+											"properties": {
+												"Email": {
+													"properties": {
+														"type": {
+															"type": "string"
+														}
+													},
+													"type": "object"
+												},
+												"GIDTechnical": {
+													"properties": {
+														"type": {
+															"type": "string"
+														}
+													},
+													"type": "object"
+												}
+											},
+											"type": "object"
+										},
+										"type": {
+											"type": "string"
+										}
+									},
+									"type": "object"
+								},
+								"deleteContacts": {
+									"properties": {
+										"type": {
+											"type": "string"
+										}
+									},
+									"type": "object"
+								}
+							},
+							"type": "object"
+						},
+						"type": {
+							"type": "string"
+						}
+					},
+					"type": "object"
+				}
+			},
+			"runAfter": {
+				"JsonRemoveNullOrEmptyFunc": [
+					"Succeeded"
+				]
+			},
+			"type": "ParseJson"
+		}
+	},
+	"contentVersion": "1.0.0.0",
+	"outputs": {},
+	"parameters": {
+		"$connections": {
+			"defaultValue": {},
+			"type": "Object"
+		}
+	},
+	"triggers": {
+		"manual": {
+			"inputs": {
+				"schema": {
+					"properties": {
+						"Event": {
+							"properties": {
+								"ActivityDate": {
+									"type": "string"
+								},
+								"ActivityDateTime": {
+									"type": "string"
+								},
+								"CurrencyIsoCode": {
+									"type": "string"
+								},
+								"Description": {
+									"type": "string"
+								},
+								"DurationInMinutes": {
+									"type": "string"
+								},
+								"Email": {
+									"type": "string"
+								},
+								"EndDateTime": {
+									"type": "string"
+								},
+								"EventSubtype": {
+									"type": "string"
+								},
+								"Id": {
+									"type": "string"
+								},
+								"IsAllDayEvent": {
+									"type": "string"
+								},
+								"IsPrivate": {
+									"type": "string"
+								},
+								"IsRecurrence2": {
+									"type": "string"
+								},
+								"IsReminderSet": {
+									"type": "string"
+								},
+								"IsVisibleInSelfService": {
+									"type": "string"
+								},
+								"Location": {
+									"type": "string"
+								},
+								"OwnerId": {
+									"type": "string"
+								},
+								"Phone": {
+									"type": "string"
+								},
+								"ShowAs": {
+									"type": "string"
+								},
+								"StartDateTime": {
+									"type": "string"
+								},
+								"Subject": {
+									"type": "string"
+								},
+								"Type": {
+									"type": "string"
+								},
+								"WhatId": {
+									"type": "string"
+								},
+								"WhoId": {
+									"type": "string"
+								},
+								"S4STraining_Topic__c": {
+									"type": "string"
+								},
+								"S4SNumber_of_Participants__c": {
+									"type": "string"
+								},
+								"S4SStatus__c": {
+									"type": "string"
+								},
+								"S4SOther_Topics__c": {
+									"type": "string"
+								}
+							},
+							"type": "object"
+						}
+					},
+					"type": "object"
+				}
+			},
+			"kind": "Http",
+			"type": "Request"
+		}
+	}
+}

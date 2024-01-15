@@ -1,0 +1,169 @@
+{
+    
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Initialize_variable_'absolute_number'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "absoluteNumber",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_'number'": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "number",
+                            "type": "string",
+                            "value": "@{triggerBody()}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Scope_Catch": {
+                "actions": {
+                    "Response_in_Catch": {
+                        "inputs": {
+                            "body": {
+                                "Message": "@concat('Some error occurred while processing the request. Please find more details using tracking id : ', workflow()['run']['name'])",
+                                "Status": "Failure"
+                            },
+                            "headers": {
+                                "Content-Type": "application/json"
+                            },
+                            "statusCode": 500
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                        "type": "Response"
+                    },
+                    "Terminate_in_Catch": {
+                        "inputs": {
+                            "runError": {
+                                "message": "Value is not a number: @{variables('number')} in safeAbsoluteValue"
+                            },
+                            "runStatus": "Failed"
+                        },
+                        "runAfter": {
+                            "Response_in_Catch": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Terminate"
+                    }
+                },
+                "runAfter": {
+                    "Scope_Try": [
+                        "Failed",
+                        "Skipped",
+                        "TimedOut"
+                    ]
+                },
+                "type": "Scope"
+            },
+            "Scope_Try": {
+                "actions": {
+                    "Condition_to_check_for_number_Existance": {
+                        "actions": {
+                            "Compose_to_get_AbsoluteNumber": {
+                                "inputs": "@if(contains(variables('number'),'.'),concat(split(variables('number'),'.')[0],'.',if(less(length(split(variables('number'),'.')[1]),3),split(variables('number'),'.')[1],substring(split(variables('number'),'.')[1],0,3))),concat(variables('number'),'.','0'))",
+                                "runAfter": {},
+                                "type": "Compose"
+                            },
+                            "Set_variable_absoluteNumber": {
+                                "inputs": {
+                                    "name": "absoluteNumber",
+                                    "value": "@outputs('Compose_to_get_AbsoluteNumber')"
+                                },
+                                "runAfter": {
+                                    "Compose_to_get_AbsoluteNumber": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "SetVariable"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('number')",
+                                            "@null"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('number')",
+                                            "@string('')"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {},
+                        "type": "If"
+                    },
+                    "Final_Response": {
+                        "inputs": {
+                            "body": "@outputs('Compose_to_get_AbsoluteNumber')",
+                            "headers": {
+                                "Content-Type": "application/json"
+                            },
+                            "statusCode": 200
+                        },
+                        "kind": "Http",
+                        "runAfter": {
+                            "Condition_to_check_for_number_Existance": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Response"
+                    }
+                },
+                "runAfter": {
+                    "Initialize_variable_'absolute_number'": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_'number'": [
+                        "Succeeded"
+                    ]
+                },
+                "trackedProperties": {
+                    "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+                    "citizenName": "c00031",
+                    "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'PShell')}",
+                    "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                    "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                    "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'safeAbsoluteValue')}",
+                    "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}"
+                },
+                "type": "Scope"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "manual": {
+                "inputs": {},
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+}

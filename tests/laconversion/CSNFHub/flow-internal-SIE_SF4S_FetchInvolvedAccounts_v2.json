@@ -1,0 +1,211 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Initialize_OpportunityId": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "OpportunityId",
+                        "type": "string",
+                        "value": "@{json(xml(triggerBody()))['SIE_SF4S_upsertOfferReq']?['OPP_ID']}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_SOQL_FetchAccount_query": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varSOQLFetchAccount",
+                        "type": "string",
+                        "value": "select Id,IsDeleted,Name,CurrencyIsoCode,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastActivityDate,S4SOpportunity__c,S4SAccount_Name__c,S4SDescription__c,S4SINVOLVED_ACCOUNTS_LegacyID__c,S4SRole__c,S4SWinning_Chance__c,S4SExternal_Source__c,S4SAccount_Name__r.Name from S4SInvolved_Accounts__c\n"
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_OpportunityId": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_error_response": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "SoapErrorResponse",
+                        "type": "string",
+                        "value": "<soap-env:Envelope xmlns:soap-env=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap-env:Header/><soap-env:Body><soap-env:Fault><faultcode>soap-env:Server</faultcode><faultstring>{errormessagedetails}</faultstring><detail/></soap-env:Fault></soap-env:Body></soap-env:Envelope>"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Scope-Catch": {
+            "actions": {
+                "Failed_Response": {
+                    "inputs": {
+                        "body": "@replace(variables('SoapErrorResponse'),'{errormessagedetails}',concat('Some error occurred while connection. Please find more details using tracking id : ', workflow()['run']['name']))",
+                        "headers": {
+                            "Content-Type": "text/xml"
+                        },
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                },
+                "Terminate": {
+                    "inputs": {
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Failed_Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Scope-Try": [
+                    "Failed",
+                    "Skipped",
+                    "TimedOut"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope-Try": {
+            "actions": {
+                "Condition_to_check_Opportunity_Id": {
+                    "actions": {
+                        "Execute_Fetch_Account_SOQL_query": {
+                            "inputs": {
+                                "body": {
+                                    "query": "@{variables('varSOQLFetchAccount')} where @{variables('UserWhere Clause')}"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/soql/executesoqlquery",
+                                "retryPolicy": {
+                                    "count": 1,
+                                    "interval": "PT10S",
+                                    "type": "exponential"
+                                }
+                            },
+                            "runAfter": {
+                                "Set_opportunityId_where_clause_append": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection"
+                        },
+                        "Response": {
+                            "inputs": {
+                                "body": "@body('Execute_Fetch_Account_SOQL_query')",
+                                "statusCode": 200
+                            },
+                            "kind": "Http",
+                            "runAfter": {
+                                "Execute_Fetch_Account_SOQL_query": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Response"
+                        },
+                        "Set_opportunityId_where_clause_append": {
+                            "inputs": {
+                                "name": "UserWhere Clause",
+                                "value": "@{concat('S4SOpportunity__c =  ',string(''''),variables('opportunityId'),string(''''))}"
+                            },
+                            "runAfter": {},
+                            "type": "SetVariable"
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('OpportunityId')",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('OpportunityId')",
+                                        "@string('')"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                }
+            },
+            "runAfter": {
+                "Initialize_SOQL_FetchAccount_query": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_error_response": [
+                    "Succeeded"
+                ],
+                "UserWhere_Clause": [
+                    "Succeeded"
+                ]
+            },
+            "trackedProperties": {
+                "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+                "citizenName": "c00031",
+                "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'CNSF')}",
+                "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'internal_fetchInvolvedAccounts')}",
+                "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+                "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+            },
+            "type": "Scope"
+        },
+        "UserWhere_Clause": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "UserWhere Clause",
+                        "type": "string",
+                        "value": "@{null}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {},
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

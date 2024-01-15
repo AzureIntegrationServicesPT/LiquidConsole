@@ -1,0 +1,1183 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Initialize_Account_SAP_Number": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "AccountSAPNumber",
+                        "type": "string",
+                        "value": "@{triggerBody()?['opportunity']?['Account_SAP_Number']}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_BookingLine": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "BookingLine",
+                        "type": "array",
+                        "value": "@triggerBody()?['opportunity']?['bookingLine']"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_GCK_WhereClause": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "GCKWhereClause",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_OwnerEmail": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "OwnerEmail",
+                        "type": "string",
+                        "value": "@{triggerBody()?['opportunity']?['OwnerEmail']}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_PCK_WhereClause": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "PCKWhereClause",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_ProductMessage": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "ProductMessage",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_Product_Array": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "Product",
+                        "type": "array"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_SOQL_FetchPrice": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "SOQLfetchPrice",
+                        "type": "string",
+                        "value": "Select Id from PricebookEntry"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_SOQL_Fetchuser": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "SOQLFetchUser",
+                        "type": "string",
+                        "value": "Select Id from User"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_SOQL_fetchIdentificationNumber_": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varSOQLfetchIdentificationNumber",
+                        "type": "string",
+                        "value": "Select Id, S4SAccount__c, S4SIdentification_Number__c, S4SIfA__c from S4SIdentification_Number__c"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_SOQL_searchProduct": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "SOQLSearchProduct",
+                        "type": "string",
+                        "value": "Select Id from Product2"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_SPG_WhereClause": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "SPGWhereClause",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_errorMessage": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "errorMessage",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_message": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "message",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_ownerId": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "OwnerID",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_continueLoop": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "continueLoop",
+                        "type": "boolean",
+                        "value": true
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_error_response": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "SoapErrorResponse",
+                        "type": "string",
+                        "value": "<soap-env:Envelope xmlns:soap-env=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap-env:Header/><soap-env:Body><soap-env:Fault><faultcode>soap-env:Server</faultcode><faultstring>{errormessagedetails}</faultstring><detail/></soap-env:Fault></soap-env:Body></soap-env:Envelope>"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Scope-Catch": {
+            "actions": {
+                "Failed_Response": {
+                    "inputs": {
+                        "body": "@replace(variables('SoapErrorResponse'),'{errormessagedetails}',concat('Some error occurred while connection. Please find more details using tracking id : ', workflow()['run']['name']))",
+                        "headers": {
+                            "Content-Type": "application/xml"
+                        },
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                },
+                "Terminate-Failed": {
+                    "inputs": {
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Failed_Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Scope-Try": [
+                    "TimedOut",
+                    "Skipped",
+                    "Failed"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope-Try": {
+            "actions": {
+                "ComposeJsonResponse": {
+                    "inputs": {
+                        "SIE_SF4S_MandatoryFieldsResCompas": {
+                            "AccountId": "@{body('SIE_SF4S_fetchIdentificationNumber_')?['records']?[0]?['S4SAccount__c']}",
+                            "IdentificationNumberId": "@{body('SIE_SF4S_fetchIdentificationNumber_')?['records']?[0]?['Id']}",
+                            "OwnerId": "@{variables('OwnerID')}",
+                            "Products": "@variables('Product')",
+                            "S4SEndAccount__c": "@body('Execute_Fetch_IdentificationNumber')?['records']?[0]?['S4SAccount__c']",
+                            "errorMessage": "@variables('errorMessage')",
+                            "message": "@variables('message')"
+                        }
+                    },
+                    "runAfter": {
+                        "Condition_to_check_AccountSAPNumber": [
+                            "Succeeded"
+                        ],
+                        "Condition_to_check_BookingLine": [
+                            "Succeeded"
+                        ],
+                        "Condition_to_check_EndAccountSAPNumber": [
+                            "Succeeded"
+                        ],
+                        "Condition_to_check_OwnerEmail": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Compose"
+                },
+                "Condition_to_check_AccountSAPNumber": {
+                    "actions": {
+                        "Condition-totalSize-fetchIdNumber": {
+                            "actions": {
+                                "Set_variable_message-AccountSAPNumber-true": {
+                                    "inputs": {
+                                        "name": "message",
+                                        "value": "SUCCESS"
+                                    },
+                                    "runAfter": {},
+                                    "type": "SetVariable"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "Set_variable_errorMessage-AccountSAPNumber-Tfalse": {
+                                        "inputs": {
+                                            "name": "errorMessage",
+                                            "value": "SieSales Opportunity Creation failed as Sold to Account: @{variables('AccountSAPNumber')} does not exist in SieSales."
+                                        },
+                                        "runAfter": {
+                                            "Set_variable_message-AccountSAPNumber-Tfalse": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "SetVariable"
+                                    },
+                                    "Set_variable_message-AccountSAPNumber-Tfalse": {
+                                        "inputs": {
+                                            "name": "message",
+                                            "value": "ERROR"
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "greater": [
+                                            "@body('SIE_SF4S_fetchIdentificationNumber_')['totalSize']",
+                                            0
+                                        ]
+                                    }
+                                ]
+                            },
+                            "runAfter": {
+                                "SIE_SF4S_fetchIdentificationNumber_": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "SIE_SF4S_fetchIdentificationNumber_": {
+                            "inputs": {
+                                "body": {
+                                    "query": "@{variables('varSOQLfetchIdentificationNumber')} where s4slocal_source_system__c in ('E1P Spiridon USA','E1P Spiridon USA ICB') and S4SSAP_Account_Group__c in ('DEFA','ICB') and S4SCompany_Code__c in ('9462','5620','439N') and  S4SIdentification_Number__c ='@{variables('AccountSAPNumber')}'\n"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/soql/executesoqlquery"
+                            },
+                            "runAfter": {},
+                            "type": "ApiConnection"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Set_variable_errorMessage-AccountSAPNumber-false": {
+                                "inputs": {
+                                    "name": "errorMessage",
+                                    "value": "SieSales Opportunity Creation failed as Sold to Account does not exist in SieSales"
+                                },
+                                "runAfter": {
+                                    "Set_variable_message-AccountSAPNumber-false": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "SetVariable"
+                            },
+                            "Set_variable_message-AccountSAPNumber-false": {
+                                "inputs": {
+                                    "name": "message",
+                                    "value": "ERROR"
+                                },
+                                "runAfter": {},
+                                "type": "SetVariable"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('AccountSAPNumber')",
+                                        "@string('')"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('AccountSAPNumber')",
+                                        "@null"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                },
+                "Condition_to_check_BookingLine": {
+                    "actions": {
+                        "SIE_SF4S_searchProduct": {
+                            "actions": {
+                                "For_each-Product": {
+                                    "actions": {
+                                        "Condition_to_break_loop": {
+                                            "actions": {
+                                                "Condition_to_check_ProductMessage": {
+                                                    "actions": {
+                                                        "Set_variable_continueLoop": {
+                                                            "inputs": {
+                                                                "name": "continueLoop",
+                                                                "value": false
+                                                            },
+                                                            "runAfter": {
+                                                                "Set_variable_errorMessage-BL-true": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "SetVariable"
+                                                        },
+                                                        "Set_variable_errorMessage-BL-true": {
+                                                            "inputs": {
+                                                                "name": "errorMessage",
+                                                                "value": "SieSales Opportunity Creation failed as Product:' @{items('For_each-Product')?['Product_Name']}' does not exist in SieSales"
+                                                            },
+                                                            "runAfter": {
+                                                                "Set_variable_message-BL-true": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "SetVariable"
+                                                        },
+                                                        "Set_variable_message-BL-true": {
+                                                            "inputs": {
+                                                                "name": "message",
+                                                                "value": "ERROR"
+                                                            },
+                                                            "runAfter": {},
+                                                            "type": "SetVariable"
+                                                        }
+                                                    },
+                                                    "else": {
+                                                        "actions": {
+                                                            "Append_to_array_variable-Product": {
+                                                                "inputs": {
+                                                                    "name": "Product",
+                                                                    "value": {
+                                                                        "Name": "@{items('For_each-Product')?['Product_Name']}",
+                                                                        "S4SExternal_Source__c": "@{items('For_each-Product')?['S4SExternal_Source__c']}",
+                                                                        "S4SPrimary_Flag__c": "@items('For_each-Product')?['S4SPrimary_Flag__c']",
+                                                                        "S4SQuantity__c": "@{items('For_each-Product')?['S4SQuantity__c']}",
+                                                                        "S4SSales_Price__c": "@{items('For_each-Product')?['S4SSales_Price__c']}",
+                                                                        "priceBookEntryId": "@{body('Execute_FetchPrice_')?['records']?[0]['Id']}",
+                                                                        "productId": "@{body('SIE_SF4S_searchProduct_SOQL')?['records']?[0]?['Id']}",
+                                                                        "productMessage": "@{variables('ProductMessage')}"
+                                                                    }
+                                                                },
+                                                                "runAfter": {
+                                                                    "Execute_FetchPrice_": [
+                                                                        "Succeeded"
+                                                                    ]
+                                                                },
+                                                                "type": "AppendToArrayVariable"
+                                                            },
+                                                            "Execute_FetchPrice_": {
+                                                                "inputs": {
+                                                                    "body": {
+                                                                        "query": "@{variables('SOQLfetchPrice')} where Product2Id = '@{body('SIE_SF4S_searchProduct_SOQL')?['records']?[0]?['Id']}' and CurrencyIsoCode = '@{triggerBody()?['Opportunity']?['CurrencyIsoCode']}'"
+                                                                    },
+                                                                    "host": {
+                                                                        "connection": {
+                                                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                        }
+                                                                    },
+                                                                    "method": "post",
+                                                                    "path": "/soql/executesoqlquery"
+                                                                },
+                                                                "runAfter": {},
+                                                                "type": "ApiConnection"
+                                                            }
+                                                        }
+                                                    },
+                                                    "expression": {
+                                                        "and": [
+                                                            {
+                                                                "equals": [
+                                                                    "@variables('ProductMessage')",
+                                                                    "ERROR"
+                                                                ]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "runAfter": {
+                                                        "Condition_to_check_TotalRecords": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "If"
+                                                },
+                                                "Condition_to_check_TotalRecords": {
+                                                    "actions": {
+                                                        "Set_variable_PM-true": {
+                                                            "inputs": {
+                                                                "name": "ProductMessage",
+                                                                "value": "SUCCESS"
+                                                            },
+                                                            "runAfter": {},
+                                                            "type": "SetVariable"
+                                                        }
+                                                    },
+                                                    "else": {
+                                                        "actions": {
+                                                            "Set_variable_PM-false": {
+                                                                "inputs": {
+                                                                    "name": "ProductMessage",
+                                                                    "value": "ERROR"
+                                                                },
+                                                                "runAfter": {},
+                                                                "type": "SetVariable"
+                                                            }
+                                                        }
+                                                    },
+                                                    "expression": {
+                                                        "and": [
+                                                            {
+                                                                "equals": [
+                                                                    "@body('SIE_SF4S_searchProduct_SOQL')?['totalSize']",
+                                                                    1
+                                                                ]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "runAfter": {
+                                                        "SIE_SF4S_searchProduct_SOQL": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "If"
+                                                },
+                                                "Condition_to_check_depth_structure": {
+                                                    "actions": {
+                                                        "Compose_searchProdWhereClause_PCK": {
+                                                            "inputs": {
+                                                                "searchProdWhereClause": "@concat('S4SPCK__c =  ',string(''''),items('For_each-Product')?['S4SPCK__c'],string(''''))"
+                                                            },
+                                                            "runAfter": {
+                                                                "Set_variable_PKG": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "Compose"
+                                                        },
+                                                        "Set_variable_PKG": {
+                                                            "inputs": {
+                                                                "name": "PCKWhereClause",
+                                                                "value": "@{concat('S4SPCK__c =  ',string(''''),items('For_each-Product')?['S4SPCK__c'],string(''''))}"
+                                                            },
+                                                            "runAfter": {},
+                                                            "type": "SetVariable"
+                                                        }
+                                                    },
+                                                    "else": {
+                                                        "actions": {
+                                                            "Condition_to_check_SPG": {
+                                                                "actions": {
+                                                                    "Compose_searchProdWhereClause_SPG": {
+                                                                        "inputs": {
+                                                                            "searchProdWhereClause": "@{concat('S4SSPG__c =  ',string(''''),items('For_each-Product')?['S4SSPG__c'],string(''''))} and S4SPCK__c =''"
+                                                                        },
+                                                                        "runAfter": {
+                                                                            "Set_variable_SPG": [
+                                                                                "Succeeded"
+                                                                            ]
+                                                                        },
+                                                                        "type": "Compose"
+                                                                    },
+                                                                    "Set_variable_SPG": {
+                                                                        "inputs": {
+                                                                            "name": "SPGWhereClause",
+                                                                            "value": "@{concat('S4SSPG__c =  ',string(''''),items('For_each-Product')?['S4SSPG__c'],string(''''))}"
+                                                                        },
+                                                                        "runAfter": {},
+                                                                        "type": "SetVariable"
+                                                                    }
+                                                                },
+                                                                "else": {
+                                                                    "actions": {
+                                                                        "Condition_to_check_GCK": {
+                                                                            "actions": {
+                                                                                "Compose_searchProdWhereClause_GCK_True": {
+                                                                                    "inputs": {
+                                                                                        "searchProdWhereClause": "@{concat('S4SGCK__c =  ',string(''''),items('For_each-Product')?['S4SGCK__c'],string(''''))} and S4SPCK__c ='' and S4SSPG__c = ''"
+                                                                                    },
+                                                                                    "runAfter": {
+                                                                                        "Set_variable-GCKWhereClause": [
+                                                                                            "Succeeded"
+                                                                                        ]
+                                                                                    },
+                                                                                    "type": "Compose"
+                                                                                },
+                                                                                "Set_variable-GCKWhereClause": {
+                                                                                    "inputs": {
+                                                                                        "name": "GCKWhereClause",
+                                                                                        "value": "@{concat('S4SGCK__c =  ',string(''''),items('For_each-Product')?['S4SGCK__c'],string(''''))}"
+                                                                                    },
+                                                                                    "runAfter": {},
+                                                                                    "type": "SetVariable"
+                                                                                }
+                                                                            },
+                                                                            "else": {
+                                                                                "actions": {
+                                                                                    "Compose_searchProdWhereClause_GCK_False": {
+                                                                                        "inputs": {
+                                                                                            "searchProdWhereClause": "S4SGCK__c =''  and S4SPCK__c ='' and S4SSPG__c = ''"
+                                                                                        },
+                                                                                        "runAfter": {
+                                                                                            "Set_variable-GCKWhereClause-false": [
+                                                                                                "Succeeded"
+                                                                                            ]
+                                                                                        },
+                                                                                        "type": "Compose"
+                                                                                    },
+                                                                                    "Set_variable-GCKWhereClause-false": {
+                                                                                        "inputs": {
+                                                                                            "name": "GCKWhereClause",
+                                                                                            "value": "@{concat('S4SGCK__c =  ',string(''''),string(''''))}"
+                                                                                        },
+                                                                                        "runAfter": {},
+                                                                                        "type": "SetVariable"
+                                                                                    }
+                                                                                }
+                                                                            },
+                                                                            "expression": {
+                                                                                "and": [
+                                                                                    {
+                                                                                        "not": {
+                                                                                            "equals": [
+                                                                                                "@items('For_each-Product')?['S4SGCK__c']",
+                                                                                                "@null"
+                                                                                            ]
+                                                                                        }
+                                                                                    },
+                                                                                    {
+                                                                                        "not": {
+                                                                                            "equals": [
+                                                                                                "@items('For_each-Product')?['S4SGCK__c']",
+                                                                                                "@string('')"
+                                                                                            ]
+                                                                                        }
+                                                                                    }
+                                                                                ]
+                                                                            },
+                                                                            "runAfter": {
+                                                                                "Set_variable-SPGWhereClause": [
+                                                                                    "Succeeded"
+                                                                                ]
+                                                                            },
+                                                                            "type": "If"
+                                                                        },
+                                                                        "Set_variable-SPGWhereClause": {
+                                                                            "inputs": {
+                                                                                "name": "SPGWhereClause",
+                                                                                "value": "@{concat('S4SPCK__c =  ',string(''''),string(''''))}"
+                                                                            },
+                                                                            "runAfter": {},
+                                                                            "type": "SetVariable"
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "expression": {
+                                                                    "and": [
+                                                                        {
+                                                                            "not": {
+                                                                                "equals": [
+                                                                                    "@items('For_each-Product')?['S4SSPG__c']",
+                                                                                    "@null"
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "not": {
+                                                                                "equals": [
+                                                                                    "@items('For_each-Product')?['S4SSPG__c']",
+                                                                                    "@string('')"
+                                                                                ]
+                                                                            }
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "runAfter": {
+                                                                    "Set_variable-PCKWhereClause": [
+                                                                        "Succeeded"
+                                                                    ]
+                                                                },
+                                                                "type": "If"
+                                                            },
+                                                            "Set_variable-PCKWhereClause": {
+                                                                "inputs": {
+                                                                    "name": "PCKWhereClause",
+                                                                    "value": "@{concat('S4SPCK__c =  ',string(''''),string(''''))}"
+                                                                },
+                                                                "runAfter": {},
+                                                                "type": "SetVariable"
+                                                            }
+                                                        }
+                                                    },
+                                                    "expression": {
+                                                        "and": [
+                                                            {
+                                                                "not": {
+                                                                    "equals": [
+                                                                        "@items('For_each-Product')?['S4SPCK__c']",
+                                                                        "@null"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            {
+                                                                "not": {
+                                                                    "equals": [
+                                                                        "@items('For_each-Product')?['S4SPCK__c']",
+                                                                        "@string('')"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    "runAfter": {},
+                                                    "type": "If"
+                                                },
+                                                "SIE_SF4S_searchProduct_SOQL": {
+                                                    "inputs": {
+                                                        "body": {
+                                                            "query": "@{variables('SOQLSearchProduct')} where  @{coalesce(outputs('Compose_searchProdWhereClause_PCK')?['searchProdWhereClause'],outputs('Compose_searchProdWhereClause_SPG')?['searchProdWhereClause'],outputs('Compose_searchProdWhereClause_GCK_True')?['searchProdWhereClause'],outputs('Compose_searchProdWhereClause_GCK_False')?['searchProdWhereClause'])} and  IsActive=true "
+                                                        },
+                                                        "host": {
+                                                            "connection": {
+                                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                            }
+                                                        },
+                                                        "method": "post",
+                                                        "path": "/soql/executesoqlquery"
+                                                    },
+                                                    "runAfter": {
+                                                        "Condition_to_check_depth_structure": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "ApiConnection"
+                                                }
+                                            },
+                                            "expression": {
+                                                "and": [
+                                                    {
+                                                        "equals": [
+                                                            "@variables('continueLoop')",
+                                                            true
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "runAfter": {},
+                                            "type": "If"
+                                        }
+                                    },
+                                    "foreach": "@variables('BookingLine')",
+                                    "runAfter": {},
+                                    "type": "Foreach"
+                                }
+                            },
+                            "runAfter": {},
+                            "type": "Scope"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Condition-errorMessageBL": {
+                                "actions": {},
+                                "else": {
+                                    "actions": {
+                                        "Set_variable_errorMessage-BL-false": {
+                                            "inputs": {
+                                                "name": "errorMessage",
+                                                "value": "SieSales Opportunity Creation failed."
+                                            },
+                                            "runAfter": {
+                                                "Set_variable_message-BL-false": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "SetVariable"
+                                        },
+                                        "Set_variable_message-BL-false": {
+                                            "inputs": {
+                                                "name": "message",
+                                                "value": "ERROR"
+                                            },
+                                            "runAfter": {},
+                                            "type": "SetVariable"
+                                        }
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('errorMessage')",
+                                                    "@string('')"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {},
+                                "type": "If"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "greater": [
+                                    "@length(variables('BookingLine'))",
+                                    0
+                                ]
+                            }
+                        ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                },
+                "Condition_to_check_EndAccountSAPNumber": {
+                    "actions": {
+                        "Condition-totalSize-EndSAPAccountIdNumber": {
+                            "actions": {},
+                            "expression": {
+                                "and": [
+                                    {
+                                        "greater": [
+                                            "@body('Execute_Fetch_IdentificationNumber')['totalSize']",
+                                            0
+                                        ]
+                                    }
+                                ]
+                            },
+                            "runAfter": {
+                                "Execute_Fetch_IdentificationNumber": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "Execute_Fetch_IdentificationNumber": {
+                            "inputs": {
+                                "body": {
+                                    "query": "@{variables('varSOQLfetchIdentificationNumber')} where S4SLocal_Source_System__c in ('E1P Spiridon USA','E1P Spiridon USA ICB') and S4SIdentification_Number__c ='@{triggerBody()?['opportunity']?['EndAccount_SAP_Number']}'\n"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/soql/executesoqlquery"
+                            },
+                            "runAfter": {},
+                            "type": "ApiConnection"
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@triggerBody()?['opportunity']?['EndAccount_SAP_Number']",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@triggerBody()?['opportunity']?['EndAccount_SAP_Number']",
+                                        "@string('')"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                },
+                "Condition_to_check_OwnerEmail": {
+                    "actions": {
+                        "Condition-totalSize-fetchUser": {
+                            "actions": {
+                                "Set_variable_ownerid": {
+                                    "inputs": {
+                                        "name": "OwnerID",
+                                        "value": "@{body('SIE_SF4S_fetchUser')?['records']?[0]?['Id']}"
+                                    },
+                                    "runAfter": {},
+                                    "type": "SetVariable"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "Condition-errorMessage-fetchUser": {
+                                        "actions": {},
+                                        "else": {
+                                            "actions": {
+                                                "Set_variable_errorMessage-OwnerEmail-Tfalse": {
+                                                    "inputs": {
+                                                        "name": "errorMessage",
+                                                        "value": "SieSales Opportunity Creation failed as Opportunity Owner: '@{variables('OwnerEmail')}'  does not exist in SieSales."
+                                                    },
+                                                    "runAfter": {},
+                                                    "type": "SetVariable"
+                                                },
+                                                "Set_variable_message-OwnerEmail-Tfalse": {
+                                                    "inputs": {
+                                                        "name": "message",
+                                                        "value": "ERROR"
+                                                    },
+                                                    "runAfter": {
+                                                        "Set_variable_errorMessage-OwnerEmail-Tfalse": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "SetVariable"
+                                                }
+                                            }
+                                        },
+                                        "expression": {
+                                            "and": [
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@variables('errorMessage')",
+                                                            ""
+                                                        ]
+                                                    }
+                                                },
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@variables('errorMessage')",
+                                                            "@null"
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "runAfter": {},
+                                        "type": "If"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "equals": [
+                                            "@body('SIE_SF4S_fetchUser')['totalSize']",
+                                            1
+                                        ]
+                                    }
+                                ]
+                            },
+                            "runAfter": {
+                                "SIE_SF4S_fetchUser": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "SIE_SF4S_fetchUser": {
+                            "inputs": {
+                                "body": {
+                                    "query": "@{variables('SOQLFetchUser')} where @{concat('Email= ',string(''''),variables('OwnerEmail'),string(''''))}"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/soql/executesoqlquery"
+                            },
+                            "runAfter": {},
+                            "type": "ApiConnection"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Condition-errorMessage-OwnerEmail": {
+                                "actions": {},
+                                "else": {
+                                    "actions": {
+                                        "Set_variable_errorMessage-OwnerEmail_false": {
+                                            "inputs": {
+                                                "name": "errorMessage",
+                                                "value": "SieSales Opportunity Creation failed as Opportunity Owner does not exist in SieSales"
+                                            },
+                                            "runAfter": {
+                                                "Set_variable_message-OwnerEmail_false": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "SetVariable"
+                                        },
+                                        "Set_variable_message-OwnerEmail_false": {
+                                            "inputs": {
+                                                "name": "message",
+                                                "value": "ERROR"
+                                            },
+                                            "runAfter": {},
+                                            "type": "SetVariable"
+                                        }
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('errorMessage')",
+                                                    "@string('')"
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('errorMessage')",
+                                                    "@null"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {},
+                                "type": "If"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('OwnerEmail')",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('OwnerEmail')",
+                                        "@string('')"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                },
+                "Response-AccountSAPNumber": {
+                    "inputs": {
+                        "body": "@outputs('ComposeJsonResponse')",
+                        "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "ComposeJsonResponse": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
+                }
+            },
+            "runAfter": {
+                "Initialize_Account_SAP_Number": [
+                    "Succeeded"
+                ],
+                "Initialize_BookingLine": [
+                    "Succeeded"
+                ],
+                "Initialize_GCK_WhereClause": [
+                    "Succeeded"
+                ],
+                "Initialize_OwnerEmail": [
+                    "Succeeded"
+                ],
+                "Initialize_PCK_WhereClause": [
+                    "Succeeded"
+                ],
+                "Initialize_ProductMessage": [
+                    "Succeeded"
+                ],
+                "Initialize_Product_Array": [
+                    "Succeeded"
+                ],
+                "Initialize_SOQL_FetchPrice": [
+                    "Succeeded"
+                ],
+                "Initialize_SOQL_Fetchuser": [
+                    "Succeeded"
+                ],
+                "Initialize_SOQL_fetchIdentificationNumber_": [
+                    "Succeeded"
+                ],
+                "Initialize_SOQL_searchProduct": [
+                    "Succeeded"
+                ],
+                "Initialize_SPG_WhereClause": [
+                    "Succeeded"
+                ],
+                "Initialize_errorMessage": [
+                    "Succeeded"
+                ],
+                "Initialize_message": [
+                    "Succeeded"
+                ],
+                "Initialize_ownerId": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_continueLoop": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_error_response": [
+                    "Succeeded"
+                ]
+            },
+            "trackedProperties": {
+                "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+                "citizenName": "c00031",
+                "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'Compas')}",
+                "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'internal_mandatoryFields')}",
+                "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+                "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+            },
+            "type": "Scope"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {
+                "schema": {
+                    "properties": {
+                        "IsBookingBulkUpsert": {
+                            "description": "To check if request is for Booking Line or Bulk Upsert",
+                            "required": "true",
+                            "type": "boolean"
+                        },
+                        "requestBody": {
+                            "description": "The request body to be sent to target service. The body should be sent as base64Encoded string",
+                            "required": "true",
+                            "type": "object"
+                        }
+                    },
+                    "type": "object"
+                }
+            },
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

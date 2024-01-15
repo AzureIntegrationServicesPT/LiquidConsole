@@ -1,0 +1,1770 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "HTTP-GetToken": {
+            "inputs": {
+                "headers": {
+                    "Ocp-Apim-Subscription-Key": "${apimKey}"
+                },
+                "method": "POST",
+                "uri": "${apimURL}"
+            },
+            "runAfter": {},
+            "type": "Http"
+        },
+        "Initialize_IFA_Value": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "IFA",
+                        "type": "string",
+                        "value": "@{xpath(xml(triggerbody()), './/END_CUSTOMER_ID/text()')?[0]}"
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_variable_SIE_SF4S_upsertOfferReq_Spiridon": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_Count": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "Count",
+                        "type": "integer",
+                        "value": 0
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_ErrorMsg": {
+            "inputs": {
+                "variables":  [
+                    {
+                        "name": "upsertOfferResSpiridon_ErrorMsg",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_Index": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "Index",
+                        "type": "integer",
+                        "value": 0
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_OfferLineItemDefinition": {
+           "inputs": {
+                "variables": [
+                    {
+                        "name": "OfferLineItemDefinition",
+                        "type": "array",
+                        "value": "@xpath(xml(triggerBody()), '/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"upsertOffer\"]/*[local-name()=\"SIE_SF4S_upsertOfferReq_Spiridon\"]/*[local-name()=\"OfferLineItemDefinition\"]')"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_OfferLineItemfinalResponse": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "OfferLineItemfinalResponse",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_OppSalesStatus": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "OppSalesStatus",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_OppStage": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "OppStage",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_QuoteSalesStatus": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "QuoteSalesStatus",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_S4SEnd_Account_Account__c": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "S4SEnd_Account_Account__c",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_SIE_SF4S_upsertOfferReq_Spiridon": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "upsertOfferReqSpiridon",
+                        "type": "string",
+                        "value": "@{xpath(xml(triggerBody()), '/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"upsertOffer\"]/*[local-name()=\"SIE_SF4S_upsertOfferReq_Spiridon\"]')?[0]}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_Success": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "Success",
+                        "type": "string",
+                        "value": "false"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_depthStructure": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "depthStructure",
+                        "type": "array"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_dsdata": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "dsdata",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_error_msg": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "errormsg",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_mandatoryResponse": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "mandatoryResponse",
+                        "type": "boolean",
+                        "value": false
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_upsertOfferResSpiridon_Success": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "upsertOfferResSpiridon_Success",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_whereClause": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "whereClause",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_whereClausePriceBook": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "whereClausePriceBook",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Scope_Catch": {
+            "actions": {
+                "Failed_Response": {
+                    "inputs": {
+                        "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sie=\"http://demchdc8zkx.dc4ca.siemens.de/SIE.SF4S.Spiridon.Public.WebServices.Provider:SIE_SF4S_SPIRIDON\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n\t<soapenv:Header/>\n\t<soapenv:Body>\n\t\t<sie:upsertOfferResponse>\n\t\t\t<SIE_SF4S_upsertOfferRes_Spiridon>\n\t\t\t\t<ACTION xsi:nil=\"true\"/>\n\t\t\t\t<COMPANY_ID xsi:nil=\"true\"/>\n\t\t\t\t<ERROR_MSG>@{if(empty(variables('errormsg')),concat('Some error occurred while connection. Please find more details using tracking id : ', workflow()['run']['name']),variables('errormsg'))}</ERROR_MSG>\n\t\t\t\t<IFA_NUMBER xsi:nil=\"true\"/>\n\t\t\t\t<OFFER_ID xsi:nil=\"true\"/>\n\t\t\t\t<OPPORTUNITY_ID xsi:nil=\"true\"/>\n\t\t\t\t<SUCCESS>false</SUCCESS>\n\t\t\t\t<OfferLineItemResult xsi:nil=\"true\"/>\n\t\t\t</SIE_SF4S_upsertOfferRes_Spiridon>\n\t\t</sie:upsertOfferResponse>\n\t</soapenv:Body>\n</soapenv:Envelope>",
+                        "headers": {
+                            "Content-Type": "text/xml"
+                        },
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                },
+                "Terminate-Catch": {
+                    "inputs": {
+                        "runError": {
+                            "code": "500"
+                        },
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Failed_Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Scope_Try": [
+                    "Failed",
+                    "Skipped",
+                    "TimedOut"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope_Try": {
+            "actions": {
+                "Append_to_array_variable-depthStructure-2": {
+                    "inputs": {
+                        "name": "depthStructure",
+                        "value": "@outputs('Compose_Transformxml_Output')"
+                    },
+                    "runAfter": {
+                        "Compose_Transformxml_Output": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "AppendToArrayVariable"
+                },
+                "Append_to_string_variable-dsdata-2": {
+                    "inputs": {
+                        "name": "dsdata",
+                        "value": "@body('Transform_XML')"
+                    },
+                    "runAfter": {
+                        "Transform_XML": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "AppendToStringVariable"
+                },
+                "Compose_Transformxml_Output": {
+                    "inputs": "@xml(removeProperty(json(body('Transform_XML')),'?xml'))",
+                    "runAfter": {
+                        "Append_to_string_variable-dsdata-2": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Compose"
+                },
+                "Condition-mandatoryResponse": {
+                    "actions": {
+                        "Response": {
+                            "inputs": {
+                                "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sie=\"http://demchdc8zkx.dc4ca.siemens.de/SIE.SF4S.Spiridon.Public.WebServices.Provider:SIE_SF4S_SPIRIDON\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n\t<soapenv:Header/>\n\t<soapenv:Body>\n\t\t<sie:upsertOfferResponse>\n\t\t\t<SIE_SF4S_upsertOfferRes_Spiridon>\n\t\t\t\t<ACTION xsi:nil=\"true\"/>\n\t\t\t\t<COMPANY_ID xsi:nil=\"true\"/>\n\t\t\t\t<ERROR_MSG>@{variables('upsertOfferResSpiridon_ErrorMsg')}</ERROR_MSG>\n\t\t\t\t<IFA_NUMBER xsi:nil=\"true\"/>\n\t\t\t\t<OFFER_ID xsi:nil=\"true\"/>\n\t\t\t\t<OPPORTUNITY_ID xsi:nil=\"true\"/>\n\t\t\t\t<SUCCESS>@{variables('upsertOfferResSpiridon_Success')}</SUCCESS>\n\t\t\t\t<OfferLineItemResult xsi:nil=\"true\"/>\n\t\t\t</SIE_SF4S_upsertOfferRes_Spiridon>\n\t\t</sie:upsertOfferResponse>\n\t</soapenv:Body>\n</soapenv:Envelope>",
+                                "headers": {
+                                    "Content-Type": "text/xml"
+                                },
+                                "statusCode": 200
+                            },
+                            "kind": "Http",
+                            "runAfter": {},
+                            "type": "Response"
+                        },
+                        "Terminate-mandatoryResponse": {
+                            "inputs": {
+                                "runStatus": "Succeeded"
+                            },
+                            "runAfter": {
+                                "Response": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Terminate"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Check-ConfigDetails": {
+                                "actions": {
+                                    "SetVariable-OppSalesStatus": {
+                                        "inputs": {
+                                            "name": "OppSalesStatus",
+                                            "value": "@{body('GetConfigDetailsByStatus')?[0]?['OppSalesStatus']}"
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    },
+                                    "SetVariable-OppStage": {
+                                        "inputs": {
+                                            "name": "OppStage",
+                                            "value": "@{body('GetConfigDetailsByStatus')?[0]?['OppStage']}"
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    },
+                                    "SetVariable-QuoteSalesStatus": {
+                                        "inputs": {
+                                            "name": "QuoteSalesStatus",
+                                            "value": "@{body('GetConfigDetailsByStatus')?[0]?['QuoteSalesStatus']}"
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@body('GetConfigDetailsByStatus')?[0]",
+                                                    "@null"
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@body('GetConfigDetailsByStatus')?[0]",
+                                                    "@string('')"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "GetConfigDetailsByStatus": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "Check_Upsert_Opportunity_Response": {
+                                "actions": {
+                                    "Response_2": {
+                                        "inputs": {
+                                            "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sie=\"http://demchdc8zkx.dc4ca.siemens.de/SIE.SF4S.Spiridon.Public.WebServices.Provider:SIE_SF4S_SPIRIDON\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n\t<soapenv:Header/>\n\t<soapenv:Body>\n\t\t<sie:upsertOfferResponse>\n\t\t\t<SIE_SF4S_upsertOfferRes_Spiridon>\n\t\t\t\t<ACTION xsi:nil=\"true\"/>\n\t\t\t\t<COMPANY_ID xsi:nil=\"true\"/>\n\t\t\t\t<ERROR_MSG>Error Message : @{body('internal_insert_update_opportunity')?['message']},Please refer Run ID for more details : @{body('internal_insert_update_opportunity')?['Workflow Run Id']}</ERROR_MSG>\n\t\t\t\t<IFA_NUMBER xsi:nil=\"true\"/>\n\t\t\t\t<OFFER_ID xsi:nil=\"true\"/>\n\t\t\t\t<OPPORTUNITY_ID xsi:nil=\"true\"/>\n\t\t\t\t<SUCCESS>false</SUCCESS>\n\t\t\t\t<OfferLineItemResult xsi:nil=\"true\"/>\n\t\t\t</SIE_SF4S_upsertOfferRes_Spiridon>\n\t\t</sie:upsertOfferResponse>\n\t</soapenv:Body>\n</soapenv:Envelope>",
+                                            "headers": {
+                                                "Content-Type": "text/xml"
+                                            },
+                                            "statusCode": 200
+                                        },
+                                        "kind": "Http",
+                                        "runAfter": {},
+                                        "type": "Response"
+                                    },
+                                    "Terminate-UpsertOpportunity": {
+                                        "inputs": {
+                                            "runStatus": "Succeeded"
+                                        },
+                                        "runAfter": {
+                                            "Response_2": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "Terminate"
+                                    }
+                                },
+                                "else": {
+                                    "actions": {
+                                        "Compose_UpsertOfferResponse": {
+                                            "inputs": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sie=\"http://demchdc8zkx.dc4ca.siemens.de/SIE.SF4S.Spiridon.Public.WebServices.Provider:SIE_SF4S_SPIRIDON\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <sie:upsertOfferResponse>\n         <SIE_SF4S_upsertOfferRes_Spiridon>\n            <ACTION xsi:nil=\"true\"/>\n            <COMPANY_ID xsi:nil=\"true\"/>\n            @{if(empty(outputs('Compose_UpsertQuote_Response')?['SIE_SF4S_upsertQuoteRes']?['SIE_SF4S_upsertResponse']?['Message']),'<ERROR_MSG xsi:nil=\"true\"/>',concat('<ERROR_MSG>',outputs('Compose_UpsertQuote_Response')?['SIE_SF4S_upsertQuoteRes']?['SIE_SF4S_upsertResponse']?['Message'],'</ERROR_MSG>'))}\n            <IFA_NUMBER xsi:nil=\"true\"/>\n            <OFFER_ID>@{outputs('Compose_UpsertQuote_Response')?['SIE_SF4S_upsertQuoteRes']?['SIE_SF4S_upsertResponse']?['Id']}</OFFER_ID>\n            <OPPORTUNITY_ID>@{outputs('Compose_UpsertOpportunity_Response')?['SIE_SF4S_upsertOppResponse']?['SIE_SF4S_upsertResponse']?['Id']}</OPPORTUNITY_ID>\n            <SUCCESS>@{if(empty(outputs('Compose_UpsertQuote_Response')?['SIE_SF4S_upsertQuoteRes']?['SIE_SF4S_upsertResponse']?['Status']),outputs('Compose_UpsertOpportunity_Response')?['SIE_SF4S_upsertOppResponse']?['SIE_SF4S_upsertResponse']?['Status'],outputs('Compose_UpsertQuote_Response')?['SIE_SF4S_upsertQuoteRes']?['SIE_SF4S_upsertResponse']?['Status'])}</SUCCESS>\n            @{variables('OfferLineItemfinalResponse')}\n         </SIE_SF4S_upsertOfferRes_Spiridon>\n      </sie:upsertOfferResponse>\n   </soapenv:Body>\n</soapenv:Envelope>\n",
+                                            "runAfter": {
+                                                "Condition__to_check_offer_Response": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "Compose"
+                                        },
+                                        "Compose_UpsertOpportunity_Response": {
+                                            "inputs": {
+                                                "SIE_SF4S_upsertOppResponse": {
+                                                    "SIE_SF4S_upsertResponse": {
+                                                        "Id": "@{body('internal_insert_update_opportunity')?['Id']}",
+                                                        "Message": "",
+                                                        "Status": "@{string('true')}",
+                                                        "created": "@{if(empty(outputs('Compose_UpsertOpportunity_Request')?['Id']), 'true', 'false')}"
+                                                    }
+                                                }
+                                            },
+                                            "runAfter": {},
+                                            "type": "Compose"
+                                        },
+                                        "Condition__to_check_offer_Response": {
+                                            "actions": {
+                                                "Condition_OPP_ID": {
+                                                    "actions": {
+                                                        "Condition_to_check_length_of_list": {
+                                                            "actions": {
+                                                                "For_each_DeleteBookingLineItem": {
+                                                                    "actions": {
+                                                                        "HTTP_-Delete_BookingLineItem": {
+                                                                            "inputs": {
+                                                                                "headers": {
+                                                                                    "Authorization": "Bearer @{body('HTTP-GetToken')}"
+                                                                                },
+                                                                                "method": "DELETE",
+                                                                                "uri": "${instance_NonSFS_URL}/sobjects/S4SBooking_Line_Item__c/@{items('For_each_DeleteBookingLineItem')?['Id']}"
+                                                                            },
+                                                                            "runAfter": {},
+                                                                            "type": "Http"
+                                                                        }
+                                                                    },
+                                                                    "foreach": "@body('Execute_a_SOQL_query_on_fetchBookingLineItem')?['records']",
+                                                                    "runAfter": {},
+                                                                    "type": "Foreach"
+                                                                }
+                                                            },
+                                                            "expression": {
+                                                                "and": [
+                                                                    {
+                                                                        "greater": [
+                                                                            "@body('Execute_a_SOQL_query_on_fetchBookingLineItem')['totalSize']",
+                                                                            "@int('0')"
+                                                                        ]
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "runAfter": {
+                                                                "Execute_a_SOQL_query_on_fetchBookingLineItem": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "If"
+                                                        },
+                                                        "Execute_a_SOQL_query_on_fetchBookingLineItem": {
+                                                            "inputs": {
+                                                                "headers": {
+                                                                    "Authorization": "Bearer @{body('HTTP-GetToken')}"
+                                                                },
+                                                                "method": "GET",
+                                                                "uri": "${instance_NonSFS_URL}/query/?q=SELECT+Id+FROM+S4SBooking_Line_Item__c+WHERE+@{variables('whereClause')}"
+                                                            },
+                                                            "runAfter": {
+                                                                "Set_variable_whereClause": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "Http"
+                                                        },
+                                                        "Set_variable_whereClause": {
+                                                            "inputs": {
+                                                                "name": "whereClause",
+                                                                "value": "S4SOpportunity__c = '@{string(xpath(xml(triggerBody()),'.//OPP_ID/text()')?[0])}'"
+                                                            },
+                                                            "runAfter": {},
+                                                            "type": "SetVariable"
+                                                        }
+                                                    },
+                                                    "expression": {
+                                                        "and": [
+                                                            {
+                                                                "not": {
+                                                                    "equals": [
+                                                                        "@xpath(xml(triggerBody()),'.//OPP_ID/text()')?[0]",
+                                                                        "@null"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            {
+                                                                "not": {
+                                                                    "equals": [
+                                                                        "@xpath(xml(triggerBody()),'.//OPP_ID/text()')?[0]",
+                                                                        "@string('')"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    "runAfter": {},
+                                                    "type": "If"
+                                                },
+                                                "ForEach-DepthStructure": {
+                                                    "actions": {
+                                                        "Compose_For_Each_OfferLineItem": {
+                                                            "inputs": "@if(equals(variables('OfferLineItemfinalResponse'),''),outputs('Compose_OfferLineItem'),concat(variables('OfferLineItemfinalResponse'),outputs('Compose_OfferLineItem')))",
+                                                            "runAfter": {
+                                                                "Compose_OfferLineItem": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "Compose"
+                                                        },
+                                                        "Compose_OfferLineItem": {
+                                                            "inputs": "<OfferLineItemResult>\n            @{if(empty(outputs('Compose_UpsertBookingLine_Response')?['SIE_SF4S_upsertBookingLineRes']?['SIE_SF4S_upsertResponse']?['Message']),'<ERROR_MSG xsi:nil=\"true\"/>',concat('<ERROR_MSG>',outputs('Compose_UpsertBookingLine_Response')?['SIE_SF4S_upsertBookingLineRes']?['SIE_SF4S_upsertResponse']?['Message'],'</ERROR_MSG>'))}\n               <OFFER_PRODUCT_NAME xsi:nil=\"true\"/>\n               <PRODUCT_REVENUE_ID>@{outputs('Compose_UpsertBookingLine_Response')?['SIE_SF4S_upsertBookingLineRes']?['SIE_SF4S_upsertResponse']?['Id']}</PRODUCT_REVENUE_ID>\n               <SUCCESS>@{outputs('Compose_UpsertBookingLine_Response')?['SIE_SF4S_upsertBookingLineRes']?['SIE_SF4S_upsertResponse']?['Status']}</SUCCESS>\n               <OfferLineVariantResult xsi:nil=\"true\"/>\n            </OfferLineItemResult>",
+                                                            "runAfter": {
+                                                                "Compose_UpsertBookingLine_Response": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "Compose"
+                                                        },
+                                                        "Compose_UpsertBookingLine_Request": {
+                                                            "inputs": {
+                                                                "S4SDepth_Structure__c": "@if(empty(body('SIE_SF4S_MandatoryFields_Spiridon')?['SIE_SF4S_MandatoryFieldsRes_Spiridon']?['Product']?[variables('Index')]?['Id']),null,body('SIE_SF4S_MandatoryFields_Spiridon')?['SIE_SF4S_MandatoryFieldsRes_Spiridon']?['Product']?[variables('Index')]?['Id'])",
+                                                                "S4SExternal_Source__c": "@if(empty(outputs('Compose')?['Opportunity']?['S4SExternal_Source__c']), null, outputs('Compose')?['Opportunity']?['S4SExternal_Source__c'])",
+                                                                "S4SOpportunity__c": "@if(empty(outputs('Compose_UpsertOpportunity_Response')?['SIE_SF4S_upsertOppResponse']?['SIE_SF4S_upsertResponse']?['Id']), null, outputs('Compose_UpsertOpportunity_Response')?['SIE_SF4S_upsertOppResponse']?['SIE_SF4S_upsertResponse']?['Id'])",
+                                                                "S4SPrimary_Flag__c": "@if(empty(xpath(xml(items('ForEach-DepthStructure')), './/DepthStructure/isPrimary/text()')?[0]), null, xpath(xml(items('ForEach-DepthStructure')), './/DepthStructure/isPrimary/text()')?[0])",
+                                                                "S4SQuantity__c": "@if(empty(xpath(xml(items('ForEach-DepthStructure')), './/DepthStructure/Quantity/text()')?[0]), null, xpath(xml(items('ForEach-DepthStructure')), './/DepthStructure/Quantity/text()')?[0])",
+                                                                "S4SSales_Price__c": "@if(empty(xpath(xml(items('ForEach-DepthStructure')), './/DepthStructure/Volume/text()')?[0]), null, xpath(xml(items('ForEach-DepthStructure')), './/DepthStructure/Volume/text()')?[0])"
+                                                            },
+                                                            "runAfter": {},
+                                                            "type": "Compose"
+                                                        },
+                                                        "Compose_UpsertBookingLine_Response": {
+                                                            "inputs": {
+                                                                "SIE_SF4S_upsertBookingLineRes": {
+                                                                    "SIE_SF4S_upsertResponse": {
+                                                                        "Id": "@{body('internal_insert_update_bookingline')?['Id']}",
+                                                                        "Message": "@{if(equals(outputs('internal_insert_update_bookingline')['statusCode'],201), '',if(equals(outputs('internal_insert_update_bookingline')['statusCode'],200),'',outputs('internal_insert_update_bookingline')?['message']))}",
+                                                                        "Status": "@{if(equals(outputs('internal_insert_update_bookingline')['statusCode'],201), 'true',if(equals(outputs('internal_insert_update_bookingline')['statusCode'],200),'true','false'))}",
+                                                                        "created": "@{if(empty(outputs('Compose_UpsertBookingLine_Request')?['Id']), 'true', 'false')}"
+                                                                    }
+                                                                }
+                                                            },
+                                                            "runAfter": {
+                                                                "internal_insert_update_bookingline": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "Compose"
+                                                        },
+                                                        "Condition_to_check_pricebook_response": {
+                                                            "actions": {
+                                                                "Compose_UpsertQuoteLine_Request": {
+                                                                    "inputs": {
+                                                                        "PriceBookEntryId": "@if(empty(body('Execute_fetchPriceBook')?['records']?[0]?['Id']),null,body('Execute_fetchPriceBook')?['records']?[0]?['Id'])",
+                                                                        "Product2Id": "@if(empty(body('Execute_fetchPriceBook')?['records']?[0]?['Product2Id']),null,body('Execute_fetchPriceBook')?['records']?[0]?['Product2Id'])",
+                                                                        "Quantity": "@if(empty(xpath(xml(items('ForEach-DepthStructure')),'.//DepthStructure/Quantity/text()')?[0]),'',xpath(xml(items('ForEach-DepthStructure')),'.//DepthStructure/Quantity/text()')?[0])",
+                                                                        "QuoteId": "@if(empty(outputs('Compose_UpsertQuote_Response')?['SIE_SF4S_upsertQuoteRes']?['SIE_SF4S_upsertResponse']?['Id']),null,outputs('Compose_UpsertQuote_Response')?['SIE_SF4S_upsertQuoteRes']?['SIE_SF4S_upsertResponse']?['Id'])",
+                                                                        "S4SExternal_Source__c": "@if(empty(outputs('Compose')?['Opportunity']?['S4SExternal_Source__c']),null,outputs('Compose')?['Opportunity']?['S4SExternal_Source__c'])",
+                                                                        "UnitPrice": "@if(empty(xpath(xml(items('ForEach-DepthStructure')),'.//DepthStructure/Volume/text()')?[0]),'',xpath(xml(items('ForEach-DepthStructure')),'.//DepthStructure/Volume/text()')?[0])"
+                                                                    },
+                                                                    "runAfter": {},
+                                                                    "type": "Compose"
+                                                                },
+                                                                "Compose_UpsertQuoteLine_Response": {
+                                                                    "inputs": {
+                                                                        "SIE_SF4S_upsertQuoteLineRes": {
+                                                                            "SIE_SF4S_upsertResponse": {
+                                                                                "Id": "@{body('internal_insert_update_quoteline')?['Id']}",
+                                                                                "Message": "@{if(equals(outputs('internal_insert_update_quoteline')['statusCode'],200),'',outputs('internal_insert_update_quoteline')?['message'])}",
+                                                                                "Status": "@{if(equals(outputs('internal_insert_update_quoteline')['statusCode'],200),'true','false')}",
+                                                                                "created": "@{if(empty(outputs('Compose_UpsertQuoteLine_Request')?['Id']),'true','false')}"
+                                                                            }
+                                                                        }
+                                                                    },
+                                                                    "runAfter": {
+                                                                        "internal_insert_update_quoteline": [
+                                                                            "Succeeded"
+                                                                        ]
+                                                                    },
+                                                                    "type": "Compose"
+                                                                },
+                                                                "JsonRemoveNullOrEmptyFunc": {
+                                                                    "inputs": {
+                                                                        "body": {
+                                                                            "CorrelationId": "@{triggerOutputs()['headers']?['correlationid']}",
+                                                                            "InputRequestBase64": "@{base64(outputs('Compose_UpsertQuoteLine_Request'))}",
+                                                                            "InterfaceName": "internal_insert_update_quoteline_upsertOfferSpiridon",
+                                                                            "Username": "@{triggerOutputs()['headers']?['Username']}",
+                                                                            "operation": "JsonRemoveNullOrEmpty"
+                                                                        },
+                                                                        "function": {
+                                                                            "id": "[concat(parameters('funcApp'), '/functions/JsonRemoveNullOrEmptyFunc')]"
+                                                                        },
+                                                                        "retryPolicy": {
+                                                                            "type": "none"
+                                                                        }
+                                                                    },
+                                                                    "runAfter": {
+                                                                        "Compose_UpsertQuoteLine_Request": [
+                                                                            "Succeeded"
+                                                                        ]
+                                                                    },
+                                                                    "type": "Function"
+                                                                },
+                                                                "Set_variable-erromsg-4": {
+                                                                    "inputs": {
+                                                                        "name": "errormsg",
+                                                                        "value": "@{body('internal_insert_update_quoteline')?['message']}"
+                                                                    },
+                                                                    "runAfter": {
+                                                                        "internal_insert_update_quoteline": [
+                                                                            "Failed",
+                                                                            "Skipped",
+                                                                            "TimedOut"
+                                                                        ]
+                                                                    },
+                                                                    "type": "SetVariable"
+                                                                },
+                                                                "internal_insert_update_quoteline": {
+                                                                    "inputs": {
+                                                                        "body": "@json(body('JsonRemoveNullOrEmptyFunc')?['result']?['restructuredJson'])",
+                                                                        "host": {
+                                                                            "triggerName": "manual",
+                                                                            "workflow": {
+                                                                                "id": "${Spiridon_internal_insert_update_quoteline_logicAppId}"
+                                                                            }
+                                                                        },
+                                                                        "retryPolicy": {
+                                                                            "type": "none"
+                                                                        }
+                                                                    },
+                                                                    "runAfter": {
+                                                                        "JsonRemoveNullOrEmptyFunc": [
+                                                                            "Succeeded"
+                                                                        ]
+                                                                    },
+                                                                    "type": "Workflow"
+                                                                }
+                                                            },
+                                                            "expression": {
+                                                                "and": [
+                                                                    {
+                                                                        "not": {
+                                                                            "equals": [
+                                                                                "@body('Execute_fetchPriceBook')?['records']?[0]?['Id']",
+                                                                                "@null"
+                                                                            ]
+                                                                        }
+                                                                    },
+                                                                    {
+                                                                        "not": {
+                                                                            "equals": [
+                                                                                "@body('Execute_fetchPriceBook')?['records']?[0]?['Id']",
+                                                                                "@string('')"
+                                                                            ]
+                                                                        }
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "runAfter": {
+                                                                "Execute_fetchPriceBook": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "If"
+                                                        },
+                                                        "Execute_fetchPriceBook": {
+                                                            "inputs": {
+                                                                "headers": {
+                                                                    "Authorization": "Bearer @{body('HTTP-GetToken')}"
+                                                                },
+                                                                "method": "GET",
+                                                                "uri": "${instance_NonSFS_URL}/query/?q=SELECT+Id,Product2Id+FROM+PricebookEntry+WHERE+@{variables('whereClausePriceBook')}"
+                                                            },
+                                                            "runAfter": {
+                                                                "Increment_variable_Count": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "Http"
+                                                        },
+                                                        "Increment_variable_Count": {
+                                                            "inputs": {
+                                                                "name": "Count",
+                                                                "value": 1
+                                                            },
+                                                            "runAfter": {
+                                                                "Set_variable_Index": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "IncrementVariable"
+                                                        },
+                                                        "JsonRemoveNullOrEmptyFunc_2": {
+                                                            "inputs": {
+                                                                "body": {
+                                                                    "CorrelationId": "@{triggerOutputs()['headers']?['correlationid']}",
+                                                                    "InputRequestBase64": "@{base64(outputs('Compose_UpsertBookingLine_Request'))}",
+                                                                    "InterfaceName": "internal_insert_update_bookingline_upsertOfferSpiridon",
+                                                                    "Username": "@{triggerOutputs()['headers']?['Username']}",
+                                                                    "operation": "JsonRemoveNullOrEmpty"
+                                                                },
+                                                                "function": {
+                                                                    "id": "[concat(parameters('funcApp'), '/functions/JsonRemoveNullOrEmptyFunc')]"
+                                                                },
+                                                                "retryPolicy": {
+                                                                    "type": "none"
+                                                                }
+                                                            },
+                                                            "runAfter": {
+                                                                "Compose_UpsertBookingLine_Request": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "Function"
+                                                        },
+                                                        "Set_variable_Index": {
+                                                            "inputs": {
+                                                                "name": "Index",
+                                                                "value": "@add(variables('Count'),1)"
+                                                            },
+                                                            "runAfter": {
+                                                                "whereClausePriceBook": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "SetVariable"
+                                                        },
+                                                        "Set_variable_OfferLineItemFinalResponse": {
+                                                            "inputs": {
+                                                                "name": "OfferLineItemfinalResponse",
+                                                                "value": "@{outputs('Compose_For_Each_OfferLineItem')}"
+                                                            },
+                                                            "runAfter": {
+                                                                "Compose_For_Each_OfferLineItem": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "SetVariable"
+                                                        },
+                                                        "Set_variable_error_msg": {
+                                                            "inputs": {
+                                                                "name": "errormsg",
+                                                                "value": "@{body('internal_insert_update_bookingline')?['message']}"
+                                                            },
+                                                            "runAfter": {
+                                                                "internal_insert_update_bookingline": [
+                                                                    "Failed",
+                                                                    "Skipped",
+                                                                    "TimedOut"
+                                                                ]
+                                                            },
+                                                            "type": "SetVariable"
+                                                        },
+                                                        "internal_insert_update_bookingline": {
+                                                            "inputs": {
+                                                                "body": "@json(body('JsonRemoveNullOrEmptyFunc_2')?['result']?['restructuredJson'])",
+                                                                "host": {
+                                                                    "triggerName": "manual",
+                                                                    "workflow": {
+                                                                        "id":"${Spiridon_internal_insert_update_bookingline_logicAppId}"
+                                                                    }
+                                                                },
+                                                                "retryPolicy": {
+                                                                    "type": "none"
+                                                                }
+                                                            },
+                                                            "runAfter": {
+                                                                "JsonRemoveNullOrEmptyFunc_2": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "Workflow"
+                                                        },
+                                                        "whereClausePriceBook": {
+                                                            "inputs": {
+                                                                "name": "whereClausePriceBook",
+                                                                "value": "Product2Id = '@{body('SIE_SF4S_MandatoryFields_Spiridon')?['SIE_SF4S_MandatoryFieldsRes_Spiridon']?['Product']?[0]?['Id']}' and CurrencyIsoCode = '@{xpath(xml(triggerBody()),'.//CURRENCY/text()')?[0]}' and isActive = true"
+                                                            },
+                                                            "runAfter": {
+                                                                "Set_variable_OfferLineItemFinalResponse": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "SetVariable"
+                                                        }
+                                                    },
+                                                    "foreach": "@variables('depthStructure')",
+                                                    "runAfter": {
+                                                        "Condition_OPP_ID": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "runtimeConfiguration": {
+                                                        "concurrency": {
+                                                            "repetitions": 1
+                                                        }
+                                                    },
+                                                    "type": "Foreach"
+                                                }
+                                            },
+                                            "expression": {
+                                                "and": [
+                                                    {
+                                                        "equals": [
+                                                            "@variables('Success')",
+                                                            "@string('true')"
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "runAfter": {
+                                                "Condition_to_check_Success": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "If"
+                                        },
+                                        "Condition_to_check_Success": {
+                                            "actions": {
+                                                "Check_Upsert_Quote_Response": {
+                                                    "actions": {
+                                                        "Response_3": {
+                                                            "inputs": {
+                                                                "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sie=\"http://demchdc8zkx.dc4ca.siemens.de/SIE.SF4S.Spiridon.Public.WebServices.Provider:SIE_SF4S_SPIRIDON\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n\t<soapenv:Header/>\n\t<soapenv:Body>\n\t\t<sie:upsertOfferResponse>\n\t\t\t<SIE_SF4S_upsertOfferRes_Spiridon>\n\t\t\t\t<ACTION xsi:nil=\"true\"/>\n\t\t\t\t<COMPANY_ID xsi:nil=\"true\"/>\n\t\t\t\t<ERROR_MSG>@{body('internal_insert_update_quote')?['error']?['innerError']?['message']}</ERROR_MSG>\n\t\t\t\t<IFA_NUMBER xsi:nil=\"true\"/>\n\t\t\t\t<OFFER_ID xsi:nil=\"true\"/>\n\t\t\t\t<OPPORTUNITY_ID>@{outputs('Compose_UpsertOpportunity_Response')?['SIE_SF4S_upsertOppResponse']?['SIE_SF4S_upsertResponse']?['Id']}</OPPORTUNITY_ID>\n\t\t\t\t<SUCCESS>false</SUCCESS>\n\t\t\t\t<OfferLineItemResult xsi:nil=\"true\"/>\n\t\t\t</SIE_SF4S_upsertOfferRes_Spiridon>\n\t\t</sie:upsertOfferResponse>\n\t</soapenv:Body>\n</soapenv:Envelope>\n",
+                                                                "headers": {
+                                                                    "Content-Type": "text/xml"
+                                                                },
+                                                                "statusCode": 200
+                                                            },
+                                                            "kind": "Http",
+                                                            "runAfter": {},
+                                                            "type": "Response"
+                                                        },
+                                                        "Terminate-UpsertQuote": {
+                                                            "inputs": {
+                                                                "runStatus": "Succeeded"
+                                                            },
+                                                            "runAfter": {
+                                                                "Response_3": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "Terminate"
+                                                        }
+                                                    },
+                                                    "else": {
+                                                        "actions": {
+                                                            "Compose_UpsertQuote_Response": {
+                                                                "inputs": {
+                                                                    "SIE_SF4S_upsertQuoteRes": {
+                                                                        "SIE_SF4S_upsertResponse": {
+                                                                            "Id": "@{body('internal_insert_update_quote')?['Id']}",
+                                                                            "Message": "",
+                                                                            "Status": "@{string('true')}",
+                                                                            "created": "@{if(empty(outputs('Compose_UpsertQuote_Request')?['Id']),'true','false')}"
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "runAfter": {},
+                                                                "type": "Compose"
+                                                            },
+                                                            "Set_variable_UpsertOfferRes_Success": {
+                                                                "inputs": {
+                                                                    "name": "Success",
+                                                                    "value": "@{outputs('Compose_UpsertQuote_Response')?['SIE_SF4S_upsertQuoteRes']?['SIE_SF4S_upsertResponse']?['Status']}"
+                                                                },
+                                                                "runAfter": {
+                                                                    "Compose_UpsertQuote_Response": [
+                                                                        "Succeeded"
+                                                                    ]
+                                                                },
+                                                                "type": "SetVariable"
+                                                            }
+                                                        }
+                                                    },
+                                                    "expression": {
+                                                        "and": [
+                                                            {
+                                                                "not": {
+                                                                    "equals": [
+                                                                        "@if(equals(outputs('internal_insert_update_quote')['statusCode'],200),'',body('internal_insert_update_quote')?['message'])",
+                                                                        "@null"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            {
+                                                                "not": {
+                                                                    "equals": [
+                                                                        "@if(equals(outputs('internal_insert_update_quote')['statusCode'],200),'',body('internal_insert_update_quote')?['message'])",
+                                                                        "@string('')"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            {
+                                                                "not": {
+                                                                    "equals": [
+                                                                        "@if(equals(outputs('internal_insert_update_quote')['statusCode'],201),'',body('internal_insert_update_quote')?['message'])",
+                                                                        "@null"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            {
+                                                                "not": {
+                                                                    "equals": [
+                                                                        "@if(equals(outputs('internal_insert_update_quote')['statusCode'],201),'',body('internal_insert_update_quote')?['message'])",
+                                                                        "@string('')"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    "runAfter": {
+                                                        "internal_insert_update_quote": [
+                                                            "Failed",
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "If"
+                                                },
+                                                "Compose_UpsertQuote_Request": {
+                                                    "inputs": {
+                                                        "CurrencyIsoCode": "@if(empty(outputs('Compose')?['Opportunity']?['CurrencyIsoCode']),null,outputs('Compose')?['Opportunity']?['CurrencyIsoCode'])",
+                                                        "Name": "@if(empty(outputs('Compose')?['Opportunity']?['Name']),null,outputs('Compose')?['Opportunity']?['Name'])",
+                                                        "OpportunityId": "@if(empty(outputs('Compose_UpsertOpportunity_Response')?['SIE_SF4S_upsertOppResponse']?['SIE_SF4S_upsertResponse']?['Id']),null,outputs('Compose_UpsertOpportunity_Response')?['SIE_SF4S_upsertOppResponse']?['SIE_SF4S_upsertResponse']?['Id'])",
+                                                        "OwnerId": "@if(empty(body('SIE_SF4S_MandatoryFields_Spiridon')?['SIE_SF4S_MandatoryFieldsRes_Spiridon']?['ownerId']),null,body('SIE_SF4S_MandatoryFields_Spiridon')?['SIE_SF4S_MandatoryFieldsRes_Spiridon']?['ownerId'])",
+                                                        "Pricebook2Id": "@if(empty(body('Execute_a_SOQL_query_on_pricebookentry')?['records']?[0]?['Pricebook2Id']),null,body('Execute_a_SOQL_query_on_pricebookentry')?['records']?[0]?['Pricebook2Id'])",
+                                                        "S4SExternal_Source__c": "@if(empty(outputs('Compose')?['Opportunity']?['S4SExternal_Source__c']),null,outputs('Compose')?['Opportunity']?['S4SExternal_Source__c'])",
+                                                        "S4SFollow_Up_Date__c": "@if(empty(xpath(xml(triggerbody()),'.//FOLLOW_UP_DATE/text()')?[0]),null,xpath(xml(triggerbody()),'.//FOLLOW_UP_DATE/text()')?[0])",
+                                                        "S4SMain_Offer__c": true,
+                                                        "S4SOffer_Date__c": "@if(empty(xpath(xml(triggerbody()),'.//BID_SUBMISSION/text()')?[0]),'',xpath(xml(triggerbody()),'.//BID_SUBMISSION/text()')?[0])",
+                                                        "S4SOffer_ID__c": "@if(empty(xpath(xml(triggerbody()),'.//OFFER_ID/text()')?[0]),null,xpath(xml(triggerbody()),'.//OFFER_ID/text()')?[0])",
+                                                        "S4SSource_System__c": "@if(empty(xpath(xml(triggerbody()),'.//SOURCE_SYSTEM_TEXT/text()')?[0]),null,xpath(xml(triggerbody()),'.//SOURCE_SYSTEM_TEXT/text()')?[0])",
+                                                        "S4SValid_until__c": "@if(empty(xpath(xml(triggerbody()),'.//VALID_UNTIL/text()')?[0]),null,xpath(xml(triggerbody()),'.//VALID_UNTIL/text()')?[0])",
+                                                        "S4SVolume__c": "@if(empty(xpath(xml(triggerbody()),'.//VOLUME/text()')?[0]),null,xpath(xml(triggerbody()),'.//VOLUME/text()')?[0])",
+                                                        "Status": "@if(empty(variables('QuoteSalesStatus')),null,variables('QuoteSalesStatus'))"
+                                                    },
+                                                    "runAfter": {
+                                                        "Execute_a_SOQL_query_on_pricebookentry": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "Compose"
+                                                },
+                                                "Execute_a_SOQL_query_on_pricebookentry": {
+                                                    "inputs": {
+                                                        "headers": {
+                                                            "Authorization": "Bearer @{body('HTTP-GetToken')}"
+                                                        },
+                                                        "method": "GET",
+                                                        "uri": "${instance_NonSFS_URL}/query/?q=SELECT+Pricebook2Id+FROM+PricebookEntry+WHERE+@{variables('whereClausePriceBook')}"
+                                                    },
+                                                    "runAfter": {
+                                                        "Set_variable_whereclausepricebook": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "Http"
+                                                },
+                                                "Set_variable_whereclausepricebook": {
+                                                    "inputs": {
+                                                        "name": "whereClausePriceBook",
+                                                        "value": "Product2Id = '@{body('SIE_SF4S_MandatoryFields_Spiridon')?['SIE_SF4S_MandatoryFieldsRes_Spiridon']?['Product']?[0]?['Id']}' and CurrencyIsoCode = '@{xpath(xml(triggerBody()),'.//CURRENCY/text()')?[0]}' and isActive = true"
+                                                    },
+                                                    "runAfter": {},
+                                                    "type": "SetVariable"
+                                                },
+                                                "internal_insert_update_quote": {
+                                                    "inputs": {
+                                                        "body": "@outputs('Compose_UpsertQuote_Request')",
+                                                        "host": {
+                                                            "triggerName": "manual",
+                                                            "workflow": {
+                                                                "id": "${internal_insert_update_quote_logicAppId}"
+                                                            }
+                                                        },
+                                                        "retryPolicy": {
+                                                            "type": "none"
+                                                        }
+                                                    },
+                                                    "runAfter": {
+                                                        "Compose_UpsertQuote_Request": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "Workflow"
+                                                }
+                                            },
+                                            "expression": {
+                                                "and": [
+                                                    {
+                                                        "equals": [
+                                                            "@variables('Success')",
+                                                            "@string('true')"
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "runAfter": {
+                                                "Set_variable_UpsertOfferResponse_Success": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "If"
+                                        },
+                                        "Set_variable_UpsertOfferResponse_Success": {
+                                            "inputs": {
+                                                "name": "Success",
+                                                "value": "@{outputs('Compose_UpsertOpportunity_Response')?['SIE_SF4S_upsertOppResponse']?['SIE_SF4S_upsertResponse']?['Status']}"
+                                            },
+                                            "runAfter": {
+                                                "Compose_UpsertOpportunity_Response": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "SetVariable"
+                                        },
+                                        "Success_Response": {
+                                            "inputs": {
+                                                "body": "@outputs('Compose_UpsertOfferResponse')",
+                                                "headers": {
+                                                    "Content-Type": "text/xml"
+                                                },
+                                                "statusCode": 200
+                                            },
+                                            "kind": "Http",
+                                            "runAfter": {
+                                                "Compose_UpsertOfferResponse": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "Response"
+                                        }
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@if(equals(outputs('internal_insert_update_opportunity')['statusCode'],200),'',body('internal_insert_update_opportunity')?['message'])",
+                                                    "@null"
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@if(equals(outputs('internal_insert_update_opportunity')['statusCode'],200),'',body('internal_insert_update_opportunity')?['message'])",
+                                                    "@string('')"
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@if(equals(outputs('internal_insert_update_opportunity')['statusCode'],201),'',body('internal_insert_update_opportunity')?['message'])",
+                                                    "@null"
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@if(equals(outputs('internal_insert_update_opportunity')['statusCode'],201),'',body('internal_insert_update_opportunity')?['message'])",
+                                                    "@string('')"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "internal_insert_update_opportunity": [
+                                        "Succeeded",
+                                        "Failed"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "Compose": {
+                                "inputs": {
+                                    "Opportunity": {
+                                        "AccountId": "@{body('SIE_SF4S_MandatoryFields_Spiridon')?['SIE_SF4S_MandatoryFieldsRes_Spiridon']?['accountId']}",
+                                        "CloseDate": "@xpath(xml(triggerbody()), './/EST_OI_DATE/text()')?[0]",
+                                        "CurrencyIsoCode": "@{xpath(xml(triggerbody()), './/CURRENCY/text()')?[0]}",
+                                        "Description": "@{xpath(xml(triggerbody()), './/DESCRIPTION/text()')?[0]}",
+                                        "Id": "@{xpath(xml(triggerbody()), './/OPP_ID/text()')?[0]}",
+                                        "Name": "@{xpath(xml(triggerbody()), './/OFFER_NAME/text()')?[0]}",
+                                        "OwnerId": "@{body('SIE_SF4S_MandatoryFields_Spiridon')?['SIE_SF4S_MandatoryFieldsRes_Spiridon']?['ownerId']}",
+                                        "S4SAcceptance_Closure__c": "@{xpath(xml(triggerbody()), './/EST_PROJECT_CLOSURE/text()')?[0]}",
+                                        "S4SBid_approval_PM040__c": "@{xpath(xml(triggerbody()), './/BID_APPROVAL/text()')?[0]}",
+                                        "S4SChance_of_Execution__c": "@{body('SIE_SF4S_execLogic_Spiridon')}",
+                                        "S4SChance_of_Success__c": "@{body('SIE_SF4S_succLogic_Spiridon')}",
+                                        "S4SCorp_Lead_Country__c": "",
+                                        "S4SCountry_of_Installation__c": "@{xpath(xml(triggerbody()), './/COUNTRY_OF_INSTALLATION/text()')?[0]}",
+                                        "S4SDivision__c": "@{xpath(xml(triggerbody()), './/depthStructure/DIVISION/text()')?[0]}",
+                                        "S4SEnd_Account__c": "@{coalesce(body('HTTP_Get_Account_Id')?['records']?[0]?['Id'],xpath(xml(triggerbody()), './/END_CUSTOMER_ID/text()')?[0],null)}", 
+                                        "S4SExternal_Source__c": "@{xpath(xml(triggerbody()), './/SOURCE_SYSTEM_CODE/text()')?[0]}",
+                                        "S4SGross_Margin__c": "@{xpath(xml(triggerbody()), './/GROSS_MARGIN/text()')?[0]}",
+                                        "S4SInstallation__c": "@{xpath(xml(triggerbody()), './/INSTALLATION_ID/text()')?[0]}",
+                                        "S4SMain_Reason__c": "@{xpath(xml(triggerbody()), './/REASON/text()')?[0]}",
+                                        "S4SOpportunity_Industry_Search__c": "@{xpath(xml(triggerbody()), './/SISIC_CODE/text()')?[0]}",
+                                        "S4SReference_ID__c": "@{xpath(xml(triggerbody()), './/OPPORTUNITY_NUMBER/text()')?[0]}",
+                                        "S4SRelevant_for_Forecast__c": "@if(equals(xpath(xml(triggerBody()), './/RELEVANT_FOR_FORECAST/text()')?[0], '1'), 'true', if(equals(xpath(xml(triggerBody()), './/RELEVANT_FOR_FORECAST/text()')?[0], '0'), 'false', if(equals(xpath(xml(triggerBody()), './/RELEVANT_FOR_FORECAST/text()')?[0], string('null')), string(''), if(equals(xpath(xml(triggerBody()), './/RELEVANT_FOR_FORECAST/text()')?[0], null), string(''), xpath(xml(triggerBody()), './/RELEVANT_FOR_FORECAST/text()')?[0]))))",
+                                        "S4SSAP_Number__c": "@{xpath(xml(triggerbody()), './/SAP_NUMBER/text()')?[0]}",
+                                        "S4SSale_Country__c": "",
+                                        "S4SSales_Status__c": "@{variables('OppSalesStatus')}",
+                                        "S4SSales_Type__c": "@{xpath(xml(triggerbody()), './/SALES_TYPE/text()')?[0]}",
+                                        "S4SSite__c": "@{xpath(xml(triggerbody()), './/SITE_ID/text()')?[0]}",
+                                        "S4SStrategic_Priority__c": "@{xpath(xml(triggerbody()), './/STRATEGIC_PRIORITY/text()')?[0]}",
+                                        "S4STotal_Investment__c": "@{xpath(xml(triggerbody()), './/OFFER_TOTAL_COST/text()')?[0]}",
+                                        "StageName": "@{variables('OppStage')}",
+                                        "Type": "@{xpath(xml(triggerbody()), './/OPTY_TYPE/text()')?[0]}",
+                                        "bookingLine": [
+                                            {
+                                                "S4SExternal_Source__c": "@{xpath(xml(triggerbody()), './/SOURCE_SYSTEM_CODE/text()')?[0]}",
+                                                "S4SOrder_Intake__c": "@{xpath(xml(triggerbody()), './/TOTAL_VOLUME/text()')?[0]}",
+                                                "S4SQuantity__c": "",
+                                                "S4SSales_Price__c": ""
+                                            }
+                                        ],
+                                        "quote": [
+                                            {
+                                                "quote": {
+                                                    "Quote": {
+                                                        "CurrencyIsoCode": "@{xpath(xml(triggerbody()), './/CURRENCY/text()')?[0]}",
+                                                        "Description": "@{xpath(xml(triggerbody()), './/DESCRIPTION/text()')?[0]}",
+                                                        "ExpirationDate": "@{xpath(xml(triggerbody()), './/BID_EXPIRATION/text()')?[0]}",
+                                                        "Name": "@{xpath(xml(triggerbody()), './/OFFER_NAME/text()')?[0]}",
+                                                        "S4SExternal_Source__c": "@{xpath(xml(triggerbody()), './/SOURCE_SYSTEM_CODE/text()')?[0]}",
+                                                        "S4SMain_Offer__c": "@{xpath(xml(triggerbody()), './/MAIN_OFFER/text()')?[0]}",
+                                                        "S4SOffer_Date__c": "@{xpath(xml(triggerbody()), './/BID_SUBMISSION/text()')?[0]}",
+                                                        "S4SOffer_ID__c": "@{xpath(xml(triggerbody()), './/OFFER_ID/text()')?[0]}",
+                                                        "S4SSales_Margin__c": "@{xpath(xml(triggerbody()), './/SALES_MARGIN/text()')?[0]}",
+                                                        "S4SSource_System__c": "@{xpath(xml(triggerbody()), './/SOURCE_SYSTEM_TEXT/text()')?[0]}",
+                                                        "S4SVolume__c": "@{xpath(xml(triggerbody()), './/VOLUME/text()')?[0]}"
+                                                    }
+                                                },
+                                                "quoteLine": [
+                                                    {
+                                                        "Quantity": "",
+                                                        "S4SExternal_Source__c": "@{xpath(xml(triggerbody()), './/SOURCE_SYSTEM_CODE/text()')?[0]}",
+                                                        "TotalPrice": "@{xpath(xml(triggerbody()), './/VOLUME/text()')?[0]}",
+                                                        "UnitPrice": ""
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                },
+                                "runAfter": {
+                                    "Condition_IFA_is_empty": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Compose"
+                            },
+                            "ComposeOpp": {
+                                "inputs": "ComposeOpp",
+                                "runAfter": {},
+                                "type": "Compose"
+                            },
+                            "Compose_UpsertOpportunity_Request": {
+                                "inputs": {
+                                    "AccountId": "@if(empty(outputs('Compose')?['Opportunity']?['AccountId']),null,outputs('Compose')?['Opportunity']?['AccountId'])",
+                                    "CloseDate": "@if(empty(outputs('Compose')?['Opportunity']?['CloseDate']),null,outputs('Compose')?['Opportunity']?['CloseDate'])",
+                                    "CurrencyIsoCode": "@if(empty(outputs('Compose')?['Opportunity']?['CurrencyIsoCode']),null,outputs('Compose')?['Opportunity']?['CurrencyIsoCode'])",
+                                    "Description": "@if(empty(outputs('Compose')?['Opportunity']?['Description']),null,outputs('Compose')?['Opportunity']?['Description'])",
+                                    "Id": "@if(empty(outputs('Compose')?['Opportunity']?['Id']),null,outputs('Compose')?['Opportunity']?['Id'])",
+                                    "Name": "@if(empty(outputs('Compose')?['Opportunity']?['Name']),null,outputs('Compose')?['Opportunity']?['Name'])",
+                                    "OwnerId": "@if(empty(outputs('Compose')?['Opportunity']?['OwnerId']),null,outputs('Compose')?['Opportunity']?['OwnerId'])",
+                                    "S4SAcceptance_Closure__c": "@if(empty(outputs('Compose')?['Opportunity']?['S4SAcceptance_Closure__c']),null,outputs('Compose')?['Opportunity']?['S4SAcceptance_Closure__c'])",
+                                    "S4SBid_approval_PM040__c": "@if(empty(outputs('Compose')?['Opportunity']?['S4SBid_approval_PM040__c']),null,outputs('Compose')?['Opportunity']?['S4SBid_approval_PM040__c'])",
+                                    "S4SChance_of_Execution__c": "@if(empty(outputs('Compose')?['Opportunity']?['S4SChance_of_Execution__c']),null,outputs('Compose')?['Opportunity']?['S4SChance_of_Execution__c'])",
+                                    "S4SChance_of_Success__c": "@if(empty(outputs('Compose')?['Opportunity']?['S4SChance_of_Success__c']),null,outputs('Compose')?['Opportunity']?['S4SChance_of_Success__c'])",
+                                    "S4SCountry_of_Installation__c": "@if(empty(outputs('Compose')?['Opportunity']?['S4SCountry_of_Installation__c']),null,outputs('Compose')?['Opportunity']?['S4SCountry_of_Installation__c'])",
+                                    "S4SDivision__c": "@if(empty(outputs('Compose')?['Opportunity']?['Division']),null,outputs('Compose')?['Opportunity']?['Division'])",
+                                    "S4SEnd_Account_Account__c": "@bool(if(empty(variables('S4SEnd_Account_Account__c')),'false',variables('S4SEnd_Account_Account__c')))",
+                                    "S4SEnd_Account__c": "@if(empty(outputs('Compose')?['Opportunity']?['S4SEnd_Account__c']),null,outputs('Compose')?['Opportunity']?['S4SEnd_Account__c'])",
+                                    "S4SExternal_Source__c": "@if(empty(outputs('Compose')?['Opportunity']?['S4SExternal_Source__c']),null,outputs('Compose')?['Opportunity']?['S4SExternal_Source__c'])",
+                                    "S4SGross_Margin__c": "@if(empty(outputs('Compose')?['Opportunity']?['S4SGross_Margin__c']),null,outputs('Compose')?['Opportunity']?['S4SGross_Margin__c'])",
+                                    "S4SInstallation__c": "@if(empty(outputs('Compose')?['Opportunity']?['S4SInstallation__c']),null,outputs('Compose')?['Opportunity']?['S4SInstallation__c'])",
+                                    "S4SMain_Reason__c": "@if(empty(outputs('Compose')?['Opportunity']?['S4SMain_Reason__c']),null,outputs('Compose')?['Opportunity']?['S4SMain_Reason__c'])",
+                                    "S4SOpportunity_Industry_Search__c": "@if(empty(outputs('Compose')?['Opportunity']?['S4SOpportunity_Industry_Search__c']),null,outputs('Compose')?['Opportunity']?['S4SOpportunity_Industry_Search__c'])",
+                                    "S4SReference_ID__c": "@{if(empty(outputs('Compose')?['Opportunity']?['S4SReference_ID__c']),null,outputs('Compose')?['Opportunity']?['S4SReference_ID__c'])}",
+                                    "S4SRelevant_for_Forecast__c": "@bool(if(empty(outputs('Compose')?['Opportunity']?['S4SRelevant_for_Forecast__c']),'false',outputs('Compose')?['Opportunity']?['S4SRelevant_for_Forecast__c']))",
+                                    "S4SSAP_Number__c": "@if(empty(outputs('Compose')?['Opportunity']?['S4SSAP_Number__c']),null,outputs('Compose')?['Opportunity']?['S4SSAP_Number__c'])",
+                                    "S4SSales_Status__c": "@if(empty(variables('OppSalesStatus')),null,variables('OppSalesStatus'))",
+                                    "S4SSales_Type__c": "@if(empty(outputs('Compose')?['Opportunity']?['S4SSales_Type__c']),null,outputs('Compose')?['Opportunity']?['S4SSales_Type__c'])",
+                                    "S4SSite__c": "@if(empty(outputs('Compose')?['Opportunity']?['S4SSite__c']),null,outputs('Compose')?['Opportunity']?['S4SSite__c'])",
+                                    "S4SStrategic_Priority__c": "@if(empty(outputs('Compose')?['Opportunity']?['S4SStrategic_Priority__c']),null,outputs('Compose')?['Opportunity']?['S4SStrategic_Priority__c'])",
+                                    "S4STotal_Investment__c": "@if(empty(outputs('Compose')?['Opportunity']?['S4STotal_Investment__c']),null,outputs('Compose')?['Opportunity']?['S4STotal_Investment__c'])",
+                                    "StageName": "@if(empty(variables('OppStage')),null,variables('OppStage'))",
+                                    "Type": "@if(empty(outputs('Compose')?['Opportunity']?['Type']),null,outputs('Compose')?['Opportunity']?['Type'])"
+                                },
+                                "runAfter": {
+                                    "Condition_Opportunity_Account": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Compose"
+                            },
+                            "Condition_IFA_is_empty": {
+                                "actions": {
+                                    "HTTP_Get_Account_Id": {
+                                        "inputs": {
+                                            "headers": {
+                                                "Authorization": "Bearer @{body('HTTP-GetToken')}"
+                                            },
+                                            "method": "GET",
+                                            "queries": {
+                                                "q": "SELECT Id FROM Account WHERE S4SIfa__c = '@{xpath(xml(triggerbody()), './/END_CUSTOMER_ID/text()')?[0]}'"
+                                            },
+                                            "uri": "${instance_NonSFS_URL}/query"
+                                        },
+                                        "runAfter": {},
+                                        "type": "Http"
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "greater": [
+                                                "@length(variables('IFA'))",
+                                                "@int(1)"
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "Check-ConfigDetails": [
+                                        "Succeeded"
+                                    ],
+                                    "SIE_SF4S_execLogic_Spiridon": [
+                                        "Succeeded"
+                                    ],
+                                    "SIE_SF4S_succLogic_Spiridon": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "Condition_Opportunity_Account": {
+                                "actions": {
+                                    "Set_variable_S4SEnd_Account_Account__c": {
+                                        "inputs": {
+                                            "name": "S4SEnd_Account_Account__c",
+                                            "value": "false"
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    }
+                                },
+                                "else": {
+                                    "actions": {
+                                        "Set_variable_EndAccount_Account": {
+                                            "inputs": {
+                                                "name": "S4SEnd_Account_Account__c",
+                                                "value": "@{if(equals(xpath(xml(triggerBody()),'.//S4SEND_ACCOUNT_ACCOUNT__C/text()')?[0],'1'),'true',if(equals(xpath(xml(triggerBody()),'.//S4SEND_ACCOUNT_ACCOUNT__C/text()')?[0],'0'),'false', if(equals(xpath(xml(triggerBody()),'.//S4SEND_ACCOUNT_ACCOUNT__C/text()')?[0],string('null')),string(''),if(equals(xpath(xml(triggerBody()),'.//S4SEND_ACCOUNT_ACCOUNT__C/text()')?[0],null),string(''), coalease(xpath(xml(triggerBody()),'.//S4SEND_ACCOUNT_ACCOUNT__C/text()')?[0], 'false')))))}"
+                                            },
+                                            "runAfter": {},
+                                            "type": "SetVariable"
+                                        }
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@outputs('Compose')?['Opportunity']?['S4SEnd_Account__c']",
+                                                    "@null"
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@outputs('Compose')?['Opportunity']?['AccountId']",
+                                                    "@outputs('Compose')?['Opportunity']?['S4SEnd_Account__c']"
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@outputs('Compose')?['Opportunity']?['S4SEnd_Account__c']",
+                                                    "@string('')"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "Compose": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "GetConfigDetailsByStatus": {
+                                "inputs": {
+                                    "from": "@json(body('internal-getConfiguration'))?['CreateOpp_Spiridon']",
+                                    "where": "@equals(item()?['Key'], string(xpath(xml(triggerbody()), './/STATUS/text()')?[0]))"
+                                },
+                                "runAfter": {
+                                    "internal-getConfiguration": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Query"
+                            },
+                            "SIE_SF4S_execLogic_Spiridon": {
+                                "inputs": {
+                                    "body": {
+                                        "chanceOfExecution": "@xpath(xml(triggerbody()),'.//EXECUTION_CHANCE/text()')?[0]"
+                                    },
+                                    "host": {
+                                        "triggerName": "manual",
+                                        "workflow": {
+                                            "id": "${Spiridon_internal_SIE_SF4S_execLogic_Spiridon_logicAppId}"
+                                        }
+                                    },
+                                    "retryPolicy": {
+                                        "type": "none"
+                                    }
+                                },
+                                "runAfter": {
+                                    "ComposeOpp": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Workflow"
+                            },
+                            "SIE_SF4S_succLogic_Spiridon": {
+                                "inputs": {
+                                    "body": {
+                                        "chanceOfSuccess": "@xpath(xml(triggerbody()),'.//SUCCESS_CHANCE/text()')?[0]"
+                                    },
+                                    "host": {
+                                        "triggerName": "manual",
+                                        "workflow": {
+                                            "id": "${Spiridon_internal_SIE_SF4S_succLogic_Spiridon_logicAppId}"
+                                        }
+                                    },
+                                    "retryPolicy": {
+                                        "type": "none"
+                                    }
+                                },
+                                "runAfter": {
+                                    "ComposeOpp": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Workflow"
+                            },
+                            "internal-getConfiguration": {
+                                "inputs": {
+                                    "body": {
+                                        "key": "spiridon-config"
+                                    },
+                                    "host": {
+                                        "triggerName": "manual",
+                                        "workflow": {
+                                            "id": "${getConfiguration_logicAppId}"
+                                        }
+                                    },
+                                    "retryPolicy": {
+                                        "type": "none"
+                                    }
+                                },
+                                "runAfter": {
+                                    "ComposeOpp": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Workflow"
+                            },
+                            "internal_insert_update_opportunity": {
+                                "inputs": {
+                                    "body": "@outputs('Compose_UpsertOpportunity_Request')",
+                                    "host": {
+                                        "triggerName": "manual",
+                                        "workflow": {
+                                            "id": "${InsertUpdateOpportunity_logicApp_id}"
+                                        }
+                                    },
+                                    "retryPolicy": {
+                                        "type": "none"
+                                    }
+                                },
+                                "runAfter": {
+                                    "Compose_UpsertOpportunity_Request": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Workflow"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "equals": [
+                                    "@variables('mandatoryResponse')",
+                                    "@bool(true)"
+                                ]
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "ForEach-Product": [
+                            "Succeeded",
+                            "Failed"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Condition_OfferLineItemDefinition": {
+                    "actions": {
+                        "ForEach-OfferLineItemDefinition": {
+                            "actions": {
+                                "Append_to_array_variable-depthStructure": {
+                                    "inputs": {
+                                        "name": "depthStructure",
+                                        "value": "@body('XsltTransform')"
+                                    },
+                                    "runAfter": {
+                                        "Append_to_string_variable-dsdata": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "AppendToArrayVariable"
+                                },
+                                "Append_to_string_variable-dsdata": {
+                                    "inputs": {
+                                        "name": "dsdata",
+                                        "value": "@body('XsltTransform')"
+                                    },
+                                    "runAfter": {
+                                        "XsltTransform": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "AppendToStringVariable"
+                                },
+                                "Compose-OfferLineItem": {
+                                    "inputs": "@items('ForEach-OfferLineItemDefinition')",
+                                    "runAfter": {},
+                                    "type": "Compose"
+                                },
+                                "XsltTransform": {
+                                    "inputs": {
+                                        "body": "@outputs('Compose-OfferLineItem')",
+                                        "function": {
+                                            "id": "[concat(parameters('funcApp'), '/functions/XsltTransform')]"
+                                        },
+                                        "headers": {
+                                            "xsltName": "map-c00031-Spiridon-DepthStructureMapping"
+                                        },
+                                        "retryPolicy": {
+                                            "type": "none"
+                                        }
+                                    },
+                                    "runAfter": {
+                                        "Compose-OfferLineItem": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Function"
+                                }
+                            },
+                            "foreach": "@variables('OfferLineItemDefinition')",
+                            "runAfter": {},
+                            "runtimeConfiguration": {
+                                "concurrency": {
+                                    "repetitions": 1
+                                }
+                            },
+                            "type": "Foreach"
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('OfferLineItemDefinition')",
+                                        "@null"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                },
+                "ForEach-Product": {
+                    "actions": {
+                        "Condition_Status": {
+                            "actions": {
+                                "Set_variable-mandatoryResponse": {
+                                    "inputs": {
+                                        "name": "mandatoryResponse",
+                                        "value": "@bool(true)"
+                                    },
+                                    "runAfter": {
+                                        "Set_variable_upsertOfferResSpiridon_ErrorMsg": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "SetVariable"
+                                },
+                                "Set_variable_upsertOfferResSpiridon_ErrorMsg": {
+                                    "inputs": {
+                                        "name": "upsertOfferResSpiridon_ErrorMsg",
+                                        "value": "@{body('SIE_SF4S_MandatoryFields_Spiridon')?['SIE_SF4S_MandatoryFieldsRes_Spiridon']?['message']}"
+                                    },
+                                    "runAfter": {
+                                        "Set_variable_upsertOfferResSpiridon_Success": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "SetVariable"
+                                },
+                                "Set_variable_upsertOfferResSpiridon_Success": {
+                                    "inputs": {
+                                        "name": "upsertOfferResSpiridon_Success",
+                                        "value": "@{body('SIE_SF4S_MandatoryFields_Spiridon')?['SIE_SF4S_MandatoryFieldsRes_Spiridon']?['status']}"
+                                    },
+                                    "runAfter": {},
+                                    "type": "SetVariable"
+                                }
+                            },
+                            "expression": {
+                                "or": [
+                                    {
+                                        "equals": [
+                                            "@body('SIE_SF4S_MandatoryFields_Spiridon')?['SIE_SF4S_MandatoryFieldsRes_Spiridon']?['status']",
+                                            "@string('false')"
+                                        ]
+                                    },
+                                    {
+                                        "equals": [
+                                            "@items('ForEach-Product')?['Status']",
+                                            "@string('false')"
+                                        ]
+                                    }
+                                ]
+                            },
+                            "runAfter": {},
+                            "type": "If"
+                        }
+                    },
+                    "foreach": "@body('SIE_SF4S_MandatoryFields_Spiridon')?['SIE_SF4S_MandatoryFieldsRes_Spiridon']?['Product']",
+                    "runAfter": {
+                        "SIE_SF4S_MandatoryFields_Spiridon": [
+                            "Succeeded"
+                        ]
+                    },
+                    "runtimeConfiguration": {
+                        "concurrency": {
+                            "repetitions": 1
+                        }
+                    },
+                    "type": "Foreach"
+                },
+                "MandatorySpiridon": {
+                    "inputs": "<SIE_SF4S_MandatoryFieldsReq_Spiridon>\n<AccountIFA>@{xpath(xml(variables('upsertOfferReqSpiridon')),'string(/*[local-name()=\"SIE_SF4S_upsertOfferReq_Spiridon\"]/*[local-name()=\"IFA_NUMBER\"])')}</AccountIFA>\n@{variables('dsdata')}\n<Partial_Update>@{xpath(xml(variables('upsertOfferReqSpiridon')),'string(/*[local-name()=\"SIE_SF4S_upsertOfferReq_Spiridon\"]/*[local-name()=\"PARTIAL_UPDATE\"])')}</Partial_Update>\n<SalesRep_GID>@{xpath(xml(variables('upsertOfferReqSpiridon')),'string(/*[local-name()=\"SIE_SF4S_upsertOfferReq_Spiridon\"]/*[local-name()=\"SALESREP_GID\"])')}</SalesRep_GID>\n</SIE_SF4S_MandatoryFieldsReq_Spiridon>",
+                    "runAfter": {
+                        "Append_to_array_variable-depthStructure-2": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Compose"
+                },
+                "SIE_SF4S_MandatoryFields_Spiridon": {
+                    "inputs": {
+                        "body": "@json(xml(outputs('MandatorySpiridon')))",
+                        "host": {
+                            "triggerName": "manual",
+                            "workflow": {
+                                "id": "${Spiridon_SIE_SF4S_MandatoryFields_Spiridon_logicAppId}"
+                            }
+                        },
+                        "retryPolicy": {
+                            "type": "none"
+                        }
+                    },
+                    "runAfter": {
+                        "MandatorySpiridon": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Workflow"
+                },
+                "Set_variable-errormsg-3": {
+                    "inputs": {
+                        "name": "errormsg",
+                        "value": "@{body('SIE_SF4S_MandatoryFields_Spiridon')}"
+                    },
+                    "runAfter": {
+                        "SIE_SF4S_MandatoryFields_Spiridon": [
+                            "Failed",
+                            "Skipped",
+                            "TimedOut"
+                        ]
+                    },
+                    "type": "SetVariable"
+                },
+                "Transform_XML": {
+                    "inputs": {
+                        "content": "@{xml(variables('upsertOfferReqSpiridon'))}",
+                        "integrationAccount": {
+                            "map": {
+                                "name": "map-C00031-Spiridon-DepthStructurePrimaryMapping"
+                            }
+                        },
+                        "transformOptions": "ApplyXsltOutputAttributes"
+                    },
+                    "runAfter": {
+                        "Condition_OfferLineItemDefinition": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Xslt"
+                }
+            },
+            "runAfter": {
+                "HTTP-GetToken": [
+                    "Succeeded"
+                ],
+                "Initialize_IFA_Value": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_Count": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_ErrorMsg": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_Index": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_OfferLineItemDefinition": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_OfferLineItemfinalResponse": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_OppSalesStatus": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_OppStage": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_QuoteSalesStatus": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_S4SEnd_Account_Account__c": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_SIE_SF4S_upsertOfferReq_Spiridon": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_Success": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_depthStructure": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_dsdata": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_error_msg": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_mandatoryResponse": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_upsertOfferResSpiridon_Success": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_whereClause": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_whereClausePriceBook": [
+                    "Succeeded"
+                ]
+            },
+            "trackedProperties": {
+                "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'internal') }",
+                "citizenName": "c00031",
+                "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'Spiridon')}",
+                "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'SIE_SF4S_upsertOffer_Spiridon')}",
+                "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+                "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+            },
+            "type": "Scope"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {},
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

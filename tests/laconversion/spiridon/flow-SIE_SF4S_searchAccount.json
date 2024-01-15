@@ -1,0 +1,762 @@
+{
+  
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Initialize_variable_ZeroResults": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "ZeroResults",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_fetchCompose": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "fetchCompose",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_fetchResponse": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "fetchResponse",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_finalResponse": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "finalResponse",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_whereClause": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "whereClause",
+                        "type": "string",
+                        "value": "S4SIfA__c='@{trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"Id\"])'))}'"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_whereClauseForfetchAccount": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "whereClauseForfetchAccount",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Scope_Catch": {
+            "actions": {
+                "Response_Error": {
+                    "inputs": {
+                        "body": "Internal server error",
+                        "headers": {
+                            "Content-Type": "text/xml"
+                        },
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                }
+            },
+            "runAfter": {
+                "Scope_Try": [
+                    "Failed"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope_Try": {
+            "actions": {
+                "Compose_for_finalResponse": {
+                    "inputs": "@json(if(equals(variables('finalResponse'),''),concat('{\"SIE_SF4S_searchAccountOutput\": {\"Account\": [',variables('ZeroResults'),']}}'),concat('{\"SIE_SF4S_searchAccountOutput\": { \"Account\": [',variables('finalResponse'),']}}')))",
+                    "runAfter": {
+                        "For_each_Account": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Compose"
+                },
+                "Compose_searchAccountRes": {
+                    "inputs": "@xml(json(concat('{ \"SIE_SF4S_searchAccountRes\": { \"Account\": [ ', variables('fetchCompose'), ']}}')))",
+                    "runAfter": {
+                        "For_each_2": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Compose"
+                },
+                "Execute_a_SOQL_query": {
+                    "inputs": {
+                        "body": {
+                            "query": "select Id,S4SIfA__c from Account where @{variables('whereClause')} LIMIT+50"
+                        },
+                        "host": {
+                            "connection": {
+                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                            }
+                        },
+                        "method": "post",
+                        "path": "/soql/executesoqlquery"
+                    },
+                    "runAfter": {},
+                    "type": "ApiConnection"
+                },
+                "For_each_Account": {
+                    "actions": {
+                        "Compose_Account_Data": {
+                            "inputs": {
+                                "Id": "@{items('For_each_Account')?['Id']}",
+                                "S4SIfA__c": "@{items('For_each_Account')?['S4SIfA__c']}"
+                            },
+                            "runAfter": {},
+                            "type": "Compose"
+                        },
+                        "Compose_Final_Response": {
+                            "inputs": "@if(equals(variables('finalResponse'),''),outputs('Compose_Account_Data'),concat(variables('finalResponse'),',',outputs('Compose_Account_Data')))",
+                            "runAfter": {
+                                "Compose_Account_Data": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Compose"
+                        },
+                        "Set_variable_finalResponse": {
+                            "inputs": {
+                                "name": "finalResponse",
+                                "value": "@{outputs('Compose_Final_Response')}"
+                            },
+                            "runAfter": {
+                                "Compose_Final_Response": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "SetVariable"
+                        }
+                    },
+                    "foreach": "@body('Execute_a_SOQL_query')?['records']",
+                    "runAfter": {
+                        "Execute_a_SOQL_query": [
+                            "Succeeded"
+                        ]
+                    },
+                    "runtimeConfiguration": {
+                        "concurrency": {
+                            "repetitions": 1
+                        }
+                    },
+                    "type": "Foreach"
+                },
+                "For_each_2": {
+                    "actions": {
+                        "Execute_a_SOQL_query_2": {
+                            "inputs": {
+                                "body": {
+                                    "query": "select Id,IsDeleted,MasterRecordId,Name,Type,RecordTypeId,ParentId,BillingStreet,BillingCity,BillingState,BillingPostalCode,BillingCountry,BillingStateCode,BillingCountryCode,BillingLatitude,BillingLongitude,BillingGeocodeAccuracy,BillingAddress,ShippingStreet,ShippingCity,ShippingState,ShippingPostalCode,ShippingCountry,ShippingStateCode,ShippingCountryCode,ShippingLatitude,ShippingLongitude,ShippingGeocodeAccuracy,ShippingAddress,Phone,Fax,AccountNumber,Website,PhotoUrl,Sic,Industry,AnnualRevenue,NumberOfEmployees,Ownership,TickerSymbol,Description,Rating,Site,CurrencyIsoCode,OwnerId,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastActivityDate,LastViewedDate,LastReferencedDate,IsPartner,IsCustomerPortal,ChannelProgramName,ChannelProgramLevelName,Jigsaw,JigsawCompanyId,AccountSource,SicDesc,LID__LinkedIn_Company_Id__c,Copado_Testing__c,S4SACCOUNT_LegacyID__c,S4SARE__c,S4SAccount_Assignment__c,S4SAccount_Current_Record_Link__c,S4SAccount_Group_Type__c,S4SAccount_Life_Cycle__c,S4SAccount_Name_International__c,S4SAccount_Role__c,S4SAvailable_languages__c,S4SBusiness_Availability_24h_365_days__c,S4SBusiness_Availability_24h_Mon_Fri__c,S4SBusiness_Unit__c,S4SBypass_Duplicate_rules__c,S4SCID_Number__c,S4SCMD_IfA_Update__c,S4SCMD_KUKLA__c,S4SCMD_NAME1_I__c,S4SCMD_NAME1__c,S4SCMD_NAME2_I__c,S4SCMD_NAME2__c,S4SCMD_NAME3_I__c,S4SCMD_NAME3__c,S4SCMD_REGION__c,S4SCMD_STREET2__c,S4SCMD_STREET__c,S4SCMD_Subscription_Rejected_Date__c,S4SChange_n__c,S4SChange_of_NPS__c,S4SCheck_IFAs_and_Contacts__c,S4SCity_PO_Box_International__c,S4SCity_PO_Box__c,S4SCompany_Postal_Code__c,S4SCompany_Summary__c,S4SCurrent_FY_NPS__c,S4SDUNS__c,S4SDivision__c,S4SDomestic_Ultimate_DUNS__c,S4SDuns_Information__c,S4SDuplicate_IfA_Number__c,S4SEmail__c,S4SEngineering_electrical__c,S4SEngineering_mechanical__c,S4SExternal_Account_HelpText__c,S4SFacebook__c,S4SField_Services_24_7__c,S4SFounding_Year__c,S4SFrom_Search__c,S4SGlobal_Frame_Agreement_Database__c,S4SGlobal_Ultimate_DUNS__c,S4SISIC__c,S4SIfAAutoNumber__c,S4SIfA_Siemens_Location__c,S4SIfA__c,S4SIndustry_Direct__c,S4SIndustry_Segment_Direct__c,S4SIndustry_Segment_Ship_To__c,S4SIndustry_Ship_To__c,S4SInternational_City__c,S4SInternational_CountryGP__c,S4SInternational_Country__c,S4SInternational_Postal_Code__c,S4SInternational_RegionGP__c,S4SInternational_Region__c,S4SInternational_Steet_Name_2__c,S4SInternational_Street_Name_1__c,S4SIsOwnerCMDUser__c,S4SIs_Partner__c,S4SLead_Country__c,S4SLead_Org__c,S4SLegalOwner__c,S4SLocal_Search_Term__c,S4SMD_Status__c,S4SNPS_Trend__c,S4SNat_Company_ID__c,S4SNo_Legal_Form_available__c,S4SNo_of_Active_Candidature__c,S4SNo_of_Cancelled_Candidature__c,S4SNomination_Letter__c,S4SNormal_Business_Hours__c,S4SNotification_from_CMD__c,S4SOfferings_to_the_market_SOP__c,S4SOfferings_to_the_market_VAR__c,S4SOperational_radius__c,S4SOrganization_Code__c,S4SPO_Box_Postcode__c,S4SPO_box__c,S4SParent_Account_Group__c,S4SParent_DUNS__c,S4SPartner_Main_Industries__c,S4SPartner_Type__c,S4SPartnership_Status__c,S4SPartnership_with_competing_vendors__c,S4SPrevious_FY_NPS__c,S4SPrevious_FY_n__c,S4SPrevious_IfA_Number__c,S4SPulse_Link__c,S4SRelevant_Portfolio__c,S4SResponders_current_FY_n__c,S4SSFS_Confidential__c,S4SSISIC_Direct_Description__c,S4SSISIC_Direct__c,S4SSISIC_Ship_To_Description__c,S4SSISIC_Ship_To__c,S4SSalesCountry__c,S4SSales_Branch__c,S4SSales_Country__c,S4SSales_Department__c,S4SSales_Office__c,S4SSales_Org_Type__c,S4SSales_Sub_Region__c,S4SSales_Territory__c,S4SService_electrical__c,S4SService_mechanical__c,S4SShopfloor_level_square_meters__c,S4SShort_Partner_company_description__c,S4SSiemens_Account_Type__c,S4STax_ID__c,S4STotal_Employees__c,S4SVertical_Name__c,S4S_No_Matched_Accounts_Found__c,S4SClone_Account_Number__c,S4SNumber_of_Pricing_Primary__c,Account_Assignments__c,S4SBypassValidationForProcessBuilder__c,S4SConfidentiality_Status__c,S4SDAndBCreated__c,S4SData_Visibility__c,S4SIdentification_Number__c,S4SLegal_Status__c,S4SMarked_for_Deletion__c,S4SPartner_Group__c,S4SQuip_ABP_URL__c,S4SQuip_Briefing_URL__c,S4SQuip_CSVP_URL__c,S4SSAP_Client__c,S4SSAP_System_ID__c,S4SSales_Planning_enabled__c,S4SClone_Confidential__c,S4SCounty_FIPS__c,S4SCounty__c,S4SCustomer_Classification__c,S4SExternal_Source__c,S4SGeographical_Code__c,S4SIndirect_Creation_Status__c,S4SLead_Central_Enabled_Account__c,S4SMilitary_Non_Military_Use__c,S4SNTA__c,S4SRegion__c,S4SRelated_IfA__c,S4SSkipValidationForDataVisibilty__c,S4SPartner_Group_Record_Type_Name__c,Owner.Id,Owner.Suffix,Owner.Name,Owner.CompanyName,Owner.Division,Owner.Department,Owner.Title,Owner.Street,Owner.City,Owner.State,Owner.PostalCode,Owner.Country,Owner.StateCode,Owner.CountryCode,Owner.Latitude,Owner.Longitude,Owner.GeocodeAccuracy,Owner.Address,Owner.Email,Owner.EmailPreferencesAutoBcc,Owner.EmailPreferencesAutoBccStayInTouch,Owner.EmailPreferencesStayInTouchReminder,Owner.SenderEmail,Owner.SenderName,Owner.Signature,Owner.StayInTouchSubject,Owner.StayInTouchSignature,Owner.StayInTouchNote,Owner.Phone,Owner.Fax,Owner.MobilePhone,Owner.Alias,Owner.CommunityNickname,Owner.BadgeText,Owner.IsActive,Owner.TimeZoneSidKey,Owner.UserRoleId,Owner.LocaleSidKey,Owner.ReceivesInfoEmails,Owner.ReceivesAdminInfoEmails,Owner.EmailEncodingKey,Owner.DefaultCurrencyIsoCode,Owner.CurrencyIsoCode,Owner.ProfileId,Owner.UserType,Owner.LanguageLocaleKey,Owner.EmployeeNumber,Owner.DelegatedApproverId,Owner.ManagerId,Owner.LastLoginDate,Owner.LastPasswordChangeDate,Owner.CreatedDate,Owner.CreatedById,Owner.LastModifiedDate,Owner.LastModifiedById,Owner.SystemModstamp,Owner.OfflineTrialExpirationDate,Owner.OfflinePdaTrialExpirationDate,Owner.UserPermissionsMarketingUser,Owner.UserPermissionsOfflineUser,Owner.UserPermissionsAvantgoUser,Owner.UserPermissionsCallCenterAutoLogin,Owner.UserPermissionsMobileUser,Owner.UserPermissionsSFContentUser,Owner.UserPermissionsKnowledgeUser,Owner.UserPermissionsInteractionUser,Owner.UserPermissionsSupportUser,Owner.UserPermissionsLiveAgentUser,Owner.ForecastEnabled,Owner.UserPreferencesActivityRemindersPopup,Owner.UserPreferencesEventRemindersCheckboxDefault,Owner.UserPreferencesTaskRemindersCheckboxDefault,Owner.UserPreferencesReminderSoundOff,Owner.UserPreferencesDisableAllFeedsEmail,Owner.UserPreferencesDisableFollowersEmail,Owner.UserPreferencesDisableProfilePostEmail,Owner.UserPreferencesDisableChangeCommentEmail,Owner.UserPreferencesDisableLaterCommentEmail,Owner.UserPreferencesDisProfPostCommentEmail,Owner.UserPreferencesContentNoEmail,Owner.UserPreferencesContentEmailAsAndWhen,Owner.UserPreferencesApexPagesDeveloperMode,Owner.UserPreferencesHideCSNGetChatterMobileTask,Owner.UserPreferencesDisableMentionsPostEmail,Owner.UserPreferencesDisMentionsCommentEmail,Owner.UserPreferencesHideCSNDesktopTask,Owner.UserPreferencesHideChatterOnboardingSplash,Owner.UserPreferencesHideSecondChatterOnboardingSplash,Owner.UserPreferencesDisCommentAfterLikeEmail,Owner.UserPreferencesDisableLikeEmail,Owner.UserPreferencesSortFeedByComment,Owner.UserPreferencesDisableMessageEmail,Owner.UserPreferencesDisableBookmarkEmail,Owner.UserPreferencesDisableSharePostEmail,Owner.UserPreferencesEnableAutoSubForFeeds,Owner.UserPreferencesDisableFileShareNotificationsForApi,Owner.UserPreferencesShowTitleToExternalUsers,Owner.UserPreferencesShowManagerToExternalUsers,Owner.UserPreferencesShowEmailToExternalUsers,Owner.UserPreferencesShowWorkPhoneToExternalUsers,Owner.UserPreferencesShowMobilePhoneToExternalUsers,Owner.UserPreferencesShowFaxToExternalUsers,Owner.UserPreferencesShowStreetAddressToExternalUsers,Owner.UserPreferencesShowCityToExternalUsers,Owner.UserPreferencesShowStateToExternalUsers,Owner.UserPreferencesShowPostalCodeToExternalUsers,Owner.UserPreferencesShowCountryToExternalUsers,Owner.UserPreferencesShowProfilePicToGuestUsers,Owner.UserPreferencesShowTitleToGuestUsers,Owner.UserPreferencesShowCityToGuestUsers,Owner.UserPreferencesShowStateToGuestUsers,Owner.UserPreferencesShowPostalCodeToGuestUsers,Owner.UserPreferencesShowCountryToGuestUsers,Owner.UserPreferencesPipelineViewHideHelpPopover,Owner.UserPreferencesHideS1BrowserUI,Owner.UserPreferencesDisableEndorsementEmail,Owner.UserPreferencesPathAssistantCollapsed,Owner.UserPreferencesCacheDiagnostics,Owner.UserPreferencesShowEmailToGuestUsers,Owner.UserPreferencesShowManagerToGuestUsers,Owner.UserPreferencesShowWorkPhoneToGuestUsers,Owner.UserPreferencesShowMobilePhoneToGuestUsers,Owner.UserPreferencesShowFaxToGuestUsers,Owner.UserPreferencesShowStreetAddressToGuestUsers,Owner.UserPreferencesLightningExperiencePreferred,Owner.UserPreferencesPreviewLightning,Owner.UserPreferencesHideEndUserOnboardingAssistantModal,Owner.UserPreferencesHideLightningMigrationModal,Owner.UserPreferencesHideSfxWelcomeMat,Owner.UserPreferencesHideBiggerPhotoCallout,Owner.UserPreferencesGlobalNavBarWTShown,Owner.UserPreferencesGlobalNavGridMenuWTShown,Owner.UserPreferencesCreateLEXAppsWTShown,Owner.UserPreferencesFavoritesWTShown,Owner.UserPreferencesRecordHomeSectionCollapseWTShown,Owner.UserPreferencesRecordHomeReservedWTShown,Owner.UserPreferencesFavoritesShowTopFavorites,Owner.UserPreferencesExcludeMailAppAttachments,Owner.UserPreferencesSuppressTaskSFXReminders,Owner.UserPreferencesPreviewCustomTheme,Owner.UserPreferencesHasCelebrationBadge,Owner.UserPreferencesUserDebugModePref,Owner.UserPreferencesNewLightningReportRunPageEnabled,Owner.ContactId,Owner.AccountId,Owner.CallCenterId,Owner.Extension,Owner.PortalRole,Owner.IsPortalEnabled,Owner.FederationIdentifier,Owner.AboutMe,Owner.FullPhotoUrl,Owner.SmallPhotoUrl,Owner.IsExtIndicatorVisible,Owner.OutOfOfficeMessage,Owner.MediumPhotoUrl,Owner.DigestFrequency,Owner.DefaultGroupNotificationFrequency,Owner.LastViewedDate,Owner.LastReferencedDate,Owner.BannerPhotoUrl,Owner.SmallBannerPhotoUrl,Owner.MediumBannerPhotoUrl,Owner.IsProfilePhotoActive,Owner.IndividualId,Owner.copado__API_URL__c,Owner.copado__Hide_Copado_feedback__c,Owner.copado__Show_Copado_Tips__c,Owner.copado__Work_Manager_Panels__c,Owner.S4SARE__c,Owner.S4SBusiness_Segment__c,Owner.S4SBusiness_SubSegment__c,Owner.S4SBusiness_Unit__c,Owner.S4SCompany__c,Owner.S4SCost_Center__c,Owner.S4SDepartment__c,Owner.S4SDirX_Email__c,Owner.S4SDirX_Origin__c,Owner.S4SDivision_Territory__c,Owner.S4SEmailChangedDate__c,Owner.S4SFirst_Name_int__c,Owner.S4SGCK__c,Owner.S4SGID_Technical__c,Owner.S4SGID__c,Owner.S4SIsUserUpdated__c,Owner.S4SLast_Name_int__c,Owner.S4SLead_Country__c,Owner.S4SLocation__c,Owner.S4SManager_SCD_Technical__c,Owner.S4SManager_SCD__c,Owner.S4SOperations_Manager__c,Owner.S4SOrgUnit_SCD__c,Owner.S4SOrg_ID__c,Owner.S4SPrimary__c,Owner.S4SRelated_User_DirX__c,Owner.S4SSCD_Status__c,Owner.S4SSSP_Promotor_Planer__c,Owner.S4SSales_Branch__c,Owner.S4SSales_Department__c,Owner.S4SSales_District__c,Owner.S4SSales_Manager_Email__c,Owner.S4SSales_Office__c,Owner.S4SSales_SubRegion__c,Owner.S4SSales_Territory__c,Owner.S4SSalutation__c,Owner.S4SSiemens_Territory_Structure_Name__c,Owner.S4SSiemens_Territory_Structure__c,Owner.S4SSingle_Sign_On_Only__c,Owner.S4SSponsor_SCD_Technical__c,Owner.S4SSponsor_SCD__c,Owner.S4SSurname__c,Owner.S4SUser_s_Country__c,Owner.S4SUser_s_Division__c,Owner.DB_Region__c,Owner.S4SCurrency__c,Owner.S4SSales_Manager__c from Account where @{variables('whereClauseForfetchAccount')}"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/soql/executesoqlquery"
+                            },
+                            "runAfter": {
+                                "Set_variable_whereClauseForfetchAccount": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection"
+                        },
+                        "For_each_AccountResponse": {
+                            "actions": {
+                                "Compose_AccountResponse": {
+                                    "inputs": {
+                                        "AccountNumber": "@{items('For_each_AccountResponse')?['AccountNumber']}",
+                                        "AccountSource": "@{items('For_each_AccountResponse')?['AccountSource']}",
+                                        "Account_Assignments__c": "@{items('For_each_AccountResponse')?['Account_Assignments__c']}",
+                                        "AnnualRevenue": "@{items('For_each_AccountResponse')?['AnnualRevenue']}",
+                                        "BillingAddress": "@{items('For_each_AccountResponse')?['BillingAddress']}",
+                                        "BillingCity": "@{items('For_each_AccountResponse')?['BillingCity']}",
+                                        "BillingCountry": "@{items('For_each_AccountResponse')?['BillingCountry']}",
+                                        "BillingCountryCode": "@{items('For_each_AccountResponse')?['BillingCountryCode']}",
+                                        "BillingGeocodeAccuracy": "@{items('For_each_AccountResponse')?['BillingGeocodeAccuracy']}",
+                                        "BillingLatitude": "@{items('For_each_AccountResponse')?['BillingLatitude']}",
+                                        "BillingLongitude": "@{items('For_each_AccountResponse')?['BillingLongitude']}",
+                                        "BillingPostalCode": "@{items('For_each_AccountResponse')?['BillingPostalCode']}",
+                                        "BillingState": "@{items('For_each_AccountResponse')?['BillingState']}",
+                                        "BillingStateCode": "@{items('For_each_AccountResponse')?['BillingStateCode']}",
+                                        "BillingStreet": "@{items('For_each_AccountResponse')?['BillingStreet']}",
+                                        "ChannelProgramLevelName": "@{items('For_each_AccountResponse')?['ChannelProgramLevelName']}",
+                                        "ChannelProgramName": "@{items('For_each_AccountResponse')?['ChannelProgramName']}",
+                                        "Copado_Testing__c": "@{items('For_each_AccountResponse')?['Copado_Testing__c']}",
+                                        "CreatedById": "@{items('For_each_AccountResponse')?['CreatedById']}",
+                                        "CreatedDate": "@{items('For_each_AccountResponse')?['CreatedDate']}",
+                                        "CurrencyIsoCode": "@{items('For_each_AccountResponse')?['CurrencyIsoCode']}",
+                                        "Description": "@{items('For_each_AccountResponse')?['Description']}",
+                                        "Fax": "@{items('For_each_AccountResponse')?['Fax']}",
+                                        "Id": "@{items('For_each_AccountResponse')?['Id']}",
+                                        "Industry": "@{items('For_each_AccountResponse')?['Industry']}",
+                                        "IsCustomerPortal": "@{items('For_each_AccountResponse')?['IsCustomerPortal']}",
+                                        "IsDeleted": "@{items('For_each_AccountResponse')?['IsDeleted']}",
+                                        "IsPartner": "@{items('For_each_AccountResponse')?['IsPartner']}",
+                                        "Jigsaw": "@{items('For_each_AccountResponse')?['Jigsaw']}",
+                                        "JigsawCompanyId": "@{items('For_each_AccountResponse')?['JigsawCompanyId']}",
+                                        "LID__LinkedIn_Company_Id__c": "@{items('For_each_AccountResponse')?['LID__LinkedIn_Company_Id__c']}",
+                                        "LastActivityDate": "@{items('For_each_AccountResponse')?['LastActivityDate']}",
+                                        "LastModifiedById": "@{items('For_each_AccountResponse')?['LastModifiedById']}",
+                                        "LastModifiedDate": "@{items('For_each_AccountResponse')?['LastModifiedDate']}",
+                                        "LastReferencedDate": "@{items('For_each_AccountResponse')?['LastReferencedDate']}",
+                                        "LastViewedDate": "@{items('For_each_AccountResponse')?['LastViewedDate']}",
+                                        "MasterRecordId": "@{items('For_each_AccountResponse')?['MasterRecordId']}",
+                                        "Name": "@{items('For_each_AccountResponse')?['Name']}",
+                                        "NumberOfEmployees": "@{items('For_each_AccountResponse')?['NumberOfEmployees']}",
+                                        "Owner": {
+                                            "AboutMe": "@{items('For_each_AccountResponse')?['Owner']?['AboutMe']}",
+                                            "AccountId": "@{items('For_each_AccountResponse')?['Owner']?['AccountId']}",
+                                            "Address": "@{items('For_each_AccountResponse')?['Owner']?['Address']}",
+                                            "Alias": "@{items('For_each_AccountResponse')?['Owner']?['Alias']}",
+                                            "BadgeText": "@{items('For_each_AccountResponse')?['Owner']?['BadgeText']}",
+                                            "BannerPhotoUrl": "@{items('For_each_AccountResponse')?['Owner']?['BannerPhotoUrl']}",
+                                            "CallCenterId": "@{items('For_each_AccountResponse')?['Owner']?['CallCenterId']}",
+                                            "City": "@{items('For_each_AccountResponse')?['Owner']?['City']}",
+                                            "CommunityNickname": "@{items('For_each_AccountResponse')?['Owner']?['CommunityNickname']}",
+                                            "CompanyName": "@{items('For_each_AccountResponse')?['Owner']?['CompanyName']}",
+                                            "ContactId": "@{items('For_each_AccountResponse')?['Owner']?['ContactId']}",
+                                            "Country": "@{items('For_each_AccountResponse')?['Owner']?['Country']}",
+                                            "CountryCode": "@{items('For_each_AccountResponse')?['Owner']?['CountryCode']}",
+                                            "CreatedById": "@{items('For_each_AccountResponse')?['Owner']?['CreatedById']}",
+                                            "CreatedDate": "@{items('For_each_AccountResponse')?['Owner']?['CreatedDate']}",
+                                            "CurrencyIsoCode": "@{items('For_each_AccountResponse')?['Owner']?['CurrencyIsoCode']}",
+                                            "DB_Region__c": "@{items('For_each_AccountResponse')?['Owner']?['DB_Region__c']}",
+                                            "DefaultCurrencyIsoCode": "@{items('For_each_AccountResponse')?['Owner']?['DefaultCurrencyIsoCode']}",
+                                            "DefaultGroupNotificationFrequency": "@{items('For_each_AccountResponse')?['Owner']?['DefaultGroupNotificationFrequency']}",
+                                            "DelegatedApproverId": "@{items('For_each_AccountResponse')?['Owner']?['DelegatedApproverId']}",
+                                            "Department": "@{items('For_each_AccountResponse')?['Owner']?['Department']}",
+                                            "DigestFrequency": "@{items('For_each_AccountResponse')?['Owner']?['DigestFrequency']}",
+                                            "Division": "@{items('For_each_AccountResponse')?['Owner']?['Division']}",
+                                            "Email": "@{items('For_each_AccountResponse')?['Owner']?['Email']}",
+                                            "EmailEncodingKey": "@{items('For_each_AccountResponse')?['Owner']?['EmailEncodingKey']}",
+                                            "EmailPreferencesAutoBcc": "@{items('For_each_AccountResponse')?['Owner']?['EmailPreferencesAutoBcc']}",
+                                            "EmailPreferencesAutoBccStayInTouch": "@{items('For_each_AccountResponse')?['Owner']?['EmailPreferencesAutoBccStayInTouch']}",
+                                            "EmailPreferencesStayInTouchReminder": "@{items('For_each_AccountResponse')?['Owner']?['EmailPreferencesStayInTouchReminder']}",
+                                            "EmployeeNumber": "@{items('For_each_AccountResponse')?['Owner']?['EmployeeNumber']}",
+                                            "Extension": "@{items('For_each_AccountResponse')?['Owner']?['Extension']}",
+                                            "Fax": "@{items('For_each_AccountResponse')?['Owner']?['Fax']}",
+                                            "FederationIdentifier": "@{items('For_each_AccountResponse')?['Owner']?['FederationIdentifier']}",
+                                            "ForecastEnabled": "@{items('For_each_AccountResponse')?['Owner']?['ForecastEnabled']}",
+                                            "FullPhotoUrl": "@{items('For_each_AccountResponse')?['Owner']?['FullPhotoUrl']}",
+                                            "GeocodeAccuracy": "@{items('For_each_AccountResponse')?['Owner']?['GeocodeAccuracy']}",
+                                            "Id": "@{items('For_each_AccountResponse')?['Owner']?['Id']}",
+                                            "IndividualId": "@{items('For_each_AccountResponse')?['Owner']?['IndividualId']}",
+                                            "IsActive": "@{items('For_each_AccountResponse')?['Owner']?['IsActive']}",
+                                            "IsExtIndicatorVisible": "@{items('For_each_AccountResponse')?['Owner']?['IsExtIndicatorVisible']}",
+                                            "IsPortalEnabled": "@{items('For_each_AccountResponse')?['Owner']?['IsPortalEnabled']}",
+                                            "IsProfilePhotoActive": "@{items('For_each_AccountResponse')?['Owner']?['IsProfilePhotoActive']}",
+                                            "LanguageLocaleKey": "@{items('For_each_AccountResponse')?['Owner']?['LanguageLocaleKey']}",
+                                            "LastLoginDate": "@{items('For_each_AccountResponse')?['Owner']?['LastLoginDate']}",
+                                            "LastModifiedById": "@{items('For_each_AccountResponse')?['Owner']?['LastModifiedById']}",
+                                            "LastModifiedDate": "@{items('For_each_AccountResponse')?['Owner']?['LastModifiedDate']}",
+                                            "LastPasswordChangeDate": "@{items('For_each_AccountResponse')?['Owner']?['LastPasswordChangeDate']}",
+                                            "LastReferencedDate": "@{items('For_each_AccountResponse')?['Owner']?['LastReferencedDate']}",
+                                            "LastViewedDate": "@{items('For_each_AccountResponse')?['Owner']?['LastViewedDate']}",
+                                            "Latitude": "@{items('For_each_AccountResponse')?['Owner']?['Latitude']}",
+                                            "LocaleSidKey": "@{items('For_each_AccountResponse')?['Owner']?['LocaleSidKey']}",
+                                            "Longitude": "@{items('For_each_AccountResponse')?['Owner']?['Longitude']}",
+                                            "ManagerId": "@{items('For_each_AccountResponse')?['Owner']?['ManagerId']}",
+                                            "MediumBannerPhotoUrl": "@{items('For_each_AccountResponse')?['Owner']?['MediumBannerPhotoUrl']}",
+                                            "MediumPhotoUrl": "@{items('For_each_AccountResponse')?['Owner']?['MediumPhotoUrl']}",
+                                            "MobilePhone": "@{items('For_each_AccountResponse')?['Owner']?['MobilePhone']}",
+                                            "Name": "@{items('For_each_AccountResponse')?['Owner']?['Name']}",
+                                            "OfflinePdaTrialExpirationDate": "@{items('For_each_AccountResponse')?['Owner']?['OfflinePdaTrialExpirationDate']}",
+                                            "OfflineTrialExpirationDate": "@{items('For_each_AccountResponse')?['Owner']?['OfflineTrialExpirationDate']}",
+                                            "OutOfOfficeMessage": "@{items('For_each_AccountResponse')?['Owner']?['OutOfOfficeMessage']}",
+                                            "Phone": "@{items('For_each_AccountResponse')?['Owner']?['Phone']}",
+                                            "PortalRole": "@{items('For_each_AccountResponse')?['Owner']?['PortalRole']}",
+                                            "PostalCode": "@{items('For_each_AccountResponse')?['Owner']?['PostalCode']}",
+                                            "ProfileId": "@{items('For_each_AccountResponse')?['Owner']?['ProfileId']}",
+                                            "ReceivesAdminInfoEmails": "@{items('For_each_AccountResponse')?['Owner']?['ReceivesAdminInfoEmails']}",
+                                            "ReceivesInfoEmails": "@{items('For_each_AccountResponse')?['Owner']?['ReceivesInfoEmails']}",
+                                            "S4SARE__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SARE__c']}",
+                                            "S4SBusiness_Segment__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SBusiness_Segment__c']}",
+                                            "S4SBusiness_SubSegment__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SBusiness_SubSegment__c']}",
+                                            "S4SBusiness_Unit__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SBusiness_Unit__c']}",
+                                            "S4SCompany__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SCompany__c']}",
+                                            "S4SCost_Center__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SCost_Center__c']}",
+                                            "S4SCurrency__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SCurrency__c']}",
+                                            "S4SDepartment__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SDepartment__c']}",
+                                            "S4SDirX_Email__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SDirX_Email__c']}",
+                                            "S4SDirX_Origin__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SDirX_Origin__c']}",
+                                            "S4SDivision_Territory__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SDivision_Territory__c']}",
+                                            "S4SEmailChangedDate__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SEmailChangedDate__c']}",
+                                            "S4SFirst_Name_int__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SFirst_Name_int__c']}",
+                                            "S4SGCK__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SGCK__c']}",
+                                            "S4SGID_Technical__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SGID_Technical__c']}",
+                                            "S4SGID__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SGID__c']}",
+                                            "S4SIsUserUpdated__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SIsUserUpdated__c']}",
+                                            "S4SLast_Name_int__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SLast_Name_int__c']}",
+                                            "S4SLead_Country__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SLead_Country__c']}",
+                                            "S4SLocation__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SLocation__c']}",
+                                            "S4SManager_SCD_Technical__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SManager_SCD_Technical__c']}",
+                                            "S4SManager_SCD__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SManager_SCD__c']}",
+                                            "S4SOperations_Manager__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SOperations_Manager__c']}",
+                                            "S4SOrgUnit_SCD__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SOrgUnit_SCD__c']}",
+                                            "S4SOrg_ID__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SOrg_ID__c']}",
+                                            "S4SPrimary__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SPrimary__c']}",
+                                            "S4SRelated_User_DirX__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SRelated_User_DirX__c']}",
+                                            "S4SSCD_Status__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SSCD_Status__c']}",
+                                            "S4SSSP_Promotor_Planer__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SSSP_Promotor_Planer__c']}",
+                                            "S4SSales_Branch__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SSales_Branch__c']}",
+                                            "S4SSales_Department__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SSales_Department__c']}",
+                                            "S4SSales_District__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SSales_District__c']}",
+                                            "S4SSales_Manager_Email__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SSales_Manager_Email__c']}",
+                                            "S4SSales_Manager__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SSales_Manager__c']}",
+                                            "S4SSales_Office__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SSales_Office__c']}",
+                                            "S4SSales_SubRegion__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SSales_SubRegion__c']}",
+                                            "S4SSales_Territory__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SSales_Territory__c']}",
+                                            "S4SSalutation__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SSalutation__c']}",
+                                            "S4SSiemens_Territory_Structure_Name__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SSiemens_Territory_Structure_Name__c']}",
+                                            "S4SSiemens_Territory_Structure__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SSiemens_Territory_Structure__c']}",
+                                            "S4SSingle_Sign_On_Only__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SSingle_Sign_On_Only__c']}",
+                                            "S4SSponsor_SCD_Technical__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SSponsor_SCD_Technical__c']}",
+                                            "S4SSponsor_SCD__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SSponsor_SCD__c']}",
+                                            "S4SSurname__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SSurname__c']}",
+                                            "S4SUser_s_Country__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SUser_s_Country__c']}",
+                                            "S4SUser_s_Division__c": "@{items('For_each_AccountResponse')?['Owner']?['S4SUser_s_Division__c']}",
+                                            "SenderEmail": "@{items('For_each_AccountResponse')?['Owner']?['SenderEmail']}",
+                                            "SenderName": "@{items('For_each_AccountResponse')?['Owner']?['SenderName']}",
+                                            "Signature": "@{items('For_each_AccountResponse')?['Owner']?['Signature']}",
+                                            "SmallBannerPhotoUrl": "@{items('For_each_AccountResponse')?['Owner']?['SmallBannerPhotoUrl']}",
+                                            "SmallPhotoUrl": "@{items('For_each_AccountResponse')?['Owner']?['SmallPhotoUrl']}",
+                                            "State": "@{items('For_each_AccountResponse')?['Owner']?['State']}",
+                                            "StateCode": "@{items('For_each_AccountResponse')?['Owner']?['StateCode']}",
+                                            "StayInTouchNote": "@{items('For_each_AccountResponse')?['Owner']?['StayInTouchNote']}",
+                                            "StayInTouchSignature": "@{items('For_each_AccountResponse')?['Owner']?['StayInTouchSignature']}",
+                                            "StayInTouchSubject": "@{items('For_each_AccountResponse')?['Owner']?['StayInTouchSubject']}",
+                                            "Street": "@{items('For_each_AccountResponse')?['Owner']?['Street']}",
+                                            "Suffix": "@{items('For_each_AccountResponse')?['Owner']?['Suffix']}",
+                                            "SystemModstamp": "@{items('For_each_AccountResponse')?['Owner']?['SystemModstamp']}",
+                                            "TimeZoneSidKey": "@{items('For_each_AccountResponse')?['Owner']?['TimeZoneSidKey']}",
+                                            "Title": "@{items('For_each_AccountResponse')?['Owner']?['Title']}",
+                                            "UserPermissionsAvantgoUser": "@{items('For_each_AccountResponse')?['Owner']?['UserPermissionsAvantgoUser']}",
+                                            "UserPermissionsCallCenterAutoLogin": "@{items('For_each_AccountResponse')?['Owner']?['UserPermissionsCallCenterAutoLogin']}",
+                                            "UserPermissionsInteractionUser": "@{items('For_each_AccountResponse')?['Owner']?['UserPermissionsInteractionUser']}",
+                                            "UserPermissionsKnowledgeUser": "@{items('For_each_AccountResponse')?['Owner']?['UserPermissionsKnowledgeUser']}",
+                                            "UserPermissionsLiveAgentUser": "@{items('For_each_AccountResponse')?['Owner']?['UserPermissionsLiveAgentUser']}",
+                                            "UserPermissionsMarketingUser": "@{items('For_each_AccountResponse')?['Owner']?['UserPermissionsMarketingUser']}",
+                                            "UserPermissionsMobileUser": "@{items('For_each_AccountResponse')?['Owner']?['UserPermissionsMobileUser']}",
+                                            "UserPermissionsOfflineUser": "@{items('For_each_AccountResponse')?['Owner']?['UserPermissionsOfflineUser']}",
+                                            "UserPermissionsSFContentUser": "@{items('For_each_AccountResponse')?['Owner']?['UserPermissionsSFContentUser']}",
+                                            "UserPermissionsSUserPpportUser": "@{items('For_each_AccountResponse')?['Owner']?['UserPermissionsSUserPpportUser']}",
+                                            "UserPreferencesActivityRemindersPopup": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesActivityRemindersPopup']}",
+                                            "UserPreferencesApexPagesDeveloperMode": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesApexPagesDeveloperMode']}",
+                                            "UserPreferencesCacheDiagnostics": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesCacheDiagnostics']}",
+                                            "UserPreferencesContentEmailAsAndWhen": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesContentEmailAsAndWhen']}",
+                                            "UserPreferencesContentNoEmail": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesContentNoEmail']}",
+                                            "UserPreferencesCreateLEXAppsWTShown": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesCreateLEXAppsWTShown']}",
+                                            "UserPreferencesDisCommentAfterLikeEmail": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesDisCommentAfterLikeEmail']}",
+                                            "UserPreferencesDisMentionsCommentEmail": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesDisMentionsCommentEmail']}",
+                                            "UserPreferencesDisProfPostCommentEmail": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesDisProfPostCommentEmail']}",
+                                            "UserPreferencesDisableAllFeedsEmail": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesDisableAllFeedsEmail']}",
+                                            "UserPreferencesDisableBookmarkEmail": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesDisableBookmarkEmail']}",
+                                            "UserPreferencesDisableChangeCommentEmail": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesDisableChangeCommentEmail']}",
+                                            "UserPreferencesDisableEndorsementEmail": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesDisableEndorsementEmail']}",
+                                            "UserPreferencesDisableFileShareNotificationsForApi": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesDisableFileShareNotificationsForApi']}",
+                                            "UserPreferencesDisableFollowersEmail": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesDisableFollowersEmail']}",
+                                            "UserPreferencesDisableLaterCommentEmail": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesDisableLaterCommentEmail']}",
+                                            "UserPreferencesDisableLikeEmail": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesDisableLikeEmail']}",
+                                            "UserPreferencesDisableMentionsPostEmail": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesDisableMentionsPostEmail']}",
+                                            "UserPreferencesDisableMessageEmail": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesDisableMessageEmail']}",
+                                            "UserPreferencesDisableProfilePostEmail": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesDisableProfilePostEmail']}",
+                                            "UserPreferencesDisableSharePostEmail": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesDisableSharePostEmail']}",
+                                            "UserPreferencesEnableAutoSubForFeeds": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesEnableAutoSubForFeeds']}",
+                                            "UserPreferencesEventRemindersCheckboxDefault": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesEventRemindersCheckboxDefault']}",
+                                            "UserPreferencesExcludeMailAppAttachments": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesExcludeMailAppAttachments']}",
+                                            "UserPreferencesFavoritesShowTopFavorites": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesFavoritesShowTopFavorites']}",
+                                            "UserPreferencesFavoritesWTShown": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesFavoritesWTShown']}",
+                                            "UserPreferencesGlobalNavBarWTShown": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesGlobalNavBarWTShown']}",
+                                            "UserPreferencesGlobalNavGridMenuWTShown": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesGlobalNavGridMenuWTShown']}",
+                                            "UserPreferencesHasCelebrationBadge": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesHasCelebrationBadge']}",
+                                            "UserPreferencesHideBiggerPhotoCallout": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesHideBiggerPhotoCallout']}",
+                                            "UserPreferencesHideCSNDesktopTask": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesHideCSNDesktopTask']}",
+                                            "UserPreferencesHideCSNGetChatterMobileTask": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesHideCSNGetChatterMobileTask']}",
+                                            "UserPreferencesHideChatterOnboardingSplash": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesHideChatterOnboardingSplash']}",
+                                            "UserPreferencesHideEndUserOnboardingAssistantModal": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesHideEndUserOnboardingAssistantModal']}",
+                                            "UserPreferencesHideLightningMigrationModal": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesHideLightningMigrationModal']}",
+                                            "UserPreferencesHideS1BrowserUI": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesHideS1BrowserUI']}",
+                                            "UserPreferencesHideSecondChatterOnboardingSplash": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesHideSecondChatterOnboardingSplash']}",
+                                            "UserPreferencesHideSfxWelcomeMat": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesHideSfxWelcomeMat']}",
+                                            "UserPreferencesLightningExperiencePreferred": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesLightningExperiencePreferred']}",
+                                            "UserPreferencesNewLightningReportRunPageEnabled": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesNewLightningReportRunPageEnabled']}",
+                                            "UserPreferencesPathAssistantCollapsed": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesPathAssistantCollapsed']}",
+                                            "UserPreferencesPipelineViewHideHelpPopover": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesPipelineViewHideHelpPopover']}",
+                                            "UserPreferencesPreviewCustomTheme": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesPreviewCustomTheme']}",
+                                            "UserPreferencesPreviewLightning": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesPreviewLightning']}",
+                                            "UserPreferencesRecordHomeReservedWTShown": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesRecordHomeReservedWTShown']}",
+                                            "UserPreferencesRecordHomeSectionCollapseWTShown": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesRecordHomeSectionCollapseWTShown']}",
+                                            "UserPreferencesReminderSoundOff": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesReminderSoundOff']}",
+                                            "UserPreferencesShowCityToExternalUsers": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesShowCityToExternalUsers']}",
+                                            "UserPreferencesShowCityToGuestUsers": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesShowCityToGuestUsers']}",
+                                            "UserPreferencesShowCountryToExternalUsers": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesShowCountryToExternalUsers']}",
+                                            "UserPreferencesShowCountryToGuestUsers": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesShowCountryToGuestUsers']}",
+                                            "UserPreferencesShowEmailToExternalUsers": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesShowEmailToExternalUsers']}",
+                                            "UserPreferencesShowEmailToGuestUsers": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesShowEmailToGuestUsers']}",
+                                            "UserPreferencesShowFaxToExternalUsers": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesShowFaxToExternalUsers']}",
+                                            "UserPreferencesShowFaxToGuestUsers": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesShowFaxToGuestUsers']}",
+                                            "UserPreferencesShowManagerToExternalUsers": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesShowManagerToExternalUsers']}",
+                                            "UserPreferencesShowManagerToGuestUsers": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesShowManagerToGuestUsers']}",
+                                            "UserPreferencesShowMobilePhoneToExternalUsers": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesShowMobilePhoneToExternalUsers']}",
+                                            "UserPreferencesShowMobilePhoneToGuestUsers": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesShowMobilePhoneToGuestUsers']}",
+                                            "UserPreferencesShowPostalCodeToExternalUsers": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesShowPostalCodeToExternalUsers']}",
+                                            "UserPreferencesShowPostalCodeToGuestUsers": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesShowPostalCodeToGuestUsers']}",
+                                            "UserPreferencesShowProfilePicToGuestUsers": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesShowProfilePicToGuestUsers']}",
+                                            "UserPreferencesShowStateToExternalUsers": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesShowStateToExternalUsers']}",
+                                            "UserPreferencesShowStateToGuestUsers": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesShowStateToGuestUsers']}",
+                                            "UserPreferencesShowStreetAddressToExternalUsers": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesShowStreetAddressToExternalUsers']}",
+                                            "UserPreferencesShowStreetAddressToGuestUsers": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesShowStreetAddressToGuestUsers']}",
+                                            "UserPreferencesShowTitleToExternalUsers": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesShowTitleToExternalUsers']}",
+                                            "UserPreferencesShowTitleToGuestUsers": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesShowTitleToGuestUsers']}",
+                                            "UserPreferencesShowWorkPhoneToExternalUsers": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesShowWorkPhoneToExternalUsers']}",
+                                            "UserPreferencesShowWorkPhoneToGuestUsers": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesShowWorkPhoneToGuestUsers']}",
+                                            "UserPreferencesSortFeedByComment": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesSortFeedByComment']}",
+                                            "UserPreferencesSuppressTaskSFXReminders": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesSuppressTaskSFXReminders']}",
+                                            "UserPreferencesTaskRemindersCheckboxDefault": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesTaskRemindersCheckboxDefault']}",
+                                            "UserPreferencesUserDebugModePref": "@{items('For_each_AccountResponse')?['Owner']?['UserPreferencesUserDebugModePref']}",
+                                            "UserRoleId": "@{items('For_each_AccountResponse')?['Owner']?['UserRoleId']}",
+                                            "UserType": "@{items('For_each_AccountResponse')?['Owner']?['UserType']}",
+                                            "copado__API_URL__c": "@{items('For_each_AccountResponse')?['Owner']?['copado__API_URL__c']}",
+                                            "copado__Hide_Copado_feedback__c": "@{items('For_each_AccountResponse')?['Owner']?['copado__Hide_Copado_feedback__c']}",
+                                            "copado__Show_Copado_Tips__c": "@{items('For_each_AccountResponse')?['Owner']?['copado__Show_Copado_Tips__c']}",
+                                            "copado__Work_Manager_Panels__c": "@{items('For_each_AccountResponse')?['Owner']?['copado__Work_Manager_Panels__c']}"
+                                        },
+                                        "OwnerId": "@{items('For_each_AccountResponse')?['OwnerId']}",
+                                        "Ownership": "@{items('For_each_AccountResponse')?['Ownership']}",
+                                        "ParentId": "@{items('For_each_AccountResponse')?['ParentId']}",
+                                        "Phone": "@{items('For_each_AccountResponse')?['Phone']}",
+                                        "PhotoUrl": "@{items('For_each_AccountResponse')?['PhotoUrl']}",
+                                        "Rating": "@{items('For_each_AccountResponse')?['Rating']}",
+                                        "RecordTypeId": "@{items('For_each_AccountResponse')?['RecordTypeId']}",
+                                        "S4SACCOUNT_LegacyID__c": "@{items('For_each_AccountResponse')?['S4SACCOUNT_LegacyID__c']}",
+                                        "S4SARE__c": "@{items('For_each_AccountResponse')?['S4SARE']}",
+                                        "S4SAccount_Assignment__c": "@{items('For_each_AccountResponse')?['S4SAccount_Assignment__c']}",
+                                        "S4SAccount_Current_Record_Link__c": "@{items('For_each_AccountResponse')?['S4SAccount_Current_Record_Link__c']}",
+                                        "S4SAccount_Group_Type__c": "@{items('For_each_AccountResponse')?['S4SAccount_Group_Type__c']}",
+                                        "S4SAccount_Life_Cycle__c": "@{items('For_each_AccountResponse')?['S4SAccount_Life_Cycle__c']}",
+                                        "S4SAccount_Name_International__c": "@{items('For_each_AccountResponse')?['S4SAccount_Name_International__c']}",
+                                        "S4SAccount_Role__c": "@{items('For_each_AccountResponse')?['S4SAccount_Role__c']}",
+                                        "S4SAvailable_languages__c": "@{items('For_each_AccountResponse')?['S4SAvailable_languages__c']}",
+                                        "S4SBusiness_Availability_24h_365_days__c": "@{items('For_each_AccountResponse')?['S4SBusiness_Availability_24h_365_days__c']}",
+                                        "S4SBusiness_Availability_24h_Mon_Fri__c": "@{items('For_each_AccountResponse')?['S4SBusiness_Availability_24h_Mon_Fri__c']}",
+                                        "S4SBusiness_Unit__c": "@{items('For_each_AccountResponse')?['S4SBusiness_Unit__c']}",
+                                        "S4SBypassValidationForProcessBuilder__c": "@{items('For_each_AccountResponse')?['S4SBypassValidationForProcessBuilder__c']}",
+                                        "S4SBypass_Duplicate_rules__c": "@{items('For_each_AccountResponse')?['S4SBypass_Duplicate_rules__c']}",
+                                        "S4SCID_Number__c": "@{items('For_each_AccountResponse')?['S4SCID_Number__c']}",
+                                        "S4SCMD_IfA_Update__c": "@{items('For_each_AccountResponse')?['S4SCMD_IfA_Update__c']}",
+                                        "S4SCMD_KUKLA__c": "@{items('For_each_AccountResponse')?['S4SCMD_KUKLA__c']}",
+                                        "S4SCMD_NAME1_I__c": "@{items('For_each_AccountResponse')?['S4SCMD_NAME1_I__c']}",
+                                        "S4SCMD_NAME1__c": "@{items('For_each_AccountResponse')?['S4SCMD_NAME1__c']}",
+                                        "S4SCMD_NAME2_I__c": "@{items('For_each_AccountResponse')?['S4SCMD_NAME2_I__c']}",
+                                        "S4SCMD_NAME2__c": "@{items('For_each_AccountResponse')?['S4SCMD_NAME2__c']}",
+                                        "S4SCMD_NAME3_I__c": "@{items('For_each_AccountResponse')?['S4SCMD_NAME3_I__c']}",
+                                        "S4SCMD_NAME3__c": "@{items('For_each_AccountResponse')?['S4SCMD_NAME3__c']}",
+                                        "S4SCMD_REGION__c": "@{items('For_each_AccountResponse')?['S4SCMD_REGION__c']}",
+                                        "S4SCMD_STREET2__c": "@{items('For_each_AccountResponse')?['S4SCMD_STREET2__c']}",
+                                        "S4SCMD_STREET__c": "@{items('For_each_AccountResponse')?['S4SCMD_STREET__c']}",
+                                        "S4SCMD_Subscription_Rejected_Date__c": "@{items('For_each_AccountResponse')?['S4SCMD_Subscription_Rejected_Date__c']}",
+                                        "S4SChange_n__c": "@{items('For_each_AccountResponse')?['S4SChange_n__c']}",
+                                        "S4SChange_of_NPS__c": "@{items('For_each_AccountResponse')?['S4SChange_of_NPS__c']}",
+                                        "S4SCheck_IFAs_and_Contacts__c": "@{items('For_each_AccountResponse')?['S4SCheck_IFAs_and_Contacts__c']}",
+                                        "S4SCity_PO_Box_International__c": "@{items('For_each_AccountResponse')?['S4SCity_PO_Box_International__c']}",
+                                        "S4SCity_PO_Box__c": "@{items('For_each_AccountResponse')?['S4SCity_PO_Box__c']}",
+                                        "S4SClone_Account_Number__c": "@{items('For_each_AccountResponse')?['S4SClone_Account_Number__c']}",
+                                        "S4SClone_Confidential__c": "@{items('For_each_AccountResponse')?['S4SClone_Confidential__c']}",
+                                        "S4SCompany_Postal_Code__c": "@{items('For_each_AccountResponse')?['S4SCompany_Postal_Code__c']}",
+                                        "S4SCompany_Summary__c": "@{items('For_each_AccountResponse')?['S4SCompany_Summary__c']}",
+                                        "S4SConfidentiality_Status__c": "@{items('For_each_AccountResponse')?['S4SConfidentiality_Status__c']}",
+                                        "S4SCounty_FIPS__c": "@{items('For_each_AccountResponse')?['S4SCounty_FIPS__c']}",
+                                        "S4SCounty__c": "@{items('For_each_AccountResponse')?['S4SCounty__c']}",
+                                        "S4SCurrent_FY_NPS__c": "@{items('For_each_AccountResponse')?['S4SCurrent_FY_NPS__c']}",
+                                        "S4SCustomer_Classification__c": "@{items('For_each_AccountResponse')?['S4SCustomer_Classification__c']}",
+                                        "S4SDAndBCreated__c": "@{items('For_each_AccountResponse')?['S4SDAndBCreated__c']}",
+                                        "S4SDUNS__c": "@{items('For_each_AccountResponse')?['S4SDUNS__c']}",
+                                        "S4SData_Visibility__c": "@{items('For_each_AccountResponse')?['S4SData_Visibility__c']}",
+                                        "S4SDivision__c": "@{items('For_each_AccountResponse')?['S4SDivision__c']}",
+                                        "S4SDomestic_Ultimate_DUNS__c": "@{items('For_each_AccountResponse')?['S4SDomestic_Ultimate_DUNS__c']}",
+                                        "S4SDuns_Information__c": "@{items('For_each_AccountResponse')?['S4SDuns_Information__c']}",
+                                        "S4SDuplicate_IfA_Number__c": "@{items('For_each_AccountResponse')?['S4SDuplicate_IfA_Number__c']}",
+                                        "S4SEmail__c": "@{items('For_each_AccountResponse')?['S4SEmail__c']}",
+                                        "S4SEngineering_electrical__c": "@{items('For_each_AccountResponse')?['S4SEngineering_electrical__c']}",
+                                        "S4SEngineering_mechanical__c": "@{items('For_each_AccountResponse')?['S4SEngineering_mechanical__c']}",
+                                        "S4SExternal_Account_HelpText__c": "@{items('For_each_AccountResponse')?['S4SExternal_Account_HelpText__c']}",
+                                        "S4SExternal_Source__c": "@{items('For_each_AccountResponse')?['S4SExternal_Source__c']}",
+                                        "S4SFacebook__c": "@{items('For_each_AccountResponse')?['S4SFacebook__c']}",
+                                        "S4SField_Services_24_7__c": "@{items('For_each_AccountResponse')?['S4SField_Services_24_7__c']}",
+                                        "S4SFounding_Year__c": "@{items('For_each_AccountResponse')?['S4SFounding_Year__c']}",
+                                        "S4SFrom_Search__c": "@{items('For_each_AccountResponse')?['S4SFrom_Search__c']}",
+                                        "S4SGeographical_Code__c": "@{items('For_each_AccountResponse')?['S4SGeographical_Code__c']}",
+                                        "S4SGlobal_Frame_Agreement_Database__c": "@{items('For_each_AccountResponse')?['S4SGlobal_Frame_Agreement_Database__c']}",
+                                        "S4SGlobal_Ultimate_DUNS__c": "@{items('For_each_AccountResponse')?['S4SGlobal_Ultimate_DUNS__c']}",
+                                        "S4SISIC__c": "@{items('For_each_AccountResponse')?['S4SISIC__c']}",
+                                        "S4SIdentification_Number__c": "@{items('For_each_AccountResponse')?['S4SIdentification_Number__c']}",
+                                        "S4SIfAAutoNumber__c": "@{items('For_each_AccountResponse')?['S4SIfAAutoNumber__c']}",
+                                        "S4SIfA_Siemens_Location__c": "@{items('For_each_AccountResponse')?['S4SIfA_Siemens_Location__c']}",
+                                        "S4SIfA__c": "@{items('For_each_AccountResponse')?['S4SIfA__c']}",
+                                        "S4SIndirect_Creation_Status__c": "@{items('For_each_AccountResponse')?['S4SIndirect_Creation_Status__c']}",
+                                        "S4SIndustry_Direct__c": "@{items('For_each_AccountResponse')?['S4SIndustry_Direct__c']}",
+                                        "S4SIndustry_Segment_Direct__c": "@{items('For_each_AccountResponse')?['S4SIndustry_Segment_Direct__c']}",
+                                        "S4SIndustry_Segment_Ship_To__c": "@{items('For_each_AccountResponse')?['S4SIndustry_Segment_Ship_To__c']}",
+                                        "S4SIndustry_Ship_To__c": "@{items('For_each_AccountResponse')?['S4SIndustry_Ship_To__c']}",
+                                        "S4SInternational_City__c": "@{items('For_each_AccountResponse')?['S4SInternational_City__c']}",
+                                        "S4SInternational_CountryGP__c": "@{items('For_each_AccountResponse')?['S4SInternational_CountryGP__c']}",
+                                        "S4SInternational_Country__c": "@{items('For_each_AccountResponse')?['S4SInternational_Country__c']}",
+                                        "S4SInternational_Postal_Code__c": "@{items('For_each_AccountResponse')?['S4SInternational_Postal_Code__c']}",
+                                        "S4SInternational_RegionGP__c": "@{items('For_each_AccountResponse')?['S4SInternational_RegionGP__c']}",
+                                        "S4SInternational_Region__c": "@{items('For_each_AccountResponse')?['S4SInternational_Region__c']}",
+                                        "S4SInternational_Steet_Name_2__c": "@{items('For_each_AccountResponse')?['S4SInternational_Steet_Name_2__c']}",
+                                        "S4SInternational_Street_Name_1__c": "@{items('For_each_AccountResponse')?['S4SInternational_Street_Name_1__c']}",
+                                        "S4SIsOwnerCMDUser__c": "@{items('For_each_AccountResponse')?['S4SIsOwnerCMDUser__c']}",
+                                        "S4SIs_Partner__c": "@{items('For_each_AccountResponse')?['S4SIs_Partner__c']}",
+                                        "S4SLead_Central_Enabled_Account__c": "@{items('For_each_AccountResponse')?['S4SLead_Central_Enabled_Account__c']}",
+                                        "S4SLead_Country__c": "@{items('For_each_AccountResponse')?['S4SLead_Country__c']}",
+                                        "S4SLead_Org__c": "@{items('For_each_AccountResponse')?['S4SLead_Org__c']}",
+                                        "S4SLegalOwner__c": "@{items('For_each_AccountResponse')?['S4SLegalOwner__c']}",
+                                        "S4SLegal_Status__c": "@{items('For_each_AccountResponse')?['S4SLegal_Status__c']}",
+                                        "S4SLocal_Search_Term__c": "@{items('For_each_AccountResponse')?['S4SLocal_Search_Term__c']}",
+                                        "S4SMD_Status__c": "@{items('For_each_AccountResponse')?['S4SMD_Status__c']}",
+                                        "S4SMarked_for_Deletion__c": "@{items('For_each_AccountResponse')?['S4SMarked_for_Deletion__c']}",
+                                        "S4SMilitary_Non_Military_Use__c": "@{items('For_each_AccountResponse')?['S4SMilitary_Non_Military_Use__c']}",
+                                        "S4SNPS_Trend__c": "@{items('For_each_AccountResponse')?['S4SNPS_Trend__c']}",
+                                        "S4SNTA__c": "@{items('For_each_AccountResponse')?['S4SNTA__c']}",
+                                        "S4SNat_Company_ID__c": "@{items('For_each_AccountResponse')?['S4SNat_Company_ID__c']}",
+                                        "S4SNo_Legal_Form_available__c": "@{items('For_each_AccountResponse')?['S4SNo_Legal_Form_available__c']}",
+                                        "S4SNo_of_Active_Candidature__c": "@{items('For_each_AccountResponse')?['S4SNo_of_Active_Candidature__c']}",
+                                        "S4SNo_of_Cancelled_Candidature__c": "@{items('For_each_AccountResponse')?['S4SNo_of_Cancelled_Candidature__c']}",
+                                        "S4SNomination_Letter__c": "@{items('For_each_AccountResponse')?['S4SNomination_Letter__c']}",
+                                        "S4SNormal_Business_Hours__c": "@{items('For_each_AccountResponse')?['S4SNormal_Business_Hours__c']}",
+                                        "S4SNotification_from_CMD__c": "@{items('For_each_AccountResponse')?['S4SNotification_from_CMD__c']}",
+                                        "S4SNumber_of_Pricing_Primary__c": "@{items('For_each_AccountResponse')?['S4SNumber_of_Pricing_Primary__c']}",
+                                        "S4SOfferings_to_the_market_SOP__c": "@{items('For_each_AccountResponse')?['S4SOfferings_to_the_market_SOP__c']}",
+                                        "S4SOfferings_to_the_market_VAR__c": "@{items('For_each_AccountResponse')?['S4SOfferings_to_the_market_VAR__c']}",
+                                        "S4SOperational_radius__c": "@{items('For_each_AccountResponse')?['S4SOperational_radius__c']}",
+                                        "S4SOrganization_Code__c": "@{items('For_each_AccountResponse')?['S4SOrganization_Code__c']}",
+                                        "S4SPO_Box_Postcode__c": "@{items('For_each_AccountResponse')?['S4SPO_Box_Postcode__c']}",
+                                        "S4SPO_box__c": "@{items('For_each_AccountResponse')?['S4SPO_box__c']}",
+                                        "S4SParent_Account_Group__c": "@{items('For_each_AccountResponse')?['S4SParent_Account_Group__c']}",
+                                        "S4SParent_DUNS__c": "@{items('For_each_AccountResponse')?['S4SParent_DUNS__c']}",
+                                        "S4SPartner_Group_Record_Type_Name__c": "@{items('For_each_AccountResponse')?['S4SPartner_Group_Record_Type_Name__c']}",
+                                        "S4SPartner_Group__c": "@{items('For_each_AccountResponse')?['S4SPartner_Group__c']}",
+                                        "S4SPartner_Main_Industries__c": "@{items('For_each_AccountResponse')?['S4SPartner_Main_Industries__c']}",
+                                        "S4SPartner_Type__c": "@{items('For_each_AccountResponse')?['S4SPartner_Type__c']}",
+                                        "S4SPartnership_Status__c": "@{items('For_each_AccountResponse')?['S4SPartnership_Status__c']}",
+                                        "S4SPartnership_with_competing_vendors__c": "@{items('For_each_AccountResponse')?['S4SPartnership_with_competing_vendors__c']}",
+                                        "S4SPrevious_FY_NPS__c": "@{items('For_each_AccountResponse')?['S4SPrevious_FY_NPS__c']}",
+                                        "S4SPrevious_FY_n__c": "@{items('For_each_AccountResponse')?['S4SPrevious_FY_n__c']}",
+                                        "S4SPrevious_IfA_Number__c": "@{items('For_each_AccountResponse')?['S4SPrevious_IfA_Number__c']}",
+                                        "S4SPulse_Link__c": "@{items('For_each_AccountResponse')?['S4SPulse_Link__c']}",
+                                        "S4SQuip_ABP_URL__c": "@{items('For_each_AccountResponse')?['S4SQuip_ABP_URL__c']}",
+                                        "S4SQuip_Briefing_URL__c": "@{items('For_each_AccountResponse')?['S4SQuip_Briefing_URL__c']}",
+                                        "S4SQuip_CSVP_URL__c": "@{items('For_each_AccountResponse')?['S4SQuip_CSVP_URL__c']}",
+                                        "S4SRegion__c": "@{items('For_each_AccountResponse')?['S4SRegion__c']}",
+                                        "S4SRelated_IfA__c": "@{items('For_each_AccountResponse')?['S4SRelated_IfA__c']}",
+                                        "S4SRelevant_Portfolio__c": "@{items('For_each_AccountResponse')?['S4SRelevant_Portfolio__c']}",
+                                        "S4SResponders_current_FY_n__c": "@{items('For_each_AccountResponse')?['S4SResponders_current_FY_n__c']}",
+                                        "S4SSAP_Client__c": "@{items('For_each_AccountResponse')?['S4SSAP_Client__c']}",
+                                        "S4SSAP_System_ID__c": "@{items('For_each_AccountResponse')?['S4SSAP_System_ID__c']}",
+                                        "S4SSFS_Confidential__c": "@{items('For_each_AccountResponse')?['S4SSFS_Confidential__c']}",
+                                        "S4SSISIC_Direct_Description__c": "@{items('For_each_AccountResponse')?['S4SSISIC_Direct_Description__c']}",
+                                        "S4SSISIC_Direct__c": "@{items('For_each_AccountResponse')?['S4SSISIC_Direct__c']}",
+                                        "S4SSISIC_Ship_To_Description__c": "@{items('For_each_AccountResponse')?['S4SSISIC_Ship_To_Description__c']}",
+                                        "S4SSISIC_Ship_To__c": "@{items('For_each_AccountResponse')?['S4SSISIC_Ship_To__c']}",
+                                        "S4SSalesCountry__c": "@{items('For_each_AccountResponse')?['S4SSalesCountry__c']}",
+                                        "S4SSales_Branch__c": "@{items('For_each_AccountResponse')?['S4SSales_Branch__c']}",
+                                        "S4SSales_Country__c": "@{items('For_each_AccountResponse')?['S4SSales_Country__c']}",
+                                        "S4SSales_Department__c": "@{items('For_each_AccountResponse')?['S4SSales_Department__c']}",
+                                        "S4SSales_Office__c": "@{items('For_each_AccountResponse')?['S4SSales_Office__c']}",
+                                        "S4SSales_Org_Type__c": "@{items('For_each_AccountResponse')?['S4SSales_Org_Type__c']}",
+                                        "S4SSales_Planning_enabled__c": "@{items('For_each_AccountResponse')?['S4SSales_Planning_enabled__c']}",
+                                        "S4SSales_Sub_Region__c": "@{items('For_each_AccountResponse')?['S4SSales_Sub_Region__c']}",
+                                        "S4SSales_Territory__c": "@{items('For_each_AccountResponse')?['S4SSales_Territory__c']}",
+                                        "S4SService_electrical__c": "@{items('For_each_AccountResponse')?['S4SService_electrical__c']}",
+                                        "S4SService_mechanical__c": "@{items('For_each_AccountResponse')?['S4SService_mechanical__c']}",
+                                        "S4SShopfloor_level_square_meters__c": "@{items('For_each_AccountResponse')?['S4SShopfloor_level_square_meters__c']}",
+                                        "S4SShort_Partner_company_description__c": "@{items('For_each_AccountResponse')?['S4SShort_Partner_company_description__c']}",
+                                        "S4SSiemens_Account_Type__c": "@{items('For_each_AccountResponse')?['S4SSiemens_Account_Type__c']}",
+                                        "S4SSkipValidationForDataVisibilty__c": "@{items('For_each_AccountResponse')?['S4SSkipValidationForDataVisibilty__c']}",
+                                        "S4STax_ID__c": "@{items('For_each_AccountResponse')?['S4STax_ID__c']}",
+                                        "S4STotal_Employees__c": "@{items('For_each_AccountResponse')?['S4STotal_Employees__c']}",
+                                        "S4SVertical_Name__c": "@{items('For_each_AccountResponse')?['S4SVertical_Name__c']}",
+                                        "S4S_No_Matched_Accounts_Found__c": "@{items('For_each_AccountResponse')?['S4S_No_Matched_Accounts_Found__c']}",
+                                        "ShippingAddress": "@{items('For_each_AccountResponse')?['ShippingAddress']}",
+                                        "ShippingCity": "@{items('For_each_AccountResponse')?['ShippingCity']}",
+                                        "ShippingCountry": "@{items('For_each_AccountResponse')?['ShippingCountry']}",
+                                        "ShippingCountryCode": "@{items('For_each_AccountResponse')?['ShippingCountryCode']}",
+                                        "ShippingGeocodeAccuracy": "@{items('For_each_AccountResponse')?['ShippingGeocodeAccuracy']}",
+                                        "ShippingLatitude": "@{items('For_each_AccountResponse')?['ShippingLatitude']}",
+                                        "ShippingLongitude": "@{items('For_each_AccountResponse')?['ShippingLongitude']}",
+                                        "ShippingPostalCode": "@{items('For_each_AccountResponse')?['ShippingPostalCode']}",
+                                        "ShippingState": "@{items('For_each_AccountResponse')?['ShippingState']}",
+                                        "ShippingStateCode": "@{items('For_each_AccountResponse')?['ShippingStateCode']}",
+                                        "ShippingStreet": "@{items('For_each_AccountResponse')?['BillingStreet']}",
+                                        "Sic": "@{items('For_each_AccountResponse')?['Sic']}",
+                                        "SicDesc": "@{items('For_each_AccountResponse')?['SicDesc']}",
+                                        "Site": "@{items('For_each_AccountResponse')?['Site']}",
+                                        "SystemModstamp": "@{items('For_each_AccountResponse')?['SystemModstamp']}",
+                                        "TickerSymbol": "@{items('For_each_AccountResponse')?['TickerSymbol']}",
+                                        "Type": "@{items('For_each_AccountResponse')?['Type']}",
+                                        "Website": "@{items('For_each_AccountResponse')?['Website']}"
+                                    },
+                                    "runAfter": {},
+                                    "type": "Compose"
+                                },
+                                "Compose_6": {
+                                    "inputs": "@if(equals(variables('fetchCompose'),''),outputs('Compose_AccountResponse'),concat(variables('fetchCompose'),',',outputs('Compose_AccountResponse')))",
+                                    "runAfter": {
+                                        "Compose_AccountResponse": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Compose"
+                                },
+                                "Set_variable_3": {
+                                    "inputs": {
+                                        "name": "fetchCompose",
+                                        "value": "@{outputs('Compose_6')}"
+                                    },
+                                    "runAfter": {
+                                        "Compose_6": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "SetVariable"
+                                }
+                            },
+                            "foreach": "@body('Execute_a_SOQL_query_2')?['records']",
+                            "runAfter": {
+                                "Execute_a_SOQL_query_2": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Foreach"
+                        },
+                        "Set_variable_whereClauseForfetchAccount": {
+                            "inputs": {
+                                "name": "whereClauseForfetchAccount",
+                                "value": "Id='@{items('For_each_2')?['Id']}'"
+                            },
+                            "runAfter": {},
+                            "type": "SetVariable"
+                        }
+                    },
+                    "foreach": "@outputs('Compose_for_finalResponse')?['SIE_SF4S_searchAccountOutput']?['Account']",
+                    "runAfter": {
+                        "Compose_for_finalResponse": [
+                            "Succeeded"
+                        ]
+                    },
+                    "runtimeConfiguration": {
+                        "concurrency": {
+                            "repetitions": 1
+                        }
+                    },
+                    "type": "Foreach"
+                },
+                "Response": {
+                    "inputs": {
+                        "body": "@outputs('Compose_searchAccountRes')",
+                        "headers": {
+                            "Content-Type": "text/xml"
+                        },
+                        "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "Compose_searchAccountRes": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
+                }
+            },
+            "runAfter": {
+                "Initialize_variable_ZeroResults": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_fetchCompose": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_fetchResponse": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_finalResponse": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_whereClause": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_whereClauseForfetchAccount": [
+                    "Succeeded"
+                ]
+            },
+            "trackedProperties": {
+                "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+                "citizenName": "c00031",
+                "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'Spiridon')}",
+                "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'searchAccount')}",
+                "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+                "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+            },
+            "type": "Scope"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {},
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

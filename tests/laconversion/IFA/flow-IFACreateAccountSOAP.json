@@ -1,0 +1,197 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "actions": {
+    "Catch_Send_Request_to_Create_Accounts": {
+      "actions": {
+        "Error_Response": {
+          "inputs": {
+            "body": "<soap:Envelope xmlns:soap=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:sie=\"http://demchdc8zkx.dc4ca.siemens.de/SIE.SF4S.Account.Public.WebServices.Provider:createAccount\">\n   <soap:Header/>\n   <soap:Body>         \n        <response>\n            <message>Unexpected error occured. Please find more details using tracking id : @{workflow()['run']['name']}</message>\n         </response>\n   </soap:Body>\n</soap:Envelope>",
+            "statusCode": 500
+          },
+          "kind": "http",
+          "runAfter": {},
+          "type": "Response"
+        },
+        "Terminate_Failed": {
+          "inputs": {
+            "runStatus": "Failed"
+          },
+          "runAfter": {
+            "Error_Response": ["Succeeded"]
+          },
+          "type": "Terminate"
+        }
+      },
+      "runAfter": {
+        "Try_Send_Request_to_Create_Accounts": ["Failed"]
+      },
+      "type": "Scope"
+    },
+    "Compose_request": {
+      "inputs": "@json(xml(replace(replace(replace(string(triggerBody()),'soap-env','env'),'soapenv','env'),'n0','sie')))",
+      "runAfter": {},
+      "type": "Compose"
+    },
+    "Create_Request_Array": {
+      "inputs": "@if(greater(int(xpath(xml(replace(string(triggerBody()),'soap:' , 'soap-env:' )), 'count(//request)')),1),outputs('Compose_request')?['env:Envelope']?['env:Body']?['sie:createAccount']?['request'],createArray(outputs('Compose_request')?['env:Envelope']?['env:Body']?['sie:createAccount']?['request']))",
+      "runAfter": {
+        "Compose_request": ["Succeeded"]
+      },
+      "type": "Compose"
+    },
+    "Initialize_CreateAccountResponse": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "CreateAccountResponse",
+            "type": "string"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "Initialize_Response": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "Response",
+            "type": "string"
+          }
+        ]
+      },
+      "runAfter": {
+        "Initialize_CreateAccountResponse": ["Succeeded"]
+      },
+      "type": "InitializeVariable"
+    },
+    "Set_Input": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "RequestJSON",
+            "type": "array",
+            "value": "@outputs('Create_Request_Array')"
+          }
+        ]
+      },
+      "runAfter": {
+        "Create_Request_Array": ["Succeeded"]
+      },
+      "type": "InitializeVariable"
+    },
+    "Try_Send_Request_to_Create_Accounts": {
+      "actions": {
+        "Convert_to_XML": {
+          "actions": {
+            "For_each_Response": {
+              "actions": {
+                "Append_to_string_variable": {
+                  "inputs": {
+                    "name": "CreateAccountResponse",
+                    "value": "         <response>\n            <error>@{items('For_each_Response')?['error']}</error>\n    <responseCode>@{items('For_each_Response')?['responseCode']}</responseCode>\n        <message>@{items('For_each_Response')?['message']}</message>\n                     </response>"
+                  },
+                  "runAfter": {},
+                  "type": "AppendToStringVariable"
+                }
+              },
+              "foreach": "@body('Parse_Response')?['Response']",
+              "runAfter": {
+                "Parse_Response": ["Succeeded"]
+              },
+              "type": "Foreach"
+            },
+            "Parse_Response": {
+              "inputs": {
+                "content": "@body('logic-c00031-CreateAccount')",
+                "schema": {
+                  "properties": {
+                    "Response": {
+                      "items": {
+                        "properties": {
+                          "error": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "responseCode": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["error", "message", "responseCode"],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              "runAfter": {},
+              "type": "ParseJson"
+            },
+            "Set_Response": {
+              "inputs": {
+                "name": "Response",
+                "value": "<soap:Envelope xmlns:soap=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:sie=\"http://demchdc8zkx.dc4ca.siemens.de/SIE.SF4S.Account.Public.WebServices.Provider:createAccount\">\n   <soap:Header/>\n   <soap:Body>\n         <!--1 or more repetitions:-->\n@{variables('CreateAccountResponse')}\n   </soap:Body>\n</soap:Envelope>"
+              },
+              "runAfter": {
+                "For_each_Response": ["Succeeded"]
+              },
+              "type": "SetVariable"
+            }
+          },
+          "runAfter": {
+            "logic-c00031-CreateAccount": ["Succeeded"]
+          },
+          "type": "Scope"
+        },
+        "Response": {
+          "inputs": {
+            "headers": {
+              "Content-Type": "@{if(equals(triggerOutputs()['headers']?['Username'],'SF4S_ELAN_API_USER_OP'),'application/soap+xml','application/xml; charset=utf-8')}"
+            },
+            "body": "@xml(variables('Response'))",
+            "statusCode": 200
+          },
+          "kind": "http",
+          "runAfter": {
+            "Convert_to_XML": ["Succeeded"]
+          },
+          "type": "Response"
+        },
+        "logic-c00031-CreateAccount": {
+          "inputs": {
+            "body": "@variables('RequestJSON')",
+            "host": {
+              "triggerName": "manual",
+              "workflow": {
+                "id": "${IfaCreateAccount_logicApp_id}"
+              }
+            }
+          },
+          "runAfter": {},
+          "type": "Workflow"
+        }
+      },
+      "runAfter": {
+        "Initialize_Response": ["Succeeded"],
+        "Set_Input": ["Succeeded"]
+      },
+      "type": "Scope"
+    }
+  },
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {},
+  "triggers": {
+    "manual": {
+      "inputs": {
+        "schema": {}
+      },
+      "kind": "Http",
+      "type": "Request"
+    }
+  }
+}

@@ -1,0 +1,183 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Scope-Catch": {
+            "actions": {
+                "Send_Error_Response": {
+                    "inputs": {
+                        "statusCode": 400
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                },
+                "Terminate_Failed": {
+                    "inputs": {
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Send_Error_Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Scope-Try": [
+                    "Failed",
+                    "Skipped",
+                    "TimedOut"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope-Try": {
+            "actions": {
+                "For_each": {
+                    "actions": {
+                        "Append_to_array_variable": {
+                            "inputs": {
+                                "name": "output",
+                                "value": "@body('Select')[0]"
+                            },
+                            "runAfter": {
+                                "Select": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "AppendToArrayVariable"
+                        },
+                        "Select": {
+                            "inputs": {
+                                "from": "@body('Get_Case_Details')['records']",
+                                "select": {
+                                    "Case Number": "@items('For_each')?['CaseNumber']",
+                                    "Contact Name": "@items('For_each')?['Contact']?['Name']",
+                                    "Date/Time Opened": "@items('For_each')?['CreatedDate']",
+                                    "Description": "@items('For_each')?['Description']",
+                                    "Final Resolution": "@items('For_each')?['S4SFinal_Resolution__c']",
+                                    "Invalid": "@items('For_each')?['S4SInvalid__c']",
+                                    "Original PO #": "@items('For_each')?['S4SOriginalPO__c']",
+                                    "Part": "@items('For_each')?['S4SProduct_data__c']",
+                                    "SAP #": "@items('For_each')?['S4SSAP__c']",
+                                    "SAP Sales Order #": "@items('For_each')?['S4SSAPSalesOrder__c']",
+                                    "Status": "@items('For_each')?['Status']",
+                                    "Sub Type": "@items('For_each')?['S4SSubType__c']",
+                                    "Subject": "@items('For_each')?['Subject']",
+                                    "Type": "@items('For_each')?['Type']"
+                                }
+                            },
+                            "runAfter": {},
+                            "type": "Select"
+                        }
+                    },
+                    "foreach": "@body('Get_Case_Details')['records']",
+                    "runAfter": {
+                        "Get_Case_Details": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Foreach"
+                },
+                "Get_Case_Details": {
+                    "inputs": {
+                        "body": {
+                            "query": "Select CaseNumber, Type,Status,CreatedDate,S4SOriginalPO__c,S4SSAPSalesOrder__c,S4SProduct_data__c,S4SSAP__c,Contact.Name,Subject,Description,S4SSubType__c,S4SFinal_Resolution__c,S4SInvalid__c FROM Case WHERE LastModifiedDate>=@{outputs('varStartDate')}AND LastModifiedDate<=@{outputs('varEndDate')} AND S4SOrigin_equals_iMall__c = true"
+                        },
+                        "host": {
+                            "connection": {
+                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                            }
+                        },
+                        "method": "post",
+                        "path": "/soql/executesoqlquery",
+                        "queries": {
+                            "q": "SELECT+CaseNumber,Status,Subject,S4SSAP__c,S4SSubType__c,S4SSAPSalesOrder__c,S4SSales_Department__c,S4SOriginalPO__c,Description,CreatedDate,ContactId+FROM+Case+WHERE+LastModifiedDate>=@{outputs('varStartDate')}+AND+LastModifiedDate<=@{outputs('varEndDate')}"
+                        }
+                    },
+                    "runAfter": {
+                        "varEndDate": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "ApiConnection"
+                },
+                "Response": {
+                    "inputs": {
+                        "body": {
+                            "Cases": "@variables('output')"
+                        },
+                        "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "For_each": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
+                },
+                "varEndDate": {
+                    "inputs": "@formatDateTime(triggerBody()?['endDate'],'yyyy-MM-ddTHH:mm:ssZ')",
+                    "runAfter": {
+                        "varStartDate": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Compose"
+                },
+                "varStartDate": {
+                    "inputs": "@formatDateTime(triggerBody()?['startDate'],'yyyy-MM-ddTHH:mm:ssZ')",
+                    "runAfter": {},
+                    "type": "Compose"
+                }
+            },
+            "runAfter": {
+                "varOutput": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Scope"
+        },
+        "varOutput": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "output",
+                        "type": "array"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        }
+    },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "manual": {
+                "inputs": {
+                    "schema": {
+                        "properties": {
+                            "endDate": {
+                                "type": "string"
+                            },
+                            "startDate": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+    }

@@ -1,0 +1,285 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "HTTP-Get_ReferenceData": {
+        "inputs": {
+          "host": {
+            "workflow": {
+              "id": "getconfiguration_logicappid}"
+            }
+          },
+          "body": {
+            "key": "non-sfs-Logging-Config"
+          },
+          "headers": null
+        },
+        "runAfter": {
+          "Initialize_variable-configSeverity": [
+            "Succeeded"
+          ],
+          "Initialize_variable-log": [
+            "Succeeded"
+          ],
+          "Initialize_variable-message": [
+            "Succeeded"
+          ],
+          "Initialize_variable-severity": [
+            "Succeeded"
+          ],
+          "Initialize_variable-userName": [
+            "Succeeded"
+          ]
+        },
+        "type": "Workflow"
+      },
+      "Initialize_variable-configSeverity": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "configSeverity",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {
+          "Response_3": [
+            "Succeeded"
+          ]
+        },
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable-log": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "log",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {
+          "Response_3": [
+            "Succeeded"
+          ]
+        },
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable-message": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "message",
+              "type": "string",
+              "value": "@triggerBody()?['message']"
+            }
+          ]
+        },
+        "runAfter": {
+          "Response_3": [
+            "Succeeded"
+          ]
+        },
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable-severity": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "severity",
+              "type": "string",
+              "value": "@triggerBody()?['severity']"
+            }
+          ]
+        },
+        "runAfter": {
+          "Response_3": [
+            "Succeeded"
+          ]
+        },
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable-userName": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "userName",
+              "type": "string",
+              "value": "test"
+            }
+          ]
+        },
+        "runAfter": {
+          "Response_3": [
+            "Succeeded"
+          ]
+        },
+        "type": "InitializeVariable"
+      },
+      "Response_3": {
+        "inputs": {
+          "statusCode": 201
+        },
+        "kind": "Http",
+        "runAfter": {},
+        "type": "Response"
+      },
+      "Scope-catch": {
+        "actions": {
+          "Set_variable-error": {
+            "inputs": {
+              "name": "log",
+              "value": "error"
+            },
+            "runAfter": {},
+            "type": "SetVariable"
+          },
+          "Terminate_2": {
+            "inputs": {
+              "runStatus": "Failed"
+            },
+            "runAfter": {
+              "Set_variable-error": [
+                "Succeeded"
+              ]
+            },
+            "type": "Terminate"
+          }
+        },
+        "runAfter": {
+          "Scope-try": [
+            "Failed",
+            "Skipped",
+            "TimedOut"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Scope-try": {
+        "actions": {
+          "Condition-index_checking": {
+            "actions": {
+              "Send_Data": {
+                "inputs": {
+                  "body": "{\n\"LogMessage\":\"@{variables('message')}\",\n\"LogicAppRunId\":\"@{triggerOutputs()?['headers']?['x-ms-workflow-run-id']}\",\n\"LogLevel\":\"@{variables('severity')}\"\n}",
+                  "path": "/api/logs",
+                  "host": {
+                    "connection": {
+                      "referenceName": "logAnalyticsConnection"
+                    }
+                  },
+                  "headers": {
+                    "Log-Type": "NonSFSLog"
+                  },
+                  "method": "post"
+                },
+                "runAfter": {
+                  "Set_variable_log": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "ApiConnection"
+              },
+              "Set_variable_log": {
+                "inputs": {
+                  "name": "log",
+                  "value": "@{concat(variables('message'),'for',variables('userName'))}"
+                },
+                "runAfter": {},
+                "type": "SetVariable"
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "expression": {
+              "and": [
+                {
+                  "contains": [
+                    "@variables('configSeverity')",
+                    "@variables('severity')"
+                  ]
+                }
+              ]
+            },
+            "runAfter": {
+              "Set_variable-configSevirity": [
+                "Succeeded"
+              ]
+            },
+            "type": "If"
+          },
+          "Set_variable-configSevirity": {
+            "inputs": {
+              "name": "configSeverity",
+              "value": "@{json(body('HTTP-Get_ReferenceData'))['SIE_SF4S_Logging']}"
+            },
+            "runAfter": {},
+            "type": "SetVariable"
+          },
+          "Terminate": {
+            "inputs": {
+              "runStatus": "Succeeded"
+            },
+            "runAfter": {
+              "Condition-index_checking": [
+                "Succeeded"
+              ]
+            },
+            "type": "Terminate"
+          }
+        },
+        "runAfter": {
+          "HTTP-Get_ReferenceData": [
+            "Succeeded"
+          ]
+        },
+        "trackedProperties": {
+          "apimRouting": "external",
+          "citizenName": "c00031",
+          "correlationId": "not-defined",
+          "interfaceName": "SFS",
+          "interfacePartner": "not-defined",
+          "interfaceVersion": "not-defined",
+          "operationName": "sf4slog",
+          "parentWorkflow": "not-defined"
+        },
+        "type": "Scope"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {
+          "schema": {
+            "properties": {
+              "message": {
+                "description": "The message for the log",
+                "required": "false",
+                "type": "string"
+              },
+              "severity": {
+                "description": "The severity used in the Interface",
+                "required": "false",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "kind": "Http",
+        "runtimeConfiguration": {
+          "secureData": {
+            "properties": [
+              "inputs",
+              "outputs"
+            ]
+          }
+        },
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

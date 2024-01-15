@@ -1,0 +1,1009 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "actions": {
+      "Catch_Scope": {
+          "actions": {
+              "Response_2": {
+                  "inputs": {
+                      "body": "<soap-env:Envelope xmlns:soap-env=\"http://schemas.xmlsoap.org/soap/envelope/\">\n    <soap-env:Header/>\n    <soap-env:Body>\n        <soap-env:Fault>\n            <faultcode>soap-env:Server</faultcode>\n            <faultstring>Unexpected error occured. Please contact system administrator with the following tracking id:@{workflow()['run']['name']}</faultstring>\n            <detail/>\n        </soap-env:Fault>\n    </soap-env:Body>\n</soap-env:Envelope>",
+                      "headers": {
+                          "Content-Type": "text/xml"
+                      },
+                      "statusCode": 500
+                  },
+                  "kind": "Http",
+                  "runAfter": {},
+                  "type": "Response"
+              },
+              "Terminate_2": {
+                  "inputs": {
+                      "runStatus": "Failed"
+                  },
+                  "runAfter": {
+                      "Response_2": [
+                          "Succeeded"
+                      ]
+                  },
+                  "type": "Terminate"
+              }
+          },
+          "runAfter": {
+              "Try_Scope": [
+                  "Failed"
+              ]
+          },
+          "type": "Scope"
+      },
+      "Initialize_FetchInvol": {
+          "inputs": {
+              "variables": [
+                  {
+                      "name": "deleteIDs",
+                      "type": "array"
+                  }
+              ]
+          },
+          "runAfter": {},
+          "type": "InitializeVariable"
+      },
+      "Initialize_deleteFetchOpp": {
+          "inputs": {
+              "variables": [
+                  {
+                      "name": "deleteFetchOpp",
+                      "type": "array"
+                  }
+              ]
+          },
+          "runAfter": {},
+          "type": "InitializeVariable"
+      },
+      "Initialize_deleteSearchAttribute": {
+          "inputs": {
+              "variables": [
+                  {
+                      "name": "deleteSearchAttribute",
+                      "type": "array"
+                  }
+              ]
+          },
+          "runAfter": {},
+          "type": "InitializeVariable"
+      },
+      "Initialize_variable": {
+          "inputs": {
+              "variables": [
+                  {
+                      "name": "opportunityId",
+                      "type": "string",
+                      "value": "@{json(xml(triggerBody()))['soapenv:Envelope']?['soapenv:Body']?['sie:upsertOffer']?['SIE_SF4S_upsertOfferReq']?['OPP_ID']}"
+                  }
+              ]
+          },
+          "runAfter": {},
+          "type": "InitializeVariable"
+      },
+      "Initialize_variable_SIE_SF4S_upsertOfferReq": {
+          "inputs": {
+              "variables": [
+                  {
+                      "name": "SIE_SF4S_upsertOfferReq",
+                      "type": "string",
+                      "value": "@{xpath(xml(triggerBody()), '/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"upsertOffer\"]/*[local-name()=\"SIE_SF4S_upsertOfferReq\"]')?[0]}"
+                  }
+              ]
+          },
+          "runAfter": {},
+          "type": "InitializeVariable"
+      },
+      "Initialize_variable_TerritoryStructure": {
+          "inputs": {
+              "variables": [
+                  {
+                      "name": "TerritoryStructure",
+                      "type": "object",
+                      "value": "@if(empty(xpath(xml(triggerBody()),'.//DIM_TERRITORYStructure')?[0]),null,json(xml(xpath(xml(triggerBody()),'.//DIM_TERRITORYStructure')?[0])))"
+                  }
+              ]
+          },
+          "runAfter": {},
+          "type": "InitializeVariable"
+      },
+      "Try_Scope": {
+          "actions": {
+              "Compose_2": {
+                  "inputs": "@string(xpath(xml(variables('SIE_SF4S_upsertOfferReq')),'/*[local-name()=\"SIE_SF4S_upsertOfferReq\"]')?[0])",
+                  "runAfter": {
+                      "Condition_TerritoryStructure": [
+                          "Succeeded"
+                      ]
+                  },
+                  "type": "Compose"
+              },
+              "Condition": {
+                  "actions": {
+                      "Condition__deleteIDs": {
+                          "actions": {
+                              "For_each": {
+                                  "actions": {
+                                      "Delete_record": {
+                                          "inputs": {
+                                              "host": {
+                                                  "connection": {
+                                                      "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                  }
+                                              },
+                                              "method": "delete",
+                                              "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SInvolved_Accounts__c'))}/items/@{encodeURIComponent(encodeURIComponent(items('For_each')))}"
+                                          },
+                                          "runAfter": {},
+                                          "type": "ApiConnection"
+                                      }
+                                  },
+                                  "foreach": "@variables('deleteIDs')",
+                                  "runAfter": {},
+                                  "type": "Foreach"
+                              }
+                          },
+                          "expression": {
+                              "and": [
+                                  {
+                                      "not": {
+                                          "equals": [
+                                              "@variables('deleteIDs')",
+                                              ""
+                                          ]
+                                      }
+                                  },
+                                  {
+                                      "not": {
+                                          "equals": [
+                                              "@variables('deleteIDs')",
+                                              "@string(' ')"
+                                          ]
+                                      }
+                                  },
+                                  {
+                                      "greater": [
+                                          "@length(variables('deleteIDs'))",
+                                          0
+                                      ]
+                                  }
+                              ]
+                          },
+                          "runAfter": {
+                              "Condition_deleteSearchAttribute": [
+                                  "Succeeded"
+                              ]
+                          },
+                          "type": "If"
+                      },
+                      "Condition_deleteSearchAttribute": {
+                          "actions": {
+                              "For_each_DeleteRecord": {
+                                  "actions": {
+                                      "Delete_record_3": {
+                                          "inputs": {
+                                              "host": {
+                                                  "connection": {
+                                                      "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                  }
+                                              },
+                                              "method": "delete",
+                                              "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SAttribute_Assignment__c'))}/items/@{encodeURIComponent(encodeURIComponent(items('For_each_DeleteRecord')))}"
+                                          },
+                                          "runAfter": {},
+                                          "type": "ApiConnection"
+                                      }
+                                  },
+                                  "foreach": "@variables('deleteSearchAttribute')",
+                                  "runAfter": {},
+                                  "type": "Foreach"
+                              }
+                          },
+                          "expression": {
+                              "and": [
+                                  {
+                                      "not": {
+                                          "equals": [
+                                              "@variables('deleteSearchAttribute')",
+                                              ""
+                                          ]
+                                      }
+                                  },
+                                  {
+                                      "not": {
+                                          "equals": [
+                                              "@variables('deleteSearchAttribute')",
+                                              "@null"
+                                          ]
+                                      }
+                                  },
+                                  {
+                                      "greater": [
+                                          "@length(variables('deleteSearchAttribute'))",
+                                          0
+                                      ]
+                                  }
+                              ]
+                          },
+                          "runAfter": {
+                              "Condition_deletefetchopp": [
+                                  "Succeeded"
+                              ]
+                          },
+                          "type": "If"
+                      },
+                      "Condition_deletefetchopp": {
+                          "actions": {
+                              "for_each_deleteFetchOpp": {
+                                  "actions": {
+                                      "Delete_record_2": {
+                                          "inputs": {
+                                              "host": {
+                                                  "connection": {
+                                                      "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                  }
+                                              },
+                                              "method": "delete",
+                                              "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SOpportunity_Competitor__c'))}/items/@{encodeURIComponent(encodeURIComponent(items('for_each_deleteFetchOpp')))}"
+                                          },
+                                          "runAfter": {},
+                                          "type": "ApiConnection"
+                                      }
+                                  },
+                                  "foreach": "@variables('deleteFetchOpp')",
+                                  "runAfter": {},
+                                  "type": "Foreach"
+                              }
+                          },
+                          "expression": {
+                              "and": [
+                                  {
+                                      "not": {
+                                          "equals": [
+                                              "@variables('deleteFetchOpp')",
+                                              ""
+                                          ]
+                                      }
+                                  },
+                                  {
+                                      "not": {
+                                          "equals": [
+                                              "@variables('deleteFetchOpp')",
+                                              "@null"
+                                          ]
+                                      }
+                                  },
+                                  {
+                                      "greater": [
+                                          "@length(variables('deleteFetchOpp'))",
+                                          0
+                                      ]
+                                  }
+                              ]
+                          },
+                          "runAfter": {
+                              "internal_insert_update_opportunity": [
+                                  "Succeeded"
+                              ]
+                          },
+                          "type": "If"
+                      },
+                      "Condition_for_upsertCompetitor": {
+                          "actions": {
+                              "Compose_3": {
+                                  "inputs": "@xpath(xml(variables('SIE_SF4S_upsertOfferReq')),'.//competitors')",
+                                  "runAfter": {},
+                                  "type": "Compose"
+                              },
+                              "For_each_competitor": {
+                                  "actions": {
+                                      "Create_competitor": {
+                                          "inputs": {
+                                              "body": {
+                                                  "S4SCompetitor__c": "@{xpath(items('For_each_competitor'),'.//competitors/competitorId/text()')[0]}",
+                                                  "S4SOpportunity__c": "@variables('opportunityId')",
+                                                  "S4SPrimary__c": "@bool(xpath(items('For_each_competitor'),'.//competitors/isPrimary/text()')[0])"
+                                              },
+                                              "host": {
+                                                  "connection": {
+                                                      "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                  }
+                                              },
+                                              "method": "post",
+                                              "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SOpportunity_Competitor__c'))}/items"
+                                          },
+                                          "runAfter": {},
+                                          "type": "ApiConnection"
+                                      }
+                                  },
+                                  "foreach": "@outputs('Compose_3')",
+                                  "runAfter": {
+                                      "Compose_3": [
+                                          "Succeeded"
+                                      ]
+                                  },
+                                  "runtimeConfiguration": {
+                                      "concurrency": {
+                                          "repetitions": 1
+                                      }
+                                  },
+                                  "type": "Foreach"
+                              }
+                          },
+                          "expression": {
+                              "and": [
+                                  {
+                                      "not": {
+                                          "equals": [
+                                              "@string(xpath(xml(variables('SIE_SF4S_upsertOfferReq')),'.//competitors')?[0])",
+                                              "@string('')"
+                                          ]
+                                      }
+                                  }
+                              ]
+                          },
+                          "runAfter": {
+                              "Condition__deleteIDs": [
+                                  "Succeeded"
+                              ]
+                          },
+                          "type": "If"
+                      },
+                      "Condition_to_check_fetchAttributeSettings": {
+                          "actions": {
+                              "For_each_fetchAttributes": {
+                                  "actions": {
+                                      "Compose_4": {
+                                          "inputs": "<Attributes>\n<ATTR_BUSINESS_UNIT_CODE>@{xpath(items('For_each_fetchAttributes'),'.//Attributes/ATTR_BUSINESS_UNIT_CODE/text()')?[0]}</ATTR_BUSINESS_UNIT_CODE>\n<ATTR_CATEGORY>@{xpath(items('For_each_fetchAttributes'),'.//Attributes/ATTR_CATEGORY/text()')?[0]}</ATTR_CATEGORY>\n  <ATTR_DIM_TERRITORY_CLUSTER>@{xpath(items('For_each_fetchAttributes'),'.//Attributes/ATTR_DIM_TERRITORY_CLUSTER/text()')?[0]}</ATTR_DIM_TERRITORY_CLUSTER>\n  <ATTR_DIVISION>@{xpath(items('For_each_fetchAttributes'),'.//Attributes/ATTR_DIVISION/text()')?[0]}</ATTR_DIVISION>\n  <ATTR_NAME>@{xpath(items('For_each_fetchAttributes'),'.//Attributes/ATTR_NAME/text()')?[0]}</ATTR_NAME>\n  <ATTR_REGION>@{xpath(items('For_each_fetchAttributes'),'.//Attributes/ATTR_REGION/text()')?[0]}</ATTR_REGION>\n<ATTR_SET>@{xpath(items('For_each_fetchAttributes'),'.//Attributes/ATTR_SET/text()')?[0]}</ATTR_SET>\n  <S4SRelevant_Objects__c>\"Opportunity\"</S4SRelevant_Objects__c>\n</Attributes>",
+                                          "runAfter": {},
+                                          "type": "Compose"
+                                      },
+                                      "Create_Attribute": {
+                                          "inputs": {
+                                              "body": {
+                                                  "S4SATTRIBUTE_ASSIGNMENT_LegacyID__c": "@{xpath(items('For_each_fetchAttributes'),'.//Attributes/ATTR_EXTERNAL_ID/text()')?[0]}",
+                                                  "S4SDescription__c": "@{xpath(items('For_each_fetchAttributes'),'.//Attributes/ATTR_COMMENTS/text()')?[0]}",
+                                                  "S4SGroup__c": "@{body('SIE_SF4S_FetchAttributeSettings')?['records']?[0]?['Id']}",
+                                                  "S4SOpportunity__c": "@variables('opportunityId')",
+                                                  "S4SValue__c": "@{xpath(items('For_each_fetchAttributes'),'.//Attributes/ATTR_VALUE_SELECT/text()')?[0]}"
+                                              },
+                                              "host": {
+                                                  "connection": {
+                                                      "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                  }
+                                              },
+                                              "method": "post",
+                                              "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SAttribute_Assignment__c'))}/items"
+                                          },
+                                          "runAfter": {
+                                              "SIE_SF4S_FetchAttributeSettings": [
+                                                  "Succeeded"
+                                              ]
+                                          },
+                                          "type": "ApiConnection"
+                                      },
+                                      "SIE_SF4S_FetchAttributeSettings": {
+                                          "inputs": {
+                                              "body": "@outputs('Compose_4')",
+                                              "host": {
+                                                  "triggerName": "manual",
+                                                  "workflow": {
+                                                    "id": "${cnsf_SIE_SF4S_fetchAttrSetting_V2}"
+                                                  }
+                                              },
+                                              "retryPolicy": {
+                                                  "type": "none"
+                                              }
+                                          },
+                                          "runAfter": {
+                                              "Compose_4": [
+                                                  "Succeeded"
+                                              ]
+                                          },
+                                          "type": "Workflow"
+                                      }
+                                  },
+                                  "foreach": "@xpath(xml(triggerBody()),'.//Attributes')",
+                                  "runAfter": {},
+                                  "runtimeConfiguration": {
+                                      "concurrency": {
+                                          "repetitions": 1
+                                      }
+                                  },
+                                  "type": "Foreach"
+                              }
+                          },
+                          "expression": {
+                              "and": [
+                                  {
+                                      "not": {
+                                          "equals": [
+                                              "@string(xpath(xml(variables('SIE_SF4S_upsertOfferReq')),'.//ATTR_SET')?[0])",
+                                              "@string('')"
+                                          ]
+                                      }
+                                  }
+                              ]
+                          },
+                          "runAfter": {
+                              "Condition_to_check_invovedAccounts": [
+                                  "Succeeded"
+                              ]
+                          },
+                          "type": "If"
+                      },
+                      "Condition_to_check_invovedAccounts": {
+                          "actions": {
+                              "for_each_involvedAccount": {
+                                  "actions": {
+                                      "Compose": {
+                                          "inputs": {
+                                              "CreatedById": "@{xpath(items('for_each_involvedAccount'),'.//involvedAccounts/CreatedById/text()')?[0]}",
+                                              "CreatedDate": "@{xpath(items('for_each_involvedAccount'),'.//involvedAccounts/CreatedDate/text()')?[0]}",
+                                              "CurrencyIsoCode": "@{xpath(items('for_each_involvedAccount'),'.//involvedAccounts/CurrencyIsoCode/text()')?[0]}",
+                                              "Id": "@{xpath(items('for_each_involvedAccount'),'.//involvedAccounts/Id/text()')?[0]}",
+                                              "IsDeleted": "@{xpath(items('for_each_involvedAccount'),'.//involvedAccounts/IsDeleted/text()')?[0]}",
+                                              "LastActivityDate": "@{xpath(items('for_each_involvedAccount'),'.//involvedAccounts/LastActivityDate/text()')?[0]}",
+                                              "LastModifiedById": "@{xpath(items('for_each_involvedAccount'),'.//involvedAccounts/LastModifiedById/text()')?[0]}",
+                                              "LastModifiedDate": "@{xpath(items('for_each_involvedAccount'),'.//involvedAccounts/LastModifiedDate/text()')?[0]}",
+                                              "Name": "@{xpath(items('for_each_involvedAccount'),'.//involvedAccounts/Name/text()')?[0]}",
+                                              "S4SAccount_Name__c": "@{xpath(items('for_each_involvedAccount'),'.//involvedAccounts/S4SAccount_Name__c/text()')?[0]}",
+                                              "S4SDescription__c": "@{xpath(items('for_each_involvedAccount'),'.//involvedAccounts/S4SDescription__c/text()')?[0]}",
+                                              "S4SExternal_Source__c": "@{xpath(items('for_each_involvedAccount'),'.//involvedAccounts/S4SExternal_Source__c/text()')?[0]}",
+                                              "S4SINVOLVED_ACCOUNTS_LegacyID__c": "@{xpath(items('for_each_involvedAccount'),'.//involvedAccounts/S4SINVOLVED_ACCOUNTS_LegacyID__c/text()')?[0]}",
+                                              "S4SOpportunity__c": "@{variables('opportunityId')}",
+                                              "S4SRole__c": "@{xpath(items('for_each_involvedAccount'),'.//involvedAccounts/S4SRole__c/text()')?[0]}",
+                                              "S4SWinning_Chance__c": "@{xpath(items('for_each_involvedAccount'),'.//involvedAccounts/S4SWinning_Chance__c/text()')?[0]}",
+                                              "SystemModstamp": "@{xpath(items('for_each_involvedAccount'),'.//involvedAccounts/SystemModstamp/text()')?[0]}"
+                                          },
+                                          "runAfter": {},
+                                          "type": "Compose"
+                                      },
+                                      "insert_update_involvedAccount": {
+                                          "inputs": {
+                                              "body": "@outputs('Compose')",
+                                              "host": {
+                                                  "triggerName": "manual",
+                                                  "workflow": {
+                                                    "id": "${cnsf_SIE_SF4S_insert_update_invAcc_V2}"
+                                                  }
+                                              },
+                                              "retryPolicy": {
+                                                  "type": "none"
+                                              }
+                                          },
+                                          "runAfter": {
+                                              "Compose": [
+                                                  "Succeeded"
+                                              ]
+                                          },
+                                          "type": "Workflow"
+                                      }
+                                  },
+                                  "foreach": "@xpath(xml(variables('SIE_SF4S_upsertOfferReq')),'.//involvedAccounts')",
+                                  "runAfter": {},
+                                  "runtimeConfiguration": {
+                                      "concurrency": {
+                                          "repetitions": 1
+                                      }
+                                  },
+                                  "type": "Foreach"
+                              }
+                          },
+                          "expression": {
+                              "and": [
+                                  {
+                                      "not": {
+                                          "equals": [
+                                              "@string(xpath(xml(variables('SIE_SF4S_upsertOfferReq')),'.//involvedAccounts')?[0])",
+                                              "@string('')"
+                                          ]
+                                      }
+                                  }
+                              ]
+                          },
+                          "runAfter": {
+                              "Condition_for_upsertCompetitor": [
+                                  "Succeeded"
+                              ]
+                          },
+                          "type": "If"
+                      },
+                      "Set_variable_2": {
+                          "inputs": {
+                              "name": "opportunityId",
+                              "value": "@{xpath(xml(outputs('remove__xsi_from_response')),'.//OPPORTUNITY_ID/text()')?[0]}"
+                          },
+                          "runAfter": {},
+                          "type": "SetVariable"
+                      },
+                      "internal_insert_update_opportunity": {
+                          "inputs": {
+                              "body": {
+                                  "Id": "@{variables('opportunityId')}",
+                                  "S4STerritory_Structure__c": "@{body('SIE_SF4S_FetchTerritory')['records']?[0]['Id']}"
+                              },
+                              "host": {
+                                  "triggerName": "manual",
+                                  "workflow": {
+                                    "id": "${InsertUpdateOpportunity_logicApp_id}"
+                                  }
+                              },
+                              "retryPolicy": {
+                                  "type": "none"
+                              }
+                          },
+                          "runAfter": {
+                              "Set_variable_2": [
+                                  "Succeeded"
+                              ]
+                          },
+                          "type": "Workflow"
+                      }
+                  },
+                  "expression": {
+                      "and": [
+                          {
+                              "not": {
+                                  "equals": [
+                                      "@xpath(xml(outputs('remove__xsi_from_response')),'.//OPPORTUNITY_ID/text()')?[0]",
+                                      "@null"
+                                  ]
+                              }
+                          },
+                          {
+                              "not": {
+                                  "equals": [
+                                      "@xpath(xml(outputs('remove__xsi_from_response')),'.//OPPORTUNITY_ID/text()')?[0]",
+                                      "@string(' ')"
+                                  ]
+                              }
+                          }
+                      ]
+                  },
+                  "runAfter": {
+                      "remove__xsi_from_response": [
+                          "Succeeded"
+                      ]
+                  },
+                  "type": "If"
+              },
+              "Condition-Try_Fetch_Opp_details_by_opp_id": {
+                  "actions": {},
+                  "else": {
+                      "actions": {
+                          "Execute_a_SOQL_query_on_fetchOppCompetitor": {
+                              "inputs": {
+                                  "body": {
+                                      "query": "select Id,S4SCompetitor__c,S4SPrimary__c\nfrom S4SOpportunity_Competitor__c where S4SOpportunity__c='@{json(xml(triggerBody()))['soapenv:Envelope']?['soapenv:Body']?['sie:upsertOffer']?['SIE_SF4S_upsertOfferReq']?['OPP_ID']}'"
+                                  },
+                                  "host": {
+                                      "connection": {
+                                          "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                      }
+                                  },
+                                  "method": "post",
+                                  "path": "/soql/executesoqlquery"
+                              },
+                              "runAfter": {
+                                  "For_each_Id": [
+                                      "Succeeded"
+                                  ]
+                              },
+                              "type": "ApiConnection"
+                          },
+                          "Execute_a_SOQL_query_on_searchAttributeAssignment": {
+                              "inputs": {
+                                  "body": {
+                                      "query": "select \nId,OwnerId,S4SAccount__c,S4SContact__c,S4SOpportunity__c\nfrom S4SAttribute_Assignment__c\nwhere S4SOpportunity__c='@{variables('opportunityId')}'"
+                                  },
+                                  "host": {
+                                      "connection": {
+                                          "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                      }
+                                  },
+                                  "method": "post",
+                                  "path": "/soql/executesoqlquery"
+                              },
+                              "runAfter": {
+                                  "For_each_Opp": [
+                                      "Succeeded"
+                                  ]
+                              },
+                              "type": "ApiConnection"
+                          },
+                          "For_each_4": {
+                              "actions": {
+                                  "Append_to_array_variable_2": {
+                                      "inputs": {
+                                          "name": "deleteSearchAttribute",
+                                          "value": "@items('For_each_4')['Id']"
+                                      },
+                                      "runAfter": {},
+                                      "type": "AppendToArrayVariable"
+                                  }
+                              },
+                              "foreach": "@body('Execute_a_SOQL_query_on_searchAttributeAssignment')['records']",
+                              "runAfter": {
+                                  "Execute_a_SOQL_query_on_searchAttributeAssignment": [
+                                      "Succeeded"
+                                  ]
+                              },
+                              "runtimeConfiguration": {
+                                  "concurrency": {
+                                      "repetitions": 1
+                                  }
+                              },
+                              "type": "Foreach"
+                          },
+                          "For_each_Id": {
+                              "actions": {
+                                  "Append_to_array_variable_4": {
+                                      "inputs": {
+                                          "name": "deleteIDs",
+                                          "value": "@items('For_each_Id')['Id']"
+                                      },
+                                      "runAfter": {},
+                                      "type": "AppendToArrayVariable"
+                                  }
+                              },
+                              "foreach": "@body('fetchInvolvedAccounts')['records']",
+                              "runAfter": {
+                                  "fetchInvolvedAccounts": [
+                                      "Succeeded",
+                                      "Skipped",
+                                      "TimedOut"
+                                  ]
+                              },
+                              "runtimeConfiguration": {
+                                  "concurrency": {
+                                      "repetitions": 1
+                                  }
+                              },
+                              "type": "Foreach"
+                          },
+                          "For_each_Opp": {
+                              "actions": {
+                                  "Append_to_array_variable": {
+                                      "inputs": {
+                                          "name": "deleteFetchOpp",
+                                          "value": "@items('For_each_Opp')['Id']"
+                                      },
+                                      "runAfter": {},
+                                      "type": "AppendToArrayVariable"
+                                  }
+                              },
+                              "foreach": "@body('Execute_a_SOQL_query_on_fetchOppCompetitor')['records']",
+                              "runAfter": {
+                                  "Execute_a_SOQL_query_on_fetchOppCompetitor": [
+                                      "Succeeded"
+                                  ]
+                              },
+                              "runtimeConfiguration": {
+                                  "concurrency": {
+                                      "repetitions": 1
+                                  }
+                              },
+                              "type": "Foreach"
+                          },
+                          "fetchInvolvedAccounts": {
+                              "inputs": {
+                                  "body": "@xml(variables('SIE_SF4S_upsertOfferReq'))",
+                                  "host": {
+                                      "triggerName": "manual",
+                                      "workflow": {
+                                        "id": "${cnsf_internal_SIE_SF4S_FetchInvAcc_v2}"
+                                      }
+                                  },
+                                  "retryPolicy": {
+                                      "type": "none"
+                                  }
+                              },
+                              "runAfter": {},
+                              "type": "Workflow"
+                          }
+                      }
+                  },
+                  "expression": {
+                      "or": [
+                          {
+                              "equals": [
+                                  "@variables('opportunityId')",
+                                  "@null"
+                              ]
+                          },
+                          {
+                              "equals": [
+                                  "@variables('opportunityId')",
+                                  "@String('')"
+                              ]
+                          }
+                      ]
+                  },
+                  "runAfter": {
+                      "Condition-Try_Fetch_Opp_by_ref_id": [
+                          "Succeeded"
+                      ]
+                  },
+                  "type": "If"
+              },
+              "Condition-Try_Fetch_Opp_by_ref_id": {
+                  "actions": {
+                      "Compose_Set_OppID_in_Request": {
+                          "inputs": "@xml(json(concat('{\"SIE_SF4S_upsertOfferReq\":',string(setProperty(json(xml(variables('SIE_SF4S_upsertOfferReq')))?['SIE_SF4S_upsertOfferReq'],'OPP_ID',body('SIE_SF4S_FetchOpportunityID')?['records']?[0]?['Id'])),'}')))",
+                          "runAfter": {
+                              "Set_variable": [
+                                  "Succeeded"
+                              ]
+                          },
+                          "type": "Compose"
+                      },
+                      "SIE_SF4S_FetchOpportunityID": {
+                          "inputs": {
+                              "body": "@xml(variables('SIE_SF4S_upsertOfferReq'))",
+                              "host": {
+                                  "triggerName": "manual",
+                                  "workflow": {
+                                    "id": "${cnsf_internal_SIE_SF4S_FetchOppID_V2}"
+                                  }
+                              },
+                              "retryPolicy": {
+                                  "type": "none"
+                              }
+                          },
+                          "runAfter": {},
+                          "type": "Workflow"
+                      },
+                      "Set_variable": {
+                          "inputs": {
+                              "name": "opportunityId",
+                              "value": "@{body('SIE_SF4S_FetchOpportunityID')?['records']?[0]?['Id']}"
+                          },
+                          "runAfter": {
+                              "SIE_SF4S_FetchOpportunityID": [
+                                  "Succeeded"
+                              ]
+                          },
+                          "type": "SetVariable"
+                      },
+                      "Set_variable-UpsertOfferReq": {
+                          "inputs": {
+                              "name": "SIE_SF4S_upsertOfferReq",
+                              "value": "@{outputs('Compose_Set_OppID_in_Request')}"
+                          },
+                          "runAfter": {
+                              "Compose_Set_OppID_in_Request": [
+                                  "Succeeded"
+                              ]
+                          },
+                          "type": "SetVariable"
+                      }
+                  },
+                  "expression": {
+                      "or": [
+                          {
+                              "equals": [
+                                  "@variables('opportunityId')",
+                                  "@null"
+                              ]
+                          },
+                          {
+                              "equals": [
+                                  "@variables('opportunityId')",
+                                  "@string('')"
+                              ]
+                          }
+                      ]
+                  },
+                  "runAfter": {},
+                  "type": "If"
+              },
+              "Condition_TerritoryStructure": {
+                  "actions": {
+                      "Compose_Response": {
+                          "inputs": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sie=\"http://demchdc8zkx.dc4ca.siemens.de/SIE.SF4S.CN_SF.Public.WebServices:SIE_SF4S_upsertOffer\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <sie:upsertOfferResponse>\n         <SIE_SF4S_upsertOfferResponse>\n            <ACTION xsi:nil=\"true\"/>\n<COMPANY_ID xsi:nil=\"true\"/>\n<ERROR_MSG>Territory could not be found in SieSales</ERROR_MSG>\n<IFA_NUMBER xsi:nil=\"true\"/>\n<OFFER_ID xsi:nil=\"true\"/>\n<OPPORTUNITY_ID xsi:nil=\"true\"/>\n<SUCCESS xsi:nil=\"true\"/>\n<OfferLineItemResult xsi:nil=\"true\"/>\n         </SIE_SF4S_upsertOfferResponse>\n      </sie:upsertOfferResponse>\n   </soapenv:Body>\n</soapenv:Envelope>",
+                          "runAfter": {},
+                          "type": "Compose"
+                      },
+                      "Response": {
+                          "inputs": {
+                              "body": "@outputs('Compose_Response')",
+                              "headers": {
+                                  "Content-Type": "text/xml"
+                              },
+                              "statusCode": 200
+                          },
+                          "kind": "Http",
+                          "runAfter": {
+                              "Compose_Response": [
+                                  "Succeeded"
+                              ]
+                          },
+                          "type": "Response"
+                      },
+                      "Terminate": {
+                          "inputs": {
+                              "runStatus": "Succeeded"
+                          },
+                          "runAfter": {
+                              "Response": [
+                                  "Succeeded"
+                              ]
+                          },
+                          "type": "Terminate"
+                      }
+                  },
+                  "expression": {
+                      "and": [
+                          {
+                              "equals": [
+                                  "@body('SIE_SF4S_FetchTerritory')?['totalSize']",
+                                  0
+                              ]
+                          }
+                      ]
+                  },
+                  "runAfter": {
+                      "SIE_SF4S_FetchTerritory": [
+                          "Succeeded"
+                      ]
+                  },
+                  "type": "If"
+              },
+              "Final_Response": {
+                  "inputs": "@replace(outputs('Replace_namespace'),'SIE_SF4S_upsertOfferRes_Spiridon','SIE_SF4S_upsertOfferResponse')",
+                  "runAfter": {
+                      "Replace_namespace": [
+                          "Succeeded"
+                      ]
+                  },
+                  "type": "Compose"
+              },
+              "Replace_namespace": {
+                  "inputs": "@replace(body('SIE-SF4S-upsertOfferSpiridon'),'\"http://demchdc8zkx.dc4ca.siemens.de/SIE.SF4S.Spiridon.Public.WebServices.Provider:SIE_SF4S_SPIRIDON\"','\"http://demchdc8zkx.dc4ca.siemens.de/SIE.SF4S.CN_SF.Public.WebServices:SIE_SF4S_upsertOffer\"')",
+                  "runAfter": {
+                      "Condition": [
+                          "Succeeded"
+                      ]
+                  },
+                  "type": "Compose"
+              },
+              "Response_3": {
+                  "inputs": {
+                      "body": "@outputs('Final_Response')",
+                      "headers": {
+                          "Content-Type": "text/xml"
+                      },
+                      "statusCode": 200
+                  },
+                  "kind": "Http",
+                  "runAfter": {
+                      "Final_Response": [
+                          "Succeeded"
+                      ]
+                  },
+                  "type": "Response"
+              },
+              "SIE-SF4S-upsertOfferSpiridon": {
+                  "inputs": {
+                      "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sie=\"http://demchdc8zkx.dc4ca.siemens.de/SIE.SF4S.Spiridon.Public.WebServices.Provider:SIE_SF4S_SPIRIDON\">\n    <soapenv:Header/>\n    <soapenv:Body>\n        <sie:upsertOffer>\n@{replace(outputs('Compose_2'),'SIE_SF4S_upsertOfferReq','SIE_SF4S_upsertOfferReq_Spiridon')}\n</sie:upsertOffer>\n    </soapenv:Body>\n</soapenv:Envelope>\n",
+                      "host": {
+                          "triggerName": "manual",
+                          "workflow": {
+                            "id": "${spiridon_SIE-SF4S-upsertOfferSpiridon}"
+                          }
+                      },
+                      "retryPolicy": {
+                          "type": "none"
+                      }
+                  },
+                  "runAfter": {
+                      "Compose_2": [
+                          "Succeeded"
+                      ]
+                  },
+                  "type": "Workflow"
+              },
+              "SIE_SF4S_FetchTerritory": {
+                  "inputs": {
+                      "body": "@outputs('fetchTerritoryStructureReq')",
+                      "host": {
+                          "triggerName": "manual",
+                          "workflow": {
+                            "id": "${cnsf_internal_SIE_SF4S_FetchTerritory_V2}"
+                          }
+                      },
+                      "retryPolicy": {
+                          "type": "none"
+                      }
+                  },
+                  "runAfter": {
+                      "fetchTerritoryStructureReq": [
+                          "Succeeded"
+                      ]
+                  },
+                  "type": "Workflow"
+              },
+              "fetchTerritoryStructureReq": {
+                  "inputs": {
+                      "S4SLead_Country__c": "@{variables('TerritoryStructure')?['DIM_TERRITORYStructure']?['DIM_TERRITORY_CLUSTER']}",
+                      "S4SLevel__c": "",
+                      "S4SSale_Country": "@{variables('TerritoryStructure')?['DIM_TERRITORYStructure']?['REGION']}",
+                      "S4SSales_Branch__c": "@{variables('TerritoryStructure')?['DIM_TERRITORYStructure']?['SALES_BRANCH']}",
+                      "S4SSales_Department__c": "@{variables('TerritoryStructure')?['DIM_TERRITORYStructure']?['SALES_DEPARTMENT']}",
+                      "S4SSales_Office": "@{variables('TerritoryStructure')?['DIM_TERRITORYStructure']?['SALES_OFFICE']}",
+                      "S4SSales_SubRegion": "@{variables('TerritoryStructure')?['DIM_TERRITORYStructure']?['SUB_REGION']}",
+                      "S4SSales_Territory": "@{variables('TerritoryStructure')?['DIM_TERRITORYStructure']?['DIM_TERRITORY_SECTOR']}",
+                      "S4SSales_district__c": "@{variables('TerritoryStructure')?['DIM_TERRITORYStructure']?['SALES_DISTRICT']}",
+                      "SFDC_ID": ""
+                  },
+                  "runAfter": {
+                      "Condition-Try_Fetch_Opp_details_by_opp_id": [
+                          "Succeeded"
+                      ]
+                  },
+                  "type": "Compose"
+              },
+              "remove__xsi_from_response": {
+                  "inputs": "@replace(body('SIE-SF4S-upsertOfferSpiridon'),' xsi:nil=\"true\"','')",
+                  "runAfter": {
+                      "SIE-SF4S-upsertOfferSpiridon": [
+                          "Succeeded"
+                      ]
+                  },
+                  "type": "Compose"
+              }
+          },
+          "runAfter": {
+              "Initialize_FetchInvol": [
+                  "Succeeded"
+              ],
+              "Initialize_deleteFetchOpp": [
+                  "Succeeded"
+              ],
+              "Initialize_deleteSearchAttribute": [
+                  "Succeeded"
+              ],
+              "Initialize_variable": [
+                  "Succeeded"
+              ],
+              "Initialize_variable_SIE_SF4S_upsertOfferReq": [
+                  "Succeeded"
+              ],
+              "Initialize_variable_TerritoryStructure": [
+                  "Succeeded"
+              ]
+          },
+          "trackedProperties": {
+              "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+              "citizenName": "c00031",
+              "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+              "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'CNSF')}",
+              "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+              "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+              "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'upsertOffer_v2')}",
+              "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+              "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+              "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+          },
+          "type": "Scope"
+      }
+  },
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {
+      "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+      }
+  },
+  "triggers": {
+      "manual": {
+          "inputs": {},
+          "kind": "Http",
+          "type": "Request"
+      }
+  }  
+}

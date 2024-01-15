@@ -1,0 +1,117 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "$connections": {
+      "defaultValue": {},
+      "type": "Object"
+    }
+  },
+  "triggers": {
+    "manual": {
+      "type": "Request",
+      "kind": "Http",
+      "inputs": {
+        "schema": {
+          "properties": {
+            "DataFilters": {
+              "properties": {
+                "ValidFrom": {
+                  "type": "string"
+                },
+                "ValidTo": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": "object"
+        }
+      }
+    }
+  },
+  "actions": {
+    "Get_Account_Data_from_CopyStorm": {
+      "runAfter": {
+        "LiquidTransformer": [
+          "Succeeded"
+        ]
+      },
+      "type": "ApiConnection",
+      "inputs": {
+        "body": {
+          "query": "Select  ID, Name, billinglatitude, billinglongitude,billingstreet, billingcity, billingstate, billingpostalcode, isDeleted, systemmodstamp from SFDC_CRM.VI_ATLAS_ACCOUNT @{body('LiquidTransformer')?['whereClause']}"
+        },
+        "host": {
+          "connection": {
+            "name": "@parameters('$connections')['oracle']['connectionId']"
+          }
+        },
+        "method": "post",
+        "path": "/datasets/default/query/oracle",
+        "retryPolicy": {
+          "type": "none"
+        }
+      }
+    },
+    "LiquidTransformer": {
+      "runAfter": {},
+      "type": "Function",
+      "inputs": {
+        "authentication": {
+          "type": "Raw",
+          "value": "[parameters('functionAppKey')]"
+        },
+        "body": "@triggerBody()",
+        "function": {
+          "id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "content-type": "application/json",
+          "filename": "Atlas-Account-whereClause"
+        },
+        "retryPolicy": {
+          "type": "none"
+        }
+      }
+    },
+    "Response": {
+      "runAfter": {
+        "Get_Account_Data_from_CopyStorm": [
+          "TimedOut",
+          "Failed"
+        ]
+      },
+      "type": "Response",
+      "kind": "Http",
+      "inputs": {
+        "body": {
+          "Accounts": [],
+          "WorkflowRunId": "@{workflow()['run']['name']}",
+          "message": "@{coalesce(body('Get_Account_Data_from_CopyStorm')?['error']?['innerError']?['message'],'An error occurred. Please provide the WorkFlowRunId to Admin for investigation')}"
+        },
+        "statusCode": "@coalesce(body('Get_Account_Data_from_CopyStorm')?['error']?['code'],'500')"
+      }
+    },
+    "Response_Success": {
+      "runAfter": {
+        "Get_Account_Data_from_CopyStorm": [
+          "Succeeded"
+        ]
+      },
+      "type": "Response",
+      "kind": "Http",
+      "inputs": {
+        "body": {
+          "Accounts": "@body('Get_Account_Data_from_CopyStorm')?['resultsets']?['Table1']",
+          "WorkflowRunId": "@{workflow()['run']['name']}",
+          "message": "success"
+        },
+        "statusCode": 200
+      }
+    }
+  },
+  "outputs": {}
+}

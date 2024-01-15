@@ -1,0 +1,3126 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "actions": {
+    "Catch_Scope": {
+      "actions": {
+        "Failed_Response_temporary": {
+          "inputs": {
+            "body": {
+              "upsertOppObjectsResponse": {
+                "Opportunity": "@json(variables('UpsertOpp_response'))",
+                "S4SBooking_Line_Item__c": "@variables('UpsertBookingLine_response')"
+              }
+            },
+            "statusCode": 500
+          },
+          "kind": "Http",
+          "runAfter": {},
+          "type": "Response"
+        },
+        "Terminate": {
+          "inputs": {
+            "runStatus": "Failed"
+          },
+          "runAfter": {
+            "Failed_Response_temporary": ["Succeeded"]
+          },
+          "type": "Terminate"
+        }
+      },
+      "runAfter": {
+        "Try_Scope": ["Failed", "TimedOut"]
+      },
+      "type": "Scope"
+    },
+    "Initialize_Loop_Counter": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "loopCounter",
+            "type": "integer",
+            "value": 0
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "Initialize_variable-responsemap": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "responseMap",
+            "type": "string"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "Initialize_variable_GOI_response": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "GOI_response",
+            "type": "array"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "Initialize_variable_OpportunityId": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "OpportunityId",
+            "type": "array"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "Initialize_variable_Products": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "Products",
+            "type": "array"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "Initialize_variable_UpsertBookingLine_response": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "UpsertBookingLine_response",
+            "type": "array"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "Initialize_variable_UpsertOpp_response": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "UpsertOpp_response",
+            "type": "string"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "Initialize_variable_UpsertQuote_response": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "UpsertQuote_response",
+            "type": "string"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "Initialize_variable_UpsertoppLine_response": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "UpsertoppLine_response",
+            "type": "array"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "Try_Scope": {
+      "actions": {
+        "For_each_Opp": {
+          "actions": {
+            "Check_-_SIE_SF4S_upsertResponse_Status": {
+              "actions": {
+                "Condition_if_BLs_are_present": {
+                  "actions": {
+                    "Append_to_GOI_response_including_BLs": {
+                      "inputs": {
+                        "name": "GOI_response",
+                        "value": {
+                          "upsertOppObjectsResponse": {
+                            "Opportunity": "@json(variables('UpsertOpp_response'))",
+                            "S4SBooking_Line_Item__c": "@variables('UpsertBookingLine_response')"
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "for_each_BookingLine": ["Succeeded"]
+                      },
+                      "type": "AppendToArrayVariable"
+                    },
+                    "for_each_BookingLine": {
+                      "actions": {
+                        "Append_response_to_Array_variable_BookingLine": {
+                          "inputs": {
+                            "name": "UpsertBookingLine_response",
+                            "value": "@json(variables('responseMap'))"
+                          },
+                          "runAfter": {
+                            "Increment_variable_loopCounter": ["Succeeded"]
+                          },
+                          "type": "AppendToArrayVariable"
+                        },
+                        "Compose_BL_input": {
+                          "inputs": {
+                            "CurrencyIsoCode": "@{items('for_each_BookingLine')?['CurrencyIsoCode']}",
+                            "Name": "@{items('for_each_BookingLine')?['Name']}",
+                            "S4SDepth_Structure__c": "@{items('for_each_BookingLine')?['S4SDepth_Structure__c']}",
+                            "S4SExternal_Source__c": "@{items('for_each_BookingLine')?['S4SExternal_Source__c']}",
+                            "S4SOpportunity__c": "@{coalesce(body('Update_Opportunity')?['Id'],body('Create_Opportunity')?['Id'])}",
+                            "S4SPrimary_Flag__c": "@{items('for_each_BookingLine')?['S4SPrimary_Flag__c']}",
+                            "S4SProgram_Fund__c": "@{items('for_each_BookingLine')?['S4SProgram_Fund__c']}",
+                            "S4SQuantity__c": "@{items('for_each_BookingLine')?['S4SQuantity__c']}",
+                            "S4SSales_Country__c": "@{items('for_each_BookingLine')?['S4SSales_Country__c']}",
+                            "S4SSales_Price__c": "@{items('for_each_BookingLine')?['S4SSales_Price__c']}",
+                            "S4SX1st_Year_return__c": "@{items('for_each_BookingLine')?['S4SX1st_Year_return__c']}",
+                            "S4SX2nd_Year_Return__c": "@{items('for_each_BookingLine')?['S4SX2nd_Year_Return__c']}",
+                            "X3rd_Year_Return__c": "@{items('for_each_BookingLine')?['X3rd_Year_Return__c']}"
+                          },
+                          "runAfter": {},
+                          "type": "Compose"
+                        },
+                        "Condition_check_for_bookingLine": {
+                          "actions": {
+                            "Update_bookingLine": {
+                              "inputs": {
+                                "body": "@json(string(outputs('Execute_JavaScript_Code_remove_Nulls_BL')['body']))",
+                                "headers": {
+                                  "Authorization": "Bearer @{body('Get_Token')}",
+                                  "Content-Type": "application/json"
+                                },
+                                "method": "PATCH",
+                                "uri": "${instanceURL}/sobjects/S4SBooking_Line_Item__c/Id/@{items('for_each_BookingLine')?['Id']}"
+                              },
+                              "runAfter": {},
+                              "type": "Http"
+                            }
+                          },
+                          "else": {
+                            "actions": {
+                              "Create_bookingLine": {
+                                "inputs": {
+                                  "body": "@json(string(outputs('Execute_JavaScript_Code_remove_Nulls_BL')['body']))",
+                                  "headers": {
+                                    "Authorization": "Bearer @{body('Get_Token')}",
+                                    "Content-Type": "application/json"
+                                  },
+                                  "method": "POST",
+                                  "uri": "${instanceURL}/sobjects/S4SBooking_Line_Item__c/"
+                                },
+                                "runAfter": {},
+                                "type": "Http"
+                              }
+                            }
+                          },
+                          "expression": {
+                            "and": [
+                              {
+                                "not": {
+                                  "equals": [
+                                    "@items('for_each_BookingLine')?['Id']",
+                                    "@string('')"
+                                  ]
+                                }
+                              },
+                              {
+                                "not": {
+                                  "equals": [
+                                    "@items('for_each_BookingLine')?['Id']",
+                                    "@null"
+                                  ]
+                                }
+                              }
+                            ]
+                          },
+                          "runAfter": {
+                            "Execute_JavaScript_Code_remove_Nulls_BL": [
+                              "Succeeded"
+                            ]
+                          },
+                          "type": "If"
+                        },
+                        "Execute_JavaScript_Code_remove_Nulls_BL": {
+                          "inputs": {
+                            "code": " var obj = workflowContext.actions.Compose_BL_input.outputs;\r\n for (var propName in obj) {\r\n    if (obj[propName] == null || obj[propName] == undefined ||  obj[propName] == \"\") {\r\n      delete obj[propName];\r\n    }\r\n  }\r\n  return obj;"
+                          },
+                          "runAfter": {
+                            "Compose_BL_input": ["Succeeded"]
+                          },
+                          "type": "JavaScriptCode"
+                        },
+                        "Increment_variable_loopCounter": {
+                          "inputs": {
+                            "name": "loopCounter",
+                            "value": 1
+                          },
+                          "runAfter": {
+                            "Set_variable_responseMap": [
+                              "Succeeded",
+                              "Failed",
+                              "Skipped",
+                              "TimedOut"
+                            ],
+                            "Set_variable_resposneMap_failure_case": [
+                              "Succeeded",
+                              "TimedOut",
+                              "Skipped",
+                              "Failed"
+                            ]
+                          },
+                          "type": "IncrementVariable"
+                        },
+                        "Set_variable_responseMap": {
+                          "inputs": {
+                            "name": "responseMap",
+                            "value": "{\n  \"Id\": \"@{coalesce(body('Update_bookingLine')?['Id'],body('Create_bookingLine')?['Id'],'NA')}\",\n\"ExternalId\": \"@{items('for_each_BookingLine')?['ExternalId']}\",\n\"ProductFamily\": \"@{items('for_each_BookingLine')?['ProductFamily']}\",\n  \"Created\": \"@{if(equals(item()?['Id'],null),'true','false')}\",\n  \"Success\": \"true\"\n}"
+                          },
+                          "runAfter": {
+                            "Condition_check_for_bookingLine": ["Succeeded"]
+                          },
+                          "type": "SetVariable"
+                        },
+                        "Set_variable_resposneMap_failure_case": {
+                          "inputs": {
+                            "name": "responseMap",
+                            "value": "{\n\"ExternalId\": \"@{items('for_each_BookingLine')?['ExternalId']}\",\n  \"Created\": \"false\",\n  \"Success\": \"false\",\n  \"Message\": \"@{coalesce(body('Update_bookingLine')[0]?['message'],body('Create_bookingLine')[0]?['message'])}\"\n}"
+                          },
+                          "runAfter": {
+                            "Condition_check_for_bookingLine": [
+                              "TimedOut",
+                              "Failed"
+                            ]
+                          },
+                          "type": "SetVariable"
+                        }
+                      },
+                      "foreach": "@body('Parse_JSON_BookingLineInput')?['BookingLines']",
+                      "runAfter": {},
+                      "runtimeConfiguration": {
+                        "concurrency": {
+                          "repetitions": 1
+                        }
+                      },
+                      "type": "Foreach"
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Append_to_GOI_response_when_no_BLs": {
+                        "inputs": {
+                          "name": "GOI_response",
+                          "value": {
+                            "upsertOppObjectsResponse": {
+                              "Opportunity": "@json(variables('UpsertOpp_response'))"
+                            }
+                          }
+                        },
+                        "runAfter": {},
+                        "type": "AppendToArrayVariable"
+                      }
+                    }
+                  },
+                  "expression": {
+                    "and": [
+                      {
+                        "greater": [
+                          "@length(coalesce(body('Parse_JSON_BookingLineInput')?['BookingLines'],''))",
+                          0
+                        ]
+                      }
+                    ]
+                  },
+                  "runAfter": {
+                    "Set_variable_UpsertOpp_response_succes": ["Succeeded"]
+                  },
+                  "type": "If"
+                },
+                "Set_variable_UpsertOpp_response_succes": {
+                  "inputs": {
+                    "name": "UpsertOpp_response",
+                    "value": "{\n  \"Id\": \"@{coalesce(body('Update_Opportunity')?['Id'],body('Create_Opportunity')?['Id'],items('For_each_Opp')?['Id'])}\",\n  \"Created\": \"@{not(equals(coalesce(outputs('Create_Opportunity')?['statusCode'],outputs('Update_Opportunity')?['statusCode']),200))}\",\n  \"Success\": \"@{not(equals(coalesce(body('Create_Opportunity')?['message'], body('Update_Opportunity')?['message']),''))}\"\n}"
+                  },
+                  "runAfter": {},
+                  "type": "SetVariable"
+                }
+              },
+              "else": {
+                "actions": {
+                  "Append_to_array_GOI_response": {
+                    "inputs": {
+                      "name": "GOI_response",
+                      "value": {
+                        "upsertOppObjectsResponse": {
+                          "Opportunity": {
+                            "Created": "false",
+                            "Id": "@{coalesce(items('For_each_Opp')?['Id'],'')}",
+                            "Message": "@{coalesce(body('Update_Opportunity')[0]?['message'],body('Create_Opportunity')[0]?['message'],'')}",
+                            "Success": "false"
+                          }
+                        }
+                      }
+                    },
+                    "runAfter": {},
+                    "type": "AppendToArrayVariable"
+                  }
+                }
+              },
+              "expression": {
+                "or": [
+                  {
+                    "equals": [
+                      "@coalesce(outputs('Update_Opportunity')['statusCode'],outputs('Create_Opportunity')['statusCode'])",
+                      201
+                    ]
+                  },
+                  {
+                    "equals": [
+                      "@coalesce(outputs('Update_Opportunity')['statusCode'],outputs('Create_Opportunity')['statusCode'])",
+                      200
+                    ]
+                  }
+                ]
+              },
+              "runAfter": {
+                "Parse_JSON_BookingLineInput": [
+                  "Succeeded",
+                  "Failed",
+                  "TimedOut",
+                  "Skipped"
+                ],
+                "if_Opp_Id_is_provided_in_the_request": [
+                  "Succeeded",
+                  "Failed",
+                  "TimedOut"
+                ]
+              },
+              "type": "If"
+            },
+            "Compose_Handles_Booleans": {
+              "inputs": "@json( replace(replace(string(outputs('Compose_Upsert_Opportunity_request')),'False','false'),'True','true'))",
+              "runAfter": {
+                "Compose_Upsert_Opportunity_request": ["Succeeded"]
+              },
+              "type": "Compose"
+            },
+            "Compose_Upsert_Opportunity_request": {
+              "inputs": {
+                "Amount": "@{items('For_each_Opp')?['Amount']}",
+                "Budget_Confirmed__c": "@{items('For_each_Opp')?['Budget_Confirmed__c']}",
+                "CampaignId": "@{items('For_each_Opp')?['CampaignId']}",
+                "CloseDate": "@{items('For_each_Opp')?['CloseDate']}",
+                "CurrencyIsoCode": "@{items('For_each_Opp')?['CurrencyIsoCode']}",
+                "DB_Competitor__c": "@{items('For_each_Opp')?['DB_Competitor__c']}",
+                "Description": "@{items('For_each_Opp')?['Description']}",
+                "Discovery_Completed__c": "@{items('For_each_Opp')?['Discovery_Completed__c']}",
+                "ExpectedRevenue": "@{items('For_each_Opp')?['ExpectedRevenue']}",
+                "Fiscal": "@{items('For_each_Opp')?['Fiscal']}",
+                "FiscalQuarter": "@{items('For_each_Opp')?['FiscalQuarter']}",
+                "FiscalYear": "@{items('For_each_Opp')?['FiscalYear']}",
+                "ForecastCategory": "@{items('For_each_Opp')?['ForecastCategory']}",
+                "ForecastCategoryName": "@{items('For_each_Opp')?['ForecastCategoryName']}",
+                "HasOpenActivity": "@{items('For_each_Opp')?['HasOpenActivity']}",
+                "HasOpportunityLineItem": "@{items('For_each_Opp')?['HasOpportunityLineItem']}",
+                "HasOverdueTask": "@{items('For_each_Opp')?['HasOverdueTask']}",
+                "Id": "@{items('For_each_Opp')?['Id']}",
+                "IsClosed": "@{items('For_each_Opp')?['IsClosed']}",
+                "IsPrivate": "@{items('For_each_Opp')?['IsPrivate']}",
+                "IsWon": "@{items('For_each_Opp')?['IsWon']}",
+                "LID__Is_Influenced__c": "@{items('For_each_Opp')?['LID__Is_Influenced__c']}",
+                "LID__LinkedIn_Company_Id__c": "@{items('For_each_Opp')?['LID__LinkedIn_Company_Id__c']}",
+                "LeadSource": "@{items('For_each_Opp')?['LeadSource']}",
+                "Lead_Created_By__c": "@{items('For_each_Opp')?['Lead_Created_By__c']}",
+                "Loss_Reason__c": "@{items('For_each_Opp')?['Loss_Reason__c']}",
+                "Name": "@{items('For_each_Opp')?['Name']}",
+                "NextStep": "@{items('For_each_Opp')?['NextStep']}",
+                "Probability": "@{items('For_each_Opp')?['Probability']}",
+                "ROI_Analysis_Completed__c": "@{items('For_each_Opp')?['ROI_Analysis_Completed__c']}",
+                "S4SAcceptance_Closure__c": "@{items('For_each_Opp')?['S4SAcceptance_Closure__c']}",
+                "S4SAdvisory_Volume__c": "@{items('For_each_Opp')?['S4SAdvisory_Volume__c']}",
+                "S4SAlternative_Opportunity__c": "@{items('For_each_Opp')?['S4SAlternative_Opportunity__c']}",
+                "S4SAmount_Financed__c": "@{items('For_each_Opp')?['S4SAmount_Financed__c']}",
+                "S4SAnnual_Sales_relev_for_Factoring__c": "@{items('For_each_Opp')?['S4SAnnual_Sales_relev_for_Factoring__c']}",
+                "S4SAnnual_Turnover_relev_for_EPT__c": "@{items('For_each_Opp')?['S4SAnnual_Turnover_relev_for_EPT__c']}",
+                "S4SApproval_Check__c": "@{items('For_each_Opp')?['S4SApproval_Check__c']}",
+                "S4SAsset_Code_IAC__c": "@{items('For_each_Opp')?['S4SAsset_Code_IAC__c']}",
+                "S4SAssigned_parental_Opportunity__c": "@{items('For_each_Opp')?['S4SAssigned_parental_Opportunity__c']}",
+                "S4SB2A_Outcome__c": "@{items('For_each_Opp')?['S4SB2A_Outcome__c']}",
+                "S4SB2A_type__c": "@{items('For_each_Opp')?['S4SB2A_type__c']}",
+                "S4SBid_approval_PM040__c": "@{items('For_each_Opp')?['S4SBid_approval_PM040__c']}",
+                "S4SBooking_Funding_Date__c": "@{items('For_each_Opp')?['S4SBooking_Funding_Date__c']}",
+                "S4SBuy_America_n__c": "@{items('For_each_Opp')?['S4SBuy_America_n__c']}",
+                "S4SCAPEX__c": "@{items('For_each_Opp')?['S4SCAPEX__c']}",
+                "S4SCategorization__c": "@{items('For_each_Opp')?['S4SCategorization__c']}",
+                "S4SChance_of_Execution__c": "@{items('For_each_Opp')?['S4SChance_of_Execution__c']}",
+                "S4SChance_of_Success__c": "@{items('For_each_Opp')?['S4SChance_of_Success__c']}",
+                "S4SChannel__c": "@{items('For_each_Opp')?['S4SChannel__c']}",
+                "S4SClosing_Date__c": "@{items('For_each_Opp')?['S4SClosing_Date__c']}",
+                "S4SCommission_Country_1__c": "@{items('For_each_Opp')?['S4SCommission_Country_1__c']}",
+                "S4SCommission_Country_2__c": "@{items('For_each_Opp')?['S4SCommission_Country_2__c']}",
+                "S4SCommission_Country_3__c": "@{items('For_each_Opp')?['S4SCommission_Country_3__c']}",
+                "S4SCommission_Country_4__c": "@{items('For_each_Opp')?['S4SCommission_Country_4__c']}",
+                "S4SCommission_Percentage_1__c": "@{items('For_each_Opp')?['S4SCommission_Percentage_1__c']}",
+                "S4SCommission_Percentage_2__c": "@{items('For_each_Opp')?['S4SCommission_Percentage_2__c']}",
+                "S4SCommission_Percentage_3__c": "@{items('For_each_Opp')?['S4SCommission_Percentage_3__c']}",
+                "S4SCommission_Percentage_4__c": "@{items('For_each_Opp')?['S4SCommission_Percentage_4__c']}",
+                "S4SContact_Name__c": "@{items('For_each_Opp')?['S4SContact_Name__c']}",
+                "S4SContract_Duration_Month__c": "@{items('For_each_Opp')?['S4SContract_Duration_Month__c']}",
+                "S4SContract_Schedule__c": "@{items('For_each_Opp')?['S4SContract_Schedule__c']}",
+                "S4SContractual_Insurance_requirements__c": "@{items('For_each_Opp')?['S4SContractual_Insurance_requirements__c']}",
+                "S4SCreate_COMPAS_Quote__c": "@{items('For_each_Opp')?['S4SCreate_COMPAS_Quote__c']}",
+                "S4SCreated_from_Lead__c": "@{items('For_each_Opp')?['S4SCreated_from_Lead__c']}",
+                "S4SCross_Border_International_Business__c": "@{items('For_each_Opp')?['S4SCross_Border_International_Business__c']}",
+                "S4SCustomer_Agreement_for_Data_Transfer__c": "@{items('For_each_Opp')?['S4SCustomer_Agreement_for_Data_Transfer__c']}",
+                "S4SCustomer_Interest_Focus__c": "@{items('For_each_Opp')?['S4SCustomer_Interest_Focus__c']}",
+                "S4SCustomer_Rate__c": "@{items('For_each_Opp')?['S4SCustomer_Rate__c']}",
+                "S4SDays_of_Delayed_Payments_EPT__c": "@{items('For_each_Opp')?['S4SDays_of_Delayed_Payments_EPT__c']}",
+                "S4SDiscussion_in_PEF_Deal_Flow_Call__c": "@{items('For_each_Opp')?['S4SDiscussion_in_PEF_Deal_Flow_Call__c']}",
+                "S4SDistribution_channel__c": "@{items('For_each_Opp')?['S4SDistribution_channel__c']}",
+                "S4SEUR_Exchange_Rate__c": "@{items('For_each_Opp')?['S4SEUR_Exchange_Rate__c']}",
+                "S4SEarning_Contribution__c": "@{items('For_each_Opp')?['S4SEarning_Contribution__c']}",
+                "S4SEmail__c": "@{items('For_each_Opp')?['S4SEmail__c']}",
+                "S4SExpiry_Date_Risk_Approval__c": "@{items('For_each_Opp')?['S4SExpiry_Date_Risk_Approval__c']}",
+                "S4SExternal_Source__c": "@{items('For_each_Opp')?['S4SExternal_Source__c']}",
+                "S4SFactoring_Fee__c": "@{items('For_each_Opp')?['S4SFactoring_Fee__c']}",
+                "S4SField_of_Activity__c": "@{items('For_each_Opp')?['S4SField_of_Activity__c']}",
+                "S4SFinance_Product_Label__c": "@{items('For_each_Opp')?['S4SFinance_Product_Label__c']}",
+                "S4SFinance_Product_Type__c": "@{items('For_each_Opp')?['S4SFinance_Product_Type__c']}",
+                "S4SFinancial_Request_Id__c": "@{items('For_each_Opp')?['S4SFinancial_Request_Id__c']}",
+                "S4SFinancial_Request__c": "@{items('For_each_Opp')?['S4SFinancial_Request__c']}",
+                "S4SFinancing_Demand_Division__c": "@{items('For_each_Opp')?['S4SFinancing_Demand_Division__c']}",
+                "S4SFinancing_Need__c": "@{items('For_each_Opp')?['S4SFinancing_Need__c']}",
+                "S4SFinancing_Product__c": "@{items('For_each_Opp')?['S4SFinancing_Product__c']}",
+                "S4SFunding_limit__c": "@{items('For_each_Opp')?['S4SFunding_limit__c']}",
+                "S4SGCK_Code__c": "@{items('For_each_Opp')?['S4SGCK_Code__c']}",
+                "S4SGovernmental_Agency__c": "@{items('For_each_Opp')?['S4SGovernmental_Agency__c']}",
+                "S4SGovernmental_Entity_Government_Funded__c": "@{items('For_each_Opp')?['S4SGovernmental_Entity_Government_Funded__c']}",
+                "S4SGross_Margin__c": "@{items('For_each_Opp')?['S4SGross_Margin__c']}",
+                "S4SHas_Children__c": "@{items('For_each_Opp')?['S4SHas_Children__c']}",
+                "S4SIBIT__c": "@{items('For_each_Opp')?['S4SIBIT__c']}",
+                "S4SInitial_Purchase_Price__c": "@{items('For_each_Opp')?['S4SInitial_Purchase_Price__c']}",
+                "S4SInsurance_Database_ID__c": "@{items('For_each_Opp')?['S4SInsurance_Database_ID__c']}",
+                "S4SInterface_Trigger__c": "@{items('For_each_Opp')?['S4SInterface_Trigger__c']}",
+                "S4SInternal_Interest_Rate__c": "@{items('For_each_Opp')?['S4SInternal_Interest_Rate__c']}",
+                "S4SInternational_City__c": "@{items('For_each_Opp')?['S4SInternational_City__c']}",
+                "S4SInternational_Country_Region__c": "@{items('For_each_Opp')?['S4SInternational_Country_Region__c']}",
+                "S4SInternational_Postal_Code__c": "@{items('For_each_Opp')?['S4SInternational_Postal_Code__c']}",
+                "S4SInternational_Region__c": "@{items('For_each_Opp')?['S4SInternational_Region__c']}",
+                "S4SInternational_Street_Name_1__c": "@{items('For_each_Opp')?['S4SInternational_Street_Name_1__c']}",
+                "S4SInternational_Street_Name_2__c": "@{items('For_each_Opp')?['S4SInternational_Street_Name_2__c']}",
+                "S4SInternational_country_regionGP__c": "@{items('For_each_Opp')?['S4SInternational_country_regionGP__c']}",
+                "S4SInvesting_ARE__c": "@{items('For_each_Opp')?['S4SInvesting_ARE__c']}",
+                "S4SInvolded_Siemens_Entities__c": "@{items('For_each_Opp')?['S4SInvolded_Siemens_Entities__c']}",
+                "S4SInvolved_Competence_Center__c": "@{items('For_each_Opp')?['S4SInvolved_Competence_Center__c']}",
+                "S4SLOA_ID_Number__c": "@{items('For_each_Opp')?['S4SLOA_ID_Number__c']}",
+                "S4SLast_Status_Change__c": "@{items('For_each_Opp')?['S4SLast_Status_Change__c']}",
+                "S4SLast_Sync_with_COMPAS__c": "@{items('For_each_Opp')?['S4SLast_Sync_with_COMPAS__c']}",
+                "S4SLead_Capture_Email__c": "@{items('For_each_Opp')?['S4SLead_Capture_Email__c']}",
+                "S4SLead_Source_Type__c": "@{items('For_each_Opp')?['S4SLead_Source_Type__c']}",
+                "S4SLoAID_Number__c": "@{items('For_each_Opp')?['S4SLoAID_Number__c']}",
+                "S4SMain_Reason__c": "@{items('For_each_Opp')?['S4SMain_Reason__c']}",
+                "S4SMobile__c": "@{items('For_each_Opp')?['S4SMobile__c']}",
+                "S4SNet_Present_Value_Percent__c": "@{items('For_each_Opp')?['S4SNet_Present_Value_Percent__c']}",
+                "S4SNet_Present_Value__c": "@{items('For_each_Opp')?['S4SNet_Present_Value__c']}",
+                "S4SOPEX__c": "@{items('For_each_Opp')?['S4SOPEX__c']}",
+                "S4SOPPORTUNITY_LegacyID__c": "@{items('For_each_Opp')?['S4SOPPORTUNITY_LegacyID__c']}",
+                "S4SOccupied_Territory_Evaluation__c": "@{items('For_each_Opp')?['S4SOccupied_Territory_Evaluation__c']}",
+                "S4SOffer_Reference_ID__c": "@{items('For_each_Opp')?['S4SOffer_Reference_ID__c']}",
+                "S4SOpportunity_Type__c": "@{items('For_each_Opp')?['S4SOpportunity_Type__c']}",
+                "S4SOriginal_Project_Solution_Opportunity__c": "@{items('For_each_Opp')?['S4SOriginal_Project_Solution_Opportunity__c']}",
+                "S4SOrigination_System_Response__c": "@{items('For_each_Opp')?['S4SOrigination_System_Response__c']}",
+                "S4SOur_Role__c": "@{items('For_each_Opp')?['S4SOur_Role__c']}",
+                "S4SOverall_Risk_Score__c": "@{items('For_each_Opp')?['S4SOverall_Risk_Score__c']}",
+                "S4SOwn_Content_Own_BU_Products__c": "@{items('For_each_Opp')?['S4SOwn_Content_Own_BU_Products__c']}",
+                "S4SOwn_Content_Own_DIV_Products__c": "@{items('For_each_Opp')?['S4SOwn_Content_Own_DIV_Products__c']}",
+                "S4SOwn_Content_Own_DIV_Services__c": "@{items('For_each_Opp')?['S4SOwn_Content_Own_DIV_Services__c']}",
+                "S4SOwn_Content_Siemens_Products_Services__c": "@{items('For_each_Opp')?['S4SOwn_Content_Siemens_Products_Services__c']}",
+                "S4SPEF_Advisory_Scope__c": "@{items('For_each_Opp')?['S4SPEF_Advisory_Scope__c']}",
+                "S4SPM040_Released_Gross_Margin__c": "@{items('For_each_Opp')?['S4SPM040_Released_Gross_Margin__c']}",
+                "S4SPM040_Released_Profit_EBIT__c": "@{items('For_each_Opp')?['S4SPM040_Released_Profit_EBIT__c']}",
+                "S4SPM040_Released_Risk_Contigency__c": "@{items('For_each_Opp')?['S4SPM040_Released_Risk_Contigency__c']}",
+                "S4SPM040_Released_Volume__c": "@{items('For_each_Opp')?['S4SPM040_Released_Volume__c']}",
+                "S4SPM040_Transfer_date__c": "@{items('For_each_Opp')?['S4SPM040_Transfer_date__c']}",
+                "S4SPM070_Transfer_Date__c": "@{items('For_each_Opp')?['S4SPM070_Transfer_Date__c']}",
+                "S4SPM070_Won_lost_Gross_Margin__c": "@{items('For_each_Opp')?['S4SPM070_Won_lost_Gross_Margin__c']}",
+                "S4SPM070_Won_lost_Profit_EBIT__c": "@{items('For_each_Opp')?['S4SPM070_Won_lost_Profit_EBIT__c']}",
+                "S4SPM070_Won_lost_Risk_Contigency__c": "@{items('For_each_Opp')?['S4SPM070_Won_lost_Risk_Contigency__c']}",
+                "S4SPM070_Won_lost_Volume__c": "@{items('For_each_Opp')?['S4SPM070_Won_lost_Volume__c']}",
+                "S4SPartnerLeadConversion__c": "@{items('For_each_Opp')?['S4SPartnerLeadConversion__c']}",
+                "S4SPhone__c": "@{items('For_each_Opp')?['S4SPhone__c']}",
+                "S4SPlanning_Tool__c": "@{items('For_each_Opp')?['S4SPlanning_Tool__c']}",
+                "S4SPotential_Siemens_Volume__c": "@{items('For_each_Opp')?['S4SPotential_Siemens_Volume__c']}",
+                "S4SPrevious_System_Unique_ID__c": "@{items('For_each_Opp')?['S4SPrevious_System_Unique_ID__c']}",
+                "S4SProduct_Interest__c": "@{items('For_each_Opp')?['S4SProduct_Interest__c']}",
+                "S4SProject_Category__c": "@{items('For_each_Opp')?['S4SProject_Category__c']}",
+                "S4SProject_Volume__c": "@{items('For_each_Opp')?['S4SProject_Volume__c']}",
+                "S4SPropensity_to_Win__c": "@{items('For_each_Opp')?['S4SPropensity_to_Win__c']}",
+                "S4SProposed_to_Debt__c": "@{items('For_each_Opp')?['S4SProposed_to_Debt__c']}",
+                "S4SProposed_to_Equity__c": "@{items('For_each_Opp')?['S4SProposed_to_Equity__c']}",
+                "S4SPush_Counter_PM070_change__c": "@{items('For_each_Opp')?['S4SPush_Counter_PM070_change__c']}",
+                "S4SROE__c": "@{items('For_each_Opp')?['S4SROE__c']}",
+                "S4SReason_Detail__c": "@{items('For_each_Opp')?['S4SReason_Detail__c']}",
+                "S4SReason_not_won__c": "@{items('For_each_Opp')?['S4SReason_not_won__c']}",
+                "S4SReceivables_Portfolio__c": "@{items('For_each_Opp')?['S4SReceivables_Portfolio__c']}",
+                "S4SReference_ID__c": "@{items('For_each_Opp')?['S4SReference_ID__c']}",
+                "S4SRelevant_for_Forecast__c": "@{items('For_each_Opp')?['S4SRelevant_for_Forecast__c']}",
+                "S4SRetention__c": "@{items('For_each_Opp')?['S4SRetention__c']}",
+                "S4SSAP_Number__c": "@{items('For_each_Opp')?['S4SSAP_Number__c']}",
+                "S4SSFS_Account_Rating_Date__c": "@{items('For_each_Opp')?['S4SSFS_Account_Rating_Date__c']}",
+                "S4SSFS_Account_Rating_Type__c": "@{items('For_each_Opp')?['S4SSFS_Account_Rating_Type__c']}",
+                "S4SSFS_Account_Rating__c": "@{items('For_each_Opp')?['S4SSFS_Account_Rating__c']}",
+                "S4SSFS_Opportunity_Rating_Date__c": "@{items('For_each_Opp')?['S4SSFS_Opportunity_Rating_Date__c']}",
+                "S4SSFS_Opportunity_Rating_Type__c": "@{items('For_each_Opp')?['S4SSFS_Opportunity_Rating_Type__c']}",
+                "S4SSFS_Opportunity_Rating__c": "@{items('For_each_Opp')?['S4SSFS_Opportunity_Rating__c']}",
+                "S4SSOC_Category__c": "@{items('For_each_Opp')?['S4SSOC_Category__c']}",
+                "S4SSPG_Code__c": "@{items('For_each_Opp')?['S4SSPG_Code__c']}",
+                "S4SSales_Type__c": "@{items('For_each_Opp')?['S4SSales_Type__c']}",
+                "S4SSectors_of_Concern__c": "@{items('For_each_Opp')?['S4SSectors_of_Concern__c']}",
+                "S4SSenior_Leverage__c": "@{items('For_each_Opp')?['S4SSenior_Leverage__c']}",
+                "S4SShowDisplay__c": "@{items('For_each_Opp')?['S4SShowDisplay__c']}",
+                "S4SSiemens_Equity__c": "@{items('For_each_Opp')?['S4SSiemens_Equity__c']}",
+                "S4SSocial_Impacts__c": "@{items('For_each_Opp')?['S4SSocial_Impacts__c']}",
+                "S4SSold_To_AI__c": "@{items('For_each_Opp')?['S4SSold_To_AI__c']}",
+                "S4SSolution_Support_End_Date__c": "@{items('For_each_Opp')?['S4SSolution_Support_End_Date__c']}",
+                "S4SSource_System_URL__c": "@{items('For_each_Opp')?['S4SSource_System_URL__c']}",
+                "S4SSource__c": "@{items('For_each_Opp')?['S4SSource__c']}",
+                "S4SSpread_Factoring__c": "@{items('For_each_Opp')?['S4SSpread_Factoring__c']}",
+                "S4SSpread__c": "@{items('For_each_Opp')?['S4SSpread__c']}",
+                "S4SStart_project_PM080__c": "@{items('For_each_Opp')?['S4SStart_project_PM080__c']}",
+                "S4SStatus_since__c": "@{items('For_each_Opp')?['S4SStatus_since__c']}",
+                "S4SStrategic_Priority__c": "@{items('For_each_Opp')?['S4SStrategic_Priority__c']}",
+                "S4SSupported_Siemens_BusinessUnit__c": "@{items('For_each_Opp')?['S4SSupported_Siemens_BusinessUnit__c']}",
+                "S4SSupported_Siemens_Business_Unit__c": "@{items('For_each_Opp')?['S4SSupported_Siemens_Business_Unit__c']}",
+                "S4SSupported_Siemens_Company__c": "@{items('For_each_Opp')?['S4SSupported_Siemens_Company__c']}",
+                "S4STarget_IRR__c": "@{items('For_each_Opp')?['S4STarget_IRR__c']}",
+                "S4SThereof_SPV_SFS_Inc__c": "@{items('For_each_Opp')?['S4SThereof_SPV_SFS_Inc__c']}",
+                "S4STime_to_Close__c": "@{items('For_each_Opp')?['S4STime_to_Close__c']}",
+                "S4STimestamp_to_COF__c": "@{items('For_each_Opp')?['S4STimestamp_to_COF__c']}",
+                "S4STimestamp_to_Debt__c": "@{items('For_each_Opp')?['S4STimestamp_to_Debt__c']}",
+                "S4STimestamp_to_Equity__c": "@{items('For_each_Opp')?['S4STimestamp_to_Equity__c']}",
+                "S4STotal_Debt_of_Opportunity__c": "@{items('For_each_Opp')?['S4STotal_Debt_of_Opportunity__c']}",
+                "S4STotal_Equity_incl_Shareholder_Loans__c": "@{items('For_each_Opp')?['S4STotal_Equity_incl_Shareholder_Loans__c']}",
+                "S4STotal_Investment__c": "@{items('For_each_Opp')?['S4STotal_Investment__c']}",
+                "S4STotal_Leverage__c": "@{items('For_each_Opp')?['S4STotal_Leverage__c']}",
+                "S4STotal_OI_Recurring_Business__c": "@{items('For_each_Opp')?['S4STotal_OI_Recurring_Business__c']}",
+                "S4STotal_Project_Value__c": "@{items('For_each_Opp')?['S4STotal_Project_Value__c']}",
+                "S4STotal_of_Allocated_Amount__c": "@{items('For_each_Opp')?['S4STotal_of_Allocated_Amount__c']}",
+                "S4STotal_of_Approved_Amount__c": "@{items('For_each_Opp')?['S4STotal_of_Approved_Amount__c']}",
+                "S4STotal_of_Requested_Amount__c": "@{items('For_each_Opp')?['S4STotal_of_Requested_Amount__c']}",
+                "S4SType_of_Transaction__c": "@{items('For_each_Opp')?['S4SType_of_Transaction__c']}",
+                "S4SUnit__c": "@{items('For_each_Opp')?['S4SUnit__c']}",
+                "S4SZip_Code__c": "@{items('For_each_Opp')?['S4SZip_Code__c']}",
+                "S4S_Building_Automation__c": "@{items('For_each_Opp')?['S4S_Building_Automation__c']}",
+                "S4S_Converted_from_Lead__c": "@{items('For_each_Opp')?['S4S_Converted_from_Lead__c']}",
+                "S4S_EPS__c": "@{items('For_each_Opp')?['S4S_EPS__c']}",
+                "S4S_Fire_Safety__c": "@{items('For_each_Opp')?['S4S_Fire_Safety__c']}",
+                "S4S_General__c": "@{items('For_each_Opp')?['S4S_General__c']}",
+                "S4S_Security__c": "@{items('For_each_Opp')?['S4S_Security__c']}",
+                "S4S_Sync_with_SieOps__c": "@{items('For_each_Opp')?['S4S_Sync_with_SieOps__c']}",
+                "S4S_To_Stop_the_node_in_Opp_update_PB__c": "@{items('For_each_Opp')?['S4S_To_Stop_the_node_in_Opp_update_PB__c']}",
+                "S4S_Total_SFS_Amount_Rollup__c": "@{items('For_each_Opp')?['S4S_Total_SFS_Amount_Rollup__c']}",
+                "StageName": "@{items('For_each_Opp')?['StageName']}",
+                "SyncedQuoteId": "@{items('For_each_Opp')?['SyncedQuoteId']}",
+                "Team_Members__c": "@{items('For_each_Opp')?['Team_Members__c']}",
+                "TotalOpportunityQuantity": "@{items('For_each_Opp')?['TotalOpportunityQuantity']}",
+                "Type": "@{items('For_each_Opp')?['Type']}"
+              },
+              "runAfter": {},
+              "type": "Compose"
+            },
+            "Condition_bookingLines_exist_in_request": {
+              "actions": {
+                "For_each_BL_find_Product": {
+                  "actions": {
+                    "Append_to_BL_response": {
+                      "inputs": {
+                        "name": "UpsertBookingLine_response",
+                        "value": {
+                          "Created": "false",
+                          "ExternalId": "@{items('For_each_BL_find_Product')?['ExternalId']}",
+                          "Message": "No matching Product found in SieSales",
+                          "Success": "false"
+                        }
+                      },
+                      "runAfter": {
+                        "Parse_JSON_Product": ["Failed"]
+                      },
+                      "type": "AppendToArrayVariable"
+                    },
+                    "Append_to_array_variable_Products": {
+                      "inputs": {
+                        "name": "Products",
+                        "value": "@outputs('Compose_BookingLine_Input')"
+                      },
+                      "runAfter": {
+                        "Compose_BookingLine_Input": ["Succeeded"]
+                      },
+                      "type": "AppendToArrayVariable"
+                    },
+                    "Compose_BookingLine_Input": {
+                      "inputs": {
+                        "CurrencyIsoCode": "@{items('For_each_BL_find_Product')?['CurrencyIsoCode']}",
+                        "ExternalId": "@{items('For_each_BL_find_Product')?['ExternalId']}",
+                        "Id": "@{items('For_each_BL_find_Product')?['Id']}",
+                        "Name": "@{items('For_each_BL_find_Product')?['Name']}",
+                        "ProductFamily": "@{body('Parse_JSON_Product')?['ProductFamily']}",
+                        "S4SDepth_Structure__c": "@{body('Parse_JSON_Product')?['Id']}",
+                        "S4SExternal_Source__c": "@{items('For_each_BL_find_Product')?['S4SExternal_Source__c']}",
+                        "S4SPrimary_Flag__c": "@if(not(equals(items('For_each_BL_find_Product')?['S4SPrimary_Flag__c'],null)),bool(items('For_each_BL_find_Product')?['S4SPrimary_Flag__c']),null)",
+                        "S4SProgram_Fund__c": "@{items('For_each_BL_find_Product')?['S4SProgram_Fund__c']}",
+                        "S4SQuantity__c": "@{if(equals(items('For_each_BL_find_Product')?['S4SQuantity__c'],''),1,if(equals(items('For_each_BL_find_Product')?['S4SQuantity__c'],null),1,items('For_each_BL_find_Product')?['S4SQuantity__c']))}",
+                        "S4SSales_Country__c": "@{items('For_each_BL_find_Product')?['S4SSales_Country__c']}",
+                        "S4SSales_Price__c": "@{items('For_each_BL_find_Product')?['S4SSales_Price__c']}",
+                        "S4SX1st_Year_return__c": "@{items('For_each_BL_find_Product')?['S4SX1st_Year_return__c']}",
+                        "S4SX2nd_Year_Return__c": "@{items('For_each_BL_find_Product')?['S4SX2nd_Year_Return__c']}",
+                        "X3rd_Year_Return__c": "@{items('For_each_BL_find_Product')?['X3rd_Year_Return__c']}"
+                      },
+                      "runAfter": {
+                        "Parse_JSON_Product": ["Succeeded"]
+                      },
+                      "type": "Compose"
+                    },
+                    "Parse_JSON_Product": {
+                      "inputs": {
+                        "content": "@body('logic-c00031-fetchProduct')",
+                        "schema": {
+                          "properties": {
+                            "Id": {
+                              "type": "string"
+                            },
+                            "ProductFamily": {
+                              "type": "string"
+                            },
+                            "ProductName": {
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        }
+                      },
+                      "runAfter": {
+                        "logic-c00031-fetchProduct": ["Succeeded"]
+                      },
+                      "type": "ParseJson"
+                    },
+                    "logic-c00031-fetchProduct": {
+                      "inputs": {
+                        "body": {
+                          "S4SBusiness_Segment_Code__c": "@items('For_each_BL_find_Product')?['S4SDepth_Structure__c']?['S4SBusiness_Segment__c']",
+                          "S4SBusiness_Subsegment__c": "@items('For_each_BL_find_Product')?['S4SDepth_Structure__c']?['S4SBusiness_Sub_Segment__c']",
+                          "S4SBusiness_Unit__c": "@items('For_each_BL_find_Product')?['S4SDepth_Structure__c']?['S4SBusiness_Unit__c']",
+                          "S4SDivisions__c": "@items('For_each_BL_find_Product')?['S4SDepth_Structure__c']?['S4SDivisions__c']",
+                          "S4SGCK__c": "@items('For_each_BL_find_Product')?['S4SDepth_Structure__c']?['S4SGCK__c']",
+                          "S4SPCK__c": "@items('For_each_BL_find_Product')?['S4SDepth_Structure__c']?['S4SPCK__c']",
+                          "S4SSPG__c": "@items('For_each_BL_find_Product')?['S4SDepth_Structure__c']?['S4SSPG__c']"
+                        },
+                        "host": {
+                          "triggerName": "manual",
+                          "workflow": {
+                            "id": "${fetchDepthStructure_logicAppId}"
+                          }
+                        }
+                      },
+                      "runAfter": {},
+                      "type": "Workflow"
+                    }
+                  },
+                  "foreach": "@items('For_each_Opp')?['S4SBooking_Line_Item__c']",
+                  "runAfter": {},
+                  "type": "Foreach"
+                }
+              },
+              "expression": {
+                "and": [
+                  {
+                    "greater": [
+                      "@length(coalesce(items('For_each_Opp')?['S4SBooking_Line_Item__c'],''))",
+                      0
+                    ]
+                  }
+                ]
+              },
+              "runAfter": {
+                "Compose_Upsert_Opportunity_request": ["Succeeded"]
+              },
+              "type": "If"
+            },
+            "Execute_JavaScript_Code-_remove_Nulls": {
+              "inputs": {
+                "code": " var obj = workflowContext.actions.Compose_Handles_Booleans.outputs;\r\n for (var propName in obj) {\r\n    if (obj[propName] == null || obj[propName] == undefined ||  obj[propName] == \"\") {\r\n      delete obj[propName];\r\n    }\r\n  }\r\n  delete obj.Id;\r\n  return obj;"
+              },
+              "runAfter": {
+                "Compose_Handles_Booleans": ["Succeeded"]
+              },
+              "type": "JavaScriptCode"
+            },
+            "Parse_JSON_BookingLineInput": {
+              "inputs": {
+                "content": {
+                  "BookingLines": "@variables('Products')"
+                },
+                "schema": {
+                  "properties": {
+                    "BookingLines": {
+                      "items": {
+                        "properties": {
+                          "CurrencyIsoCode": {
+                            "type": "string"
+                          },
+                          "ExternalId": {
+                            "type": "string"
+                          },
+                          "Id": {
+                            "type": "string"
+                          },
+                          "Name": {
+                            "type": "string"
+                          },
+                          "ProductFamily": {},
+                          "S4SDepth_Structure__c": {
+                            "type": "string"
+                          },
+                          "S4SExternal_Source__c": {
+                            "type": "string"
+                          },
+                          "S4SPrimary_Flag__c": {},
+                          "S4SProgram_Fund__c": {
+                            "type": "string"
+                          },
+                          "S4SQuantity__c": {
+                            "type": "string"
+                          },
+                          "S4SSales_Country__c": {
+                            "type": "string"
+                          },
+                          "S4SSales_Price__c": {
+                            "type": "string"
+                          },
+                          "S4SX1st_Year_return__c": {
+                            "type": "string"
+                          },
+                          "S4SX2nd_Year_Return__c": {
+                            "type": "string"
+                          },
+                          "X3rd_Year_Return__c": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "CurrencyIsoCode",
+                          "ExternalId",
+                          "ProductFamily",
+                          "Id",
+                          "Name",
+                          "S4SDepth_Structure__c",
+                          "S4SExternal_Source__c",
+                          "S4SPrimary_Flag__c",
+                          "S4SProgram_Fund__c",
+                          "S4SQuantity__c",
+                          "S4SSales_Country__c",
+                          "S4SSales_Price__c",
+                          "S4SX1st_Year_return__c",
+                          "S4SX2nd_Year_Return__c",
+                          "X3rd_Year_Return__c"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              "runAfter": {
+                "Condition_bookingLines_exist_in_request": [
+                  "Succeeded",
+                  "Failed"
+                ]
+              },
+              "type": "ParseJson"
+            },
+            "if_Opp_Id_is_provided_in_the_request": {
+              "actions": {
+                "Update_Opportunity": {
+                  "inputs": {
+                    "body": "@json(string(outputs('Execute_JavaScript_Code-_remove_Nulls')['body']))",
+                    "headers": {
+                      "Accept": "application/json",
+                      "Authorization": "Bearer @{body('Get_Token')}",
+                      "Content-Type": "application/json"
+                    },
+                    "method": "PATCH",
+                    "uri": "${instanceURL}/sobjects/Opportunity/Id/@{items('For_each_Opp')?['Id']}"
+                  },
+                  "runAfter": {
+                    "check_value_of_delete_booking_Line_flag": ["Succeeded"]
+                  },
+                  "type": "Http"
+                },
+                "check_value_of_delete_booking_Line_flag": {
+                  "actions": {
+                    "Execute_a_SOQL_query": {
+                      "inputs": {
+                        "body": {
+                          "query": "Select Id from s4sbooking_line_item__c where s4sopportunity__c = '@{items('For_each_Opp')?['Id']}' and @{body('logic-c00031-internal_getConfiguration-weu')}"
+                        },
+                        "host": {
+                          "connection": {
+                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                          }
+                        },
+                        "method": "post",
+                        "path": "/soql/executesoqlquery"
+                      },
+                      "runAfter": {
+                        "logic-c00031-internal_getConfiguration-weu": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "ApiConnection"
+                    },
+                    "For_each_record_from_SOQL": {
+                      "actions": {
+                        "Delete_record_BL": {
+                          "inputs": {
+                            "host": {
+                              "connection": {
+                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                              }
+                            },
+                            "method": "delete",
+                            "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SBooking_Line_Item__c'))}/items/@{encodeURIComponent(encodeURIComponent(items('For_each_record_from_SOQL')?['Id']))}"
+                          },
+                          "runAfter": {},
+                          "type": "ApiConnection"
+                        }
+                      },
+                      "foreach": "@body('Parse_response_JSON')?['records']",
+                      "runAfter": {
+                        "Parse_response_JSON": ["Succeeded"]
+                      },
+                      "type": "Foreach"
+                    },
+                    "Parse_response_JSON": {
+                      "inputs": {
+                        "content": "@body('Execute_a_SOQL_query')",
+                        "schema": {
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "nextRecordsUrl": {},
+                            "records": {
+                              "items": {
+                                "properties": {
+                                  "Id": {
+                                    "type": "string"
+                                  },
+                                  "attributes": {
+                                    "properties": {
+                                      "type": {
+                                        "type": "string"
+                                      },
+                                      "url": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "type": "object"
+                                  }
+                                },
+                                "required": ["attributes", "Id"],
+                                "type": "object"
+                              },
+                              "type": "array"
+                            },
+                            "totalSize": {
+                              "type": "integer"
+                            }
+                          },
+                          "type": "object"
+                        }
+                      },
+                      "runAfter": {
+                        "Execute_a_SOQL_query": ["Succeeded"]
+                      },
+                      "type": "ParseJson"
+                    },
+                    "logic-c00031-internal_getConfiguration-weu": {
+                      "inputs": {
+                        "body": {
+                          "key": "GOI-whereClauseDeleteBLs-SieOps"
+                        },
+                        "host": {
+                          "triggerName": "manual",
+                          "workflow": {
+                            "id": "${getConfiguration_logicAppId}"
+                          }
+                        }
+                      },
+                      "runAfter": {},
+                      "type": "Workflow"
+                    }
+                  },
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@items('For_each_Opp')?['deleteBookingLine']",
+                          "@string('3')"
+                        ]
+                      }
+                    ]
+                  },
+                  "runAfter": {},
+                  "type": "If"
+                }
+              },
+              "else": {
+                "actions": {
+                  "Create_Opportunity": {
+                    "inputs": {
+                      "body": "@body('Execute_JavaScript_Code-_remove_Nulls')?['body']",
+                      "headers": {
+                        "Authorization": "Bearer @{body('Get_Token')}",
+                        "Content-Type": "application/json"
+                      },
+                      "method": "POST",
+                      "queries": {
+                        "Content-Type": ""
+                      },
+                      "uri": "${instanceURL}/sobjects/Opportunity/"
+                    },
+                    "runAfter": {},
+                    "type": "Http"
+                  }
+                }
+              },
+              "expression": {
+                "and": [
+                  {
+                    "not": {
+                      "equals": ["@items('For_each_Opp')?['Id']", "@null"]
+                    }
+                  },
+                  {
+                    "not": {
+                      "equals": ["@items('For_each_Opp')?['Id']", "@string('')"]
+                    }
+                  }
+                ]
+              },
+              "runAfter": {
+                "Execute_JavaScript_Code-_remove_Nulls": ["Succeeded"]
+              },
+              "type": "If"
+            }
+          },
+          "foreach": "@triggerBody()?['upsertOppObjectsRequest']?['Opportunity']",
+          "runAfter": {
+            "Get_Token": ["Succeeded"]
+          },
+          "type": "Foreach"
+        },
+        "Get_Token": {
+          "inputs": {
+            "headers": {
+              "Ocp-Apim-Subscription-Key": "${apimKey}"
+            },
+            "method": "POST",
+            "uri": "${apimURL}"
+          },
+          "runAfter": {},
+          "type": "Http"
+        },
+        "Response": {
+          "inputs": {
+            "body": "@variables('GOI_response')",
+            "statusCode": 200
+          },
+          "kind": "Http",
+          "runAfter": {
+            "For_each_Opp": ["Succeeded", "TimedOut", "Skipped", "Failed"]
+          },
+          "type": "Response"
+        }
+      },
+      "runAfter": {
+        "Initialize_Loop_Counter": ["Succeeded"],
+        "Initialize_variable-responsemap": ["Succeeded"],
+        "Initialize_variable_GOI_response": ["Succeeded"],
+        "Initialize_variable_OpportunityId": ["Succeeded"],
+        "Initialize_variable_Products": ["Succeeded"],
+        "Initialize_variable_UpsertBookingLine_response": ["Succeeded"],
+        "Initialize_variable_UpsertOpp_response": ["Succeeded"],
+        "Initialize_variable_UpsertQuote_response": ["Succeeded"],
+        "Initialize_variable_UpsertoppLine_response": ["Succeeded"],
+        "var-_delete_bookingLine_where_clause": ["Succeeded"]
+      },
+      "trackedProperties": {
+        "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+        "citizenName": "c00031",
+        "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'turbosales')}",
+        "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+        "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+        "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'internal_upsertoppobjects')}",
+        "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+        "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+        "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+      },
+      "type": "Scope"
+    },
+    "var-_delete_bookingLine_where_clause": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "deleteBookingLineWhere",
+            "type": "string"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    }
+  },
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {
+    "$connections": {
+      "defaultValue": {},
+      "type": "Object"
+    }
+  },
+  "triggers": {
+    "manual": {
+      "inputs": {
+        "schema": {
+          "properties": {
+            "upsertOppObjectsRequest": {
+              "properties": {
+                "Opportunity": {
+                  "items": {
+                    "properties": {
+                      "Account": {
+                        "properties": {
+                          "Id": {
+                            "type": "string"
+                          },
+                          "Ifa": {
+                            "type": "string"
+                          },
+                          "S4SIdentification_number__c": {
+                            "type": "string"
+                          },
+                          "SourceSystem": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "Amount": {
+                        "type": "string"
+                      },
+                      "Budget_Confirmed__c": {
+                        "type": "string"
+                      },
+                      "CampaignId": {
+                        "type": "string"
+                      },
+                      "CloseDate": {
+                        "type": "string"
+                      },
+                      "Contact": {
+                        "properties": {
+                          "EMAIL": {
+                            "type": "string"
+                          },
+                          "ID": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "CurrencyIsoCode": {
+                        "type": "string"
+                      },
+                      "DB_Competitor__c": {
+                        "type": "string"
+                      },
+                      "Description": {
+                        "type": "string"
+                      },
+                      "Discovery_Completed__c": {
+                        "type": "string"
+                      },
+                      "EndAccount": {
+                        "properties": {
+                          "Id": {
+                            "type": "string"
+                          },
+                          "Ifa": {
+                            "type": "string"
+                          },
+                          "S4SIdentification_number__c": {
+                            "type": "string"
+                          },
+                          "SourceSystem": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "ExpectedRevenue": {
+                        "type": "string"
+                      },
+                      "ExternalId": {
+                        "type": "string"
+                      },
+                      "Fiscal": {
+                        "type": "string"
+                      },
+                      "FiscalQuarter": {
+                        "type": "string"
+                      },
+                      "FiscalYear": {
+                        "type": "string"
+                      },
+                      "ForecastCategory": {
+                        "type": "string"
+                      },
+                      "ForecastCategoryName": {
+                        "type": "string"
+                      },
+                      "HasOpenActivity": {
+                        "type": "string"
+                      },
+                      "HasOpportunityLineItem": {
+                        "type": "string"
+                      },
+                      "HasOverdueTask": {
+                        "type": "string"
+                      },
+                      "Id": {
+                        "type": "string"
+                      },
+                      "IsClosed": {
+                        "type": "string"
+                      },
+                      "IsPrivate": {
+                        "type": "string"
+                      },
+                      "IsWon": {
+                        "type": "string"
+                      },
+                      "LID__Is_Influenced__c": {
+                        "type": "string"
+                      },
+                      "LID__LinkedIn_Company_Id__c": {
+                        "type": "string"
+                      },
+                      "LeadSource": {
+                        "type": "string"
+                      },
+                      "Lead_Created_By__c": {
+                        "type": "string"
+                      },
+                      "Loss_Reason__c": {
+                        "type": "string"
+                      },
+                      "Name": {
+                        "type": "string"
+                      },
+                      "NextStep": {
+                        "type": "string"
+                      },
+                      "OpportunityCompetitor": {
+                        "items": {
+                          "properties": {
+                            "CompetitorName": {
+                              "type": "string"
+                            },
+                            "ExternalId": {
+                              "type": "string"
+                            },
+                            "Id": {
+                              "type": "string"
+                            },
+                            "isPrimary": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "CompetitorName",
+                            "Id",
+                            "isPrimary",
+                            "ExternalId"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "OpportunityLineItem": {
+                        "items": {
+                          "properties": {
+                            "CurrencyIsoCode": {
+                              "type": "string"
+                            },
+                            "Description": {
+                              "type": "string"
+                            },
+                            "Discount": {
+                              "type": "string"
+                            },
+                            "ExternalId": {
+                              "type": "string"
+                            },
+                            "Id": {
+                              "type": "string"
+                            },
+                            "ListPrice": {
+                              "type": "string"
+                            },
+                            "Name": {
+                              "type": "string"
+                            },
+                            "PricebookEntryId": {
+                              "type": "string"
+                            },
+                            "ProductCode": {
+                              "type": "string"
+                            },
+                            "Quantity": {
+                              "type": "string"
+                            },
+                            "S4SBU__c": {
+                              "type": "string"
+                            },
+                            "S4SCategory__c": {
+                              "type": "string"
+                            },
+                            "S4SDepth_Structure__c": {
+                              "properties": {
+                                "S4SBusiness_Segment__c": {
+                                  "type": "string"
+                                },
+                                "S4SBusiness_Sub_Segment__c": {
+                                  "type": "string"
+                                },
+                                "S4SBusiness_Unit__c": {
+                                  "type": "string"
+                                },
+                                "S4SDivisions__c": {
+                                  "type": "string"
+                                },
+                                "S4SGCK__c": {
+                                  "type": "string"
+                                },
+                                "S4SPCK__c": {
+                                  "type": "string"
+                                },
+                                "S4SSPG__c": {
+                                  "type": "string"
+                                }
+                              },
+                              "type": "object"
+                            },
+                            "S4SSales_Country__c": {
+                              "type": "string"
+                            },
+                            "ServiceDate": {
+                              "type": "string"
+                            },
+                            "SortOrder": {
+                              "type": "string"
+                            },
+                            "UnitPrice": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "CurrencyIsoCode",
+                            "Description",
+                            "Discount",
+                            "ExternalId",
+                            "Id",
+                            "ListPrice",
+                            "Name",
+                            "PricebookEntryId",
+                            "ProductCode",
+                            "Quantity",
+                            "S4SBU__c",
+                            "S4SCategory__c",
+                            "S4SDepth_Structure__c",
+                            "S4SSales_Country__c",
+                            "ServiceDate",
+                            "SortOrder",
+                            "UnitPrice"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "OpportunityTeamMember": {
+                        "items": {
+                          "properties": {
+                            "CurrencyIsoCode": {
+                              "type": "string"
+                            },
+                            "ExternalId": {
+                              "type": "string"
+                            },
+                            "Id": {
+                              "type": "string"
+                            },
+                            "Name": {
+                              "type": "string"
+                            },
+                            "OpportunityAccessLevel": {
+                              "type": "string"
+                            },
+                            "PhotoUrl": {
+                              "type": "string"
+                            },
+                            "S4SExternal_Source__c": {
+                              "type": "string"
+                            },
+                            "S4SOpportunity_Access__c": {
+                              "type": "string"
+                            },
+                            "S4S_BaseURL__c": {
+                              "type": "string"
+                            },
+                            "TeamMemberRole": {
+                              "type": "string"
+                            },
+                            "Title": {
+                              "type": "string"
+                            },
+                            "User": {
+                              "properties": {
+                                "Email": {
+                                  "type": "string"
+                                },
+                                "GID": {
+                                  "type": "string"
+                                },
+                                "Id": {
+                                  "type": "string"
+                                }
+                              },
+                              "type": "object"
+                            }
+                          },
+                          "required": [
+                            "CurrencyIsoCode",
+                            "ExternalId",
+                            "Id",
+                            "Name",
+                            "OpportunityAccessLevel",
+                            "PhotoUrl",
+                            "S4SExternal_Source__c",
+                            "S4SOpportunity_Access__c",
+                            "S4S_BaseURL__c",
+                            "TeamMemberRole",
+                            "Title",
+                            "User"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "Owner": {
+                        "properties": {
+                          "Email": {
+                            "type": "string"
+                          },
+                          "GID": {
+                            "type": "string"
+                          },
+                          "Id": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "Probability": {
+                        "type": "string"
+                      },
+                      "Quote": {
+                        "items": {
+                          "properties": {
+                            "Contact": {
+                              "properties": {
+                                "EMAIL": {
+                                  "type": "string"
+                                },
+                                "ID": {
+                                  "type": "string"
+                                }
+                              },
+                              "type": "object"
+                            },
+                            "CurrencyIsoCode": {
+                              "type": "string"
+                            },
+                            "Description": {
+                              "type": "string"
+                            },
+                            "Discount": {
+                              "type": "string"
+                            },
+                            "Email": {
+                              "type": "string"
+                            },
+                            "ExpirationDate": {
+                              "type": "string"
+                            },
+                            "ExternalId": {
+                              "type": "string"
+                            },
+                            "Fax": {
+                              "type": "string"
+                            },
+                            "Id": {
+                              "type": "string"
+                            },
+                            "IsSyncing": {
+                              "type": "string"
+                            },
+                            "Name": {
+                              "type": "string"
+                            },
+                            "Phone": {
+                              "type": "string"
+                            },
+                            "QuoteLineItem": {
+                              "items": {
+                                "properties": {
+                                  "CurrencyIsoCode": {
+                                    "type": "string"
+                                  },
+                                  "Description": {
+                                    "type": "string"
+                                  },
+                                  "Discount": {
+                                    "type": "string"
+                                  },
+                                  "ExternalId": {
+                                    "type": "string"
+                                  },
+                                  "Id": {
+                                    "type": "string"
+                                  },
+                                  "LineNumber": {
+                                    "type": "string"
+                                  },
+                                  "ListPrice": {
+                                    "type": "string"
+                                  },
+                                  "Quantity": {
+                                    "type": "string"
+                                  },
+                                  "QuoteId": {
+                                    "type": "string"
+                                  },
+                                  "S4SDepth_Structure__c": {
+                                    "properties": {
+                                      "S4SBusiness_Segment__c": {
+                                        "type": "string"
+                                      },
+                                      "S4SBusiness_Sub_Segment__c": {
+                                        "type": "string"
+                                      },
+                                      "S4SBusiness_Unit__c": {
+                                        "type": "string"
+                                      },
+                                      "S4SDivisions__c": {
+                                        "type": "string"
+                                      },
+                                      "S4SGCK__c": {
+                                        "type": "string"
+                                      },
+                                      "S4SPCK__c": {
+                                        "type": "string"
+                                      },
+                                      "S4SSPG__c": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "type": "object"
+                                  },
+                                  "S4SExternal_Source__c": {
+                                    "type": "string"
+                                  },
+                                  "ServiceDate": {
+                                    "type": "string"
+                                  },
+                                  "UnitPrice": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "CurrencyIsoCode",
+                                  "Description",
+                                  "Discount",
+                                  "ExternalId",
+                                  "Id",
+                                  "LineNumber",
+                                  "ListPrice",
+                                  "S4SDepth_Structure__c",
+                                  "Quantity",
+                                  "QuoteId",
+                                  "S4SExternal_Source__c",
+                                  "ServiceDate",
+                                  "UnitPrice"
+                                ],
+                                "type": "object"
+                              },
+                              "type": "array"
+                            },
+                            "QuoteNumber": {
+                              "type": "string"
+                            },
+                            "QuoteToCity": {
+                              "type": "string"
+                            },
+                            "QuoteToCountry": {
+                              "type": "string"
+                            },
+                            "QuoteToCountryCode": {
+                              "type": "string"
+                            },
+                            "QuoteToGeocodeAccuracy": {
+                              "type": "string"
+                            },
+                            "QuoteToLatitude": {
+                              "type": "string"
+                            },
+                            "QuoteToLongitude": {
+                              "type": "string"
+                            },
+                            "QuoteToName": {
+                              "type": "string"
+                            },
+                            "QuoteToPostalCode": {
+                              "type": "string"
+                            },
+                            "QuoteToState": {
+                              "type": "string"
+                            },
+                            "QuoteToStateCode": {
+                              "type": "string"
+                            },
+                            "QuoteToStreet": {
+                              "type": "string"
+                            },
+                            "S4SExternal_Source__c": {
+                              "type": "string"
+                            },
+                            "S4SFollow_Up_Date__c": {
+                              "type": "string"
+                            },
+                            "S4SMain_Offer__c": {
+                              "type": "string"
+                            },
+                            "S4SOffer_Date__c": {
+                              "type": "string"
+                            },
+                            "S4SOffer_Engineer__c": {
+                              "type": "string"
+                            },
+                            "S4SOffer_ID__c": {
+                              "type": "string"
+                            },
+                            "S4SQUOTE_LegacyID__c": {
+                              "type": "string"
+                            },
+                            "S4SSales_Country__c": {
+                              "type": "string"
+                            },
+                            "S4SSales_Margin__c": {
+                              "type": "string"
+                            },
+                            "S4SSource_System__c": {
+                              "type": "string"
+                            },
+                            "S4SValid_until__c": {
+                              "type": "string"
+                            },
+                            "S4SVolume__c": {
+                              "type": "string"
+                            },
+                            "ShippingCity": {
+                              "type": "string"
+                            },
+                            "ShippingCountry": {
+                              "type": "string"
+                            },
+                            "ShippingCountryCode": {
+                              "type": "string"
+                            },
+                            "ShippingGeocodeAccuracy": {
+                              "type": "string"
+                            },
+                            "ShippingHandling": {
+                              "type": "string"
+                            },
+                            "ShippingLatitude": {
+                              "type": "string"
+                            },
+                            "ShippingLongitude": {
+                              "type": "string"
+                            },
+                            "ShippingName": {
+                              "type": "string"
+                            },
+                            "ShippingPostalCode": {
+                              "type": "string"
+                            },
+                            "ShippingState": {
+                              "type": "string"
+                            },
+                            "ShippingStateCode": {
+                              "type": "string"
+                            },
+                            "ShippingStreet": {
+                              "type": "string"
+                            },
+                            "Status": {
+                              "type": "string"
+                            },
+                            "Tax": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "Contact",
+                            "CurrencyIsoCode",
+                            "Description",
+                            "Discount",
+                            "Email",
+                            "ExpirationDate",
+                            "ExternalId",
+                            "Fax",
+                            "Id",
+                            "IsSyncing",
+                            "Name",
+                            "Phone",
+                            "QuoteNumber",
+                            "QuoteToCity",
+                            "QuoteToCountry",
+                            "QuoteToCountryCode",
+                            "QuoteToGeocodeAccuracy",
+                            "QuoteToLatitude",
+                            "QuoteToLongitude",
+                            "QuoteToName",
+                            "QuoteToPostalCode",
+                            "QuoteToState",
+                            "QuoteToStateCode",
+                            "QuoteToStreet",
+                            "S4SExternal_Source__c",
+                            "S4SFollow_Up_Date__c",
+                            "S4SMain_Offer__c",
+                            "S4SOffer_Date__c",
+                            "S4SOffer_Engineer__c",
+                            "S4SOffer_ID__c",
+                            "S4SQUOTE_LegacyID__c",
+                            "S4SSales_Country__c",
+                            "S4SSales_Margin__c",
+                            "S4SSource_System__c",
+                            "S4SValid_until__c",
+                            "S4SVolume__c",
+                            "ShippingCity",
+                            "ShippingCountry",
+                            "ShippingCountryCode",
+                            "ShippingGeocodeAccuracy",
+                            "ShippingHandling",
+                            "ShippingLatitude",
+                            "ShippingLongitude",
+                            "ShippingName",
+                            "ShippingPostalCode",
+                            "ShippingState",
+                            "ShippingStateCode",
+                            "ShippingStreet",
+                            "Status",
+                            "Tax",
+                            "QuoteLineItem"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "ROI_Analysis_Completed__c": {
+                        "type": "string"
+                      },
+                      "S4SAcceptance_Closure__c": {
+                        "type": "string"
+                      },
+                      "S4SAdvisory_Volume__c": {
+                        "type": "string"
+                      },
+                      "S4SAlternative_Opportunity__c": {
+                        "type": "string"
+                      },
+                      "S4SAmount_Financed__c": {
+                        "type": "string"
+                      },
+                      "S4SAnnual_Sales_relev_for_Factoring__c": {
+                        "type": "string"
+                      },
+                      "S4SAnnual_Turnover_relev_for_EPT__c": {
+                        "type": "string"
+                      },
+                      "S4SApproval_Check__c": {
+                        "type": "string"
+                      },
+                      "S4SAsset_Code_IAC__c": {
+                        "type": "string"
+                      },
+                      "S4SAssigned_parental_Opportunity__c": {
+                        "type": "string"
+                      },
+                      "S4SAttribute_Assignment__c": {
+                        "items": {
+                          "properties": {
+                            "Account": {
+                              "properties": {
+                                "Id": {
+                                  "type": "string"
+                                },
+                                "Ifa": {
+                                  "type": "string"
+                                },
+                                "S4SIdentification_number__c": {
+                                  "type": "string"
+                                },
+                                "SourceSystem": {
+                                  "type": "string"
+                                }
+                              },
+                              "type": "object"
+                            },
+                            "CurrencyIsoCode": {
+                              "type": "string"
+                            },
+                            "ExternalId": {
+                              "type": "string"
+                            },
+                            "Id": {
+                              "type": "string"
+                            },
+                            "Name": {
+                              "type": "string"
+                            },
+                            "Owner": {
+                              "properties": {
+                                "Email": {
+                                  "type": "string"
+                                },
+                                "GID": {
+                                  "type": "string"
+                                },
+                                "Id": {
+                                  "type": "string"
+                                }
+                              },
+                              "type": "object"
+                            },
+                            "RecordType": {
+                              "type": "string"
+                            },
+                            "S4SATTRIBUTE_ASSIGNMENT_LegacyID__c": {
+                              "type": "string"
+                            },
+                            "S4SCategory__c": {
+                              "type": "string"
+                            },
+                            "S4SContact_Email__c": {
+                              "type": "string"
+                            },
+                            "S4SContact__c": {
+                              "type": "string"
+                            },
+                            "S4SDescription__c": {
+                              "type": "string"
+                            },
+                            "S4SFormat_Date__c": {
+                              "type": "string"
+                            },
+                            "S4SFormat_Number__c": {
+                              "type": "string"
+                            },
+                            "S4SFormat_Text__c": {
+                              "type": "string"
+                            },
+                            "S4SGroup__c": {
+                              "type": "string"
+                            },
+                            "S4SName__c": {
+                              "type": "string"
+                            },
+                            "S4SOwner_Full_Name__c": {
+                              "type": "string"
+                            },
+                            "S4SRelatedObjectType__c": {
+                              "type": "string"
+                            },
+                            "S4SRelated_Object__c": {
+                              "type": "string"
+                            },
+                            "S4SRelated_To__c": {
+                              "type": "string"
+                            },
+                            "S4SSet__c": {
+                              "type": "string"
+                            },
+                            "S4SValue__c": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "CurrencyIsoCode",
+                            "ExternalId",
+                            "Id",
+                            "Name",
+                            "Owner",
+                            "RecordType",
+                            "S4SATTRIBUTE_ASSIGNMENT_LegacyID__c",
+                            "Account",
+                            "S4SCategory__c",
+                            "S4SContact_Email__c",
+                            "S4SContact__c",
+                            "S4SDescription__c",
+                            "S4SFormat_Date__c",
+                            "S4SFormat_Number__c",
+                            "S4SFormat_Text__c",
+                            "S4SGroup__c",
+                            "S4SName__c",
+                            "S4SOwner_Full_Name__c",
+                            "S4SRelatedObjectType__c",
+                            "S4SRelated_Object__c",
+                            "S4SRelated_To__c",
+                            "S4SSet__c",
+                            "S4SValue__c"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "S4SB2A_Outcome__c": {
+                        "type": "string"
+                      },
+                      "S4SB2A_type__c": {
+                        "type": "string"
+                      },
+                      "S4SBid_approval_PM040__c": {
+                        "type": "string"
+                      },
+                      "S4SBooking_Funding_Date__c": {
+                        "type": "string"
+                      },
+                      "S4SBooking_Line_Item__c": {
+                        "items": {
+                          "properties": {
+                            "CurrencyIsoCode": {
+                              "type": "string"
+                            },
+                            "ExternalId": {
+                              "type": "string"
+                            },
+                            "Id": {
+                              "type": "string"
+                            },
+                            "Name": {
+                              "type": "string"
+                            },
+                            "S4SDepth_Structure__c": {
+                              "properties": {
+                                "S4SBusiness_Segment__c": {
+                                  "type": "string"
+                                },
+                                "S4SBusiness_Sub_Segment__c": {
+                                  "type": "string"
+                                },
+                                "S4SBusiness_Unit__c": {
+                                  "type": "string"
+                                },
+                                "S4SDivisions__c": {
+                                  "type": "string"
+                                },
+                                "S4SGCK__c": {
+                                  "type": "string"
+                                },
+                                "S4SPCK__c": {
+                                  "type": "string"
+                                },
+                                "S4SSPG__c": {
+                                  "type": "string"
+                                }
+                              },
+                              "type": "object"
+                            },
+                            "S4SExternal_Source__c": {
+                              "type": "string"
+                            },
+                            "S4SOrder_Intake__c": {
+                              "type": "string"
+                            },
+                            "S4SPrimary_Flag__c": {
+                              "type": "string"
+                            },
+                            "S4SProduct_Family__c": {
+                              "type": "string"
+                            },
+                            "S4SProgram_Fund__c": {
+                              "type": "string"
+                            },
+                            "S4SQuantity__c": {
+                              "type": "string"
+                            },
+                            "S4SSales_Country__c": {
+                              "type": "string"
+                            },
+                            "S4SSales_Price__c": {
+                              "type": "string"
+                            },
+                            "S4SX1st_Year_return__c": {
+                              "type": "string"
+                            },
+                            "S4SX2nd_Year_Return__c": {
+                              "type": "string"
+                            },
+                            "X3rd_Year_Return__c": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "CurrencyIsoCode",
+                            "ExternalId",
+                            "Id",
+                            "Name",
+                            "S4SDepth_Structure__c",
+                            "S4SExternal_Source__c",
+                            "S4SOrder_Intake__c",
+                            "S4SPrimary_Flag__c",
+                            "S4SProduct_Family__c",
+                            "S4SProgram_Fund__c",
+                            "S4SQuantity__c",
+                            "S4SSales_Country__c",
+                            "S4SSales_Price__c",
+                            "S4SX1st_Year_return__c",
+                            "S4SX2nd_Year_Return__c",
+                            "X3rd_Year_Return__c"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "S4SBuy_America_n__c": {
+                        "type": "string"
+                      },
+                      "S4SCAPEX__c": {
+                        "type": "string"
+                      },
+                      "S4SCategorization__c": {
+                        "type": "string"
+                      },
+                      "S4SChance_of_Execution__c": {
+                        "type": "string"
+                      },
+                      "S4SChance_of_Success__c": {
+                        "type": "string"
+                      },
+                      "S4SChannel__c": {
+                        "type": "string"
+                      },
+                      "S4SClosing_Date__c": {
+                        "type": "string"
+                      },
+                      "S4SCommission_Country_1__c": {
+                        "type": "string"
+                      },
+                      "S4SCommission_Country_2__c": {
+                        "type": "string"
+                      },
+                      "S4SCommission_Country_3__c": {
+                        "type": "string"
+                      },
+                      "S4SCommission_Country_4__c": {
+                        "type": "string"
+                      },
+                      "S4SCommission_Percentage_1__c": {
+                        "type": "string"
+                      },
+                      "S4SCommission_Percentage_2__c": {
+                        "type": "string"
+                      },
+                      "S4SCommission_Percentage_3__c": {
+                        "type": "string"
+                      },
+                      "S4SCommission_Percentage_4__c": {
+                        "type": "string"
+                      },
+                      "S4SContact_Name__c": {
+                        "type": "string"
+                      },
+                      "S4SContract_Duration_Month__c": {
+                        "type": "string"
+                      },
+                      "S4SContract_Schedule__c": {
+                        "type": "string"
+                      },
+                      "S4SContractual_Insurance_requirements__c": {
+                        "type": "string"
+                      },
+                      "S4SCreate_COMPAS_Quote__c": {
+                        "type": "string"
+                      },
+                      "S4SCreated_from_Lead__c": {
+                        "type": "string"
+                      },
+                      "S4SCross_Border_International_Business__c": {
+                        "type": "string"
+                      },
+                      "S4SCustomer_Agreement_for_Data_Transfer__c": {
+                        "type": "string"
+                      },
+                      "S4SCustomer_Interest_Focus__c": {
+                        "type": "string"
+                      },
+                      "S4SCustomer_Rate__c": {
+                        "type": "string"
+                      },
+                      "S4SDays_of_Delayed_Payments_EPT__c": {
+                        "type": "string"
+                      },
+                      "S4SDiscussion_in_PEF_Deal_Flow_Call__c": {
+                        "type": "string"
+                      },
+                      "S4SDistribution_channel__c": {
+                        "type": "string"
+                      },
+                      "S4SEUR_Exchange_Rate__c": {
+                        "type": "string"
+                      },
+                      "S4SEarning_Contribution__c": {
+                        "type": "string"
+                      },
+                      "S4SEmail__c": {
+                        "type": "string"
+                      },
+                      "S4SExpiry_Date_Risk_Approval__c": {
+                        "type": "string"
+                      },
+                      "S4SExternal_Source__c": {
+                        "type": "string"
+                      },
+                      "S4SFactoring_Fee__c": {
+                        "type": "string"
+                      },
+                      "S4SField_of_Activity__c": {
+                        "type": "string"
+                      },
+                      "S4SFinance_Product_Label__c": {
+                        "type": "string"
+                      },
+                      "S4SFinance_Product_Type__c": {
+                        "type": "string"
+                      },
+                      "S4SFinancial_Request_Id__c": {
+                        "type": "string"
+                      },
+                      "S4SFinancial_Request__c": {
+                        "type": "string"
+                      },
+                      "S4SFinancing_Demand_Division__c": {
+                        "type": "string"
+                      },
+                      "S4SFinancing_Need__c": {
+                        "type": "string"
+                      },
+                      "S4SFinancing_Product__c": {
+                        "type": "string"
+                      },
+                      "S4SFunding_limit__c": {
+                        "type": "string"
+                      },
+                      "S4SGCK_Code__c": {
+                        "type": "string"
+                      },
+                      "S4SGovernmental_Agency__c": {
+                        "type": "string"
+                      },
+                      "S4SGovernmental_Entity_Government_Funded__c": {
+                        "type": "string"
+                      },
+                      "S4SGross_Margin__c": {
+                        "type": "string"
+                      },
+                      "S4SHas_Children__c": {
+                        "type": "string"
+                      },
+                      "S4SIBIT__c": {
+                        "type": "string"
+                      },
+                      "S4SInitial_Purchase_Price__c": {
+                        "type": "string"
+                      },
+                      "S4SInstallation__c": {
+                        "properties": {
+                          "CurrencyIsoCode": {
+                            "type": "string"
+                          },
+                          "Id": {
+                            "type": "string"
+                          },
+                          "Name": {
+                            "type": "string"
+                          },
+                          "S4SCity__c": {
+                            "type": "string"
+                          },
+                          "S4SCountry__c": {
+                            "type": "string"
+                          },
+                          "S4SDivision__c": {
+                            "type": "string"
+                          },
+                          "S4SExternal_ID__c": {
+                            "type": "string"
+                          },
+                          "S4SExternal_Source__c": {
+                            "type": "string"
+                          },
+                          "S4SInstallation_Number__c": {
+                            "type": "string"
+                          },
+                          "S4SLead_Country__c": {
+                            "type": "string"
+                          },
+                          "S4SPostal_Code__c": {
+                            "type": "string"
+                          },
+                          "S4SSite__c": {
+                            "type": "string"
+                          },
+                          "S4SSold_to_Party__c": {
+                            "type": "string"
+                          },
+                          "S4SState__c": {
+                            "type": "string"
+                          },
+                          "S4SStreet__c": {
+                            "type": "string"
+                          },
+                          "S4SSystem_Portfolio__c": {
+                            "type": "string"
+                          },
+                          "S4SWarranty_End_Date__c": {
+                            "type": "string"
+                          },
+                          "S4SWarranty_Start_Date__c": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "S4SInsurance_Database_ID__c": {
+                        "type": "string"
+                      },
+                      "S4SInterface_Trigger__c": {
+                        "type": "string"
+                      },
+                      "S4SInternal_Interest_Rate__c": {
+                        "type": "string"
+                      },
+                      "S4SInternational_City__c": {
+                        "type": "string"
+                      },
+                      "S4SInternational_Country_Region__c": {
+                        "type": "string"
+                      },
+                      "S4SInternational_Postal_Code__c": {
+                        "type": "string"
+                      },
+                      "S4SInternational_Region__c": {
+                        "type": "string"
+                      },
+                      "S4SInternational_Street_Name_1__c": {
+                        "type": "string"
+                      },
+                      "S4SInternational_Street_Name_2__c": {
+                        "type": "string"
+                      },
+                      "S4SInternational_country_regionGP__c": {
+                        "type": "string"
+                      },
+                      "S4SIntroducer_Sales__c": {
+                        "properties": {
+                          "EMAIL": {
+                            "type": "string"
+                          },
+                          "ID": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "S4SInvesting_ARE__c": {
+                        "type": "string"
+                      },
+                      "S4SInvolded_Siemens_Entities__c": {
+                        "type": "string"
+                      },
+                      "S4SInvolved_Accounts__c": {
+                        "items": {
+                          "properties": {
+                            "CurrencyIsoCode": {
+                              "type": "string"
+                            },
+                            "ExternalId": {
+                              "type": "string"
+                            },
+                            "Id": {
+                              "type": "string"
+                            },
+                            "LastActivityDate": {
+                              "type": "string"
+                            },
+                            "Name": {
+                              "type": "string"
+                            },
+                            "S4SAccount_Name__c": {
+                              "properties": {
+                                "Id": {
+                                  "type": "string"
+                                },
+                                "Ifa": {
+                                  "type": "string"
+                                },
+                                "S4SIdentification_number__c": {
+                                  "type": "string"
+                                },
+                                "SourceSystem": {
+                                  "type": "string"
+                                }
+                              },
+                              "type": "object"
+                            },
+                            "S4SDescription__c": {
+                              "type": "string"
+                            },
+                            "S4SExternal_Source__c": {
+                              "type": "string"
+                            },
+                            "S4SINVOLVED_ACCOUNTS_LegacyID__c": {
+                              "type": "string"
+                            },
+                            "S4SPrimary_Flag__c": {
+                              "type": "string"
+                            },
+                            "S4SRole__c": {
+                              "type": "string"
+                            },
+                            "S4SSales_Country__c": {
+                              "type": "string"
+                            },
+                            "S4SWinning_Chance__c": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "CurrencyIsoCode",
+                            "Id",
+                            "LastActivityDate",
+                            "Name",
+                            "S4SDescription__c",
+                            "ExternalId",
+                            "S4SExternal_Source__c",
+                            "S4SINVOLVED_ACCOUNTS_LegacyID__c",
+                            "S4SPrimary_Flag__c",
+                            "S4SRole__c",
+                            "S4SSales_Country__c",
+                            "S4SWinning_Chance__c",
+                            "S4SAccount_Name__c"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "S4SInvolved_Competence_Center__c": {
+                        "type": "string"
+                      },
+                      "S4SLOA_ID_Number__c": {
+                        "type": "string"
+                      },
+                      "S4SLast_Status_Change__c": {
+                        "type": "string"
+                      },
+                      "S4SLast_Sync_with_COMPAS__c": {
+                        "type": "string"
+                      },
+                      "S4SLead_Capture_Email__c": {
+                        "type": "string"
+                      },
+                      "S4SLead_Source_Type__c": {
+                        "type": "string"
+                      },
+                      "S4SLoAID_Number__c": {
+                        "type": "string"
+                      },
+                      "S4SMain_Reason__c": {
+                        "type": "string"
+                      },
+                      "S4SMobile__c": {
+                        "type": "string"
+                      },
+                      "S4SNet_Present_Value_Percent__c": {
+                        "type": "string"
+                      },
+                      "S4SNet_Present_Value__c": {
+                        "type": "string"
+                      },
+                      "S4SOPEX__c": {
+                        "type": "string"
+                      },
+                      "S4SOPPORTUNITY_LegacyID__c": {
+                        "type": "string"
+                      },
+                      "S4SOccupied_Territory_Evaluation__c": {
+                        "type": "string"
+                      },
+                      "S4SOffer_Reference_ID__c": {
+                        "type": "string"
+                      },
+                      "S4SOpportunity_Industry_Search__c": {
+                        "properties": {
+                          "CurrencyIsoCode": {
+                            "type": "string"
+                          },
+                          "Name": {
+                            "type": "string"
+                          },
+                          "S4SExternal_ID__c": {
+                            "type": "string"
+                          },
+                          "S4SIndustry_Description__c": {
+                            "type": "string"
+                          },
+                          "S4SIndustry_Segment__c": {
+                            "type": "string"
+                          },
+                          "S4SNAF_ID__c": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "S4SOpportunity_Type__c": {
+                        "type": "string"
+                      },
+                      "S4SOriginal_Project_Solution_Opportunity__c": {
+                        "type": "string"
+                      },
+                      "S4SOrigination_System_Response__c": {
+                        "type": "string"
+                      },
+                      "S4SOur_Role__c": {
+                        "type": "string"
+                      },
+                      "S4SOverall_Risk_Score__c": {
+                        "type": "string"
+                      },
+                      "S4SOwn_Content_Own_BU_Products__c": {
+                        "type": "string"
+                      },
+                      "S4SOwn_Content_Own_DIV_Products__c": {
+                        "type": "string"
+                      },
+                      "S4SOwn_Content_Own_DIV_Services__c": {
+                        "type": "string"
+                      },
+                      "S4SOwn_Content_Siemens_Products_Services__c": {
+                        "type": "string"
+                      },
+                      "S4SPEF_Advisory_Scope__c": {
+                        "type": "string"
+                      },
+                      "S4SPM040_Released_Gross_Margin__c": {
+                        "type": "string"
+                      },
+                      "S4SPM040_Released_Profit_EBIT__c": {
+                        "type": "string"
+                      },
+                      "S4SPM040_Released_Risk_Contigency__c": {
+                        "type": "string"
+                      },
+                      "S4SPM040_Released_Volume__c": {
+                        "type": "string"
+                      },
+                      "S4SPM040_Transfer_date__c": {
+                        "type": "string"
+                      },
+                      "S4SPM070_Transfer_Date__c": {
+                        "type": "string"
+                      },
+                      "S4SPM070_Won_lost_Gross_Margin__c": {
+                        "type": "string"
+                      },
+                      "S4SPM070_Won_lost_Profit_EBIT__c": {
+                        "type": "string"
+                      },
+                      "S4SPM070_Won_lost_Risk_Contigency__c": {
+                        "type": "string"
+                      },
+                      "S4SPM070_Won_lost_Volume__c": {
+                        "type": "string"
+                      },
+                      "S4SPartnerLeadConversion__c": {
+                        "type": "string"
+                      },
+                      "S4SPhone__c": {
+                        "type": "string"
+                      },
+                      "S4SPlanning_Tool__c": {
+                        "type": "string"
+                      },
+                      "S4SPotential_Siemens_Volume__c": {
+                        "type": "string"
+                      },
+                      "S4SPrevious_System_Unique_ID__c": {
+                        "type": "string"
+                      },
+                      "S4SProduct_Interest__c": {
+                        "type": "string"
+                      },
+                      "S4SProject_Category__c": {
+                        "type": "string"
+                      },
+                      "S4SProject_Volume__c": {
+                        "type": "string"
+                      },
+                      "S4SPropensity_to_Win__c": {
+                        "type": "string"
+                      },
+                      "S4SProposed_to_Debt__c": {
+                        "type": "string"
+                      },
+                      "S4SProposed_to_Equity__c": {
+                        "type": "string"
+                      },
+                      "S4SPush_Counter_PM070_change__c": {
+                        "type": "string"
+                      },
+                      "S4SROE__c": {
+                        "type": "string"
+                      },
+                      "S4SReason_Detail__c": {
+                        "type": "string"
+                      },
+                      "S4SReason_not_won__c": {
+                        "type": "string"
+                      },
+                      "S4SReceivables_Portfolio__c": {
+                        "type": "string"
+                      },
+                      "S4SReference_ID__c": {
+                        "type": "string"
+                      },
+                      "S4SRelevant_for_Forecast__c": {
+                        "type": "string"
+                      },
+                      "S4SRetention__c": {
+                        "type": "string"
+                      },
+                      "S4SSAP_Number__c": {
+                        "type": "string"
+                      },
+                      "S4SSFS_Account_Rating_Date__c": {
+                        "type": "string"
+                      },
+                      "S4SSFS_Account_Rating_Type__c": {
+                        "type": "string"
+                      },
+                      "S4SSFS_Account_Rating__c": {
+                        "type": "string"
+                      },
+                      "S4SSFS_Opportunity_Rating_Date__c": {
+                        "type": "string"
+                      },
+                      "S4SSFS_Opportunity_Rating_Type__c": {
+                        "type": "string"
+                      },
+                      "S4SSFS_Opportunity_Rating__c": {
+                        "type": "string"
+                      },
+                      "S4SSOC_Category__c": {
+                        "type": "string"
+                      },
+                      "S4SSPG_Code__c": {
+                        "type": "string"
+                      },
+                      "S4SSales_Type__c": {
+                        "type": "string"
+                      },
+                      "S4SSectors_of_Concern__c": {
+                        "type": "string"
+                      },
+                      "S4SSenior_Leverage__c": {
+                        "type": "string"
+                      },
+                      "S4SShowDisplay__c": {
+                        "type": "string"
+                      },
+                      "S4SSiemens_Equity__c": {
+                        "type": "string"
+                      },
+                      "S4SSite__c": {
+                        "properties": {
+                          "CurrencyIsoCode": {
+                            "type": "string"
+                          },
+                          "Id": {
+                            "type": "string"
+                          },
+                          "Name": {
+                            "type": "string"
+                          },
+                          "S4SAccount__c": {
+                            "properties": {
+                              "Id": {
+                                "type": "string"
+                              },
+                              "Ifa": {
+                                "type": "string"
+                              },
+                              "S4SIdentification_number__c": {
+                                "type": "string"
+                              },
+                              "SourceSystem": {
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "S4SBusiness_Unit__c": {
+                            "type": "string"
+                          },
+                          "S4SCity__c": {
+                            "type": "string"
+                          },
+                          "S4SCountry__c": {
+                            "type": "string"
+                          },
+                          "S4SDivision__c": {
+                            "type": "string"
+                          },
+                          "S4SExternal_ID__c": {
+                            "type": "string"
+                          },
+                          "S4SLead_Country__c": {
+                            "type": "string"
+                          },
+                          "S4SOwner_GID__c": {
+                            "type": "string"
+                          },
+                          "S4SPostal_Code__c": {
+                            "type": "string"
+                          },
+                          "S4SSales_Branch__c": {
+                            "type": "string"
+                          },
+                          "S4SSales_Country__c": {
+                            "type": "string"
+                          },
+                          "S4SSales_Department__c": {
+                            "type": "string"
+                          },
+                          "S4SSales_District__c": {
+                            "type": "string"
+                          },
+                          "S4SSales_Office__c": {
+                            "type": "string"
+                          },
+                          "S4SSales_Subregion__c": {
+                            "type": "string"
+                          },
+                          "S4SSales_Territory__c": {
+                            "type": "string"
+                          },
+                          "S4SSite_Legacy_ID__c": {
+                            "type": "string"
+                          },
+                          "S4STypes_of_Site__c": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "S4SSocial_Impacts__c": {
+                        "type": "string"
+                      },
+                      "S4SSold_To_AI__c": {
+                        "type": "string"
+                      },
+                      "S4SSolution_Support_End_Date__c": {
+                        "type": "string"
+                      },
+                      "S4SSource_System_URL__c": {
+                        "type": "string"
+                      },
+                      "S4SSource__c": {
+                        "type": "string"
+                      },
+                      "S4SSpread_Factoring__c": {
+                        "type": "string"
+                      },
+                      "S4SSpread__c": {
+                        "type": "string"
+                      },
+                      "S4SStart_project_PM080__c": {
+                        "type": "string"
+                      },
+                      "S4SStatus_since__c": {
+                        "type": "string"
+                      },
+                      "S4SStrategic_Priority__c": {
+                        "type": "string"
+                      },
+                      "S4SSupported_Siemens_BusinessUnit__c": {
+                        "type": "string"
+                      },
+                      "S4SSupported_Siemens_Business_Unit__c": {
+                        "type": "string"
+                      },
+                      "S4SSupported_Siemens_Company__c": {
+                        "type": "string"
+                      },
+                      "S4STarget_IRR__c": {
+                        "type": "string"
+                      },
+                      "S4STerritory_Structure__c": {
+                        "properties": {
+                          "S4SSale_Country__c": {
+                            "type": "string"
+                          },
+                          "S4SSales_Department__c": {
+                            "type": "string"
+                          },
+                          "S4SSales_District__c": {
+                            "type": "string"
+                          },
+                          "S4SSales_Office__c": {
+                            "type": "string"
+                          },
+                          "S4SSales_SubRegion__c": {
+                            "type": "string"
+                          },
+                          "S4SSales_Territory__c": {
+                            "type": "string"
+                          },
+                          "S4SSiemens_Territory_Structure_LegacyID__c": {
+                            "type": "string"
+                          },
+                          "S4STMCUnique_ID__c": {
+                            "type": "string"
+                          },
+                          "S4SUnique_ID__c": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "S4SThereof_SPV_SFS_Inc__c": {
+                        "type": "string"
+                      },
+                      "S4STime_to_Close__c": {
+                        "type": "string"
+                      },
+                      "S4STimestamp_to_COF__c": {
+                        "type": "string"
+                      },
+                      "S4STimestamp_to_Debt__c": {
+                        "type": "string"
+                      },
+                      "S4STimestamp_to_Equity__c": {
+                        "type": "string"
+                      },
+                      "S4STotal_Debt_of_Opportunity__c": {
+                        "type": "string"
+                      },
+                      "S4STotal_Equity_incl_Shareholder_Loans__c": {
+                        "type": "string"
+                      },
+                      "S4STotal_Investment__c": {
+                        "type": "string"
+                      },
+                      "S4STotal_Leverage__c": {
+                        "type": "string"
+                      },
+                      "S4STotal_OI_Recurring_Business__c": {
+                        "type": "string"
+                      },
+                      "S4STotal_Project_Value__c": {
+                        "type": "string"
+                      },
+                      "S4STotal_of_Allocated_Amount__c": {
+                        "type": "string"
+                      },
+                      "S4STotal_of_Approved_Amount__c": {
+                        "type": "string"
+                      },
+                      "S4STotal_of_Requested_Amount__c": {
+                        "type": "string"
+                      },
+                      "S4SType_of_Transaction__c": {
+                        "type": "string"
+                      },
+                      "S4SUnit__c": {
+                        "type": "string"
+                      },
+                      "S4SZip_Code__c": {
+                        "type": "string"
+                      },
+                      "S4S_Building_Automation__c": {
+                        "type": "string"
+                      },
+                      "S4S_Converted_from_Lead__c": {
+                        "type": "string"
+                      },
+                      "S4S_EPS__c": {
+                        "type": "string"
+                      },
+                      "S4S_Fire_Safety__c": {
+                        "type": "string"
+                      },
+                      "S4S_General__c": {
+                        "type": "string"
+                      },
+                      "S4S_Security__c": {
+                        "type": "string"
+                      },
+                      "S4S_Sync_with_SieOps__c": {
+                        "type": "string"
+                      },
+                      "S4S_To_Stop_the_node_in_Opp_update_PB__c": {
+                        "type": "string"
+                      },
+                      "S4S_Total_SFS_Amount_Rollup__c": {
+                        "type": "string"
+                      },
+                      "StageName": {
+                        "type": "string"
+                      },
+                      "SyncedQuoteId": {
+                        "type": "string"
+                      },
+                      "Team_Members__c": {
+                        "type": "string"
+                      },
+                      "TotalOpportunityQuantity": {
+                        "type": "string"
+                      },
+                      "Type": {
+                        "type": "string"
+                      },
+                      "deleteAttributeAssignment": {
+                        "type": "string"
+                      },
+                      "deleteBookingLine": {
+                        "type": "string"
+                      },
+                      "deleteInvolvedAccounts": {
+                        "type": "string"
+                      },
+                      "deleteOpportunityCompetitor": {
+                        "type": "string"
+                      },
+                      "deleteOpportunityLineItem": {
+                        "type": "string"
+                      },
+                      "deleteOpportunityTeamMember": {
+                        "type": "string"
+                      },
+                      "deleteQuote": {
+                        "type": "string"
+                      },
+                      "deleteQuoteLineItem": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "deleteQuote",
+                      "deleteBookingLine",
+                      "deleteQuoteLineItem",
+                      "deleteOpportunityLineItem",
+                      "deleteInvolvedAccounts",
+                      "deleteOpportunityTeamMember",
+                      "deleteAttributeAssignment",
+                      "deleteOpportunityCompetitor",
+                      "Amount",
+                      "Budget_Confirmed__c",
+                      "CampaignId",
+                      "CloseDate",
+                      "CurrencyIsoCode",
+                      "DB_Competitor__c",
+                      "Description",
+                      "Discovery_Completed__c",
+                      "ExpectedRevenue",
+                      "ExternalId",
+                      "Fiscal",
+                      "FiscalQuarter",
+                      "FiscalYear",
+                      "ForecastCategory",
+                      "ForecastCategoryName",
+                      "HasOpenActivity",
+                      "HasOpportunityLineItem",
+                      "HasOverdueTask",
+                      "Id",
+                      "IsClosed",
+                      "IsPrivate",
+                      "IsWon",
+                      "LID__Is_Influenced__c",
+                      "LID__LinkedIn_Company_Id__c",
+                      "LeadSource",
+                      "Lead_Created_By__c",
+                      "Loss_Reason__c",
+                      "Name",
+                      "NextStep",
+                      "Probability",
+                      "ROI_Analysis_Completed__c",
+                      "S4SAcceptance_Closure__c",
+                      "S4SAdvisory_Volume__c",
+                      "S4SAlternative_Opportunity__c",
+                      "S4SAmount_Financed__c",
+                      "S4SAnnual_Sales_relev_for_Factoring__c",
+                      "S4SAnnual_Turnover_relev_for_EPT__c",
+                      "S4SApproval_Check__c",
+                      "S4SAsset_Code_IAC__c",
+                      "S4SAssigned_parental_Opportunity__c",
+                      "S4SB2A_Outcome__c",
+                      "S4SB2A_type__c",
+                      "S4SBid_approval_PM040__c",
+                      "S4SBooking_Funding_Date__c",
+                      "S4SBuy_America_n__c",
+                      "S4SCAPEX__c",
+                      "S4SCategorization__c",
+                      "S4SChance_of_Execution__c",
+                      "S4SChance_of_Success__c",
+                      "S4SChannel__c",
+                      "S4SClosing_Date__c",
+                      "S4SCommission_Country_1__c",
+                      "S4SCommission_Country_2__c",
+                      "S4SCommission_Country_3__c",
+                      "S4SCommission_Country_4__c",
+                      "S4SCommission_Percentage_1__c",
+                      "S4SCommission_Percentage_2__c",
+                      "S4SCommission_Percentage_3__c",
+                      "S4SCommission_Percentage_4__c",
+                      "S4SContact_Name__c",
+                      "S4SContract_Duration_Month__c",
+                      "S4SContract_Schedule__c",
+                      "S4SContractual_Insurance_requirements__c",
+                      "S4SCreate_COMPAS_Quote__c",
+                      "S4SCreated_from_Lead__c",
+                      "S4SCross_Border_International_Business__c",
+                      "S4SCustomer_Agreement_for_Data_Transfer__c",
+                      "S4SCustomer_Interest_Focus__c",
+                      "S4SCustomer_Rate__c",
+                      "S4SDays_of_Delayed_Payments_EPT__c",
+                      "S4SDiscussion_in_PEF_Deal_Flow_Call__c",
+                      "S4SDistribution_channel__c",
+                      "S4SEUR_Exchange_Rate__c",
+                      "S4SEarning_Contribution__c",
+                      "S4SEmail__c",
+                      "S4SExpiry_Date_Risk_Approval__c",
+                      "S4SExternal_Source__c",
+                      "S4SFactoring_Fee__c",
+                      "S4SField_of_Activity__c",
+                      "S4SFinance_Product_Label__c",
+                      "S4SFinance_Product_Type__c",
+                      "S4SFinancial_Request_Id__c",
+                      "S4SFinancial_Request__c",
+                      "S4SFinancing_Demand_Division__c",
+                      "S4SFinancing_Need__c",
+                      "S4SFinancing_Product__c",
+                      "S4SFunding_limit__c",
+                      "S4SGCK_Code__c",
+                      "S4SGovernmental_Agency__c",
+                      "S4SGovernmental_Entity_Government_Funded__c",
+                      "S4SGross_Margin__c",
+                      "S4SHas_Children__c",
+                      "S4SIBIT__c",
+                      "S4SInitial_Purchase_Price__c",
+                      "S4SInsurance_Database_ID__c",
+                      "S4SInterface_Trigger__c",
+                      "S4SInternal_Interest_Rate__c",
+                      "S4SInternational_City__c",
+                      "S4SInternational_Country_Region__c",
+                      "S4SInternational_Postal_Code__c",
+                      "S4SInternational_Region__c",
+                      "S4SInternational_Street_Name_1__c",
+                      "S4SInternational_Street_Name_2__c",
+                      "S4SInternational_country_regionGP__c",
+                      "S4SInvesting_ARE__c",
+                      "S4SInvolded_Siemens_Entities__c",
+                      "S4SInvolved_Competence_Center__c",
+                      "S4SLOA_ID_Number__c",
+                      "S4SLast_Status_Change__c",
+                      "S4SLast_Sync_with_COMPAS__c",
+                      "S4SLead_Capture_Email__c",
+                      "S4SLead_Source_Type__c",
+                      "S4SLoAID_Number__c",
+                      "S4SMain_Reason__c",
+                      "S4SMobile__c",
+                      "S4SNet_Present_Value_Percent__c",
+                      "S4SNet_Present_Value__c",
+                      "S4SOPEX__c",
+                      "S4SOPPORTUNITY_LegacyID__c",
+                      "S4SOccupied_Territory_Evaluation__c",
+                      "S4SOffer_Reference_ID__c",
+                      "S4SOpportunity_Type__c",
+                      "S4SOriginal_Project_Solution_Opportunity__c",
+                      "S4SOrigination_System_Response__c",
+                      "S4SOur_Role__c",
+                      "S4SOverall_Risk_Score__c",
+                      "S4SOwn_Content_Own_BU_Products__c",
+                      "S4SOwn_Content_Own_DIV_Products__c",
+                      "S4SOwn_Content_Own_DIV_Services__c",
+                      "S4SOwn_Content_Siemens_Products_Services__c",
+                      "S4SPEF_Advisory_Scope__c",
+                      "S4SPM040_Released_Gross_Margin__c",
+                      "S4SPM040_Released_Profit_EBIT__c",
+                      "S4SPM040_Released_Risk_Contigency__c",
+                      "S4SPM040_Released_Volume__c",
+                      "S4SPM040_Transfer_date__c",
+                      "S4SPM070_Transfer_Date__c",
+                      "S4SPM070_Won_lost_Gross_Margin__c",
+                      "S4SPM070_Won_lost_Profit_EBIT__c",
+                      "S4SPM070_Won_lost_Risk_Contigency__c",
+                      "S4SPM070_Won_lost_Volume__c",
+                      "S4SPartnerLeadConversion__c",
+                      "S4SPhone__c",
+                      "S4SPlanning_Tool__c",
+                      "S4SPotential_Siemens_Volume__c",
+                      "S4SPrevious_System_Unique_ID__c",
+                      "S4SProduct_Interest__c",
+                      "S4SProject_Category__c",
+                      "S4SProject_Volume__c",
+                      "S4SPropensity_to_Win__c",
+                      "S4SProposed_to_Debt__c",
+                      "S4SProposed_to_Equity__c",
+                      "S4SPush_Counter_PM070_change__c",
+                      "S4SROE__c",
+                      "S4SReason_Detail__c",
+                      "S4SReason_not_won__c",
+                      "S4SReceivables_Portfolio__c",
+                      "S4SReference_ID__c",
+                      "S4SRelevant_for_Forecast__c",
+                      "S4SRetention__c",
+                      "S4SSAP_Number__c",
+                      "S4SSFS_Account_Rating_Date__c",
+                      "S4SSFS_Account_Rating_Type__c",
+                      "S4SSFS_Account_Rating__c",
+                      "S4SSFS_Opportunity_Rating_Date__c",
+                      "S4SSFS_Opportunity_Rating_Type__c",
+                      "S4SSFS_Opportunity_Rating__c",
+                      "S4SSOC_Category__c",
+                      "S4SSPG_Code__c",
+                      "S4SSales_Type__c",
+                      "S4SSectors_of_Concern__c",
+                      "S4SSenior_Leverage__c",
+                      "S4SShowDisplay__c",
+                      "S4SSiemens_Equity__c",
+                      "S4SSocial_Impacts__c",
+                      "S4SSold_To_AI__c",
+                      "S4SSolution_Support_End_Date__c",
+                      "S4SSource_System_URL__c",
+                      "S4SSource__c",
+                      "S4SSpread_Factoring__c",
+                      "S4SSpread__c",
+                      "S4SStart_project_PM080__c",
+                      "S4SStatus_since__c",
+                      "S4SStrategic_Priority__c",
+                      "S4SSupported_Siemens_BusinessUnit__c",
+                      "S4SSupported_Siemens_Business_Unit__c",
+                      "S4SSupported_Siemens_Company__c",
+                      "S4S_Sync_with_SieOps__c",
+                      "S4STarget_IRR__c",
+                      "S4SThereof_SPV_SFS_Inc__c",
+                      "S4STime_to_Close__c",
+                      "S4STimestamp_to_COF__c",
+                      "S4STimestamp_to_Debt__c",
+                      "S4STimestamp_to_Equity__c",
+                      "S4STotal_Debt_of_Opportunity__c",
+                      "S4STotal_Equity_incl_Shareholder_Loans__c",
+                      "S4STotal_Investment__c",
+                      "S4STotal_Leverage__c",
+                      "S4STotal_OI_Recurring_Business__c",
+                      "S4STotal_Project_Value__c",
+                      "S4STotal_of_Allocated_Amount__c",
+                      "S4STotal_of_Approved_Amount__c",
+                      "S4STotal_of_Requested_Amount__c",
+                      "S4SType_of_Transaction__c",
+                      "S4SUnit__c",
+                      "S4SZip_Code__c",
+                      "S4S_Building_Automation__c",
+                      "S4S_Converted_from_Lead__c",
+                      "S4S_EPS__c",
+                      "S4S_Fire_Safety__c",
+                      "S4S_General__c",
+                      "S4S_Security__c",
+                      "S4S_To_Stop_the_node_in_Opp_update_PB__c",
+                      "S4S_Total_SFS_Amount_Rollup__c",
+                      "StageName",
+                      "SyncedQuoteId",
+                      "Team_Members__c",
+                      "TotalOpportunityQuantity",
+                      "Type",
+                      "Account",
+                      "Contact",
+                      "EndAccount",
+                      "Owner",
+                      "S4SSite__c",
+                      "S4SInstallation__c",
+                      "S4SIntroducer_Sales__c",
+                      "S4SOpportunity_Industry_Search__c",
+                      "S4STerritory_Structure__c",
+                      "Quote",
+                      "S4SBooking_Line_Item__c",
+                      "OpportunityLineItem",
+                      "OpportunityTeamMember",
+                      "S4SInvolved_Accounts__c",
+                      "OpportunityCompetitor",
+                      "S4SAttribute_Assignment__c"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "kind": "Http",
+      "type": "Request"
+    }
+  }
+}

@@ -1,0 +1,532 @@
+{
+	"$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+	"actions": {
+		"Catch_Scope": {
+			"actions": {
+				"Compose_Error_Message": {
+					"inputs": {
+						"input": "@createArray(result('Condition_to_Check_Opportunity_Query_Size'),result('For_each'),result('Try_Scope'))"
+					},
+					"runAfter": {},
+					"type": "Compose"
+				},
+				"Error_Response": {
+					"inputs": {
+						"body": {
+							"searchOpportunityResponse": {
+								"message": "Unable to get the Opportunity details for the request combination at current time; If you are seeing this error message from long please reach out to the AMC team with the Workflow Run ID.",
+								"success": "@false",
+								"workflowRunId": "@workflow()?['run']?['name']"
+							}
+						},
+						"statusCode": 400
+					},
+					"kind": "Http",
+					"runAfter": {
+						"logic-c00031-NonSFS_internal_sf4sLog-weu-dev": [
+							"Succeeded"
+						]
+					},
+					"type": "Response"
+				},
+				"Set_Error_Message": {
+					"inputs": {
+						"authentication": {
+							"type": "Raw",
+							"value": "[parameters('functionAppKey')]"
+						},
+						"body": "@outputs('Compose_Error_Message')",
+						"function": {
+							"id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+						},
+						"headers": {
+							"Accept": "application/json",
+							"Content-Type": "application/json",
+							"Filename": "${liquid_setError}"
+						},
+						"method": "POST",
+						"retryPolicy": {
+							"type": "none"
+						}
+					},
+					"runAfter": {
+						"Compose_Error_Message": [
+							"Succeeded"
+						]
+					},
+					"type": "Function"
+				},
+				"logic-c00031-NonSFS_internal_sf4sLog-weu-dev": {
+					"inputs": {
+						"body": {
+							"message": "@{body('Set_Error_Message')}",
+							"severity": "INFO"
+						},
+						"host": {
+							"triggerName": "manual",
+							"workflow": {
+								"id": "${nonsfs_internal_sf4sLog_logicAppId}"
+							}
+						},
+						"retryPolicy": {
+							"type": "none"
+						}
+					},
+					"runAfter": {
+						"Set_Error_Message": [
+							"Succeeded"
+						]
+					},
+					"type": "Workflow"
+				}
+			},
+			"runAfter": {
+				"Try_Scope": [
+					"TimedOut",
+					"Failed"
+				]
+			},
+			"type": "Scope"
+		},
+		"Initialize_QuoteLineItems_Variable": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "QuoteLineItem",
+						"type": "array"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Initialize_Response_Variable": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "Array",
+						"type": "array"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Try_Scope": {
+			"actions": {
+				"Condition_to_Check_Opportunity_Query_Size": {
+					"actions": {
+						"For_each": {
+							"actions": {
+								"Append_Queries": {
+									"inputs": {
+										"name": "Array",
+										"value": {
+											"AttributeAssignment": "@body('HTTP_Query_SF_FollowUp')?['compositeResponse']?[1]?['body']?['records']",
+											"BookingLine": "@body('HTTP_Query_SF')?['compositeResponse']?[2]?['body']?['records']",
+											"Competitor": "@body('HTTP_Query_SF')?['compositeResponse']?[4]?['body']?['records']",
+											"ContactRole": "@body('HTTP_Query_SF')?['compositeResponse']?[0]?['body']?['records']",
+											"InvolvedAccounts": "@body('HTTP_Query_SF')?['compositeResponse']?[1]?['body']?['records']",
+											"Opportunity": "@items('For_each')",
+											"Quote": "@body('HTTP_Query_SF_FollowUp')?['compositeResponse']?[0]?['body']?['records']",
+											"QuoteLineItem": "@variables('QuoteLineItem')",
+											"TeamMember": "@body('HTTP_Query_SF')?['compositeResponse']?[3]?['body']?['records']"
+										}
+									},
+									"runAfter": {
+										"Condition_to_Check_Quote_Query_Size": [
+											"Succeeded"
+										]
+									},
+									"type": "AppendToArrayVariable"
+								},
+								"Condition_to_Check_Quote_Query_Size": {
+									"actions": {
+										"For_Each_Quote": {
+											"actions": {
+												"Append_QuoteLIneItems": {
+													"inputs": {
+														"name": "QuoteLineItem",
+														"value": {
+															"QuoteLineItem": "@body('HTTP_Query_SF_QuoteLineItem')?['records']"
+														}
+													},
+													"runAfter": {
+														"HTTP_Query_SF_QuoteLineItem": [
+															"Succeeded"
+														]
+													},
+													"type": "AppendToArrayVariable"
+												},
+												"HTTP_Query_SF_QuoteLineItem": {
+													"inputs": {
+														"headers": {
+															"Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+														},
+														"method": "GET",
+														"queries": {
+															"q": "SELECT CurrencyIsoCode,Description,Discount,Id,QuoteId,LineNumber,ListPrice,Product2.Name,Product2.S4SDivisions__c,Product2.S4SBusiness_Unit__c,Product2.S4SBusiness_Segment_Short__c,Product2.S4SBusiness_Sub_Segment_Short__c,Product2.S4SGCK__c,Product2.S4SSPG__c,Product2.S4SPCK__c,Quantity,S4SExternal_Source__c,ServiceDate,UnitPrice FROM QuoteLineItem WHERE QuoteId='@{items('For_each_Quote')?['Id']}' @{if(equals(parameters('LineItemProductIsActive'),true),'AND Product2.IsActive=true','')} LIMIT 100"
+														},
+														"retryPolicy": {
+															"type": "none"
+														},
+														"uri": "${instance_NonSFS_URL}/query"
+													},
+													"runAfter": {},
+													"type": "Http"
+												}
+											},
+											"foreach": "@body('HTTP_Query_SF_FollowUp')?['compositeResponse']?[0]?['body']?['records']",
+											"runAfter": {},
+											"type": "Foreach"
+										}
+									},
+									"expression": {
+										"and": [
+											{
+												"greater": [
+													"@length(body('HTTP_Query_SF_FollowUp')?['compositeResponse']?[0]?['body']?['records'])",
+													"@int(0)"
+												]
+											}
+										]
+									},
+									"runAfter": {
+										"HTTP_Query_SF": [
+											"Succeeded"
+										],
+										"HTTP_Query_SF_FollowUp": [
+											"Succeeded"
+										]
+									},
+									"type": "If"
+								},
+								"HTTP_Query_SF": {
+									"inputs": {
+										"body": {
+											"allOrNone": false,
+											"compositeRequest": [
+												{
+													"method": "GET",
+													"referenceId": "ContactRole",
+													"url": "/services/data/v55.0/query?q=SELECT Id,IsPrimary,Role,Contact.Id,Contact.LastName,Contact.FirstName,Contact.Email,Contact.AccountId FROM OpportunityContactRole WHERE OpportunityId = '@{items('For_each')?['Id']}' LIMIT 100"
+												},
+												{
+													"method": "GET",
+													"referenceId": "InvolvedAccounts",
+													"url": "/services/data/v55.0/query?q=SELECT Id,IsDeleted,Name,CurrencyIsoCode,S4SDescription__c,S4SINVOLVED_ACCOUNTS_LegacyID__c,S4SRole__c,S4SWinning_Chance__c,S4SSales_Country__c,LastActivityDate,S4SExternal_Source__c,S4SAccount_Name__r.Id,S4SAccount_Name__r.Name FROM S4SInvolved_Accounts__c WHERE S4SOpportunity__c='@{items('For_each')?['Id']}' LIMIT 100"
+												},
+												{
+													"method": "GET",
+													"referenceId": "BookingLine",
+													"url": "/services/data/v55.0/query?q=SELECT Id,IsDeleted,Name,CurrencyIsoCode,S4SBusiness_Segment__c,S4SBusiness_Sub_Segment__c,S4SBusiness_Unit__c,S4SDepth_Structure__c,S4SDivisions__c,S4SGCK__c,S4SOrder_Intake_EUR__c,S4SOrder_Intake_USD__c,S4SOrder_Intake__c,S4SPrimary_Flag__c,S4SWeighted_Order_Intake_EUR__c,S4SWeighted_Order_Intake_USD__c,S4SWeighted_Order_Intake__c,S4SPCK__c,S4SQuantity__c,S4SSPG__c,S4SSales_Price__c,S4SExternal_Source__c,S4SProgram_Fund__c,S4SX1st_Year_return__c,S4SX2nd_Year_Return__c,X3rd_Year_Return__c FROM S4SBooking_Line_Item__c WHERE S4sopportunity__c = '@{items('For_each')?['Id']}' @{if(equals(parameters('BookingLinePrimary'),true),'AND S4SPrimary_Flag__c=true','')} LIMIT 100"
+												},
+												{
+													"method": "GET",
+													"referenceId": "TeamMember",
+													"url": "/services/data/v55.0/query?q=SELECT Id,Name,PhotoUrl,Title,TeamMemberRole,OpportunityAccessLevel,CurrencyIsoCode,IsDeleted,S4SExternal_Source__c,S4SOpportunity_Access__c,S4S_BaseURL__c,User.Id,User.Name,User.Email, User.S4SGID_Technical__c FROM OpportunityTeamMember WHERE OpportunityId='@{items('For_each')?['Id']}' LIMIT 100"
+												},
+												{
+													"method": "GET",
+													"referenceId": "Competitor",
+													"url": "/services/data/v55.0/query?q=SELECT Id,S4SCompetitor__r.Name,S4SCompetitor__r.S4SDivision__c,S4SCompetitor__r.S4SBusiness_Units__c,S4SPrimary__c FROM S4SOpportunity_Competitor__c WHERE S4SOpportunity__r.Id = '@{items('For_each')?['Id']}' LIMIT 100"
+												},
+												{
+													"method": "GET",
+													"referenceId": "Quote",
+													"url": "/services/data/v55.0/query?q=SELECT CurrencyIsoCode,Description,Discount,Email,ExpirationDate,Fax,Id,IsSyncing,Name,Phone,QuoteNumber,QuoteToCity,QuoteToCountry,QuoteToCountryCode,QuoteToGeocodeAccuracy,QuoteToLatitude,QuoteToLongitude,QuoteToName,QuoteToPostalCode,QuoteToState,QuoteToStateCode,QuoteToStreet,S4SExternal_Source__c,S4SFollow_Up_Date__c,S4SMain_Offer__c,S4SOffer_Date__c,S4SOffer_Engineer__c,S4SOffer_ID__c,S4SQUOTE_LegacyID__c,S4SSales_Country__c,S4SSales_Margin__c,S4SSource_System__c,S4SValid_until__c,S4SVolume__c,ShippingCity,ShippingCountry,ShippingCountryCode,ShippingGeocodeAccuracy,ShippingHandling,ShippingLatitude,ShippingLongitude,ShippingName,ShippingPostalCode,ShippingState,ShippingStateCode,ShippingStreet,Status,Tax FROM Quote WHERE OpportunityId='@{items('For_each')?['Id']}' LIMIT 100"
+												},
+												{
+													"method": "GET",
+													"referenceId": "AttAssignments",
+													"url": "/services/data/v55.0/query?q=SELECT Id,IsDeleted,Name,CurrencyIsoCode,RecordTypeId,S4SATTRIBUTE_ASSIGNMENT_LegacyID__c,S4SAccount__c,S4SCategory__c,S4SContact__c,S4SDescription__c,S4SFormat_Date__c,S4SContact_Email__c,S4SOwner_Full_Name__c,S4SRelated_To__c,S4SFormat_Number__c,S4SFormat_Text__c,S4SGroup__c,S4SName__c,S4SRelatedObjectType__c,S4SRelated_Object__c,S4SSet__c,S4SValue__c,Owner.Id,Owner.Name,Owner.Email,S4SAccount__r.Id,S4SAccount__r.S4SIfA__c FROM S4SAttribute_Assignment__c WHERE S4SOpportunity__c='@{items('For_each')?['Id']}' LIMIT 100"
+												}
+											]
+										},
+										"headers": {
+											"Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+										},
+										"method": "POST",
+										"retryPolicy": {
+											"type": "none"
+										},
+										"uri": "${instance_NonSFS_URL}/composite/"
+									},
+									"runAfter": {
+										"Scope": [
+											"Succeeded"
+										]
+									},
+									"type": "Http"
+								},
+								"HTTP_Query_SF_FollowUp": {
+									"inputs": {
+										"body": {
+											"allOrNone": false,
+											"compositeRequest": [
+												{
+													"method": "GET",
+													"referenceId": "Quote",
+													"url": "/services/data/v55.0/query?q=SELECT CurrencyIsoCode,Description,Discount,Email,ExpirationDate,Fax,Id,IsSyncing,Name,Phone,QuoteNumber,QuoteToCity,QuoteToCountry,QuoteToCountryCode,QuoteToGeocodeAccuracy,QuoteToLatitude,QuoteToLongitude,QuoteToName,QuoteToPostalCode,QuoteToState,QuoteToStateCode,QuoteToStreet,S4SExternal_Source__c,S4SFollow_Up_Date__c,S4SMain_Offer__c,S4SOffer_Date__c,S4SOffer_Engineer__c,S4SOffer_ID__c,S4SQUOTE_LegacyID__c,S4SSales_Country__c,S4SSales_Margin__c,S4SSource_System__c,S4SValid_until__c,S4SVolume__c,ShippingCity,ShippingCountry,ShippingCountryCode,ShippingGeocodeAccuracy,ShippingHandling,ShippingLatitude,ShippingLongitude,ShippingName,ShippingPostalCode,ShippingState,ShippingStateCode,ShippingStreet,Status,Tax FROM Quote WHERE OpportunityId='@{items('For_each')?['Id']}' LIMIT 100"
+												},
+												{
+													"method": "GET",
+													"referenceId": "AttAssignments",
+													"url": "/services/data/v55.0/query?q=SELECT Id,IsDeleted,Name,CurrencyIsoCode,RecordTypeId,S4SATTRIBUTE_ASSIGNMENT_LegacyID__c,S4SAccount__c,S4SCategory__c,S4SContact__c,S4SDescription__c,S4SFormat_Date__c,S4SContact_Email__c,S4SOwner_Full_Name__c,S4SRelated_To__c,S4SFormat_Number__c,S4SFormat_Text__c,S4SGroup__c,S4SName__c,S4SRelatedObjectType__c,S4SRelated_Object__c,S4SSet__c,S4SValue__c,Owner.Id,Owner.Name,Owner.Email,S4SAccount__r.Id,S4SAccount__r.S4SIfA__c FROM S4SAttribute_Assignment__c WHERE S4SOpportunity__c='@{items('For_each')?['Id']}' LIMIT 100"
+												}
+											]
+										},
+										"headers": {
+											"Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+										},
+										"method": "POST",
+										"retryPolicy": {
+											"type": "none"
+										},
+										"uri": "${instance_NonSFS_URL}/composite/"
+									},
+									"runAfter": {
+										"Scope": [
+											"Succeeded"
+										]
+									},
+									"type": "Http"
+								},
+								"Scope": {
+									"actions": {},
+									"runAfter": {},
+									"type": "Scope"
+								}
+							},
+							"foreach": "@body('HTTP_Query_SF_Opportunity')?['records']",
+							"runAfter": {},
+							"type": "Foreach"
+						},
+						"Set_Response_Result": {
+							"inputs": {
+								"authentication": {
+									"type": "Raw",
+									"value": "[parameters('functionAppKey')]"
+								},
+								"body": {
+									"excludeNulls": "@triggerBody()?['searchOpportunity']?['excludeNulls']",
+									"input": "@variables('Array')"
+								},
+								"function": {
+									"id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+								},
+								"headers": {
+									"Accept": "application/json",
+									"Content-Type": "application/json",
+									"Filename": "${liquid_responseOpportunityDetails}"
+								},
+								"method": "POST",
+								"retryPolicy": {
+									"type": "none"
+								}
+							},
+							"runAfter": {
+								"For_each": [
+									"Succeeded"
+								]
+							},
+							"type": "Function"
+						},
+						"Success_Response": {
+							"inputs": {
+								"body": {
+									"searchOpportunityResponse": {
+										"Opportunity": "@body('Set_Response_Result')",
+										"success": "@true",
+										"workflowRunId": "@workflow()?['run']?['name']"
+									}
+								},
+								"statusCode": 200
+							},
+							"kind": "Http",
+							"runAfter": {
+								"Set_Response_Result": [
+									"Succeeded"
+								]
+							},
+							"type": "Response"
+						}
+					},
+					"else": {
+						"actions": {
+							"No_Opportunity_Found_Response": {
+								"inputs": {
+									"body": {
+										"searchOpportunityResponse": {
+											"message": "No opportunity found with the information provided!",
+											"success": "@false",
+											"workflowRunId": "@workflow()?['run']?['name']"
+										}
+									},
+									"statusCode": 200
+								},
+								"kind": "Http",
+								"runAfter": {},
+								"type": "Response"
+							}
+						}
+					},
+					"expression": {
+						"and": [
+							{
+								"greater": [
+									"@length(body('HTTP_Query_SF_Opportunity')?['records'])",
+									"@int(0)"
+								]
+							}
+						]
+					},
+					"runAfter": {
+						"HTTP_Query_SF_Opportunity": [
+							"Succeeded"
+						]
+					},
+					"type": "If"
+				},
+				"HTTP_Get_SF_Token": {
+					"inputs": {
+						"headers": {
+							"Ocp-Apim-Subscription-Key": "${apimKey}"
+						},
+						"method": "POST",
+						"retryPolicy": {
+							"type": "none"
+						},
+						"uri": "${baseUrl_apim_ise}/c00031/token/oAuth/nonsfs"
+					},
+					"runAfter": {
+						"Query_Opportunity_Details": [
+							"Succeeded"
+						]
+					},
+					"type": "Http"
+				},
+				"HTTP_Query_SF_Opportunity": {
+					"inputs": {
+						"headers": {
+							"Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+						},
+						"method": "GET",
+						"queries": {
+							"q": "SELECT Id,IsDeleted,Name,Description,StageName,CloseDate,Type,CurrencyIsoCode,FiscalYear,S4SAcceptance_Closure__c,S4SBid_approval_PM040__c,S4SBusiness_Unit__c,S4SChance_of_Execution__c,S4SChance_of_Success__c,S4SDivision__c,S4SEnd_Account__c,S4SGross_Margin__c,S4SMain_Reason__c,S4SOPPORTUNITY_LegacyID__c,S4SLOA_ID_Number__c,S4SOffer_Reference_ID__c,S4SOpportunity_Industry_Search__c,S4SPotential_Siemens_Volume__c,S4SReference_ID__c,S4SRelevant_for_Forecast__c,S4SSFS_Confidential__c,S4SSales_Branch__c,S4SSales_Department__c,Amount,Budget_Confirmed__c,CampaignId,DB_Competitor__c,Discovery_Completed__c,ExpectedRevenue,Fiscal,FiscalQuarter,ForecastCategory,ForecastCategoryName,HasOpenActivity,HasOpportunityLineItem,HasOverdueTask,IsClosed,IsPrivate,IsWon,LID__Is_Influenced__c,LID__LinkedIn_Company_Id__c,LeadSource,Lead_Created_By__c,Loss_Reason__c,NextStep,Probability,ROI_Analysis_Completed__c,S4SAdvisory_Volume__c,S4SAlternative_Opportunity__c,S4SAmount_Financed__c,S4SAnnual_Sales_relev_for_Factoring__c,S4SAnnual_Turnover_relev_for_EPT__c,S4SApproval_Check__c,S4SAssigned_parental_Opportunity__c,S4SB2A_Outcome__c,S4SB2A_type__c,S4SBooking_Funding_Date__c,S4SBuy_America_n__c,S4SCAPEX__c,S4SCategorization__c,S4SChannel__c,S4SClosing_Date__c,S4SCommission_Country_1__c,S4SCommission_Country_2__c,S4SCommission_Country_3__c,S4SCommission_Country_4__c,S4SCommission_Percentage_1__c,S4SCommission_Percentage_2__c,S4SCommission_Percentage_3__c,S4SCommission_Percentage_4__c,S4SContact_Name__c,S4SContract_Duration_Month__c,S4SContract_Schedule__c,S4SContractual_Insurance_requirements__c,S4SCreate_COMPAS_Quote__c,S4SCreated_from_Lead__c,S4SCross_Border_International_Business__c,S4SCustomer_Agreement_for_Data_Transfer__c,S4SCustomer_Interest_Focus__c,S4SCustomer_Rate__c,S4SDays_of_Delayed_Payments_EPT__c,S4SDiscussion_in_PEF_Deal_Flow_Call__c,S4SDistribution_channel__c,S4SEUR_Exchange_Rate__c,S4SEarning_Contribution__c,S4SEmail__c,S4SExpiry_Date_Risk_Approval__c,S4SFactoring_Fee__c,S4SField_of_Activity__c,S4SFinance_Product_Label__c,S4SFinance_Product_Type__c,S4SFinancial_Request_Id__c,S4SFinancial_Request__c,S4SFinancing_Demand_Division__c,S4SFinancing_Need__c,S4SFinancing_Product__c,S4SFunding_limit__c,S4SGCK_Code__c,S4SGovernmental_Agency__c,S4SGovernmental_Entity_Government_Funded__c,S4SHas_Children__c,S4SIBIT__c,S4SInitial_Purchase_Price__c,S4SInsurance_Database_ID__c,S4SInterface_Trigger__c,S4SInternal_Interest_Rate__c,S4SInternational_City__c,S4SInternational_Country_Region__c,S4SInternational_Postal_Code__c,S4SInternational_Region__c,S4SInternational_Street_Name_1__c,S4SInternational_Street_Name_2__c,S4SInternational_country_regionGP__c,S4SInvesting_ARE__c,S4SInvolded_Siemens_Entities__c,S4SInvolved_Competence_Center__c,S4SLast_Status_Change__c,S4SLast_Sync_with_COMPAS__c,S4SLead_Capture_Email__c,S4SLead_Source_Type__c,S4SLoAID_Number__c,S4SNet_Present_Value_Percent__c,S4SNet_Present_Value__c,S4SOPEX__c,S4SOccupied_Territory_Evaluation__c,S4SOpportunity_Type__c,S4SOriginal_Project_Solution_Opportunity__c,S4SOrigination_System_Response__c,S4SOur_Role__c,S4SOverall_Risk_Score__c,S4SOwn_Content_Own_BU_Products__c,S4SOwn_Content_Own_DIV_Products__c,S4SOwn_Content_Own_DIV_Services__c,S4SOwn_Content_Siemens_Products_Services__c,S4SPEF_Advisory_Scope__c,S4SPM040_Released_Gross_Margin__c,S4SPM040_Released_Profit_EBIT__c,S4SPM040_Released_Risk_Contigency__c,S4SPM040_Released_Volume__c,S4SPM040_Transfer_date__c,S4SPM070_Transfer_Date__c,S4SPM070_Won_lost_Gross_Margin__c,S4SPM070_Won_lost_Profit_EBIT__c,S4SPM070_Won_lost_Risk_Contigency__c,S4SPM070_Won_lost_Volume__c,S4SPartnerLeadConversion__c,S4SPhone__c,S4SPlanning_Tool__c,S4SPrevious_System_Unique_ID__c,S4SProduct_Interest__c,S4SProject_Category__c,S4SProject_Volume__c,S4SPropensity_to_Win__c,S4SProposed_to_Debt__c,S4SProposed_to_Equity__c,S4SPush_Counter_PM070_change__c,S4SROE__c,S4SReason_Detail__c,S4SReason_not_won__c,S4SReceivables_Portfolio__c,S4SRetention__c,S4SSFS_Account_Rating_Date__c,S4SSFS_Account_Rating_Type__c,S4SSFS_Account_Rating__c,S4SSFS_Opportunity_Rating_Date__c,S4SSFS_Opportunity_Rating_Type__c,S4SSFS_Opportunity_Rating__c,S4SSOC_Category__c,S4SSectors_of_Concern__c,S4SSenior_Leverage__c,S4SShowDisplay__c,S4SSiemens_Equity__c,S4SSocial_Impacts__c,S4SSold_To_AI__c,S4SSolution_Support_End_Date__c,S4SSource_System_URL__c,S4SSource__c,S4SSpread_Factoring__c,S4SSpread__c,S4SStart_project_PM080__c,S4SStatus_since__c,S4SSupported_Siemens_BusinessUnit__c,S4SSupported_Siemens_Business_Unit__c,S4SSupported_Siemens_Company__c,S4S_Sync_with_SieOps__c,S4STarget_IRR__c,S4SThereof_SPV_SFS_Inc__c,S4STime_to_Close__c,S4STimestamp_to_COF__c,S4STimestamp_to_Debt__c,S4STimestamp_to_Equity__c,S4STotal_Debt_of_Opportunity__c,S4STotal_Equity_incl_Shareholder_Loans__c,S4STotal_Investment__c,S4STotal_Leverage__c,S4STotal_OI_Recurring_Business__c,S4STotal_Project_Value__c,S4STotal_of_Allocated_Amount__c,S4STotal_of_Approved_Amount__c,S4STotal_of_Requested_Amount__c,S4SType_of_Transaction__c,S4SUnit__c,S4SZip_Code__c,S4S_Building_Automation__c,S4S_Converted_from_Lead__c,S4S_EPS__c,S4S_Fire_Safety__c,S4S_General__c,S4S_Security__c,S4S_To_Stop_the_node_in_Opp_update_PB__c,S4S_Total_SFS_Amount_Rollup__c,SyncedQuoteId,Team_Members__c,TotalOpportunityQuantity,S4SSales_District__c,S4SSales_Office__c,S4SSales_Status__c,S4SSales_Subregion__c,S4SSales_Type__c,S4SStrategic_Priority__c,S4STerritory__c,S4SOrder_Intake__c,S4SOrder_Intake_EUR__c,S4SSAP_Number__c,S4SExternal_Source__c,Account.Id,Account.Name,Account.S4SIfA__c,Owner.Id,Owner.Name,Owner.Email,Owner.S4SGID_Technical__c,Owner.S4SUser_Language__c,S4SSite__r.Id,S4SSite__r.Name,S4SSite__r.S4SCity__c,S4SSite__r.S4SCountry__c,S4SSite__r.S4SDivision__c,S4SSite__r.S4SSAP_FL_Number__c,S4SEnd_Account__r.Id,S4SEnd_Account__r.Name,S4SEnd_Account__r.S4SIfA__c,S4SSale_Country__c,S4SAccount_Industry_SISIC__c,S4SOpportunity_Industry_Search__r.Id, S4SOpportunity_Industry_Search__r.Name, S4SOpportunity_Industry_Search__r.S4SIndustry_Description__c, S4SOpportunity_Industry_Search__r.S4SIndustry_Segment__c,S4SOpportunity_Industry_Search__r.S4SIndustry__c,S4SInstallation__r.Id,S4SInstallation__r.Name,S4SInstallation__r.S4SSite__c,S4SInstallation__r.S4SExternal_ID__c,S4STerritory_Structure__r.S4SSale_Country__c,S4STerritory_Structure__r.S4SSales_Department__c,S4STerritory_Structure__r.S4SSales_District__c,S4STerritory_Structure__r.S4SSales_Branch__c,S4STerritory_Structure__r.S4SSales_Office__c,S4STerritory_Structure__r.S4SSales_SubRegion__c,S4STerritory_Structure__r.S4SSales_Territory__c,S4STerritory_Structure__r.S4SSiemens_Territory_Structure_LegacyID__c,S4STerritory_Structure__r.S4STMCUnique_ID__c,S4STerritory_Structure__r.S4SUnique_ID__c,S4SIntroducer_Sales__r.Id,S4SIntroducer_Sales__r.Email , S4SBusiness_Model_ZRG__c , S4SAccount_Industry_Description__c , S4SEnd_Account_Industry_Description__c , S4SEnd_Account_Industry_SISIC__c , S4SOpportunity_Industry_SISIC__c , S4SOpportunity_Industry_Description__c, S4SBid_Expiration_Date__c, S4SBid_Submission_Date__c, S4SEst_Dispatch_Approval_PM300__c, S4SRFQ_Received_Date__c, S4SCorp_Lead_Country__c,S4SCountry_of_Installation__c,S4SBusiness_Sub_Segment_Short__c,S4SBusiness_Segment_Short__c,S4SAccount_Industry__c,S4SEnd_Account_Industry__c,S4S_Opportunity_Industry__c FROM Opportunity@{body('Query_Opportunity_Details')?['clause']} LIMIT 100"
+						},
+						"retryPolicy": {
+							"type": "none"
+						},
+						"uri": "${instance_NonSFS_URL}/query"
+					},
+					"runAfter": {
+						"HTTP_Get_SF_Token": [
+							"Succeeded"
+						]
+					},
+					"type": "Http"
+				},
+				"Query_Opportunity_Details": {
+					"inputs": {
+						"authentication": {
+							"type": "Raw",
+							"value": "[parameters('functionAppKey')]"
+						},
+						"body": "@triggerBody()",
+						"function": {
+							"id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+						},
+						"headers": {
+							"Accept": "application/json",
+							"Content-Type": "application/json",
+							"Filename": "${liquid_oppSearchQuery}"
+						},
+						"method": "POST",
+						"retryPolicy": {
+							"type": "none"
+						}
+					},
+					"runAfter": {},
+					"type": "Function"
+				}
+			},
+			"runAfter": {
+				"Initialize_QuoteLineItems_Variable": [
+					"Succeeded"
+				],
+				"Initialize_Response_Variable": [
+					"Succeeded"
+				]
+			},
+			"type": "Scope"
+		}
+	},
+	"contentVersion": "1.0.0.0",
+	"outputs": {},
+	"parameters": {
+		"$connections": {
+			"defaultValue": {},
+			"type": "Object"
+		},
+		"BookingLinePrimary": {
+			"defaultValue": false,
+			"type": "Bool"
+		},
+		"LineItemProductIsActive": {
+			"defaultValue": true,
+			"type": "Bool"
+		}
+	},
+	"triggers": {
+		"manual": {
+			"inputs": {
+				"schema": {
+					"searchOpportunity": {
+						"Opportunity": {
+							"Id": {
+								"type": "string"
+							},
+							"Name": {
+								"type": "string"
+							},
+							"S4SAccount__c": {
+								"Id": {
+									"type": "string"
+								},
+								"S4SACCOUNT_LegacyID__c": {
+									"type": "string"
+								},
+								"S4SIfa__c": {
+									"type": "string"
+								}
+							},
+							"S4SLOA_ID_Number__c": {
+								"type": "string"
+							},
+							"S4SOPPORTUNITY_LegacyID__c": {
+								"type": "string"
+							},
+							"S4SOffer_Reference_ID__c": {
+								"type": "string"
+							},
+							"S4SReference_ID__c": {
+								"type": "string"
+							},
+							"StageName": {
+								"type": "string"
+							},
+							"type": "object"
+						},
+						"excludeNulls": {
+							"type": "boolean"
+						}
+					}
+				}
+			},
+			"kind": "Http",
+			"operationOptions": "EnableSchemaValidation",
+			"type": "Request"
+		}
+	}
+}

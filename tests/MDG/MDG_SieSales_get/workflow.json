@@ -1,0 +1,196 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Check_If_MDG_data_pull_is_succesful": {
+        "actions": {
+          "call_int_MDG_SF_get": {
+            "inputs": {
+              "host": {
+                "workflow": {
+                  "id": "logic_mdg"
+                }
+              },
+              "body": {
+                "CountryList": "@{json(body('Fetch_MDG_Region_Config'))},",
+                "Data": "@{body('Pull_data_from_MDG')?['BusinessPartnerEnrichmentFindByCompNameValueResponse']?['Data']}",
+                "tokenType": "nonsfs"
+              },
+              "headers": null
+            },
+            "runAfter": {},
+            "type": "Workflow"
+          }
+        },
+        "else": {
+          "actions": {}
+        },
+        "expression": {
+          "and": [
+            {
+              "equals": [
+                "@body('Pull_data_from_MDG')?['BusinessPartnerEnrichmentFindByCompNameValueResponse']?['Data']?['ReturnList']?['Return']?['TYPE']",
+                "S"
+              ]
+            }
+          ]
+        },
+        "runAfter": {
+          "Pull_data_from_MDG": [
+            "Succeeded"
+          ]
+        },
+        "type": "If"
+      },
+      "Fetch_MDG_Region_Config": {
+        "inputs": {
+          "host": {
+            "workflow": {
+              "id": "logic_internal"
+            }
+          },
+          "body": {
+            "key": "MDG-region-config"
+          },
+          "headers": null
+        },
+        "runAfter": {},
+        "type": "Workflow"
+      },
+      "Get_MDG_Config": {
+        "inputs": {
+          "host": {
+            "workflow": {
+              "id": "logic_internal"
+            }
+          },
+          "body": {
+            "key": "mdg-config"
+          },
+          "headers": null
+        },
+        "runAfter": {},
+        "type": "Workflow"
+      },
+      "Get_SieSales_Token": {
+        "inputs": {
+          "host": {
+            "workflow": {
+              "id": "logic_getsfoauthtoken}"
+            }
+          },
+          "body": {
+            "tokenType": "nonsfs"
+          },
+          "headers": null
+        },
+        "runAfter": {},
+        "type": "Workflow"
+      },
+      "LiquidTransformer": {
+        "inputs": {
+          "body": {
+            "Country": "Default",
+            "Name": "SieSales",
+            "input": "@json(body('Get_MDG_Config'))"
+          },
+          "function": {
+            "connectionName": "Liquid"
+          },
+          "headers": {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Filename": "MDGToSalesforceRequestTransformation"
+          },
+          "method": "POST"
+        },
+        "runAfter": {
+          "Fetch_MDG_Region_Config": [
+            "Succeeded"
+          ],
+          "Get_MDG_Config": [
+            "Succeeded"
+          ],
+          "Get_SieSales_Token": [
+            "Succeeded"
+          ],
+          "fetch_SieSalesCRM-certificate": [
+            "Succeeded"
+          ],
+          "fetch_SieSalesCRM-certificate-password": [
+            "Succeeded"
+          ]
+        },
+        "type": "Function"
+      },
+      "Pull_data_from_MDG": {
+        "inputs": {
+          "authentication": {
+            "password": "@body('fetch_SieSalesCRM-certificate-password')",
+            "pfx": "@body('fetch_SieSalesCRM-certificate')",
+            "type": "ClientCertificate"
+          },
+          "body": "@body('LiquidTransformer')?['body']",
+          "method": "POST",
+          "uri": "@{body('LiquidTransformer')?['MDGToSFGETURL']}"
+        },
+        "runAfter": {
+          "LiquidTransformer": [
+            "Succeeded"
+          ]
+        },
+        "type": "Http"
+      },
+      "fetch_SieSalesCRM-certificate": {
+        "inputs": {
+          "host": {
+            "workflow": {
+              "id": "logic_internal"
+            }
+          },
+          "body": {
+            "key": "SieSalesCRM-certificate"
+          },
+          "headers": null
+        },
+        "runAfter": {},
+        "type": "Workflow"
+      },
+      "fetch_SieSalesCRM-certificate-password": {
+        "inputs": {
+          "host": {
+            "workflow": {
+              "id": "logic_internal"
+            }
+          },
+          "body": {
+            "key": "SieSalesCRM-certificate-password"
+          },
+          "headers": null
+        },
+        "runAfter": {},
+        "type": "Workflow"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "Recurrence": {
+        "recurrence": {
+          "frequency": "Minute",
+          "interval": 15,
+          "timeZone": "W. Europe Standard Time",
+          "startTime": "2022-07-11T08:10:00Z"
+        },
+        "evaluatedRecurrence": {
+          "frequency": "Minute",
+          "interval": 15,
+          "timeZone": "W. Europe Standard Time",
+          "startTime": "2022-07-11T08:10:00Z"
+        },
+        "type": "Recurrence"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

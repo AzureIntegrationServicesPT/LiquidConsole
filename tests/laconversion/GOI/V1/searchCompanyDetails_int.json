@@ -1,0 +1,652 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Initialize_variable_'varAccountTeamMemberWhereClause'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varAccountTeamMemberWhereClause",
+                        "type": "string",
+                        "value": "@{null}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_'varCompanyId'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varCompanyId",
+                        "type": "string",
+                        "value": "@{trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"CompanyDetails\"]/*[local-name()=\"request\"]/*[local-name()=\"CompanySearchFields\"]/*[local-name()=\"CompanyId\"])'))}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_'varIfaNumber'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varIfaNumber",
+                        "type": "string",
+                        "value": "@{trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"CompanyDetails\"]/*[local-name()=\"request\"]/*[local-name()=\"CompanySearchFields\"]/*[local-name()=\"IfaNumber\"])'))}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_'varS4SRoleWhereClause'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varS4SRoleWhereClause",
+                        "type": "string",
+                        "value": "@{null}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_'varS4SSISIC_Direct__c'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varS4SSISIC_Direct__c",
+                        "type": "string",
+                        "value": "@{null}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_'varSISICWhereClause'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varSISICWhereClause",
+                        "type": "string",
+                        "value": "@{null}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_'varSOQLAccount'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varSOQLAccount",
+                        "type": "string",
+                        "value": "SELECT Id, IsDeleted, Name, Type, ParentId, BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, ShippingStreet, ShippingCity, ShippingState, ShippingPostalCode, ShippingCountry, Phone, Fax, Website, Industry, AnnualRevenue, NumberOfEmployees, Ownership, CurrencyIsoCode, OwnerId, CreatedDate, LastModifiedDate, S4SAccount_Name_International__c, S4SCMD_NAME1_I__c, S4SCMD_NAME1__c, S4SCMD_NAME2_I__c, S4SCMD_NAME2__c, S4SCMD_NAME3_I__c, S4SCMD_NAME3__c, S4SCMD_REGION__c, S4SCity_PO_Box_International__c, S4SCity_PO_Box__c, S4SCompany_Postal_Code__c, S4SDUNS__c, S4SDomestic_Ultimate_DUNS__c, S4SEmail__c, S4SGlobal_Ultimate_DUNS__c, S4SISIC__c, S4SIfA__c, S4SIndustry_Direct__c, S4SIndustry_Segment_Direct__c, S4SInternational_City__c, S4SInternational_CountryGP__c, S4SInternational_Country__c, S4SInternational_Postal_Code__c, S4SInternational_Region__c, S4SInternational_Steet_Name_2__c, S4SInternational_Street_Name_1__c, S4SMD_Status__c, S4SNat_Company_ID__c, S4SNotification_from_CMD__c, S4SPO_Box_Postcode__c, S4SPO_box__c, S4SParent_DUNS__c, S4SSISIC_Direct_Description__c, S4SSISIC_Direct__c, S4SSiemens_Account_Type__c, S4SVertical_Name__c, S4SData_Visibility__c, Owner.Id, Owner.Name FROM Account"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_'varSOQLAccountTeamMember'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varSOQLAccountTeamMember",
+                        "type": "string",
+                        "value": "SELECT Id, UserId, TeamMemberRole, AccountAccessLevel, OpportunityAccessLevel, ContactAccessLevel, CreatedDate, LastModifiedDate, Account.Id, Account.Name, Account.Type, Account.RecordTypeId, Account.ParentId, Account.BillingStreet, Account.BillingCity, Account.BillingState, Account.BillingPostalCode, Account.BillingCountry, Account.ShippingStreet, Account.ShippingCity, Account.ShippingState, Account.ShippingPostalCode, Account.ShippingCountry, Account.ShippingCountryCode, Account.Phone, Account.Fax, Account.Website, Account.Industry, Account.AnnualRevenue, Account.NumberOfEmployees, Account.Ownership, Account.CurrencyIsoCode, Account.OwnerId, Account.CreatedDate, Account.LastModifiedDate, Account.S4SARE__c, Account.S4SAccount_Name_International__c, Account.S4SCMD_NAME1_I__c, Account.S4SCMD_NAME1__c, Account.S4SCMD_NAME2_I__c, Account.S4SCMD_NAME2__c, Account.S4SCMD_NAME3_I__c, Account.S4SCMD_NAME3__c, Account.S4SCMD_REGION__c, Account.S4SCMD_STREET2__c, Account.S4SCMD_STREET__c, Account.S4SCity_PO_Box_International__c, Account.S4SCity_PO_Box__c, Account.S4SCompany_Postal_Code__c, Account.S4SDUNS__c, Account.S4SDomestic_Ultimate_DUNS__c, Account.S4SEmail__c, Account.S4SGlobal_Ultimate_DUNS__c, Account.S4SISIC__c, Account.S4SIfA__c, Account.S4SIndustry_Direct__c, Account.S4SIndustry_Segment_Direct__c, Account.S4SInternational_City__c, Account.S4SInternational_CountryGP__c, Account.S4SInternational_Country__c, Account.S4SInternational_Postal_Code__c, Account.S4SInternational_Region__c, Account.S4SInternational_Steet_Name_2__c, Account.S4SInternational_Street_Name_1__c, Account.S4SMD_Status__c, Account.S4SNat_Company_ID__c, Account.S4SNo_Legal_Form_available__c, Account.S4SNotification_from_CMD__c, Account.S4SPO_Box_Postcode__c, Account.S4SPO_box__c, Account.S4SParent_DUNS__c, Account.S4SSISIC_Direct_Description__c, Account.S4SSISIC_Direct__c, Account.S4SSiemens_Account_Type__c, Account.S4STax_ID__c, Account.S4SData_Visibility__c, Account.S4SAccount_Name_SieSales__c, Account.Owner.Id, Account.Owner.Name FROM AccountTeamMember"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_'varSOQLContact'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varSOQLContact",
+                        "type": "string",
+                        "value": "SELECT Id, LastName, FirstName, Salutation, MiddleName, Suffix, OtherStreet, OtherCity, OtherPostalCode, OtherCountry, Phone, Fax, MobilePhone, HomePhone, Email, Department, Description, OwnerId, DoNotCall, CreatedDate, CreatedById, LastModifiedDate, S4SAcademic_Title__c, S4SDepartment_Type__c, S4SDouble_Opt_In__c, S4SFull_Name__c, S4SGender__c, S4SInitial__c, S4SJob_Description__c, S4SJob_Specification__c, S4SLanguage__c, S4SMarked_for_Deletion__c, S4SNever_Email__c, S4SNever_Mail__c, S4SNo_Marketing__c, S4SStatus__c, S4SSFS_Confidential__c FROM Contact"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_'varSOQLRole'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varSOQLRole",
+                        "type": "string",
+                        "value": "SELECT Id, IsDeleted, Name, CurrencyIsoCode, CreatedDate, CreatedById, LastModifiedDate, LastModifiedById, SystemModstamp, S4SAccount__c, S4SBU__c, S4SCountries__c, S4SDivision__c, S4SLead_Country__c, S4SPricing_Primary__c, S4SROLE_LegacyID__c, S4SRolesGP__c, S4SRoles__c, S4SAccount_Classification__c, S4SAccount_Status__c, S4SSource_Type__c FROM S4SRole__c"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_'varSOQLSISIC'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varSOQLSISIC",
+                        "type": "string",
+                        "value": "SELECT Id, OwnerId, IsDeleted, Name, CurrencyIsoCode, CreatedDate, CreatedById, LastModifiedDate, LastModifiedById, SystemModstamp, LastViewedDate, LastReferencedDate, S4SExternal_ID__c, S4SIndustry_Description__c, S4SIndustry_Segment__c, S4SIndustry__c, S4SNAF_ID__c FROM S4SSISIC__c"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_'varWhereClauseArray'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varWhereClauseArray",
+                        "type": "array",
+                        "value": "@null"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_soapErrorResponse": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "SoapErrorResponse",
+                        "type": "String",
+                        "value": "<soap-env:Envelope xmlns:soap-env=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap-env:Header/><soap-env:Body><soap-env:Fault><faultcode>soap-env:Server</faultcode><faultstring>{errormessagedetails}</faultstring><detail/></soap-env:Fault></soap-env:Body></soap-env:Envelope>"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Scope-Catch": {
+            "actions": {
+                "Error_Response": {
+                    "inputs": {
+                        "body": "@replace(variables('SoapErrorResponse'),'{errormessagedetails}',concat('Some error occurred while connection. Please find more details using tracking id : ', workflow()['run']['name']))",
+                        "headers": {
+                            "Content-Type": "text/xml"
+                        },
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                },
+                "Terminate": {
+                    "inputs": {
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Error_Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Scope-Try": [
+                    "Failed",
+                    "Skipped",
+                    "TimedOut"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope-Try": {
+            "actions": {
+                "Compose_Main_Json": {
+                    "inputs": {
+                        "Company": {
+                            "AccountTeamMembers": [
+                                "@if(greater(length(string(body('ExecuteSOQL-AccountTeamMember')?['records'])),2),body('ExecuteSOQL-AccountTeamMember')?['records'],null)"
+                            ],
+                            "Accounts": [
+                                "@if(greater(length(string(body('ExecuteSOQL-Account')?['records'])),2),body('ExecuteSOQL-Account')?['records'],null)"
+                            ],
+                            "Contacts": [
+                                "@if(greater(length(string(body('ExecuteSOQL-Contact')?['records'])),2),body('ExecuteSOQL-Contact')?['records'],null)"
+                            ],
+                            "Roles": [
+                                "@if(greater(length(string(body('ExecuteSOQL-Role')?['records'])),2),body('ExecuteSOQL-Role')?['records'],null)"
+                            ],
+                            "SISICs": [
+                                "@if(greater(length(string(body('ExecuteSOQL-SISIC')?['records'])),2),body('ExecuteSOQL-SISIC')?['records'],null)"
+                            ]
+                        }
+                    },
+                    "runAfter": {
+                        "Scope-Contact": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Compose"
+                },
+                "Scope-AccountTeamMember": {
+                    "actions": {
+                        "Condition-'CompanyId'_": {
+                            "actions": {
+                                "Append_to_array_variable_1_'varWhereClauseArray'": {
+                                    "inputs": {
+                                        "name": "varWhereClauseArray",
+                                        "value": "@concat('Account.Id = ',string(''''),variables('varCompanyId'),string(''''))"
+                                    },
+                                    "runAfter": {},
+                                    "type": "AppendToArrayVariable"
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@variables('varCompanyId')",
+                                                "@string('')"
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@variables('varCompanyId')",
+                                                "@null"
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "runAfter": {},
+                            "type": "If"
+                        },
+                        "Condition-'IfaNumber'": {
+                            "actions": {
+                                "Append_to_array_variable_2_'varWhereClauseArray'": {
+                                    "inputs": {
+                                        "name": "varWhereClauseArray",
+                                        "value": "@concat('Account.S4SIfA__c = ',string(''''),variables('varIfaNumber'),string(''''))"
+                                    },
+                                    "runAfter": {},
+                                    "type": "AppendToArrayVariable"
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@variables('varIfaNumber')",
+                                                "@string('')"
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@variables('varIfaNumber')",
+                                                "@null"
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "runAfter": {
+                                "Condition-'CompanyId'_": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "ExecuteSOQL-AccountTeamMember": {
+                            "inputs": {
+                                "body": {
+                                    "query": "@{variables('varSOQLAccountTeamMember')} where @{variables('varAccountTeamMemberWhereClause')}"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/soql/executesoqlquery"
+                            },
+                            "runAfter": {
+                                "Set_variable_'varAccountTeamMemberWhereClause'": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection"
+                        },
+                        "Join-varWhereClauseArray": {
+                            "inputs": {
+                                "from": "@variables('varWhereClauseArray')",
+                                "joinWith": "@{string(' and ')}"
+                            },
+                            "runAfter": {
+                                "Condition-'IfaNumber'": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Join"
+                        },
+
+                        "Set_variable_'varAccountTeamMemberWhereClause'": {
+                            "inputs": {
+                                "name": "varAccountTeamMemberWhereClause",
+                                "value": "@body('Join-varWhereClauseArray')"
+                            },
+                            "runAfter": {
+                                "Join-varWhereClauseArray": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "SetVariable"
+                        }
+                    },
+                    "runAfter": {},
+                    "trackedProperties": {
+                        "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+                "citizenName": "c00031",
+                "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'GOI')}",
+                "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'searchCompanyDetails')}",
+                "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+                "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+                    },
+                    "type": "Scope"
+                },
+                "Scope-Contact": {
+                    "actions": {
+                        "ExecuteSOQL-Contact": {
+                            "inputs": {
+                                "body": {
+                                    "query": "@{variables('varSOQLContact')} where @{variables('varAccountTeamMemberWhereClause')}"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/soql/executesoqlquery"
+                            },
+                            "runAfter": {},
+                            "type": "ApiConnection"
+                        }
+                    },
+                    "runAfter": {
+                        "Scope-RoleAndAccount": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Scope"
+                },
+                "Scope-RoleAndAccount": {
+                    "actions": {
+                        "Condition-size+gt+0": {
+                            "actions": {
+                                "ExecuteSOQL-Role": {
+                                    "inputs": {
+                                        "body": {
+                                            "query": "@{variables('varSOQLRole')} where @{variables('varS4SRoleWhereClause')}"
+                                        },
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "path": "/soql/executesoqlquery"
+                                    },
+                                    "runAfter": {
+                                        "Set_variable_'varS4SRoleWhereClause'": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ApiConnection"
+                                },
+                                "Set_variable_'varS4SRoleWhereClause'": {
+                                    "inputs": {
+                                        "name": "varS4SRoleWhereClause",
+                                        "value": "@{concat('S4SAccount__c = ',string(''''),body('ExecuteSOQL-AccountTeamMember')?['records']?[0]?['Account']?['Id'],string(''''))}"
+                                    },
+                                    "runAfter": {},
+                                    "type": "SetVariable"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "ExecuteSOQL-Account": {
+                                        "inputs": {
+                                            "body": {
+                                                "query": "@{variables('varSOQLAccount')} where @{variables('varAccountTeamMemberWhereClause')}"
+                                            },
+                                            "host": {
+                                                "connection": {
+                                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                }
+                                            },
+                                            "method": "post",
+                                            "path": "/soql/executesoqlquery"
+                                        },
+                                        "runAfter": {},
+                                        "type": "ApiConnection"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "greater": [
+                                            "@body('ExecuteSOQL-AccountTeamMember')?['totalSize']",
+                                            0
+                                        ]
+                                    }
+                                ]
+                            },
+                            "runAfter": {},
+                            "type": "If"
+                        }
+                    },
+                    "runAfter": {
+                        "Scope-SISIC": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Scope"
+                },
+                "Scope-SISIC": {
+                    "actions": {
+                        "Condition-'varS4SSISIC_Direct__C'": {
+                            "actions": {
+                                "ExecuteSOQL-SISIC": {
+                                    "inputs": {
+                                        "body": {
+                                            "query": "@{variables('varSOQLSISIC')} where @{variables('varSISICWhereClause')}"
+                                        },
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "path": "/soql/executesoqlquery"
+                                    },
+                                    "runAfter": {
+                                        "Set_variable_'varSISICWhereClause'": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ApiConnection"
+                                },
+                                "Set_variable_'varSISICWhereClause'": {
+                                    "inputs": {
+                                        "name": "varSISICWhereClause",
+                                        "value": "@{concat('Id = ',string(''''),variables('varS4SSISIC_Direct__c'),string(''''))}"
+                                    },
+                                    "runAfter": {},
+                                    "type": "SetVariable"
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@variables('varS4SSISIC_Direct__c')",
+                                                "@null"
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@variables('varS4SSISIC_Direct__c')",
+                                                "@string('')"
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "runAfter": {
+                                "Set_variable_first_'varS4SSISIC_Direct__c'": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "Set_variable_first_'varS4SSISIC_Direct__c'": {
+                            "inputs": {
+                                "name": "varS4SSISIC_Direct__c",
+                                "value": "@{body('ExecuteSOQL-AccountTeamMember')?['records']?[0]?['Account']?['S4SSiSIC_Direct__c']}"
+                            },
+                            "runAfter": {},
+                            "type": "SetVariable"
+                        }
+                    },
+                    "runAfter": {
+                        "Scope-AccountTeamMember": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Scope"
+                },
+                "Success_Response": {
+                    "inputs": {
+                        "body": "@body('Transform_XML')",
+                        "headers": {
+                            "Content-Type": "text/xml"
+                        },
+                        "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "Transform_XML": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
+                },
+                "Transform_XML": {
+                    "inputs": {
+                        "content": "@{xml(outputs('Compose_Main_Json'))}",
+                        "integrationAccount": {
+                            "map": {
+                                "name": "map-c00031-GOI-v1-searchCompanyDetails-int"
+                            }
+                        }
+                    },
+                    "runAfter": {
+                        "Compose_Main_Json": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Xslt"
+                }
+            },
+            "runAfter": {
+                "Initialize_variable_'varAccountTeamMemberWhereClause'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_'varCompanyId'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_'varIfaNumber'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_'varS4SRoleWhereClause'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_'varS4SSISIC_Direct__c'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_'varSISICWhereClause'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_'varSOQLAccount'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_'varSOQLAccountTeamMember'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_'varSOQLContact'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_'varSOQLRole'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_'varSOQLSISIC'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_'varWhereClauseArray'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_soapErrorResponse": [
+                    "Succeeded"
+                ]
+            },
+            "trackedProperties": {
+                "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+                "citizenName": "c00031",
+                "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'GOI')}",
+                "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'V1')}",
+                "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'searchCompanyDetails')}",
+                "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}"
+            },
+            "type": "Scope"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {
+                "schema": {}
+            },
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

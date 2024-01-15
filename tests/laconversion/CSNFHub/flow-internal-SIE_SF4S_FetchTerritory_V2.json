@@ -1,0 +1,686 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Initialize_SFDC_Id": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "Sfdc_id",
+                        "type": "string",
+                        "value": "@{triggerBody()?['SFDC_ID']}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_SOQL_fetchterritory": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varSOQLFetchterritory",
+                        "type": "string",
+                        "value": "select Id,OwnerId,IsDeleted,Name,CurrencyIsoCode,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastActivityDate,LastViewedDate,LastReferencedDate,S4SActive__c,S4SLead_Country__c,S4SLevel__c,S4SParent_TerritoryPath__c,S4SSale_Country__c,S4SSales_Branch__c,S4SSales_Department__c,S4SSales_District__c,S4SSales_Office__c,S4SSales_SubRegion__c,S4SSales_Territory__c,S4SSiemens_Territory_Structure_LegacyID__c,S4SUnique_ID__c from S4SSiemens_Territory_Structure__c"
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_salesOffice": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Initialize_branch": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "branch",
+                        "type": "string",
+                        "value": "@{triggerBody()?['S4SSales_Branch__c']}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_country": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "country",
+                        "type": "string",
+                        "value": "@{triggerBody()?['S4SSale_Country']}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_country__c": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "country__c",
+                        "type": "string",
+                        "value": "@{triggerBody()?['S4SLead_Country__c']}"
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_SFDC_Id": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Initialize_department": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "department",
+                        "type": "string",
+                        "value": "@{triggerBody()?['S4SSales_Department__c']}"
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_country__c": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Initialize_district": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "district",
+                        "type": "string",
+                        "value": "@{triggerBody()?['S4SSales_district__c']}"
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_department": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Initialize_replacedWhereClause": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "ReplacedWhereClause",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_branch": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Initialize_salesOffice": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "salesOffice",
+                        "type": "string",
+                        "value": "@{triggerBody()?['S4SSales_Office']}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_searchExpressionList": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "searchExpressionList",
+                        "type": "array",
+                        "value": "@null"
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_subregion": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Initialize_subregion": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "subRegion",
+                        "type": "string",
+                        "value": "@{triggerBody()?['S4SSales_SubRegion']}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_territory": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "Territory",
+                        "type": "string",
+                        "value": "@{triggerBody()?['S4SSales_Territory']}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_error_response": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "SoapErrorResponse",
+                        "type": "string",
+                        "value": "<soap-env:Envelope xmlns:soap-env=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap-env:Header/><soap-env:Body><soap-env:Fault><faultcode>soap-env:Server</faultcode><faultstring>{errormessagedetails}</faultstring><detail/></soap-env:Fault></soap-env:Body></soap-env:Envelope>"
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_country": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Scope-Catch": {
+            "actions": {
+                "Failed_Response": {
+                    "inputs": {
+                        "body": "@replace(variables('SoapErrorResponse'),'{errormessagedetails}',concat('Some error occurred while connection. Please find more details using tracking id : ', workflow()['run']['name']))",
+                        "headers": {
+                            "Content-Type": "text/xml"
+                        },
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                },
+                "Terminate": {
+                    "inputs": {
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Failed_Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Scope-Try": [
+                    "Failed",
+                    "Skipped",
+                    "TimedOut"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope-Try": {
+            "actions": {
+                "Append_to_array_variable_9": {
+                    "inputs": {
+                        "name": "searchExpressionList",
+                        "value": "s4sactive__c=true and IsDeleted=false  "
+                    },
+                    "runAfter": {
+                        "Condition_to_check_SFDC_ID": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "AppendToArrayVariable"
+                },
+                "Condition_to_check_SFDC_ID": {
+                    "actions": {
+                        "Append_to_array_variable": {
+                            "inputs": {
+                                "name": "searchExpressionList",
+                                "value": "@concat('Id= ',string(''''),variables('sfdc_id'),string(''''))"
+                            },
+                            "runAfter": {},
+                            "type": "AppendToArrayVariable"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Condition_to_check_Sales_Office": {
+                                "actions": {
+                                    "Append_to_array_searchExpressionList2": {
+                                        "inputs": {
+                                            "name": "searchExpressionList",
+                                            "value": "@concat('S4SSales_Office__c = ',string(''''),variables('salesOffice'),string(''''))"
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToArrayVariable"
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('salesOffice')",
+                                                    "@string('')"
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('salesOffice')",
+                                                    "@null"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {},
+                                "type": "If"
+                            },
+                            "Condition_to_check_branch": {
+                                "actions": {
+                                    "Append_to_array_variable_6": {
+                                        "inputs": {
+                                            "name": "searchExpressionList",
+                                            "value": "@concat('s4ssales_branch__c = ',string(''''),variables('branch'),string(''''))"
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToArrayVariable"
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('branch')",
+                                                    "@null"
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('branch')",
+                                                    "@string('')"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "Condition_to_check_country__c": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "Condition_to_check_country": {
+                                "actions": {
+                                    "Append_to_array_variable_4": {
+                                        "inputs": {
+                                            "name": "searchExpressionList",
+                                            "value": "@concat('S4SSale_Country__c   = ',string(''''),variables('country'),string(''''))"
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToArrayVariable"
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('country')",
+                                                    "@null"
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('country')",
+                                                    "@string('')"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "Condition_to_check_territory": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "Condition_to_check_country__c": {
+                                "actions": {
+                                    "Append_to_array_variable_5": {
+                                        "inputs": {
+                                            "name": "searchExpressionList",
+                                            "value": "@concat('s4slead_country__c    = ',string(''''),variables('country__c'),string(''''))"
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToArrayVariable"
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('country__c')",
+                                                    "@null"
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('country__c')",
+                                                    "@string('')"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "Condition_to_check_country": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "Condition_to_check_dept": {
+                                "actions": {
+                                    "Append_to_array_variable_7": {
+                                        "inputs": {
+                                            "name": "searchExpressionList",
+                                            "value": "@concat('s4ssales_department__c = ',string(''''),variables('department'),string(''''))"
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToArrayVariable"
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('department')",
+                                                    "@null"
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('department')",
+                                                    "@string('')"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "Condition_to_check_branch": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "Condition_to_check_district": {
+                                "actions": {
+                                    "Append_to_array_variable_8": {
+                                        "inputs": {
+                                            "name": "searchExpressionList",
+                                            "value": "@concat('s4ssales_district__c = ',string(''''),variables('district'),string(''''))"
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToArrayVariable"
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('district')",
+                                                    "@null"
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('district')",
+                                                    "@string('')"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "Condition_to_check_dept": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "Condition_to_check_sub_region": {
+                                "actions": {
+                                    "Append_to_array_variable_2": {
+                                        "inputs": {
+                                            "name": "searchExpressionList",
+                                            "value": "@concat('S4SSales_SubRegion__c = ',string(''''),variables('subRegion'),string(''''))"
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToArrayVariable"
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('subRegion')",
+                                                    "@null"
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('subRegion')",
+                                                    "@string('')"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "Condition_to_check_Sales_Office": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "Condition_to_check_territory": {
+                                "actions": {
+                                    "Append_to_array_variable_3": {
+                                        "inputs": {
+                                            "name": "searchExpressionList",
+                                            "value": "@concat('S4SSales_Territory__c  = ',string(''''),variables('Territory'),string(''''))"
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToArrayVariable"
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('Territory')",
+                                                    "@null"
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('Territory')",
+                                                    "@string('')"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "Condition_to_check_sub_region": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('Sfdc_id')",
+                                        "@string('')"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('Sfdc_id')",
+                                        "@null"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                },
+                "Execute_FetchTerritory": {
+                    "inputs": {
+                        "body": {
+                            "query": "@{variables('varSOQLFetchterritory')} where @{variables('ReplacedWhereClause')}  order by s4slead_country__c ,s4ssale_country__c , s4ssales_subregion__c,s4ssales_territory__c,s4ssales_branch__c,s4ssales_office__c,  s4ssales_department__c ,  s4ssales_district__c"
+                        },
+                        "host": {
+                            "connection": {
+                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                            }
+                        },
+                        "method": "post",
+                        "path": "/soql/executesoqlquery",
+                        "retryPolicy": {
+                            "type": "none"
+                        }
+                    },
+                    "runAfter": {
+                        "Set_replacedWhere_Clause": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "ApiConnection"
+                },
+                "Response": {
+                    "inputs": {
+                        "body": "@body('Execute_FetchTerritory')",
+                        "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "Execute_FetchTerritory": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
+                },
+                "Set_replacedWhere_Clause": {
+                    "inputs": {
+                        "name": "ReplacedWhereClause",
+                        "value": "@{if(greater(length(variables('searchExpressionList')),0),replace(concat(join(variables('searchExpressionList'),' and ')),'*','%'),string(''))}"
+                    },
+                    "runAfter": {
+                        "Append_to_array_variable_9": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "SetVariable"
+                }
+            },
+            "runAfter": {
+                "Initialize_SOQL_fetchterritory": [
+                    "Succeeded"
+                ],
+                "Initialize_district": [
+                    "Succeeded"
+                ],
+                "Initialize_replacedWhereClause": [
+                    "Succeeded"
+                ],
+                "Initialize_searchExpressionList": [
+                    "Succeeded"
+                ],
+                "Initialize_territory": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_error_response": [
+                    "Succeeded"
+                ]
+            },
+            "trackedProperties": {
+                "apimRouting": "external",
+                "citizenName": "c00031",
+                "correlationId": "not-defined",
+                "interfaceName": "SFS",
+                "interfacePartner": "not-defined",
+                "interfaceVersion": "not-defined",
+                "operationName": "Will_tranche",
+                "parentWorkflow": "not-defined",
+                "clientCertificateThumbprint": "not-defined",
+                "clientIPAddress": "not-defined"
+            },
+            "type": "Scope"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {},
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

@@ -1,0 +1,199 @@
+{
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "BookingWhere_Clause": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "BookingWhere Clause",
+                            "type": "string",
+                            "value": "@{null}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_OpportunityId": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "OpportunityId",
+                            "type": "string",
+                            "value": "@{triggerBody()?['records']?[0]?['Id']}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_SOQLquery_booking_Item": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "varSOQLBookingLineItem",
+                            "type": "string",
+                            "value": "select Id,IsDeleted,Name,CurrencyIsoCode,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastActivityDate,S4SOpportunity__c,S4SBusiness_Segment__c,S4SBusiness_Sub_Segment__c,S4SBusiness_Unit__c,S4SDepth_Structure__c,S4SDivisions__c,S4SGCK__c,S4SOrder_Intake_EUR__c,S4SOrder_Intake_USD__c,S4SOrder_Intake__c,S4SPrimary_Flag__c,S4SWeighted_Order_Intake_EUR__c,S4SWeighted_Order_Intake_USD__c,S4SWeighted_Order_Intake__c,S4SPCK__c,S4SQuantity__c,S4SSPG__c,S4SSales_Price__c,S4SExternal_Source__c,S4SProgram_Fund__c,S4SX1st_Year_return__c,S4SX2nd_Year_Return__c,X3rd_Year_Return__c from S4SBooking_Line_Item__c"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Initialize_OpportunityId": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_error_response": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "SoapErrorResponse",
+                            "type": "string",
+                            "value": "<soap-env:Envelope xmlns:soap-env=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap-env:Header/><soap-env:Body><soap-env:Fault><faultcode>soap-env:Server</faultcode><faultstring>{errormessagedetails}</faultstring><detail/></soap-env:Fault></soap-env:Body></soap-env:Envelope>"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Scope-Catch": {
+                "actions": {
+                    "Failed_Response": {
+                        "inputs": {
+                            "body": "@replace(variables('SoapErrorResponse'),'{errormessagedetails}',concat('Some error occurred while connection. Please find more details using tracking id : ', workflow()['run']['name']))",
+                            "headers": {
+                                "Content-Type": "application/xml"
+                            },
+                            "statusCode": 500
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                        "type": "Response"
+                    },
+                    "Terminate_in_Catch": {
+                        "inputs": {
+                            "runStatus": "Failed"
+                        },
+                        "runAfter": {
+                            "Failed_Response": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Terminate"
+                    }
+                },
+                "runAfter": {
+                    "Scope-Try": [
+                        "Failed",
+                        "Skipped",
+                        "TimedOut"
+                    ]
+                },
+                "type": "Scope"
+            },
+            "Scope-Try": {
+                "actions": {
+                    "Condition_to_check_Opportunity_Id": {
+                        "actions": {
+                            "Set_opportunityId_where_clause_append": {
+                                "inputs": {
+                                    "name": "BookingWhere Clause",
+                                    "value": "@{concat('S4sopportunity__c  =  ',string(''''),variables('opportunityId'),string(''''))}"
+                                },
+                                "runAfter": {},
+                                "type": "SetVariable"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('OpportunityId')",
+                                            "@null"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('OpportunityId')",
+                                            "@string('')"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {},
+                        "type": "If"
+                    },
+                    "Execute_Booking_Line_SOQL_query": {
+                        "inputs": {
+                            "body": {
+                                "query": "@{variables('varSOQLBookingLineItem')} where @{variables('BookingWhere Clause')}"
+                            },
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                }
+                            },
+                            "method": "post",
+                            "path": "/soql/executesoqlquery",
+                            "retryPolicy": {
+                                "type": "none"
+                            }
+                        },
+                        "runAfter": {
+                            "Condition_to_check_Opportunity_Id": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ApiConnection"
+                    },
+                    "Final_Response": {
+                        "inputs": {
+                            "body": "@body('Execute_Booking_Line_SOQL_query')",
+                            "statusCode": 200
+                        },
+                        "kind": "Http",
+                        "runAfter": {
+                            "Execute_Booking_Line_SOQL_query": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Response"
+                    }
+                },
+                "runAfter": {
+                    "BookingWhere_Clause": [
+                        "Succeeded"
+                    ],
+                    "Initialize_SOQLquery_booking_Item": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_error_response": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Scope"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "manual": {
+                "inputs": {
+                    "schema": {}
+                },
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+}

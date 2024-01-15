@@ -1,0 +1,871 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Catch_Scope": {
+            "actions": {
+                "Failed_Response": {
+                    "inputs": {
+                        "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <out:notificationsResponse>\n         <out:Ack>true</out:Ack>\n      </out:notificationsResponse>\n   </soapenv:Body>\n</soapenv:Envelope>",
+                        "headers": {
+                            "Content-Type": "application/xml"
+                        },
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                },
+                "Terminate": {
+                    "inputs": {
+                        "runError": {
+                            "code": "500"
+                        },
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Failed_Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Try_Scope": [
+                    "Failed"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Get_Token_Scope": {
+            "actions": {
+                "HTTP_Get_Token_INT": {
+                    "inputs": {
+                        "body": "@concat('grant_type=',encodeUriComponent('password'), '&client_id=', encodeUriComponent(json(body('INT_Get_Configuration'))?['clientId']),'&client_secret=', encodeUriComponent(json(body('INT_Get_Configuration'))?['clientSecret']), '&username=', encodeUriComponent(json(body('INT_Get_Configuration'))?['username']), '&password=', encodeUriComponent(json(body('INT_Get_Configuration'))?['password']))",
+                        "headers": {
+                            "Content-Type": "application/x-www-form-urlencoded"
+                        },
+                        "method": "POST",
+                        "uri": "@{json(body('INT_Get_Configuration'))?['tokenEndpoint']}"
+                    },
+                    "runAfter": {
+                        "INT_Get_Configuration": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Http"
+                },
+                "HTTP_Get_Token_SieSales": {
+                    "inputs": {
+                        "headers": {
+                            "Ocp-Apim-Subscription-Key": "${apimKey}"
+                        },
+                        "method": "POST",
+                        "uri": "${apimURL}"
+                    },
+                    "runAfter": {
+                        "INT_Get_Configuration": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Http"
+                },
+                "INT_Get_Configuration": {
+                    "inputs": {
+                        "body": {
+                            "key": "oAuthToken-INT-config"
+                        },
+                        "host": {
+                            "triggerName": "manual",
+                            "workflow": {
+                                "id": "${getConfiguration_logicAppId}"
+                            }
+                        }
+                    },
+                    "runAfter": {},
+                    "type": "Workflow"
+                }
+            },
+            "runAfter": {
+                "Initialize_Contact_Details_Variable": [
+                    "Succeeded"
+                ],
+                "Initialize_INT_Contact_Search_Query_Variable": [
+                    "Succeeded"
+                ],
+                "Initialize_Owner_Variable": [
+                    "Succeeded"
+                ],
+                "Initialize_POC2_Flag_Variable": [
+                    "Succeeded"
+                ],
+                "Initialize_Response_Variable": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Initialize_Contact_Details_Variable": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "ContactDetails",
+                        "type": "object"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_INT_Contact_Search_Query_Variable": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "ContactQuery",
+                        "type": "string",
+                        "value": "SELECT MobilePhone, Phone, FirstName, LastName, Salutation FROM Contact WHERE "
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_Owner_Variable": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "OwnerId",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_POC2_Flag_Variable": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "POC2Flag",
+                        "type": "boolean",
+                        "value": true
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_Response_Variable": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "Response",
+                        "type": "object"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Try_Scope": {
+            "actions": {
+                "Ack_Response": {
+                    "inputs": {
+                        "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <out:notificationsResponse>\n         <out:Ack>true</out:Ack>\n      </out:notificationsResponse>\n   </soapenv:Body>\n</soapenv:Envelope>",
+                        "headers": {
+                            "Content-Type": "application/xml"
+                        },
+                        "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "HTTP_Update_Info_in_INT": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
+                },
+                "Condition_OwnerId_Exists": {
+                    "actions": {
+                        "Compose_Lead_to_SieSales_With_Owner": {
+                            "inputs": {
+                                "Company": "@body('HTTP_Get_Account_Name_from_INT')?['records']?[0]?['Name']",
+                                "Country": "@body('Liquid_Map_to_JSON')?['sObject']?['Target_Country__c']",
+                                "S4SCustomer_Message__c": "@body('HTTP_Get_BU_and_Division_from_INT')?['records']?[0]?['GSBPS_Customer_Message__c']",
+                                "Email": "@body('HTTP_Get_Contact_Details_from_INT')?['records']?[0]?['Email']",
+                                "FirstName": "@body('HTTP_Get_Contact_Details_from_INT')?['records']?[0]?['FirstName']",
+                                "LastName": "@body('HTTP_Get_Contact_Details_from_INT')?['records']?[0]?['LastName']",
+                                "LeadSource": "FLCS",
+                                "MobilePhone": "@body('HTTP_Get_Contact_Details_from_INT')?['records']?[0]?['MobilePhone']",
+                                "OwnerId": "@variables('OwnerId')",
+                                "Phone": "@body('HTTP_Get_Contact_Details_from_INT')?['records']?[0]?['Phone']",
+                                "RecordTypeId": "@body('HTTP_Get_RecordType_by_Name')?['records']?[0]?['Id']",
+                                "S4SBusiness_Unit__c": "@body('HTTP_Get_BU_and_Division_from_INT')?['records']?[0]?['S4SSieSales_BU__c']",
+                                "S4SCreated_from_Lead__c": true,
+                                "S4SData_Visibility__c": "Non-Confidential",
+                                "S4SDivision__c": "@body('HTTP_Get_BU_and_Division_from_INT')?['records']?[0]?['S4SSieSales_Division__c']",
+                                "S4SExpected_Response_Time__c": 3,
+                                "S4SExternal_Source__c": "INT",
+                                "S4SINT_Case_ID__c": "@body('Liquid_Map_to_JSON')?['sObject']?['Id']",
+                                "S4SInternal_Lead_Share__c": true,
+                                "S4SLead_First_Touchpoint__c": "@concat( 'FLCS-', body( 'Liquid_Map_to_JSON' ) ?['sObject']?['CaseNumber'], if( equals( coalesce(body( 'Liquid_Map_to_JSON' ) ?['sObject']?['S4SLead_First_Touchpoint__c'],''), '' ) , '', concat( ' / ', body( 'Liquid_Map_to_JSON' ) ?['sObject']?['S4SLead_First_Touchpoint__c'] ) ) )",
+                                "S4SLead_Source_Type__c": "Customer Request for Action",
+                                "S4SMarketing_Qualified__c": true,
+                                "S4SProduct_Interest__c": "@body('HTTP_Get_Topic_Name_from_INT')?['records']?[0]?['Name']",
+                                "S4S_Converted_from_Lead__c": "Internal Lead",
+                                "Salutation": "@body('HTTP_Get_Contact_Details_from_INT')?['records']?[0]?['Salutation']",
+                                "Status": "Open"
+                            },
+                            "runAfter": {},
+                            "type": "Compose"
+                        },
+                        "Set_Response_With_Owner": {
+                            "inputs": {
+                                "name": "Response",
+                                "value": "@outputs('Compose_Lead_to_SieSales_With_Owner')"
+                            },
+                            "runAfter": {
+                                "Compose_Lead_to_SieSales_With_Owner": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "SetVariable"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Compose_Lead_to_SieSales_Without_Owner": {
+                                "inputs": {
+                                    "Company": "@body('HTTP_Get_Account_Name_from_INT')?['records']?[0]?['Name']",
+                                    "Country": "@body('Liquid_Map_to_JSON')?['sObject']?['Target_Country__c']",
+                                    "S4SCustomer_Message__c": "@body('HTTP_Get_BU_and_Division_from_INT')?['records']?[0]?['GSBPS_Customer_Message__c']",
+                                    "Email": "@body('HTTP_Get_Contact_Details_from_INT')?['records']?[0]?['Email']",
+                                    "FirstName": "@body('HTTP_Get_Contact_Details_from_INT')?['records']?[0]?['FirstName']",
+                                    "LastName": "@body('HTTP_Get_Contact_Details_from_INT')?['records']?[0]?['LastName']",
+                                    "LeadSource": "FLCS",
+                                    "MobilePhone": "@body('HTTP_Get_Contact_Details_from_INT')?['records']?[0]?['MobilePhone']",
+                                    "Phone": "@body('HTTP_Get_Contact_Details_from_INT')?['records']?[0]?['Phone']",
+                                    "RecordTypeId": "@body('HTTP_Get_RecordType_by_Name')?['records']?[0]?['Id']",
+                                    "S4SBusiness_Unit__c": "@body('HTTP_Get_BU_and_Division_from_INT')?['records']?[0]?['S4SSieSales_BU__c']",
+                                    "S4SCreated_from_Lead__c": true,
+                                    "S4SData_Visibility__c": "Non-Confidential",
+                                    "S4SDivision__c": "@body('HTTP_Get_BU_and_Division_from_INT')?['records']?[0]?['S4SSieSales_Division__c']",
+                                    "S4SExpected_Response_Time__c": 3,
+                                    "S4SExternal_Source__c": "INT",
+                                    "S4SINT_Case_ID__c": "@body('Liquid_Map_to_JSON')?['sObject']?['Id']",
+                                    "S4SInternal_Lead_Share__c": true,
+                                    "S4SLead_First_Touchpoint__c": "@concat( 'FLCS-', body( 'Liquid_Map_to_JSON' ) ?['sObject']?['CaseNumber'], if( equals( coalesce(body( 'Liquid_Map_to_JSON' ) ?['sObject']?['S4SLead_First_Touchpoint__c'],''), '' ) , '', concat( ' / ', body( 'Liquid_Map_to_JSON' ) ?['sObject']?['S4SLead_First_Touchpoint__c'] ) ) )",
+                                    "S4SLead_Source_Type__c": "Customer Request for Action",
+                                    "S4SMarketing_Qualified__c": true,
+                                    "S4SProduct_Interest__c": "@body('HTTP_Get_Topic_Name_from_INT')?['records']?[0]?['Name']",
+                                    "S4S_Converted_from_Lead__c": "Internal Lead",
+                                    "Salutation": "@body('HTTP_Get_Contact_Details_from_INT')?['records']?[0]?['Salutation']",
+                                    "Status": "Open"
+                                },
+                                "runAfter": {},
+                                "type": "Compose"
+                            },
+                            "Set_Response_Without_Owner": {
+                                "inputs": {
+                                    "name": "Response",
+                                    "value": "@outputs('Compose_Lead_to_SieSales_Without_Owner')"
+                                },
+                                "runAfter": {
+                                    "Compose_Lead_to_SieSales_Without_Owner": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "SetVariable"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('OwnerId')",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('OwnerId')",
+                                        "@string('')"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "HTTP_Get_Account_Name_from_INT": [
+                            "Succeeded"
+                        ],
+                        "HTTP_Get_BU_and_Division_from_INT": [
+                            "Succeeded"
+                        ],
+                        "HTTP_Get_Contact_Details_from_INT": [
+                            "Succeeded"
+                        ],
+                        "HTTP_Get_RecordType_by_Name": [
+                            "Succeeded"
+                        ],
+                        "HTTP_Get_Topic_Name_from_INT": [
+                            "Succeeded"
+                        ],
+                        "Set_Owner_Variable": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Condition_POC2_Exists": {
+                    "actions": {
+                        "HTTP_Check_if_POC2_Exists_in_SieSales": {
+                            "inputs": {
+                                "headers": {
+                                    "Authorization": "Bearer @{body('HTTP_Get_Token_SieSales')}"
+                                },
+                                "method": "GET",
+                                "queries": {
+                                    "q": "@{concat(string('SELECT Id FROM User WHERE Email = '), string(''''), body('HTTP_Get_POC2_Email_From_INT')?['records']?[0]?['Email'], string(''''))}"
+                                },
+                                "uri": "${instance_NonSFS_URL}/query"
+                            },
+                            "runAfter": {
+                                "HTTP_Get_POC2_Email_From_INT": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Http"
+                        },
+                        "HTTP_Get_POC2_Email_From_INT": {
+                            "inputs": {
+                                "headers": {
+                                    "Authorization": "Bearer @{body('HTTP_Get_Token_INT')?['access_token']}"
+                                },
+                                "method": "GET",
+                                "queries": {
+                                    "q": "@{concat('SELECT Id, Email FROM Contact WHERE Id = ', string(''''), body('Liquid_Map_to_JSON')?['sObject']?['POC_2__c'], string(''''))}"
+                                },
+                                "uri": "@{body('HTTP_Get_Token_INT')?['instance_url']}/services/data/v55.0/query"
+                            },
+                            "runAfter": {},
+                            "type": "Http"
+                        },
+                        "Set_POC2_Flag_with_Condition": {
+                            "inputs": {
+                                "name": "POC2Flag",
+                                "value": "@if(\r\n    greater(body('HTTP_Check_if_POC2_Exists_in_SieSales')?['totalSize'], 0),\r\n    true,\r\n    false\r\n)"
+                            },
+                            "runAfter": {
+                                "HTTP_Check_if_POC2_Exists_in_SieSales": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "SetVariable"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Set_POC2_Flag": {
+                                "inputs": {
+                                    "name": "POC2Flag",
+                                    "value": "@false"
+                                },
+                                "runAfter": {},
+                                "type": "SetVariable"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@body('Liquid_Map_to_JSON')?['sObject']?['POC_2__c']",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@body('Liquid_Map_to_JSON')?['sObject']?['POC_2__c']",
+                                        "@string('')"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Liquid_Map_to_JSON": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Condition_POC_Exists_and_no_POC2_in_SieSales": {
+                    "actions": {
+                        "HTTP_Check_if_POC_Exists_in_SieSales": {
+                            "inputs": {
+                                "headers": {
+                                    "Authorization": "Bearer @{body('HTTP_Get_Token_SieSales')}"
+                                },
+                                "method": "GET",
+                                "queries": {
+                                    "q": "@{concat(string('SELECT Id FROM User WHERE Email = '), string(''''), body('HTTP_Get_POC_Email_From_INT')?['records']?[0]?['Email'], string(''''))}"
+                                },
+                                "uri": "${instance_NonSFS_URL}/query"
+                            },
+                            "runAfter": {
+                                "HTTP_Get_POC_Email_From_INT": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Http"
+                        },
+                        "HTTP_Get_POC_Email_From_INT": {
+                            "inputs": {
+                                "headers": {
+                                    "Authorization": "Bearer @{body('HTTP_Get_Token_INT')?['access_token']}"
+                                },
+                                "method": "GET",
+                                "queries": {
+                                    "q": "@{concat('SELECT Id, Email FROM Contact WHERE Id = ', string(''''), body('Liquid_Map_to_JSON')?['sObject']?['POC__c'], string(''''))}"
+                                },
+                                "uri": "@{body('HTTP_Get_Token_INT')?['instance_url']}/services/data/v55.0/query"
+                            },
+                            "runAfter": {},
+                            "type": "Http"
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@body('Liquid_Map_to_JSON')?['sObject']?['POC__c']",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@body('Liquid_Map_to_JSON')?['sObject']?['POC__c']",
+                                        "@string('')"
+                                    ]
+                                }
+                            },
+                            {
+                                "equals": [
+                                    "@variables('POC2Flag')",
+                                    "@false"
+                                ]
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Condition_POC2_Exists": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Email_Message_Scope": {
+                    "actions": {
+                        "Condition_if_There_is_Email_Message": {
+                            "actions": {
+                                "Condition_There_is_Attachment_in_INT": {
+                                    "actions": {
+                                        "For_each_Content_Document": {
+                                            "actions": {
+                                                "HTTP_Create_Attachment_in_SieSales": {
+                                                    "inputs": {
+                                                        "body": {
+                                                            "ContentLocation": "S",
+                                                            "IsMajorVersion": "@body('HTTP_Get_Content_Version_From_INT')?['records'][0]?['IsMajorVersion']",
+                                                            "PathOnClient": "@{body('HTTP_Get_Content_Version_From_INT')?['records'][0]?['PathOnClient']}",
+                                                            "Title": "@{body('HTTP_Get_Content_Version_From_INT')?['records'][0]?['Title']}",
+                                                            "VersionData": "@{body('HTTP_Get_Version_Data_From_INT')?['$content']}"
+                                                        },
+                                                        "headers": {
+                                                            "Authorization": "Bearer @{body('HTTP_Get_Token_SieSales')}"
+                                                        },
+                                                        "method": "POST",
+                                                        "uri": "${instance_NonSFS_URL}/sobjects/contentversion"
+                                                    },
+                                                    "runAfter": {
+                                                        "HTTP_Get_Version_Data_From_INT": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "Http"
+                                                },
+                                                "HTTP_Create_Document_Link_in_SieSales": {
+                                                    "inputs": {
+                                                        "body": {
+                                                            "ContentDocumentId": "@{body('HTTP_Get_Document_Id_from_SieSales')?['records'][0]?['ContentDocumentId']}",
+                                                            "LinkedEntityId": "@{body('HTTP_Create_Lead_in_SieSales')?['id']}",
+                                                            "ShareType": "I"
+                                                        },
+                                                        "headers": {
+                                                            "Authorization": "Bearer @{body('HTTP_Get_Token_SieSales')}"
+                                                        },
+                                                        "method": "POST",
+                                                        "uri": "${instance_NonSFS_URL}/sobjects/contentdocumentlink"
+                                                    },
+                                                    "runAfter": {
+                                                        "HTTP_Get_Document_Id_from_SieSales": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "Http"
+                                                },
+                                                "HTTP_Get_Content_Version_From_INT": {
+                                                    "inputs": {
+                                                        "headers": {
+                                                            "Authorization": "Bearer @{body('HTTP_Get_Token_INT')?['access_token']}"
+                                                        },
+                                                        "method": "GET",
+                                                        "queries": {
+                                                            "q": "@{concat(string('SELECT Id, ContentDocumentId, Title, PathOnClient, VersionData,ContentLocation,IsMajorVersion FROM contentversion WHERE contentdocumentid = '), string(''''), items('For_each_Content_Document')?['ContentDocumentId'], string(''''))}"
+                                                        },
+                                                        "uri": "@{body('HTTP_Get_Token_INT')?['instance_url']}/services/data/v55.0/query"
+                                                    },
+                                                    "runAfter": {},
+                                                    "type": "Http"
+                                                },
+                                                "HTTP_Get_Document_Id_from_SieSales": {
+                                                    "inputs": {
+                                                        "headers": {
+                                                            "Authorization": "Bearer @{body('HTTP_Get_Token_SieSales')}"
+                                                        },
+                                                        "method": "GET",
+                                                        "queries": {
+                                                            "q": "@{concat(string('SELECT ContentDocumentId FROM ContentVersion WHERE Id = '), string(''''), body('HTTP_Create_Attachment_in_SieSales')?['Id'], string(''''))}"
+                                                        },
+                                                        "uri": "${instance_NonSFS_URL}/query"
+                                                    },
+                                                    "runAfter": {
+                                                        "HTTP_Create_Attachment_in_SieSales": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "Http"
+                                                },
+                                                "HTTP_Get_Version_Data_From_INT": {
+                                                    "inputs": {
+                                                        "headers": {
+                                                            "Authorization": "Bearer @{body('HTTP_Get_Token_INT')?['access_token']}"
+                                                        },
+                                                        "method": "GET",
+                                                        "uri": "@{body('HTTP_Get_Token_INT')?['instance_url']}@{body('HTTP_Get_Content_Version_From_INT')?['records']?[0]?['VersionData']}"
+                                                    },
+                                                    "runAfter": {
+                                                        "HTTP_Get_Content_Version_From_INT": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "Http"
+                                                }
+                                            },
+                                            "foreach": "@body('HTTP_Get_Content_Document_Id_From_INT')?['records']",
+                                            "runAfter": {},
+                                            "type": "Foreach"
+                                        }
+                                    },
+                                    "expression": {
+                                        "and": [
+                                            {
+                                                "greater": [
+                                                    "@body('HTTP_Get_Content_Document_Id_From_INT')?['totalSize']",
+                                                    0
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "runAfter": {
+                                        "HTTP_Get_Content_Document_Id_From_INT": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "If"
+                                },
+                                "HTTP_Get_Content_Document_Id_From_INT": {
+                                    "inputs": {
+                                        "headers": {
+                                            "Authorization": "Bearer @{body('HTTP_Get_Token_INT')?['access_token']}"
+                                        },
+                                        "method": "GET",
+                                        "queries": {
+                                            "q": "@{concat(string('SELECT ContentDocumentId FROM ContentDocumentLink WHERE LinkedEntityId = '), string(''''), body('HTTP_Get_Email_Message_From_INT')?['records']?[0]?['Id'], string(''''))}"
+                                        },
+                                        "uri": "@{body('HTTP_Get_Token_INT')?['instance_url']}/services/data/v55.0/query"
+                                    },
+                                    "runAfter": {},
+                                    "type": "Http"
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "greater": [
+                                            "@body('HTTP_Get_Email_Message_From_INT')?['totalSize']",
+                                            0
+                                        ]
+                                    }
+                                ]
+                            },
+                            "runAfter": {
+                                "HTTP_Get_Email_Message_From_INT": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "HTTP_Get_Email_Message_From_INT": {
+                            "inputs": {
+                                "headers": {
+                                    "Authorization": "Bearer @{body('HTTP_Get_Token_INT')?['access_token']}"
+                                },
+                                "method": "GET",
+                                "queries": {
+                                    "q": "@{concat(string('SELECT Id FROM EmailMessage WHERE ParentId = '), string(''''), body('HTTP_Get_BU_and_Division_from_INT')?['records']?[0]?['Id'], string(''''), string(' AND HasAttachment = true ORDER BY CreatedDate asc'))}"
+                                },
+                                "uri": "@{body('HTTP_Get_Token_INT')?['instance_url']}/services/data/v55.0/query"
+                            },
+                            "runAfter": {},
+                            "type": "Http"
+                        }
+                    },
+                    "runAfter": {
+                        "HTTP_Create_Lead_in_SieSales": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Scope"
+                },
+                "HTTP_Create_Lead_in_SieSales": {
+                    "inputs": {
+                        "body": "@variables('Response')",
+                        "headers": {
+                            "Authorization": "Bearer @{body('HTTP_Get_Token_SieSales')}"
+                        },
+                        "method": "POST",
+                        "uri": "${instance_NonSFS_URL}/sobjects/Lead/"
+                    },
+                    "runAfter": {
+                        "Condition_OwnerId_Exists": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Http"
+                },
+                "HTTP_Get_Account_Name_from_INT": {
+                    "inputs": {
+                        "headers": {
+                            "Authorization": "Bearer @{body('HTTP_Get_Token_INT')?['access_token']}"
+                        },
+                        "method": "GET",
+                        "queries": {
+                            "q": "@{concat(string('SELECT Name FROM Account WHERE Id = '), string(''''), body('Liquid_Map_to_JSON')?['sObject']?['AccountId'], string(''''))}"
+                        },
+                        "uri": "@{body('HTTP_Get_Token_INT')?['instance_url']}/services/data/v55.0/query"
+                    },
+                    "runAfter": {
+                        "Liquid_Map_to_JSON": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Http"
+                },
+                "HTTP_Get_BU_and_Division_from_INT": {
+                    "inputs": {
+                        "headers": {
+                            "Authorization": "Bearer @{body('HTTP_Get_Token_INT')?['access_token']}"
+                        },
+                        "method": "GET",
+                        "queries": {
+                            "q": "@{concat('SELECT Id, S4SSieSales_BU__c, S4SSieSales_Division__c, GSBPS_Customer_Message__c FROM Case WHERE CaseNumber = ', string(''''), body('Liquid_Map_to_JSON')?['sObject']?['CaseNumber'], string(''''))}"
+                        },
+                        "uri": "@{body('HTTP_Get_Token_INT')?['instance_url']}/services/data/v55.0/query"
+                    },
+                    "runAfter": {
+                        "Liquid_Map_to_JSON": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Http"
+                },
+                "HTTP_Get_Contact_Details_from_INT": {
+                    "inputs": {
+                        "headers": {
+                            "Authorization": "Bearer @{body('HTTP_Get_Token_INT')?['access_token']}"
+                        },
+                        "method": "GET",
+                        "queries": {
+                            "q": "@{concat(string('SELECT MobilePhone, Phone, FirstName, LastName, Salutation, Email FROM Contact WHERE Id = '), string(''''), body('Liquid_Map_to_JSON')?['sObject']?['ContactId'], string(''''))}"
+                        },
+                        "uri": "@{body('HTTP_Get_Token_INT')?['instance_url']}/services/data/v55.0/query"
+                    },
+                    "runAfter": {
+                        "Liquid_Map_to_JSON": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Http"
+                },
+                "HTTP_Get_Lead_Details_From_SieSales": {
+                    "inputs": {
+                        "headers": {
+                            "Authorization": "Bearer @{body('HTTP_Get_Token_SieSales')}"
+                        },
+                        "method": "GET",
+                        "queries": {
+                            "q": "@{concat(string('SELECT Id, Owner.Name, Status FROM Lead WHERE Id = '), string(''''), body('HTTP_Create_Lead_in_SieSales')?['id'], string(''''))}"
+                        },
+                        "uri": "${instance_NonSFS_URL}/query"
+                    },
+                    "runAfter": {
+                        "Email_Message_Scope": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Http"
+                },
+                "HTTP_Get_RecordType_by_Name": {
+                    "inputs": {
+                        "headers": {
+                            "Authorization": "Bearer @{body('HTTP_Get_Token_SieSales')}"
+                        },
+                        "method": "GET",
+                        "queries": {
+                            "q": "@{concat(string('SELECT Id FROM RecordType WHERE Name = '), string(''''), string('Internal'), string(''''))}"
+                        },
+                        "uri": "${instance_NonSFS_URL}/query"
+                    },
+                    "runAfter": {
+                        "Liquid_Map_to_JSON": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Http"
+                },
+                "HTTP_Get_Topic_Name_from_INT": {
+                    "inputs": {
+                        "headers": {
+                            "Authorization": "Bearer @{body('HTTP_Get_Token_INT')?['access_token']}"
+                        },
+                        "method": "GET",
+                        "queries": {
+                            "q": "@{concat(string('SELECT Name FROM S4S_Topic__c WHERE id = '), string(''''), body('Liquid_Map_to_JSON')?['sObject']?['S4S_Topic__c'], string(''''))}"
+                        },
+                        "uri": "@{body('HTTP_Get_Token_INT')?['instance_url']}/services/data/v55.0/query"
+                    },
+                    "runAfter": {
+                        "Liquid_Map_to_JSON": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Http"
+                },
+                "HTTP_Update_Info_in_INT": {
+                    "inputs": {
+                        "body": {
+                            "S4SLead_ID_SieSales__c": "@body('HTTP_Get_Lead_Details_From_SieSales')?['records']?[0]?['Id']",
+                            "S4SLead_Owner_SieSales__c": "@body('HTTP_Get_Lead_Details_From_SieSales')?['records']?[0]?['Owner']?['Name']",
+                            "S4SLead_Status_SieSales__c": "@body('HTTP_Get_Lead_Details_From_SieSales')?['records']?[0]?['Status']"
+                        },
+                        "headers": {
+                            "Accept": "application/json",
+                            "Authorization": "Bearer @{body('HTTP_Get_Token_INT')?['access_token']}",
+                            "Content-Type": "application/json"
+                        },
+                        "method": "PATCH",
+                        "uri": "@{body('HTTP_Get_Token_INT')?['instance_url']}/services/data/v55.0/sobjects/Case/Id/@{body('HTTP_Get_BU_and_Division_from_INT')?['records']?[0]?['Id']}"
+                    },
+                    "runAfter": {
+                        "HTTP_Get_Lead_Details_From_SieSales": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Http"
+                },
+                "Liquid_Map_to_JSON": {
+                    "inputs": {
+                        "authentication": {
+                            "type": "Raw",
+                            "value": "[parameters('functionAppKey')]"
+                        },
+                        "body": "@triggerBody()",
+                        "function": {
+                            "id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+                        },
+                        "headers": {
+                            "Accept": "application/json",
+                            "Content-Type": "application/xml",
+                            "Filename": "${liquid_map}"
+                        }
+                    },
+                    "runAfter": {},
+                    "type": "Function"
+                },
+                "Nack_Response": {
+                    "inputs": {
+                        "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <out:notificationsResponse>\n         <out:Ack>true</out:Ack>\n      </out:notificationsResponse>\n   </soapenv:Body>\n</soapenv:Envelope>",
+                        "headers": {
+                            "Content-Type": "application/xml"
+                        },
+                        "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "HTTP_Create_Lead_in_SieSales": [
+                            "Failed"
+                        ]
+                    },
+                    "type": "Response"
+                },
+                "Set_Owner_Variable": {
+                    "inputs": {
+                        "name": "OwnerId",
+                        "value": "@{coalesce(body('HTTP_Check_if_POC2_Exists_in_SieSales')?['records']?[0]?['Id'], body('HTTP_Check_if_POC_Exists_in_SieSales')?['records']?[0]?['Id'])}"
+                    },
+                    "runAfter": {
+                        "Condition_POC_Exists_and_no_POC2_in_SieSales": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "SetVariable"
+                }
+            },
+            "runAfter": {
+                "Get_Token_Scope": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Scope"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {
+                "schema": {}
+            },
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

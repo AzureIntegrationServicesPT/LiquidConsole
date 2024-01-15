@@ -1,0 +1,310 @@
+{
+  
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Initialize_variable_Accounts": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "Accounts",
+                        "type": "string",
+                        "value": "@{triggerBody()?['Accounts']}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_datavalidationOutput": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "datavalidationOutput",
+                        "type": "string",
+                        "value": "@{triggerbody()?['dataValidationOutput']}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_fetchidOutput": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "fetchidOutput",
+                        "type": "string",
+                        "value": "@{triggerBody()?['FetchIDOutput']}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Scope-_Try": {
+            "actions": {
+                "Condition_to_check_PO_BOX": {
+                    "actions": {
+                        "Insert_or_Update_(Upsert)_a_Record_with_IFA": {
+                            "inputs": {
+                                "body": {
+                                    "BillingCity": "@{json(variables('Accounts'))?['Account_List']?[0]?['CITY']}",
+                                    "BillingCountry": "@{json(variables('Accounts'))?['Account_List']?[0]?['COUNTRY']}",
+                                    "BillingCountryCode": "@{json(variables('Accounts'))?['Account_List']?[0]?['COUNTRY']}",
+                                    "BillingPostalCode": "@{json(variables('Accounts'))?['Account_List']?[0]?['POSTAL_CODE']}",
+                                    "BillingState": "@{json(variables('Accounts'))?['Account_List']?[0]?['REGION']}",
+                                    "BillingStreet": "@{json(variables('datavalidationOutput'))?['Street_Concat']}",
+                                    "Name": "@{json(variables('datavalidationOutput'))?['Name_Concat']}",
+                                    "S4SAccount_Name_International__c": "@{json(variables('datavalidationOutput'))?['Name_Inter_Concat']}",
+                                    "S4SCID_Number__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['GP_NR']}",
+                                    "S4SCMD_KUKLA__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['KUKLA']}",
+                                    "S4SCMD_NAME1_I__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME1_I']}",
+                                    "S4SCMD_NAME1__c": "@{json(variables('Accounts'))?['Account_List']?[0]['NAME1']}",
+                                    "S4SCMD_NAME2_I__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME2_I']}",
+                                    "S4SCMD_NAME2__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME2']}",
+                                    "S4SCMD_NAME3_I__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME3_I']}",
+                                    "S4SCMD_NAME3__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME3']}",
+                                    "S4SCMD_REGION__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['REGION']}",
+                                    "S4SCMD_STREET2__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['STREET_2']}",
+                                    "S4SCMD_STREET__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['STREET']}",
+                                    "S4SCity_PO_Box_International__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['CITY_PO_BOX_I']}",
+                                    "S4SCity_PO_Box__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['CITY_PO_BOX']}",
+                                    "S4SCompany_Postal_Code__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['COMPANY_PSTCD']}",
+                                    "S4SDUNS__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['DUNS']}",
+                                    "S4SDuplicate_IfA_Number__c": "",
+                                    "S4SISIC__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['ISIC']}",
+                                    "S4SIfA__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['IFA_NR']}",
+                                    "S4SInternational_City__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['CITY_I']}",
+                                    "S4SInternational_CountryGP__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['COUNTRY']}",
+                                    "S4SInternational_RegionGP__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['REGION_I']}",
+                                    "S4SInternational_Steet_Name_2__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['STREET2_I']}",
+                                    "S4SInternational_Street_Name_1__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['STREET_I']}",
+                                    "S4SMD_Status__c": "Managed in CMD",
+                                    "S4SNat_Company_ID__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAT_ID']}",
+                                    "S4SNotification_from_CMD__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['INFO']}",
+                                    "S4SPO_Box_Postcode__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['POSTAL_CODE_POB']}",
+                                    "S4SPrevious_IfA_Number__c": "",
+                                    "S4STax_ID__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['SALESTAX_ID']}"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "patch",
+                                "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Account'))}/externalIdFields/@{encodeURIComponent(encodeURIComponent('Id'))}/@{encodeURIComponent(encodeURIComponent(json(variables('fetchidOutput'))?['Id']))}"
+                            },
+                            "runAfter": {},
+                            "type": "ApiConnection"
+                        },
+                        "Response": {
+                            "inputs": {
+                                "body": {
+                                    "StatusMessage": {
+                                        "Message": "SUCCESS",
+                                        "Type": "S"
+                                    }
+                                },
+                                "statusCode": 200
+                            },
+                            "kind": "Http",
+                            "runAfter": {
+                                "Insert_or_Update_(Upsert)_a_Record_with_IFA": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Response"
+                        },
+                        "Terminate": {
+                            "inputs": {
+                                "runStatus": "Succeeded"
+                            },
+                            "runAfter": {
+                                "Response": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Terminate"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Insert_or_Update_(Upsert)_a_Record_by_External_ID": {
+                                "inputs": {
+                                    "body": {
+                                        "BillingCity": "@{json(variables('Accounts'))?['Account_List']?[0]?['CITY']}",
+                                        "BillingCountry": "@{json(variables('Accounts'))?['Account_List']?[0]?['COUNTRY']}",
+                                        "BillingCountryCode": "@{json(variables('Accounts'))?['Account_List']?[0]?['COUNTRY']}",
+                                        "BillingPostalCode": "@{json(variables('Accounts'))?['Account_List']?[0]?['POSTAL_CODE']}",
+                                        "BillingState": "@{json(variables('Accounts'))?['Account_List']?[0]?['REGION']}",
+                                        "BillingStreet": "@{json(variables('datavalidationOutput'))?['Street_Concat']}",
+                                        "Name": "@{json(variables('datavalidationOutput'))?['Name_Concat']}",
+                                        "S4SAccount_Name_International__c": "@{json(variables('datavalidationOutput'))?['Name_Inter_Concat']}",
+                                        "S4SCID_Number__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['GP_NR']}",
+                                        "S4SCMD_KUKLA__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['KUKLA']}",
+                                        "S4SCMD_NAME1_I__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME1_I']}",
+                                        "S4SCMD_NAME1__c": "@{json(variables('Accounts'))?['Account_List']?[0]['NAME1']}",
+                                        "S4SCMD_NAME2_I__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME2_I']}",
+                                        "S4SCMD_NAME2__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME2']}",
+                                        "S4SCMD_NAME3_I__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME3_I']}",
+                                        "S4SCMD_NAME3__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAME3']}",
+                                        "S4SCMD_REGION__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['REGION']}",
+                                        "S4SCMD_STREET2__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['STREET_2']}",
+                                        "S4SCMD_STREET__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['STREET']}",
+                                        "S4SCity_PO_Box_International__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['CITY_PO_BOX_I']}",
+                                        "S4SCity_PO_Box__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['CITY_PO_BOX']}",
+                                        "S4SCompany_Postal_Code__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['COMPANY_PSTCD']}",
+                                        "S4SDUNS__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['DUNS']}",
+                                        "S4SDuplicate_IfA_Number__c": "",
+                                        "S4SISIC__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['ISIC']}",
+                                        "S4SIfA__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['IFA_NR']}",
+                                        "S4SInternational_City__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['CITY_I']}",
+                                        "S4SInternational_CountryGP__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['COUNTRY']}",
+                                        "S4SInternational_RegionGP__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['REGION_I']}",
+                                        "S4SInternational_Steet_Name_2__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['STREET2_I']}",
+                                        "S4SInternational_Street_Name_1__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['STREET_I']}",
+                                        "S4SMD_Status__c": "Managed in CMD",
+                                        "S4SNat_Company_ID__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['NAT_ID']}",
+                                        "S4SNotification_from_CMD__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['INFO']}",
+                                        "S4SPO_Box_Postcode__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['POSTAL_CODE_POB']}",
+                                        "S4SPrevious_IfA_Number__c": "",
+                                        "S4STax_ID__c": "@{json(variables('Accounts'))?['Account_List']?[0]?['SALESTAX_ID']}"
+                                    },
+                                    "host": {
+                                        "connection": {
+                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                        }
+                                    },
+                                    "method": "patch",
+                                    "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Account'))}/externalIdFields/@{encodeURIComponent(encodeURIComponent('Id'))}/@{encodeURIComponent(encodeURIComponent(json(variables('fetchidOutput'))?['Id']))}"
+                                },
+                                "runAfter": {},
+                                "type": "ApiConnection"
+                            },
+                            "Response_2": {
+                                "inputs": {
+                                    "body": {
+                                        "StatusMessage": {
+                                            "Message": "SUCCESS",
+                                            "Type": "S"
+                                        }
+                                    },
+                                    "statusCode": 200
+                                },
+                                "kind": "Http",
+                                "runAfter": {
+                                    "Insert_or_Update_(Upsert)_a_Record_by_External_ID": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Response"
+                            },
+                            "Terminate_2": {
+                                "inputs": {
+                                    "runStatus": "Succeeded"
+                                },
+                                "runAfter": {
+                                    "Response_2": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Terminate"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "or": [
+                            {
+                                "equals": [
+                                    "@json(variables('Accounts'))?['Account_List']?[0]?['PO_BOX']",
+                                    ""
+                                ]
+                            },
+                            {
+                                "equals": [
+                                    "@json(variables('Accounts'))?['Account_List']?[0]?['PO_BOX']",
+                                    "@null"
+                                ]
+                            }
+                        ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                }
+            },
+            "runAfter": {
+                "Initialize_variable_Accounts": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_datavalidationOutput": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_fetchidOutput": [
+                    "Succeeded"
+                ]
+            },
+            "trackedProperties": {
+                "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+                "citizenName": "c00031",
+                "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'CMD')}",
+                "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'CMD')}",
+                "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'checkPOBOX')}",
+                "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+                "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+            },
+            "type": "Scope"
+        },
+        "Scope_-_Catch": {
+            "actions": {
+                "Terminate_3": {
+                    "inputs": {
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {},
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Scope-_Try": [
+                    "Failed",
+                    "TimedOut",
+                    "Skipped"
+                ]
+            },
+            "type": "Scope"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+      "manual": {
+          "inputs": {
+              "schema": {
+                  "properties": {
+                      "Accounts": {
+                          "type": "string"
+                      },
+                      "FetchIDOutput": {
+                          "type": "string"
+                      },
+                      "dataValidationOutput": {
+                          "type": "string"
+                      }
+                  },
+                  "type": "object"
+              }
+          },
+          "kind": "Http",
+          "type": "Request"
+      }
+    }
+}

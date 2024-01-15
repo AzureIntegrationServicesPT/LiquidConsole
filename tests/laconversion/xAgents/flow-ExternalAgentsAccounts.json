@@ -1,0 +1,517 @@
+{
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Check_IFA_NUMBER": {
+                "actions": {
+                    "Error_IFA_NUMBER": {
+                        "inputs": {
+                            "name": "ValidationError",
+                            "value": true
+                        },
+                        "runAfter": {},
+                        "type": "SetVariable"
+                    }
+                },
+                "expression": {
+                    "or": [
+                        {
+                            "equals": [
+                                "@triggerBody()?['IFA_NUMBER']",
+                                "@null"
+                            ]
+                        },
+                        {
+                            "equals": [
+                                "@triggerBody()?['IFA_NUMBER']",
+                                "@string('')"
+                            ]
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Loop_Initialize_Validation": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "If"
+            },
+            "Check_XGID": {
+                "actions": {
+                    "Error_XGID": {
+                        "inputs": {
+                            "name": "ValidationError",
+                            "value": true
+                        },
+                        "runAfter": {},
+                        "type": "SetVariable"
+                    }
+                },
+                "expression": {
+                    "or": [
+                        {
+                            "equals": [
+                                "@triggerBody()?['XGID']",
+                                "@null"
+                            ]
+                        },
+                        {
+                            "equals": [
+                                "@triggerBody()?['XGID']",
+                                "@string('')"
+                            ]
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Loop_Initialize_Validation": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "If"
+            },
+            "Initialize_ResponseMessage": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "ResponseMessage",
+                            "type": "string",
+                            "value": ""
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_ResponseStatus": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "ResponseStatus",
+                            "type": "boolean",
+                            "value": true
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Initialize_ResponseMessage": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "Initialize_Validation": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "ValidationError",
+                            "type": "boolean",
+                            "value": false
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_configData": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "configData",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Initialize_Validation": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "Loop_Initialize_Validation": {
+                "inputs": {
+                    "name": "ValidationError",
+                    "value": false
+                },
+                "runAfter": {
+                    "Initialize_ResponseStatus": [
+                        "Succeeded"
+                    ],
+                    "Initialize_configData": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "SetVariable"
+            },
+            "Response": {
+                "inputs": {
+                    "body": {
+                        "Message": "@variables('ResponseMessage')",
+                        "Success": "@variables('ResponseStatus')"
+                    },
+                    "statusCode": 200
+                },
+                "kind": "Http",
+                "runAfter": {
+                    "Validation_Error": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Response"
+            },
+            "Validation_Error": {
+                "actions": {
+                    "Create_Account_if_User_Exists": {
+                        "actions": {
+                            "Account_found_in_CMD": {
+                                "actions": {
+                                    "IFA_Number_not_found_in_CMD": {
+                                        "inputs": {
+                                            "name": "ResponseMessage",
+                                            "value": "@{triggerBody()?['IFA_NUMBER']} not found in CMD; responseCode: 1000; Record: IFA: '@{triggerBody()?['IFA_NUMBER']}' GID: '@{triggerBody()?['XGID']}'"
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToStringVariable"
+                                    },
+                                    "Set_ResponseStatus_variable": {
+                                        "inputs": {
+                                            "name": "ResponseStatus",
+                                            "value": false
+                                        },
+                                        "runAfter": {
+                                            "IFA_Number_not_found_in_CMD": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "SetVariable"
+                                    }
+                                },
+                                "else": {
+                                    "actions": {
+                                        "Create_Account": {
+                                            "actions": {
+                                                "Create_record": {
+                                                    "inputs": {
+                                                        "body": {
+                                                            "BillingCity": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['cityI']",
+                                                            "BillingCountry": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['country']",
+                                                            "BillingCountryCode": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['country']",
+                                                            "BillingPostalCode": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['postalCode']",
+                                                            "BillingState": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['regionI']",
+                                                            "BillingStreet": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['streetI']",
+                                                            "CurrencyIsoCode": "EUR",
+                                                            "Name": "@{concat(body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name1'], body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name2'],body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name3'])}",
+                                                            "OwnerId": "@body('Get_CMD_User')?['Id']",
+                                                            "Ownership": "Privately Owned/Publicly Traded",
+                                                            "S4SAccount_Name_International__c": "@{concat(body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name1I'], body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name2I'],body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name3I'])}",
+                                                            "S4SCMD_KUKLA__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['kukla']",
+                                                            "S4SCMD_NAME1_I__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name1I']",
+                                                            "S4SCMD_NAME1__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name1']",
+                                                            "S4SCMD_NAME2_I__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name2I']",
+                                                            "S4SCMD_NAME2__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name2']",
+                                                            "S4SCMD_NAME3_I__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name3I']",
+                                                            "S4SCMD_NAME3__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name3']",
+                                                            "S4SCMD_REGION__c": "",
+                                                            "S4SCMD_STREET__c": "",
+                                                            "S4SCity_PO_Box__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['cityPoBox']",
+                                                            "S4SDUNS__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['duns']",
+                                                            "S4SGlobal_Ultimate_DUNS__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['dunsGlobal']",
+                                                            "S4SIfA__c": "@triggerBody()?['IFA_NUMBER']",
+                                                            "S4SInternational_City__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['cityI']",
+                                                            "S4SInternational_CountryGP__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['country']",
+                                                            "S4SInternational_Country__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['country']",
+                                                            "S4SInternational_Postal_Code__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['postalCode']",
+                                                            "S4SInternational_RegionGP__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['regionI']",
+                                                            "S4SInternational_Region__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['regionI']",
+                                                            "S4SInternational_Street_Name_1__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['streetI']",
+                                                            "S4SMD_Status__c": "CMD Subscription Pending",
+                                                            "S4SNat_Company_ID__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['natId']",
+                                                            "S4SPO_box__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['poBox']",
+                                                            "S4SParent_DUNS__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['dunsParent']",
+                                                            "S4SSiemens_Account_Type__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['siemensAccountType']",
+                                                            "S4STax_ID__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['salestaxId']"
+                                                        },
+                                                        "host": {
+                                                            "connection": {
+                                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                            }
+                                                        },
+                                                        "method": "post",
+                                                        "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Account'))}/items"
+                                                    },
+                                                    "runAfter": {},
+                                                    "type": "ApiConnection"
+                                                },
+                                                "Set_success_response_message": {
+                                                    "inputs": {
+                                                        "name": "ResponseMessage",
+                                                        "value": "Account created for IFA: @{triggerBody()?['IFA_NUMBER']}, SieSales ID: @{body('Create_record')?['Id']}"
+                                                    },
+                                                    "runAfter": {
+                                                        "Create_record": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "SetVariable"
+                                                }
+                                            },
+                                            "runAfter": {},
+                                            "type": "Scope"
+                                        },
+                                        "Create_Account_Catch": {
+                                            "actions": {
+                                                "Set_Account_creation_error_response_message": {
+                                                    "inputs": {
+                                                        "name": "ResponseMessage",
+                                                        "value": "error: @{body('Create_record')?['message']};message: \"Error thrown by SieSales while creating Account\";\"responseCode\": \"1200\""
+                                                    },
+                                                    "runAfter": {},
+                                                    "type": "AppendToStringVariable"
+                                                },
+                                                "Set_ResponseStatus_variable_2": {
+                                                    "inputs": {
+                                                        "name": "ResponseStatus",
+                                                        "value": false
+                                                    },
+                                                    "runAfter": {
+                                                        "Set_Account_creation_error_response_message": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "SetVariable"
+                                                }
+                                            },
+                                            "runAfter": {
+                                                "Create_Account": [
+                                                    "Failed",
+                                                    "TimedOut"
+                                                ]
+                                            },
+                                            "type": "Scope"
+                                        }
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "equals": [
+                                                "@body('logic-c00031-searchCMD-weu-dev')?['statusResponse']?['message']",
+                                                "@'0 results were found in CMD-Database'"
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "logic-c00031-searchCMD-weu-dev": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "Get_CMD_User_Try": {
+                                "actions": {
+                                    "Get_CMD_User": {
+                                        "inputs": {
+                                            "host": {
+                                                "connection": {
+                                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                }
+                                            },
+                                            "method": "get",
+                                            "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('User'))}/externalIdFields/@{encodeURIComponent(encodeURIComponent('Name'))}/@{encodeURIComponent(encodeURIComponent('CMD User'))}"
+                                        },
+                                        "runAfter": {},
+                                        "type": "ApiConnection"
+                                    }
+                                },
+                                "runAfter": {
+                                    "Placeholder": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Scope"
+                            },
+                            "Get_User_GID_Try": {
+                                "actions": {
+                                    "Get_User_by_GID": {
+                                        "inputs": {
+                                            "host": {
+                                                "connection": {
+                                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                }
+                                            },
+                                            "method": "get",
+                                            "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('User'))}/externalIdFields/@{encodeURIComponent(encodeURIComponent('S4SGID_Technical__c'))}/@{encodeURIComponent(encodeURIComponent(triggerBody()?['XGID']))}"
+                                        },
+                                        "runAfter": {},
+                                        "type": "ApiConnection"
+                                    }
+                                },
+                                "runAfter": {
+                                    "Placeholder": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Scope"
+                            },
+                            "Placeholder": {
+                                "actions": {},
+                                "runAfter": {},
+                                "type": "Scope"
+                            },
+                            "logic-c00031-searchCMD-weu-dev": {
+                                "inputs": {
+                                    "body": {
+                                        "ifa": "@triggerBody()?['IFA_NUMBER']",
+                                        "imaxhits": "50",
+                                        "searchDB": "C"
+                                    },
+                                    "host": {
+                                        "triggerName": "manual",
+                                        "workflow": {
+											"id": "${searchCMD_logicAppId}"
+                                        }
+                                    }
+                                },
+                                "runAfter": {
+                                    "Get_CMD_User_Try": [
+                                        "Succeeded"
+                                    ],
+                                    "Get_User_GID_Try": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Workflow"
+                            }
+                        },
+                        "runAfter": {
+                            "Find_Account_by_IFA": [
+                                "Failed"
+                            ]
+                        },
+                        "type": "Scope"
+                    },
+                    "Find_Account_by_IFA": {
+                        "actions": {
+                            "Find_Account": {
+                                "inputs": {
+                                    "host": {
+                                        "connection": {
+                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                        }
+                                    },
+                                    "method": "get",
+                                    "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Account'))}/externalIdFields/@{encodeURIComponent(encodeURIComponent('S4SIfA__c'))}/@{encodeURIComponent(encodeURIComponent(triggerBody()?['IFA_NUMBER']))}"
+                                },
+                                "runAfter": {},
+                                "type": "ApiConnection"
+                            }
+                        },
+                        "runAfter": {},
+                        "type": "Scope"
+                    },
+                    "User_Do_Not_Exists": {
+                        "actions": {
+                            "Set_ResponseStatus_variable_3": {
+                                "inputs": {
+                                    "name": "ResponseStatus",
+                                    "value": false
+                                },
+                                "runAfter": {
+                                    "Set_error_response_message": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "SetVariable"
+                            },
+                            "Set_error_response_message": {
+                                "inputs": {
+                                    "name": "ResponseMessage",
+                                    "value": "Error: '@{triggerBody()?['XGID']}' could not be found in SieSales;  Record: \"IFA: '@{triggerBody()?['IFA_NUMBER']}' GID: '@{triggerBody()?['XGID']}'"
+                                },
+                                "runAfter": {},
+                                "type": "AppendToStringVariable"
+                            }
+                        },
+                        "runAfter": {
+                            "Create_Account_if_User_Exists": [
+                                "Failed"
+                            ]
+                        },
+                        "type": "Scope"
+                    }
+                },
+                "else": {
+                    "actions": {
+                        "Set_ResponseStatus_variable_4": {
+                            "inputs": {
+                                "name": "ResponseStatus",
+                                "value": false
+                            },
+                            "runAfter": {},
+                            "type": "SetVariable"
+                        },
+                        "Set_error_response_message_1": {
+                            "inputs": {
+                                "name": "ResponseMessage",
+                                "value": "Error: REQUIRED_FIELD_MISSING:Required fields are missing: Account.S4SIfA__c, User.S4SGID_Technical__c --;  Record: \"IFA: '@{triggerBody()?['IFA_NUMBER']}' GID: '@{triggerBody()?['XGID']}'"
+                            },
+                            "runAfter": {
+                                "Set_ResponseStatus_variable_4": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "SetVariable"
+                        }
+                    }
+                },
+                "expression": {
+                    "and": [
+                        {
+                            "equals": [
+                                "@variables('ValidationError')",
+                                false
+                            ]
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Check_IFA_NUMBER": [
+                        "Succeeded"
+                    ],
+                    "Check_XGID": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "If"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "manual": {
+                "inputs": {
+                    "method": "POST",
+                    "schema": {
+                        "properties": {
+                            "IFA_NUMBER": {
+                                "type": "string"
+                            },
+                            "XGID": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+}

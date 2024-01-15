@@ -1,0 +1,833 @@
+{
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Catch-Scope": {
+                "actions": {
+                    "Failure_Response_": {
+                        "inputs": {
+                            "body": "{\n        \"message\": \"Unexpected error occured. Please find more details using tracking id : @{workflow()['run']['name']}\n}",
+                            "statusCode": 400
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                        "type": "Response"
+                    },
+                    "Terminate": {
+                        "inputs": {
+                            "runError": {
+                                "code": "Exception"
+                            },
+                            "runStatus": "Failed"
+                        },
+                        "runAfter": {
+                            "Failure_Response_": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Terminate"
+                    }
+                },
+                "runAfter": {
+                    "Try-Scope": [
+                        "Failed",
+                        "Skipped",
+                        "TimedOut"
+                    ]
+                },
+                "type": "Scope"
+            },
+            "GetConfiguration": {
+                "inputs": {
+                    "body": {
+                        "key": "ifa-config"
+                    },
+                    "host": {
+                        "triggerName": "manual",
+                        "workflow": {
+						"id": "${getConfiguration_logicAppId}"
+                        }
+                    },
+                    "retryPolicy": {
+                        "type": "none"
+                    }
+                },
+                "runAfter": {},
+                "type": "Workflow"
+            },
+            "Get_Platform_Certificate_Password": {
+                "inputs": {
+                    "body": {
+                        "key": "integration-platform-certificate-password"
+                    },
+                    "host": {
+                        "triggerName": "manual",
+                        "workflow": {
+						"id": "${getConfiguration_logicAppId}"
+                        }
+                    },
+                    "retryPolicy": {
+                        "type": "none"
+                    }
+                },
+                "runAfter": {},
+                "type": "Workflow"
+            },
+            "Initialize_Response": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "Response",
+                            "type": "array"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_Validation": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "ValidationError",
+                            "type": "boolean",
+                            "value": false
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_configData": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "configData",
+                            "type": "string",
+                            "value": "@body('GetConfiguration')"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "GetConfiguration": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "Try-Scope": {
+                "actions": {
+                    "For_each": {
+                        "actions": {
+                            "Check_GID": {
+                                "actions": {
+                                    "Append_GID": {
+                                        "inputs": {
+                                            "name": "Response",
+                                            "value": {
+                                                "error": "GID is not provided in the input",
+                                                "message": "@concat('IFA: ', items('For_each')?['S4SIfA__c'], ', GID: ', items('For_each')?['CreatedByGID'], ', Ownership: ', items('For_each')?['Ownership'])",
+                                                "responseCode": "1000"
+                                            }
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToArrayVariable"
+                                    },
+                                    "Error_GID": {
+                                        "inputs": {
+                                            "name": "ValidationError",
+                                            "value": true
+                                        },
+                                        "runAfter": {
+                                            "Append_GID": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "SetVariable"
+                                    }
+                                },
+                                "expression": {
+                                    "or": [
+                                        {
+                                            "equals": [
+                                                "@items('For_each')?['CreatedByGID']",
+                                                "@null"
+                                            ]
+                                        },
+                                        {
+                                            "equals": [
+                                                "@items('For_each')?['CreatedByGID']",
+                                                "@string('')"
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "Loop_Initialize_Validation": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "Check_IFA": {
+                                "actions": {
+                                    "Append_IFA": {
+                                        "inputs": {
+                                            "name": "Response",
+                                            "value": {
+                                                "error": "IFA is not provided in the input",
+                                                "message": "@concat('IFA: ', items('For_each')?['S4SIfA__c'], ', GID: ', items('For_each')?['CreatedByGID'], ', Ownership: ', items('For_each')?['Ownership'])",
+                                                "responseCode": "1000"
+                                            }
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToArrayVariable"
+                                    },
+                                    "Error_IFA": {
+                                        "inputs": {
+                                            "name": "ValidationError",
+                                            "value": true
+                                        },
+                                        "runAfter": {
+                                            "Append_IFA": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "SetVariable"
+                                    }
+                                },
+                                "expression": {
+                                    "or": [
+                                        {
+                                            "equals": [
+                                                "@items('For_each')?['S4SIfA__c']",
+                                                "@null"
+                                            ]
+                                        },
+                                        {
+                                            "equals": [
+                                                "@items('For_each')?['S4SIfA__c']",
+                                                "@string('')"
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "Loop_Initialize_Validation": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "Check_Ownership": {
+                                "actions": {
+                                    "Append_Ownership": {
+                                        "inputs": {
+                                            "name": "Response",
+                                            "value": {
+                                                "error": "Ownership is not provided in the input",
+                                                "message": "@concat('IFA: ', items('For_each')?['S4SIfA__c'], ', GID: ', items('For_each')?['CreatedByGID'], ', Ownership: ', items('For_each')?['Ownership'])",
+                                                "responseCode": "1000"
+                                            }
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToArrayVariable"
+                                    },
+                                    "Error_Ownership": {
+                                        "inputs": {
+                                            "name": "ValidationError",
+                                            "value": true
+                                        },
+                                        "runAfter": {
+                                            "Append_Ownership": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "SetVariable"
+                                    }
+                                },
+                                "expression": {
+                                    "or": [
+                                        {
+                                            "equals": [
+                                                "@items('For_each')?['Ownership']",
+                                                "@null"
+                                            ]
+                                        },
+                                        {
+                                            "equals": [
+                                                "@items('For_each')?['Ownership']",
+                                                "@string('')"
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "Loop_Initialize_Validation": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "Check_Source_System": {
+                                "actions": {
+                                    "Append_SourceSystem": {
+                                        "inputs": {
+                                            "name": "Response",
+                                            "value": {
+                                                "error": "SourceSystemCode is not provided in the input",
+                                                "message": "@concat('IFA: ', items('For_each')?['S4SIfA__c'], ', GID: ', items('For_each')?['CreatedByGID'], ', Ownership: ', items('For_each')?['Ownership'])",
+                                                "responseCode": "1000"
+                                            }
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToArrayVariable"
+                                    },
+                                    "Error_SourceSystem": {
+                                        "inputs": {
+                                            "name": "ValidationError",
+                                            "value": true
+                                        },
+                                        "runAfter": {
+                                            "Append_SourceSystem": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "SetVariable"
+                                    }
+                                },
+                                "expression": {
+                                    "or": [
+                                        {
+                                            "equals": [
+                                                "@items('For_each')?['SourceSystemCode']",
+                                                "@null"
+                                            ]
+                                        },
+                                        {
+                                            "equals": [
+                                                "@items('For_each')?['SourceSystemCode']",
+                                                "@string('')"
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "Loop_Initialize_Validation": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "Check_currency": {
+                                "actions": {
+                                    "Append_Currency": {
+                                        "inputs": {
+                                            "name": "Response",
+                                            "value": {
+                                                "error": "Currency is not provided in the input",
+                                                "message": "@concat('IFA: ', items('For_each')?['S4SIfA__c'], ', GID: ', items('For_each')?['CreatedByGID'], ', Ownership: ', items('For_each')?['Ownership'])",
+                                                "responseCode": "1000"
+                                            }
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToArrayVariable"
+                                    },
+                                    "Error_Currency": {
+                                        "inputs": {
+                                            "name": "ValidationError",
+                                            "value": true
+                                        },
+                                        "runAfter": {
+                                            "Append_Currency": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "SetVariable"
+                                    }
+                                },
+                                "expression": {
+                                    "or": [
+                                        {
+                                            "equals": [
+                                                "@items('For_each')?['Currency']",
+                                                "@null"
+                                            ]
+                                        },
+                                        {
+                                            "equals": [
+                                                "@items('For_each')?['Currency']",
+                                                "@string('')"
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "Loop_Initialize_Validation": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "Loop_Initialize_Validation": {
+                                "inputs": {
+                                    "name": "ValidationError",
+                                    "value": false
+                                },
+                                "runAfter": {},
+                                "type": "SetVariable"
+                            },
+                            "Validation_Error": {
+                                "actions": {
+                                    "Account_not_Found": {
+                                        "actions": {
+                                            "Create_Account_if_User_Exists": {
+                                                "actions": {
+                                                    "Compose_CMD_Inputs": {
+                                                        "inputs": {
+                                                            "ifa": "@items('For_each')?['S4SIfA__c']",
+                                                            "imaxhits": "50",
+                                                            "searchDB": "C"
+                                                        },
+                                                        "runAfter": {
+                                                            "GID_could_not_be_found_": [
+                                                                "Skipped"
+                                                            ],
+                                                            "Get_CMD_User_Try": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "Compose"
+                                                    },
+                                                    "Condition-_CMD_response_is_Success": {
+                                                        "actions": {
+                                                            "IFA_Number_not_found_in_CMD": {
+                                                                "inputs": {
+                                                                    "name": "Response",
+                                                                    "value": {
+                                                                        "error": "@concat('IFA: ', items('For_each')?['S4SIfA__c'], ' not found SieSales and CMD')",
+                                                                        "message": "@concat('IFA: ', items('For_each')?['S4SIfA__c'], ' not found in CMD')",
+                                                                        "responseCode": "1300"
+                                                                    }
+                                                                },
+                                                                "runAfter": {},
+                                                                "type": "AppendToArrayVariable"
+                                                            }
+                                                        },
+                                                        "else": {
+                                                            "actions": {
+                                                                "Create_Account": {
+                                                                    "actions": {
+                                                                        "Append_to_array_Success": {
+                                                                            "inputs": {
+                                                                                "name": "Response",
+                                                                                "value": {
+                                                                                    "error": "",
+                                                                                    "message": "@concat('Account created for IFA: ', items('For_each')['S4SIfA__c'] , ', SieSales ID: ', body('Create_record')?['Id'])",
+                                                                                    "responseCode": "100"
+                                                                                }
+                                                                            },
+                                                                            "runAfter": {
+                                                                                "Create_Account_Team_Member": [
+                                                                                    "Succeeded"
+                                                                                ]
+                                                                            },
+                                                                            "type": "AppendToArrayVariable"
+                                                                        },
+                                                                        "Create_Account_Team_Member": {
+                                                                            "inputs": {
+                                                                                "body": {
+                                                                                    "AccountAccessLevel": "Edit",
+                                                                                    "AccountId": "@body('Create_record')?['Id']",
+                                                                                    "CaseAccessLevel": "None",
+                                                                                    "OpportunityAccessLevel": "None",
+                                                                                    "S4SExternal_Source__c": "@items('For_each')['SourceSystemCode']",
+                                                                                    "S4SInterface_Upsert_Date__c": "@{utcNow()}",
+                                                                                    "TeamMemberRole": "owner",
+                                                                                    "UserId": "@body('Get_User_by_GID')?['Id']"
+                                                                                },
+                                                                                "host": {
+                                                                                    "connection": {
+                                                                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                                    }
+                                                                                },
+                                                                                "method": "post",
+                                                                                "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('AccountTeamMember'))}/items"
+                                                                            },
+                                                                            "runAfter": {
+                                                                                "Create_record": [
+                                                                                    "Succeeded"
+                                                                                ]
+                                                                            },
+                                                                            "type": "ApiConnection"
+                                                                        },
+                                                                        "Create_record": {
+                                                                            "inputs": {
+                                                                                "body": {
+                                                                                    "BillingCity": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['city']",
+                                                                                    "BillingCountry": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['country']",
+                                                                                    "BillingCountryCode": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['country']",
+                                                                                    "BillingPostalCode": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['postalCode']",
+                                                                                    "BillingState": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['region']",
+                                                                                    "BillingStreet": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['street']",
+                                                                                    "CreatedById": "@body('Get_User_by_GID')?['Id']",
+                                                                                    "CurrencyIsoCode": "@items('For_each')['Currency']",
+                                                                                    "Name": "@{concat(body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name1'], body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name2'],body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name3'])}",
+                                                                                    "OwnerId": "@body('Get_CMD_User')?['Id']",
+                                                                                    "Ownership": "@items('For_each')['Ownership']",
+                                                                                    "S4SAccount_Name_International__c": "@{concat(body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name1I'], body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name2I'],body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name3I'])}",
+                                                                                    "S4SCMD_KUKLA__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['kukla']",
+                                                                                    "S4SCMD_NAME1_I__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name1I']",
+                                                                                    "S4SCMD_NAME1__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name1']",
+                                                                                    "S4SCMD_NAME2_I__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name2I']",
+                                                                                    "S4SCMD_NAME2__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name2']",
+                                                                                    "S4SCMD_NAME3_I__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name3I']",
+                                                                                    "S4SCMD_NAME3__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['name3']",
+                                                                                    "S4SCMD_REGION__c": "",
+                                                                                    "S4SCMD_STREET__c": "",
+                                                                                    "S4SCity_PO_Box__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['cityPoBox']",
+                                                                                    "S4SDUNS__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['duns']",
+                                                                                    "S4SExternal_Source__c": "@items('For_each')['SourceSystemCode']",
+                                                                                    "S4SGlobal_Ultimate_DUNS__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['DunsGlobal']",
+                                                                                    "S4SIfA__c": "@items('For_each')['S4SIfA__c']",
+                                                                                    "S4SInternational_City__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['cityI']",
+                                                                                    "S4SInternational_CountryGP__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['country']",
+                                                                                    "S4SInternational_Country__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['country']",
+                                                                                    "S4SInternational_Postal_Code__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['postalCode']",
+                                                                                    "S4SInternational_RegionGP__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['regionI']",
+                                                                                    "S4SInternational_Region__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['regionI']",
+                                                                                    "S4SInternational_Street_Name_1__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['streetI']",
+                                                                                    "S4SInternational_Steet_Name_2__c": "@{body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['street2I']}",
+                                                                                    "S4SMD_Status__c": "CMD Subscription Pending",
+                                                                                    "S4SNat_Company_ID__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['natId']",
+                                                                                    "S4SPO_box__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['poBox']",
+                                                                                    "S4SParent_DUNS__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['dunsParent']",
+                                                                                    "S4SSiemens_Account_Type__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['SiemensAccountType']",
+                                                                                    "S4STax_ID__c": "@body('logic-c00031-searchCMD-weu-dev')?['accounts']?[0]?['salesTaxId']"
+                                                                                },
+                                                                                "host": {
+                                                                                    "connection": {
+                                                                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                                    }
+                                                                                },
+                                                                                "method": "post",
+                                                                                "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Account'))}/items"
+                                                                            },
+                                                                            "runAfter": {},
+                                                                            "type": "ApiConnection"
+                                                                        }
+                                                                    },
+                                                                    "runAfter": {},
+                                                                    "type": "Scope"
+                                                                },
+                                                                "Create_Account_Catch": {
+                                                                    "actions": {
+                                                                        "Create_Account_Error": {
+                                                                            "inputs": {
+                                                                                "name": "Response",
+                                                                                "value": {
+                                                                                    "error": "@body('Create_record')?['message']",
+                                                                                    "message": "@concat('Error thrown by SieSales while creating Account, Account creation failed for IFA: ', items('For_each')?['S4SIfA__c'])",
+                                                                                    "responseCode": "1200"
+                                                                                }
+                                                                            },
+                                                                            "runAfter": {},
+                                                                            "type": "AppendToArrayVariable"
+                                                                        }
+                                                                    },
+                                                                    "runAfter": {
+                                                                        "Create_Account": [
+                                                                            "Failed",
+                                                                            "TimedOut"
+                                                                        ]
+                                                                    },
+                                                                    "type": "Scope"
+                                                                }
+                                                            }
+                                                        },
+                                                        "expression": {
+                                                            "and": [
+                                                                {
+                                                                    "equals": [
+                                                                        "@body('logic-c00031-searchCMD-weu-dev')?['statusResponse']?['message']",
+                                                                        "@'0 results were found in CMD-Database'"
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        },
+                                                        "runAfter": {
+                                                            "logic-c00031-searchCMD-weu-dev": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "If"
+                                                    },
+                                                    "GID_could_not_be_found_": {
+                                                        "inputs": {
+                                                            "name": "Response",
+                                                            "value": {
+                                                                "error": "@concat( 'GID: ', items('For_each')?['CreatedByGID'], 'could not be found in SieSales')",
+                                                                "message": "@{concat('IFA: ', items('For_each')?['S4SIfA__c'], ', GID: ', items('For_each')?['CreatedByGID'], ', Ownership: ', items('For_each')?['Ownership'])}",
+                                                                "responseCode": "1100"
+                                                            }
+                                                        },
+                                                        "runAfter": {
+                                                            "Get_User_GID_Try": [
+                                                                "Failed"
+                                                            ]
+                                                        },
+                                                        "type": "AppendToArrayVariable"
+                                                    },
+                                                    "Get_CMD_User_Try": {
+                                                        "actions": {
+                                                            "Get_CMD_User": {
+                                                                "inputs": {
+                                                                    "host": {
+                                                                        "connection": {
+                                                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                        }
+                                                                    },
+                                                                    "method": "get",
+                                                                    "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('User'))}/externalIdFields/@{encodeURIComponent(encodeURIComponent('Name'))}/@{encodeURIComponent(encodeURIComponent('CMD User'))}"
+                                                                },
+                                                                "runAfter": {},
+                                                                "type": "ApiConnection"
+                                                            }
+                                                        },
+                                                        "runAfter": {
+                                                            "Placeholder": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "Scope"
+                                                    },
+                                                    "Get_User_GID_Try": {
+                                                        "actions": {
+                                                            "Get_User_by_GID": {
+                                                                "inputs": {
+                                                                    "host": {
+                                                                        "connection": {
+                                                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                        }
+                                                                    },
+                                                                    "method": "get",
+                                                                    "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('User'))}/externalIdFields/@{encodeURIComponent(encodeURIComponent('S4SGID_Technical__c'))}/@{encodeURIComponent(encodeURIComponent(items('For_each')['CreatedByGID']))}"
+                                                                },
+                                                                "runAfter": {},
+                                                                "type": "ApiConnection"
+                                                            }
+                                                        },
+                                                        "runAfter": {
+                                                            "Placeholder": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "Scope"
+                                                    },
+                                                    "Placeholder": {
+                                                        "actions": {},
+                                                        "runAfter": {},
+                                                        "type": "Scope"
+                                                    },
+                                                    "logic-c00031-searchCMD-weu-dev": {
+                                                        "inputs": {
+                                                            "body": "@outputs('Compose_CMD_Inputs')",
+                                                            "host": {
+                                                                "triggerName": "manual",
+                                                                "workflow": {
+																"id": "${searchCMD_logicAppId}"
+                                                                }
+                                                            }
+                                                        },
+                                                        "runAfter": {
+                                                            "Compose_CMD_Inputs": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "Workflow"
+                                                    }
+                                                },
+                                                "runAfter": {},
+                                                "type": "Scope"
+                                            }
+                                        },
+                                        "runAfter": {
+                                            "Find_Account_by_IFA": [
+                                                "Failed"
+                                            ]
+                                        },
+                                        "type": "Scope"
+                                    },
+                                    "Find_Account_by_IFA": {
+                                        "actions": {
+                                            "Append_to_array_variable": {
+                                                "inputs": {
+                                                    "name": "Response",
+                                                    "value": {
+                                                        "error": "@concat('IFA: ', items('For_each')?['S4SIfA__c'], ' already exists. SieSales ID: ', body('Find_Account')?['Id'])",
+                                                        "message": "@concat('IFA: ', items('For_each')?['S4SIfA__c'], ', GID: ', items('For_each')?['CreatedByGID'], ', Ownership: ', items('For_each')?['Ownership'])",
+                                                        "responseCode": "200"
+                                                    }
+                                                },
+                                                "runAfter": {
+                                                    "Find_Account": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "AppendToArrayVariable"
+                                            },
+                                            "Find_Account": {
+                                                "inputs": {
+                                                    "host": {
+                                                        "connection": {
+                                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                        }
+                                                    },
+                                                    "method": "get",
+                                                    "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Account'))}/externalIdFields/@{encodeURIComponent(encodeURIComponent('S4SIfA__c'))}/@{encodeURIComponent(encodeURIComponent(items('For_each')?['S4SIfA__c']))}"
+                                                },
+                                                "runAfter": {},
+                                                "type": "ApiConnection"
+                                            }
+                                        },
+                                        "runAfter": {},
+                                        "type": "Scope"
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "equals": [
+                                                "@variables('ValidationError')",
+                                                false
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "Check_GID": [
+                                        "Succeeded"
+                                    ],
+                                    "Check_IFA": [
+                                        "Succeeded"
+                                    ],
+                                    "Check_Ownership": [
+                                        "Succeeded"
+                                    ],
+                                    "Check_Source_System": [
+                                        "Succeeded"
+                                    ],
+                                    "Check_currency": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            }
+                        },
+                        "foreach": "@triggerBody()",
+                        "runAfter": {},
+                        "type": "Foreach"
+                    },
+                    "Success_Response": {
+                        "inputs": {
+                            "body": {
+                                "Response": "@variables('Response')"
+                            },
+                            "statusCode": 200
+                        },
+                        "kind": "Http",
+                        "runAfter": {
+                            "For_each": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Response"
+                    }
+                },
+                "runAfter": {
+                    "Get_Platform_Certificate_Password": [
+                        "Succeeded"
+                    ],
+                    "Initialize_Response": [
+                        "Succeeded"
+                    ],
+                    "Initialize_Validation": [
+                        "Succeeded"
+                    ],
+                    "Initialize_configData": [
+                        "Succeeded"
+                    ],
+                    "getConfiguration-_Platform_Certificate": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Scope"
+            },
+            "getConfiguration-_Platform_Certificate": {
+                "inputs": {
+                    "body": {
+                        "key": "integration-platform-certificate"
+                    },
+                    "host": {
+                        "triggerName": "manual",
+                        "workflow": {
+						"id": "${getConfiguration_logicAppId}"
+                        }
+                    },
+                    "retryPolicy": {
+                        "type": "none"
+                    }
+                },
+                "runAfter": {},
+                "type": "Workflow"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "manual": {
+                "inputs": {
+                    "schema": {
+                        "items": {
+                            "properties": {
+                                "CreatedByGID": {
+                                    "type": "string"
+                                },
+                                "Currency": {
+                                    "type": "string"
+                                },
+                                "Ownership": {
+                                    "type": "string"
+                                },
+                                "S4SIfA__c": {
+                                    "type": "string"
+                                },
+                                "SiemensAccountType": {
+                                    "type": "string"
+                                },
+                                "SourceSystemCode": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "S4SIfA__c",
+                                "Ownership",
+                                "Currency",
+                                "CreatedByGID",
+                                "SourceSystemCode"
+                            ],
+                            "type": "object"
+                        },
+                        "type": "array"
+                    }
+                },
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+}

@@ -1,0 +1,1103 @@
+{    
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Catch_Scope": {
+            "actions": {
+                "Response_in_Catch": {
+                    "inputs": {
+                        "body": {
+                            "Message": "@concat('Some error occurred while processing the request. Please find more details using tracking id : ', workflow()['run']['name'])",
+                            "Status": "Failure"
+                        },
+                        "headers": {
+                            "Content-Type": "application/json"
+                        },
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                },
+                "Terminate_in_Catch": {
+                    "inputs": {
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Response_in_Catch": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Try_Scope": [
+                    "Failed",
+                    "Skipped",
+                    "TimedOut"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Initialize_variable_ooportunityId": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "opportunityId",
+                        "type": "string",
+                        "value": "@{triggerBody()}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Try_Scope": {
+            "actions": {
+                "Compose_fetchOppDetailsResponse": {
+                    "inputs": {
+                        "Opportunity": {
+                            "BookingLineItems": [
+                                "@if(greater(length(string(body('fetchBookingLineItem')?['records'])),2),body('fetchBookingLineItem')?['records'],null)"
+                            ],
+                            "EndAccounts": [
+                                "@if(greater(length(string(body('fetchAccount_with_S4SEnd_Account__c')?['records'])),2),body('fetchAccount_with_S4SEnd_Account__c')?['records'],null)\n"
+                            ],
+                            "InvolvedAccounts": [
+                                "@if(greater(length(string(body('fetchInvolvedAccounts')?['records'])),2),body('fetchInvolvedAccounts')?['records'],null)"
+                            ],
+                            "Opportunities": [
+                                "@if(greater(length(string(body('fetchOpportunity')?['records'])),2),body('fetchOpportunity')?['records'],null)"
+                            ],
+                            "OpportunityLineItems": [
+                                "@if(greater(length(string(body('fetchOpportunityLineItem')?['records'])),2),body('fetchOpportunityLineItem')?['records'],null)"
+                            ],
+                            "OpportunityTeamMembers": [
+                                "@if(greater(length(string(body('Execute_a_SOQL_query_fetchTeamMember')?['records'])),2),body('Execute_a_SOQL_query_fetchTeamMember')?['records'],null)"
+                            ],
+                            "Owners": [
+                                "@if(greater(length(string(body('fetchUser_with_OwnerId')?['records'])),2),body('fetchUser_with_OwnerId')?['records'],null)"
+                            ],
+                            "Quotes": [
+                                "@if(greater(length(string(body('fetchQuote')?['records'])),2),body('fetchQuote')?['records'],null)"
+                            ],
+                            "S4SIACs": [
+                                "@if(greater(length(string(body('fetchIAC')?['records'])),2),body('fetchIAC')?['records'],null)"
+                            ],
+                            "SoldTos": [
+                                "@if(greater(length(string(body('fetchAccount_with_AccountId')?['records'])),2),body('fetchAccount_with_AccountId')?['records'],null)"
+                            ],
+                            "TerritoryStructures": [
+                                "@if(greater(length(string(body('fetchTerritoryStructure')?['records'])),2),body('fetchTerritoryStructure')?['records'],null)"
+                            ]
+                        }
+                    },
+                    "runAfter": {
+                        "Condition_check_for_statusCode_of_fetchOpportunity": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Compose"
+                },
+                "Condition_check_for_statusCode_of_fetchOpportunity": {
+                    "actions": {
+                        "Condition_to_check_opportunityId": {
+                            "actions": {
+                                "Condition_to_check_AccountId": {
+                                    "actions": {
+                                        "Compose_at_fetchAccount_with_AccountId": {
+                                            "inputs": {
+                                                "fetchAccountRequest": {
+                                                    "IfANumber": "",
+                                                    "accountId": "@{body('fetchOpportunity')?['records']?[0]?['AccountId']}"
+                                                }
+                                            },
+                                            "runAfter": {},
+                                            "type": "Compose"
+                                        },
+                                        "Condition_for_check_statusCode_of_fetchAccount": {
+                                            "actions": {},
+                                            "else": {
+                                                "actions": {
+                                                    "Error_Response_on_fetchAccount": {
+                                                        "inputs": {
+                                                            "body": {
+                                                                "OpportunityId": "@{triggerBody()}",
+                                                                "error details": "@{body('fetchAccount_with_AccountId')}"
+                                                            },
+                                                            "headers": {
+                                                                "Content-Type": "application/json"
+                                                            },
+                                                            "statusCode": "@outputs('fetchAccount_with_AccountId')?['statusCode']"
+                                                        },
+                                                        "kind": "Http",
+                                                        "runAfter": {},
+                                                        "type": "Response"
+                                                    },
+                                                    "Terminate_at_fetchAccount": {
+                                                        "inputs": {
+                                                            "runStatus": "Failed"
+                                                        },
+                                                        "runAfter": {
+                                                            "Error_Response_on_fetchAccount": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "Terminate"
+                                                    }
+                                                }
+                                            },
+                                            "expression": {
+                                                "and": [
+                                                    {
+                                                        "equals": [
+                                                            "@outputs('fetchAccount_with_AccountId')?['statusCode']",
+                                                            200
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "runAfter": {
+                                                "fetchAccount_with_AccountId": [
+                                                    "Succeeded",
+                                                    "Failed"
+                                                ]
+                                            },
+                                            "type": "If"
+                                        },
+                                        "fetchAccount_with_AccountId": {
+                                            "inputs": {
+                                                "body": "@outputs('Compose_at_fetchAccount_with_AccountId')",
+                                                "host": {
+                                                    "triggerName": "manual",
+                                                    "workflow": {
+                                                        "id": "${shellfecthAccount_logicApp_id}"
+                                                    }
+                                                },
+                                                "retryPolicy": {
+                                                    "type": "none"
+                                                }
+                                            },
+                                            "runAfter": {
+                                                "Compose_at_fetchAccount_with_AccountId": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "Workflow"
+                                        }
+                                    },
+                                    "expression": {
+                                        "and": [
+                                            {
+                                                "not": {
+                                                    "equals": [
+                                                        "@body('fetchOpportunity')?['records']?[0]?['AccountId']",
+                                                        "@null"
+                                                    ]
+                                                }
+                                            },
+                                            {
+                                                "not": {
+                                                    "equals": [
+                                                        "@body('fetchOpportunity')?['records']?[0]?['AccountId']",
+                                                        "@string('')"
+                                                    ]
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    "runAfter": {},
+                                    "type": "If"
+                                },
+                                "Condition_to_check_Id": {
+                                    "actions": {
+                                        "Condition_to_check_statusCode_for_fetchBookingLineItem": {
+                                            "actions": {},
+                                            "else": {
+                                                "actions": {
+                                                    "Error_Response_at_fetchBookingLineItem": {
+                                                        "inputs": {
+                                                            "body": {
+                                                                "OpportunityId": "@{triggerBody()}",
+                                                                "error details": "@{body('fetchBookingLineItem')}"
+                                                            },
+                                                            "headers": {
+                                                                "Content-Type": "application/json"
+                                                            },
+                                                            "statusCode": "@outputs('fetchBookingLineItem')?['statusCode']"
+                                                        },
+                                                        "kind": "Http",
+                                                        "runAfter": {},
+                                                        "type": "Response"
+                                                    },
+                                                    "Terminate_fetchBookingLineItem": {
+                                                        "inputs": {
+                                                            "runStatus": "Failed"
+                                                        },
+                                                        "runAfter": {
+                                                            "Error_Response_at_fetchBookingLineItem": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "Terminate"
+                                                    }
+                                                }
+                                            },
+                                            "expression": {
+                                                "and": [
+                                                    {
+                                                        "equals": [
+                                                            "@outputs('fetchBookingLineItem')?['statusCode']",
+                                                            200
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "runAfter": {
+                                                "fetchBookingLineItem": [
+                                                    "Succeeded",
+                                                    "Failed"
+                                                ]
+                                            },
+                                            "type": "If"
+                                        },
+                                        "Condition_to_check_statusCode_for_fetchInvolvedAccounts": {
+                                            "actions": {},
+                                            "else": {
+                                                "actions": {
+                                                    "Error_Response_at_fetchInvolvedAccounts": {
+                                                        "inputs": {
+                                                            "body": {
+                                                                "OpportunityId": "@{triggerBody()}",
+                                                                "error details": "@{body('fetchInvolvedAccounts')}"
+                                                            },
+                                                            "headers": {
+                                                                "Content-Type": "application/json"
+                                                            },
+                                                            "statusCode": "@outputs('fetchInvolvedAccounts')?['statusCode']"
+                                                        },
+                                                        "kind": "Http",
+                                                        "runAfter": {},
+                                                        "type": "Response"
+                                                    },
+                                                    "Terminate_at_fetchInvolvedAccounts": {
+                                                        "inputs": {
+                                                            "runStatus": "Failed"
+                                                        },
+                                                        "runAfter": {
+                                                            "Error_Response_at_fetchInvolvedAccounts": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "Terminate"
+                                                    }
+                                                }
+                                            },
+                                            "expression": {
+                                                "and": [
+                                                    {
+                                                        "equals": [
+                                                            "@outputs('fetchInvolvedAccounts')?['statusCode']",
+                                                            200
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "runAfter": {
+                                                "fetchInvolvedAccounts": [
+                                                    "Succeeded",
+                                                    "Failed"
+                                                ]
+                                            },
+                                            "type": "If"
+                                        },
+                                        "Condition_to_check_statusCode_for_fetchTerritoryStructure": {
+                                            "actions": {},
+                                            "else": {
+                                                "actions": {
+                                                    "Response_at_fetchTerritoryStructure": {
+                                                        "inputs": {
+                                                            "body": {
+                                                                "OpportunityId": "@{triggerBody()}",
+                                                                "error details": "@{body('fetchTerritoryStructure')}"
+                                                            },
+                                                            "headers": {
+                                                                "Content-Type": "application/json"
+                                                            },
+                                                            "statusCode": "@outputs('fetchTerritoryStructure')?['statusCode']"
+                                                        },
+                                                        "kind": "Http",
+                                                        "runAfter": {},
+                                                        "type": "Response"
+                                                    },
+                                                    "Terminate_at_fetchTerritoryStructure": {
+                                                        "inputs": {
+                                                            "runStatus": "Failed"
+                                                        },
+                                                        "runAfter": {
+                                                            "Response_at_fetchTerritoryStructure": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "Terminate"
+                                                    }
+                                                }
+                                            },
+                                            "expression": {
+                                                "and": [
+                                                    {
+                                                        "equals": [
+                                                            "@outputs('fetchTerritoryStructure')?['statusCode']",
+                                                            200
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "runAfter": {
+                                                "fetchTerritoryStructure": [
+                                                    "Succeeded",
+                                                    "Failed"
+                                                ]
+                                            },
+                                            "type": "If"
+                                        },
+                                        "Condition_to_check_statusCode_of_fetchOpportunityLineItem": {
+                                            "actions": {},
+                                            "else": {
+                                                "actions": {
+                                                    "Error_Response_at_fetchOpportunityLineItem": {
+                                                        "inputs": {
+                                                            "body": {
+                                                                "OpportunityId": "@{triggerBody()}",
+                                                                "error details": "@{body('fetchOpportunityLineItem')}"
+                                                            },
+                                                            "headers": {
+                                                                "Content-Type": "application/json"
+                                                            },
+                                                            "statusCode": "@outputs('fetchOpportunityLineItem')?['statusCode']"
+                                                        },
+                                                        "kind": "Http",
+                                                        "runAfter": {},
+                                                        "type": "Response"
+                                                    },
+                                                    "Terminate_at_fetchOpportunityLineItem": {
+                                                        "inputs": {
+                                                            "runStatus": "Failed"
+                                                        },
+                                                        "runAfter": {
+                                                            "Error_Response_at_fetchOpportunityLineItem": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "Terminate"
+                                                    }
+                                                }
+                                            },
+                                            "expression": {
+                                                "and": [
+                                                    {
+                                                        "equals": [
+                                                            "@outputs('fetchOpportunityLineItem')?['statusCode']",
+                                                            200
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "runAfter": {
+                                                "fetchOpportunityLineItem": [
+                                                    "Succeeded",
+                                                    "Failed"
+                                                ]
+                                            },
+                                            "type": "If"
+                                        },
+                                        "Condition_to_check_statusCode_of_fetchQuote": {
+                                            "actions": {},
+                                            "else": {
+                                                "actions": {
+                                                    "Error_Response_at_fetchQuote": {
+                                                        "inputs": {
+                                                            "body": {
+                                                                "OpportunityId": "@{triggerBody()}",
+                                                                "error details": "@{body('fetchQuote')}"
+                                                            },
+                                                            "headers": {
+                                                                "Content-Type": "application/json"
+                                                            },
+                                                            "statusCode": "@outputs('fetchQuote')?['statusCode']"
+                                                        },
+                                                        "kind": "Http",
+                                                        "runAfter": {},
+                                                        "type": "Response"
+                                                    },
+                                                    "Terminate_at_fetchQuote": {
+                                                        "inputs": {
+                                                            "runStatus": "Failed"
+                                                        },
+                                                        "runAfter": {
+                                                            "Error_Response_at_fetchQuote": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "Terminate"
+                                                    }
+                                                }
+                                            },
+                                            "expression": {
+                                                "and": [
+                                                    {
+                                                        "equals": [
+                                                            "@outputs('fetchQuote')?['statusCode']",
+                                                            200
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "runAfter": {
+                                                "fetchQuote": [
+                                                    "Succeeded",
+                                                    "Failed"
+                                                ]
+                                            },
+                                            "type": "If"
+                                        },
+                                        "Condition_to_check_statusCode_of_fetchTeamMember": {
+                                            "actions": {},
+                                            "else": {
+                                                "actions": {
+                                                    "Error_Response_at_fetchTeamMember": {
+                                                        "inputs": {
+                                                            "body": {
+                                                                "OpportunityId": "@{triggerBody()}",
+                                                                "error details": "@{body('Execute_a_SOQL_query_fetchTeamMember')?['message']}"
+                                                            },
+                                                            "headers": {
+                                                                "Content-Type": "application/json"
+                                                            },
+                                                            "statusCode": "@outputs('Execute_a_SOQL_query_fetchTeamMember')?['statusCode']"
+                                                        },
+                                                        "kind": "Http",
+                                                        "runAfter": {},
+                                                        "type": "Response"
+                                                    },
+                                                    "Terminate_at_fetchTeamMember": {
+                                                        "inputs": {
+                                                            "runStatus": "Failed"
+                                                        },
+                                                        "runAfter": {
+                                                            "Error_Response_at_fetchTeamMember": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "Terminate"
+                                                    }
+                                                }
+                                            },
+                                            "expression": {
+                                                "and": [
+                                                    {
+                                                        "equals": [
+                                                            "@outputs('Execute_a_SOQL_query_fetchTeamMember')?['statusCode']",
+                                                            200
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "runAfter": {
+                                                "Execute_a_SOQL_query_fetchTeamMember": [
+                                                    "Succeeded",
+                                                    "Failed"
+                                                ]
+                                            },
+                                            "type": "If"
+                                        },
+                                        "Execute_a_SOQL_query_fetchTeamMember": {
+                                            "inputs": {
+                                                "body": {
+                                                    "query": "select Id,OpportunityId,UserId,Name,PhotoUrl,Title,TeamMemberRole,OpportunityAccessLevel,CurrencyIsoCode,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,IsDeleted from OpportunityTeamMember where OpportunityId =  '@{body('fetchOpportunity')?['records']?[0]?['Id']}'"
+                                                },
+                                                "host": {
+                                                    "connection": {
+                                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                    }
+                                                },
+                                                "method": "post",
+                                                "path": "/soql/executesoqlquery",
+                                                "retryPolicy": {
+                                                    "type": "none"
+                                                }
+                                            },
+                                            "runAfter": {},
+                                            "type": "ApiConnection"
+                                        },
+                                        "fetchBookingLineItem": {
+                                            "inputs": {
+                                                "body": "@body('fetchOpportunity')",
+                                                "host": {
+                                                    "triggerName": "manual",
+                                                    "workflow": {
+                                                        "id": "${shellfetchBookingLineItem_logicApp_id}"
+                                                    }
+                                                },
+                                                "retryPolicy": {
+                                                    "type": "none"
+                                                }
+                                            },
+                                            "runAfter": {},
+                                            "type": "Workflow"
+                                        },
+                                        "fetchInvolvedAccounts": {
+                                            "inputs": {
+                                                "body": "@body('fetchOpportunity')",
+                                                "host": {
+                                                    "triggerName": "manual",
+                                                    "workflow": {
+                                                        "id": "${shellfetchInvolvedAccounts_logicApp_id}"
+                                                    }
+                                                },
+                                                "retryPolicy": {
+                                                    "type": "none"
+                                                }
+                                            },
+                                            "runAfter": {},
+                                            "type": "Workflow"
+                                        },
+                                        "fetchOpportunityLineItem": {
+                                            "inputs": {
+                                                "body": "@body('fetchOpportunity')",
+                                                "host": {
+                                                    "triggerName": "manual",
+                                                    "workflow": {
+                                                        "id": "${fetchOpportunityLineItem_logicApp_id}"
+                                                    }
+                                                },
+                                                "retryPolicy": {
+                                                    "type": "none"
+                                                }
+                                            },
+                                            "runAfter": {},
+                                            "type": "Workflow"
+                                        },
+                                        "fetchQuote": {
+                                            "inputs": {
+                                                "body": "@body('fetchOpportunity')",
+                                                "host": {
+                                                    "triggerName": "manual",
+                                                    "workflow": {
+                                                        "id": "${shellfecthQuote_logicApp_id}"
+                                                    }
+                                                },
+                                                "retryPolicy": {
+                                                    "type": "none"
+                                                }
+                                            },
+                                            "runAfter": {},
+                                            "type": "Workflow"
+                                        },
+                                        "fetchTerritoryStructure": {
+                                            "inputs": {
+                                                "body": "@body('fetchOpportunity')",
+                                                "host": {
+                                                    "triggerName": "manual",
+                                                    "workflow": {
+                                                        "id": "${fetchTerritoryStructure_logicApp_id}"
+                                                    }
+                                                },
+                                                "retryPolicy": {
+                                                    "type": "none"
+                                                }
+                                            },
+                                            "runAfter": {},
+                                            "type": "Workflow"
+                                        }
+                                    },
+                                    "expression": {
+                                        "and": [
+                                            {
+                                                "not": {
+                                                    "equals": [
+                                                        "@body('fetchOpportunity')?['records']?[0]?['Id']",
+                                                        "@null"
+                                                    ]
+                                                }
+                                            },
+                                            {
+                                                "not": {
+                                                    "equals": [
+                                                        "@body('fetchOpportunity')?['records']?[0]?['Id']",
+                                                        "@string('')"
+                                                    ]
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    "runAfter": {},
+                                    "type": "If"
+                                },
+                                "Condition_to_check_OwnerId": {
+                                    "actions": {
+                                        "Condition_to_check_statusCode_of_fetchUser": {
+                                            "actions": {},
+                                            "else": {
+                                                "actions": {
+                                                    "Response_at_fetchUser": {
+                                                        "inputs": {
+                                                            "body": {
+                                                                "OpportunityId": "@{triggerBody()}",
+                                                                "error details": "@{body('fetchUser_with_OwnerId')}"
+                                                            },
+                                                            "headers": {
+                                                                "Content-Type": "application/json"
+                                                            },
+                                                            "statusCode": "@outputs('fetchUser_with_OwnerId')?['statusCode']"
+                                                        },
+                                                        "kind": "Http",
+                                                        "runAfter": {},
+                                                        "type": "Response"
+                                                    },
+                                                    "Terminate_at_fetchUser": {
+                                                        "inputs": {
+                                                            "runStatus": "Failed"
+                                                        },
+                                                        "runAfter": {
+                                                            "Response_at_fetchUser": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "Terminate"
+                                                    }
+                                                }
+                                            },
+                                            "expression": {
+                                                "and": [
+                                                    {
+                                                        "equals": [
+                                                            "@outputs('fetchUser_with_OwnerId')?['statusCode']",
+                                                            200
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "runAfter": {
+                                                "fetchUser_with_OwnerId": [
+                                                    "Succeeded",
+                                                    "Failed"
+                                                ]
+                                            },
+                                            "type": "If"
+                                        },
+                                        "fetchUser_with_OwnerId": {
+                                            "inputs": {
+                                                "body": "@body('fetchOpportunity')",
+                                                "host": {
+                                                    "triggerName": "manual",
+                                                    "workflow": {
+                                                        "id": "${shellfetchUser_logicApp_id}"
+                                                    }
+                                                },
+                                                "retryPolicy": {
+                                                    "type": "none"
+                                                }
+                                            },
+                                            "runAfter": {},
+                                            "type": "Workflow"
+                                        }
+                                    },
+                                    "expression": {
+                                        "and": [
+                                            {
+                                                "not": {
+                                                    "equals": [
+                                                        "@body('fetchOpportunity')?['records']?[0]?['OwnerId']",
+                                                        ""
+                                                    ]
+                                                }
+                                            },
+                                            {
+                                                "not": {
+                                                    "equals": [
+                                                        "@body('fetchOpportunity')?['records']?[0]?['OwnerId']",
+                                                        "@null"
+                                                    ]
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    "runAfter": {},
+                                    "type": "If"
+                                },
+                                "Condition_to_check_S4SAsset_Type__c": {
+                                    "actions": {
+                                        "Condition_to_check_statusCode_Of_FetchIAC": {
+                                            "actions": {},
+                                            "else": {
+                                                "actions": {
+                                                    "Error_Response_at_fetchIAC": {
+                                                        "inputs": {
+                                                            "body": {
+                                                                "OpportunityId": "@{triggerBody()}",
+                                                                "error details": "@{body('fetchIAC')}"
+                                                            },
+                                                            "headers": {
+                                                                "Content-Type": "application/json"
+                                                            },
+                                                            "statusCode": "@outputs('fetchIAC')?['statusCode']"
+                                                        },
+                                                        "kind": "Http",
+                                                        "runAfter": {},
+                                                        "type": "Response"
+                                                    },
+                                                    "Terminate_at_fetchIAC": {
+                                                        "inputs": {
+                                                            "runStatus": "Failed"
+                                                        },
+                                                        "runAfter": {
+                                                            "Error_Response_at_fetchIAC": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "Terminate"
+                                                    }
+                                                }
+                                            },
+                                            "expression": {
+                                                "and": [
+                                                    {
+                                                        "equals": [
+                                                            "@outputs('fetchIAC')?['statusCode']",
+                                                            200
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "runAfter": {
+                                                "fetchIAC": [
+                                                    "Succeeded",
+                                                    "Failed"
+                                                ]
+                                            },
+                                            "type": "If"
+                                        },
+                                        "fetchIAC": {
+                                            "inputs": {
+                                                "body": "@body('fetchOpportunity')",
+                                                "host": {
+                                                    "triggerName": "manual",
+                                                    "workflow": {
+                                                        "id": "${fetchIAC_logicApp_id}"
+                                                    }
+                                                },
+                                                "retryPolicy": {
+                                                    "type": "none"
+                                                }
+                                            },
+                                            "runAfter": {},
+                                            "type": "Workflow"
+                                        }
+                                    },
+                                    "expression": {
+                                        "and": [
+                                            {
+                                                "not": {
+                                                    "equals": [
+                                                        "@body('fetchOpportunity')?['records']?[0]?['S4SAsset_Type__c']",
+                                                        "@string('')"
+                                                    ]
+                                                }
+                                            },
+                                            {
+                                                "not": {
+                                                    "equals": [
+                                                        "@body('fetchOpportunity')?['records']?[0]?['S4SAsset_Type__c']",
+                                                        "@null"
+                                                    ]
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    "runAfter": {},
+                                    "type": "If"
+                                },
+                                "Condition_to_check_S4SEnd_Account__c": {
+                                    "actions": {
+                                        "Compose_at_fetchAccount_with_S4SEnd_Account__c": {
+                                            "inputs": {
+                                                "fetchAccountRequest": {
+                                                    "IfANumber": "",
+                                                    "accountId": "@{body('fetchOpportunity')?['records']?[0]?['S4SEnd_Account__c']}"
+                                                }
+                                            },
+                                            "runAfter": {},
+                                            "type": "Compose"
+                                        },
+                                        "Condition_to_check_statusCode_of_S4SEndAccount_c": {
+                                            "actions": {},
+                                            "else": {
+                                                "actions": {
+                                                    "Error_Response_of_S4SEndAccount_c": {
+                                                        "inputs": {
+                                                            "body": {
+                                                                "OpportunityId": "@{triggerBody()}",
+                                                                "error details": "@{body('fetchAccount_with_S4SEnd_Account__c')}"
+                                                            },
+                                                            "headers": {
+                                                                "Content-Type": "application/json"
+                                                            },
+                                                            "statusCode": "@outputs('fetchAccount_with_S4SEnd_Account__c')?['statusCode']"
+                                                        },
+                                                        "kind": "Http",
+                                                        "runAfter": {},
+                                                        "type": "Response"
+                                                    },
+                                                    "Terminate_at_S4SEndAccount_c": {
+                                                        "inputs": {
+                                                            "runStatus": "Failed"
+                                                        },
+                                                        "runAfter": {
+                                                            "Error_Response_of_S4SEndAccount_c": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "Terminate"
+                                                    }
+                                                }
+                                            },
+                                            "expression": {
+                                                "and": [
+                                                    {
+                                                        "equals": [
+                                                            "@outputs('fetchAccount_with_S4SEnd_Account__c')?['statusCode']",
+                                                            200
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "runAfter": {
+                                                "fetchAccount_with_S4SEnd_Account__c": [
+                                                    "Succeeded",
+                                                    "Failed"
+                                                ]
+                                            },
+                                            "type": "If"
+                                        },
+                                        "fetchAccount_with_S4SEnd_Account__c": {
+                                            "inputs": {
+                                                "body": "@outputs('Compose_at_fetchAccount_with_S4SEnd_Account__c')",
+                                                "host": {
+                                                    "triggerName": "manual",
+                                                    "workflow": {
+                                                        "id": "${shellfecthAccount_logicApp_id}"
+                                                    }
+                                                },
+                                                "retryPolicy": {
+                                                    "type": "none"
+                                                }
+                                            },
+                                            "runAfter": {
+                                                "Compose_at_fetchAccount_with_S4SEnd_Account__c": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "Workflow"
+                                        }
+                                    },
+                                    "expression": {
+                                        "and": [
+                                            {
+                                                "not": {
+                                                    "equals": [
+                                                        "@body('fetchOpportunity')?['records']?[0]?['S4SEnd_Account__c']",
+                                                        "@null"
+                                                    ]
+                                                }
+                                            },
+                                            {
+                                                "not": {
+                                                    "equals": [
+                                                        "@body('fetchOpportunity')?['records']?[0]?['S4SEnd_Account__c']",
+                                                        "@string('')"
+                                                    ]
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    "runAfter": {},
+                                    "type": "If"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "Response_Opportunity_not_provided": {
+                                        "inputs": {
+                                            "body": {
+                                                "message": "opportunityId is Invalid"
+                                            },
+                                            "headers": {
+                                                "Content-Type": "application/json"
+                                            },
+                                            "statusCode": 200
+                                        },
+                                        "kind": "Http",
+                                        "runAfter": {},
+                                        "type": "Response"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@body('fetchOpportunity')?['records']?[0]?['Id']",
+                                                "@null"
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@body('fetchOpportunity')?['records']?[0]?['Id']",
+                                                "@string('')"
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "runAfter": {},
+                            "type": "If"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Error_Response_in_fetchOpportunity": {
+                                "inputs": {
+                                    "body": {
+                                        "OpportunityId": "@{triggerBody()}",
+                                        "error details": "@{body('fetchOpportunity')}"
+                                    },
+                                    "headers": {
+                                        "Content-Type": "application/json"
+                                    },
+                                    "statusCode": "@outputs('fetchOpportunity')?['statusCode']"
+                                },
+                                "kind": "Http",
+                                "runAfter": {},
+                                "type": "Response"
+                            },
+                            "Terminate_at_fetchOpportunity": {
+                                "inputs": {
+                                    "runStatus": "Failed"
+                                },
+                                "runAfter": {
+                                    "Error_Response_in_fetchOpportunity": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Terminate"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "equals": [
+                                    "@outputs('fetchOpportunity')?['statusCode']",
+                                    200
+                                ]
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "fetchOpportunity": [
+                            "Succeeded",
+                            "Failed"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Final_Response": {
+                    "inputs": {
+                        "body": "@json(body('Transform_XML'))",
+                        "headers": {
+                            "content-type": "application/json"
+                        },
+                        "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "Transform_XML": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
+                },
+                "Transform_XML": {
+                    "inputs": {
+                        "content": "@{xml(outputs('Compose_fetchOppDetailsResponse'))}",
+                        "integrationAccount": {
+                            "map": {
+                                "name": "map-c00031-PShell-getOpportunityDetails"
+                            }
+                        },
+                        "transformOptions": "ApplyXsltOutputAttributes"
+                    },
+                    "runAfter": {
+                        "Compose_fetchOppDetailsResponse": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Xslt"
+                },
+                "fetchOpportunity": {
+                    "inputs": {
+                        "body": {
+                            "opportunityId": "@{variables('opportunityId')}"
+                        },
+                        "host": {
+                            "triggerName": "manual",
+                            "workflow": {
+                                "id": "${fetchOpportunity_logicApp_id}"
+                            }
+                        },
+                        "retryPolicy": {
+                            "type": "none"
+                        }
+                    },
+                    "runAfter": {},
+                    "type": "Workflow"
+                }
+            },
+            "runAfter": {
+                "Initialize_variable_ooportunityId": [
+                    "Succeeded"
+                ]
+            },
+            "trackedProperties": {
+                "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+                "citizenName": "c00031",
+                "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'PShell')}",
+                "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'fetchOppDetails')}",
+                "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}"
+            },
+            "type": "Scope"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {},
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

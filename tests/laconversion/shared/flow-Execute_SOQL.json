@@ -1,0 +1,81 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "HTTP_Get_SF_Token": {
+            "inputs": {
+                "headers": {
+                    "Ocp-Apim-Subscription-Key": "${apimKey}"
+                },
+                "method": "POST",
+                "uri": "@{if(equals(triggerBody()?['User'],string('Azure Oauth SFS User')),parameters('Apim Token SFS'),if(equals(triggerBody()?['User'],string('Azure Oauth NonSFS User')),parameters('Apim Token NonSFS'),null))}"
+            },
+            "runAfter": {},
+            "type": "Http"
+        },
+        "HTTP_Query_SF": {
+            "inputs": {
+                "headers": {
+                    "Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+                },
+                "method": "GET",
+                "queries": {
+                    "q": "@{triggerBody()?['SOQL']}"
+                },
+                "uri": "@{if(equals(triggerBody()?['User'],string('Azure Oauth SFS User')),parameters('SFS SieSales url'),if(equals(triggerBody()?['User'],string('Azure Oauth NonSFS User')),parameters('NonSFS SieSales url'),null))}"
+            },
+            "runAfter": {
+                "HTTP_Get_SF_Token": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Http"
+        },
+        "Success_Response": {
+            "inputs": {
+                "body": {
+                    "records": "@body('HTTP_Query_SF')?['records']"
+                },
+                "statusCode": 200
+            },
+            "kind": "Http",
+            "runAfter": {
+                "HTTP_Query_SF": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Response"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+      "$connections": {
+        "defaultValue": {},
+        "type": "Object"
+      },
+      "Apim Token NonSFS": {
+        "defaultValue": "${apimURL}",
+        "type": "String"
+      },
+      "Apim Token SFS": {
+          "defaultValue": "${apimSFSURL}",
+          "type": "String"
+      },
+      "NonSFS SieSales url": {
+          "defaultValue": "${instance_NonSFS_URL}/query",
+          "type": "String"
+      },
+      "SFS SieSales url": {
+          "defaultValue": "${instance_SFS_URL}/query",
+          "type": "String"
+      }
+    },
+    "triggers": {
+      "manual": {
+        "inputs": {},
+        "kind": "Http",
+        "type": "Request"
+      }
+    }
+  }
+  

@@ -1,0 +1,226 @@
+{
+	"$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+	"actions": {
+		"Catch_Scope": {
+			"actions": {
+				"Error_Response": {
+					"inputs": {
+						"body": "@xml(replace(variables('AckResponse'),'##RESULT##','false'))",
+						"statusCode": 500
+					},
+					"kind": "Http",
+					"runAfter": {},
+					"type": "Response"
+				},
+				"Terminate_in_catch": {
+					"inputs": {
+						"runStatus": "Failed"
+					},
+					"runAfter": {
+						"Error_Response": [
+							"Succeeded"
+						]
+					},
+					"type": "Terminate"
+				}
+			},
+			"runAfter": {
+				"Try_Scope": [
+					"Failed"
+				]
+			},
+			"type": "Scope"
+		},
+		"Initialize_variable_AckResponse": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "AckResponse",
+						"type": "string",
+						"value": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n<soapenv:Header/>\n<soapenv:Body>\n<out:notificationsResponse>\n<out:Ack>##RESULT##</out:Ack>\n</out:notificationsResponse>\n</soapenv:Body>\n</soapenv:Envelope>"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Initialize_variable_OpportunityId": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "OpportunityId",
+						"type": "string",
+						"value": "@{trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"notifications\"]/*[local-name()=\"Notification\"]/*[local-name()=\"sObject\"]/*[local-name()=\"Id\"])'))}"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Try_Scope": {
+			"actions": {
+				"Compose_Id": {
+					"inputs": {
+						"Id": "@variables('OpportunityId')"
+					},
+					"runAfter": {},
+					"type": "Compose"
+				},
+				"GetConfiguration": {
+					"inputs": {
+						"body": {
+							"key": "obm-config"
+						},
+						"host": {
+							"triggerName": "manual",
+							"workflow": {
+								"id": "${getConfiguration_logicAppId}"
+							}
+						},
+						"retryPolicy": {
+							"type": "none"
+						}
+					},
+					"runAfter": {
+						"Compose_Id": [
+							"Succeeded"
+						]
+					},
+					"runtimeConfiguration": {
+						"secureData": {
+							"properties": [
+								"outputs"
+							]
+						}
+					},
+					"type": "Workflow"
+				},
+				"Http_Scope": {
+					"actions": {
+						"Http_Catch_Scope": {
+							"actions": {
+								"Response_in_HTTP_Catch_Scope": {
+									"inputs": {
+										"body": "@xml(replace(variables('AckResponse'),'##RESULT##','true'))",
+										"statusCode": 200
+									},
+									"kind": "Http",
+									"runAfter": {},
+									"type": "Response"
+								},
+								"Terminate_in_Http_catch_scope": {
+									"inputs": {
+										"runStatus": "Succeeded"
+									},
+									"runAfter": {
+										"Response_in_HTTP_Catch_Scope": [
+											"Succeeded"
+										]
+									},
+									"type": "Terminate"
+								}
+							},
+							"runAfter": {
+								"Http_Try_Scope": [
+									"Failed"
+								]
+							},
+							"type": "Scope"
+						},
+						"Http_Try_Scope": {
+							"actions": {
+								"HTTP": {
+									"inputs": {
+										"authentication": {
+											"password": "@json(body('GetConfiguration'))?['OpportunityPshell']?['password']",
+											"type": "Basic",
+											"username": "@json(body('GetConfiguration'))?['OpportunityPshell']?['username']"
+										},
+										"body": "@outputs('Compose_Id')",
+										"headers": {
+											"Content_Type": "application/json"
+										},
+										"method": "POST",
+										"uri": "@{json(body('GetConfiguration'))?['OpportunityPshell']?['url']}"
+									},
+									"runAfter": {},
+									"type": "Http"
+								},
+								"Success_Response": {
+									"inputs": {
+										"body": "@xml(replace(variables('AckResponse'),'##RESULT##','true'))",
+										"statusCode": "@outputs('HTTP')['statusCode']"
+									},
+									"kind": "Http",
+									"runAfter": {
+										"HTTP": [
+											"Succeeded"
+										]
+									},
+									"type": "Response"
+								},
+								"Success_Terminate": {
+									"inputs": {
+										"runStatus": "Succeeded"
+									},
+									"runAfter": {
+										"Success_Response": [
+											"Succeeded"
+										]
+									},
+									"type": "Terminate"
+								}
+							},
+							"runAfter": {},
+							"type": "Scope"
+						}
+					},
+					"runAfter": {
+						"GetConfiguration": [
+							"Succeeded"
+						]
+					},
+					"type": "Scope"
+				}
+			},
+			"runAfter": {
+				"Initialize_variable_AckResponse": [
+					"Succeeded"
+				],
+				"Initialize_variable_OpportunityId": [
+					"Succeeded"
+				]
+			},
+			"trackedProperties": {
+				"apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+				"citizenName": "c00031",
+				"correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+				"interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'PShell')}",
+				"interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+				"interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'non-defined')}",
+				"operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'OpportunityPShell')}",
+				"parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+				"clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+				"clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+				},
+				
+			"type": "Scope"
+		}
+	},
+	"contentVersion": "1.0.0.0",
+	"outputs": {},
+	"parameters": {
+		"$connections": {
+			"defaultValue": {},
+			"type": "Object"
+		}
+	},
+	"triggers": {
+		"manual": {
+			"inputs": {},
+			"kind": "Http",
+			"type": "Request"
+		}
+
+	}
+}

@@ -1,0 +1,175 @@
+{
+	"$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+	"actions": {
+		"Catch_Scope": {
+			"actions": {
+				"Error_Response": {
+					"inputs": {
+						"body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <out:notificationsResponse>\n         <out:Ack>true</out:Ack>\n      </out:notificationsResponse>\n   </soapenv:Body>\n</soapenv:Envelope>",
+						"headers": {
+							"Content-Type": "application/xml"
+						},
+						"statusCode": 500
+					},
+					"kind": "Http",
+					"runAfter": {},
+					"type": "Response"
+				},
+				"Terminate": {
+					"inputs": {
+						"runError": {
+							"code": "@{coalesce(body('Update_Case_into_Siemens_INT')?['status'],'500')}"
+						},
+						"runStatus": "Failed"
+					},
+					"runAfter": {
+						"Error_Response": [
+							"Succeeded"
+						]
+					},
+					"type": "Terminate"
+				}
+			},
+			"runAfter": {
+				"Try_Scope": [
+					"Failed"
+				]
+			},
+			"type": "Scope"
+		},
+		"Try_Scope": {
+			"actions": {
+				"HTTP_Get_Token_INT": {
+					"inputs": {
+						"body": "@concat('grant_type=',encodeUriComponent('password'), '&client_id=', encodeUriComponent(json(body('INT_Get_Configuration'))?['clientId']),'&client_secret=', encodeUriComponent(json(body('INT_Get_Configuration'))?['clientSecret']), '&username=', encodeUriComponent(json(body('INT_Get_Configuration'))?['username']), '&password=', encodeUriComponent(json(body('INT_Get_Configuration'))?['password']))",
+						"headers": {
+							"Content-Type": "application/x-www-form-urlencoded",
+							"Ocp-Apim-Subscription-Key": "${apimKey}"
+						},
+						"method": "POST",
+						"uri": "@{json(body('INT_Get_Configuration'))?['tokenEndpoint']}"
+					},
+					"runAfter": {
+						"INT_Get_Configuration": [
+							"Succeeded"
+						]
+					},
+					"type": "Http"
+				},
+				"INT_Get_Configuration": {
+					"inputs": {
+						"body": {
+							"key": "oAuthToken-INT-config"
+						},
+						"host": {
+							"triggerName": "manual",
+							"workflow": {
+								"id": "${getConfiguration_logicAppId}"
+							}
+						}
+					},
+					"runAfter": {},
+					"type": "Workflow"
+				},
+				"Liquid_Map_to_JSON": {
+					"inputs": {
+						"authentication": {
+							"type": "Raw",
+							"value": "[parameters('functionAppKey')]"
+						},
+						"body": "@triggerBody()",
+						"function": {
+							"id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+						},
+						"headers": {
+							"Accept": "application/json",
+							"Content-Type": "application/xml",
+							"Filename": "${liquid}"
+						}
+					},
+					"runAfter": {
+						"HTTP_Get_Token_INT": [
+							"Succeeded"
+						]
+					},
+					"type": "Function"
+				},
+				"Query_Case_Status": {
+					"inputs": {
+						"headers": {
+							"Authorization": "Bearer @{body('HTTP_Get_Token_INT')?['access_token']}"
+						},
+						"method": "GET",
+						"queries": {
+							"q": "SELECT Status From Case Where Id='@{body('Liquid_Map_to_JSON')?['sObject']?['S4SINT_Case_ID__c']}'"
+						},
+						"uri": "@{body('HTTP_Get_Token_INT')?['instance_url']}/services/data/v55.0/query"
+					},
+					"runAfter": {
+						"Liquid_Map_to_JSON": [
+							"Succeeded"
+						]
+					},
+					"type": "Http"
+				},
+				"Response": {
+					"inputs": {
+						"body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <out:notificationsResponse>\n         <out:Ack>true</out:Ack>\n      </out:notificationsResponse>\n   </soapenv:Body>\n</soapenv:Envelope>",
+						"headers": {
+							"Content-Type": "application/xml"
+						},
+						"statusCode": 200
+					},
+					"kind": "Http",
+					"runAfter": {
+						"Update_Case_into_Siemens_INT": [
+							"Succeeded"
+						]
+					},
+					"type": "Response"
+				},
+				"Update_Case_into_Siemens_INT": {
+					"inputs": {
+						"body": {
+							"S4SLead_ID_SieSales__c": "@{body('Liquid_Map_to_JSON')?['sObject']?['Id']}",
+							"S4SLead_Owner_SieSales__c": "@{body('Liquid_Map_to_JSON')?['sObject']?['S4S_Lead_Owner__c']}",
+							"S4SLead_Status_SieSales__c": "@{body('Liquid_Map_to_JSON')?['sObject']?['Status']}",
+							"S4SRejection_Reason_SieSales__c": "@{body('Liquid_Map_to_JSON')?['sObject']?['S4SRejection_Reason__c']}",
+							"Status": "@{if(equals(body('Query_Case_Status')?['records']?[0]?['Status'],'Submitted to SieSales'),'Feedback',body('Query_Case_Status')?['records']?[0]?['Status'])}"
+						},
+						"headers": {
+							"Authorization": "Bearer @{body('HTTP_Get_Token_INT')?['access_token']}"
+						},
+						"method": "PATCH",
+						"uri": "@{body('HTTP_Get_Token_INT')?['instance_url']}/services/data/v55.0/sobjects/Case/@{body('Liquid_Map_to_JSON')?['sObject']?['S4SINT_Case_ID__c']}"
+					},
+					"runAfter": {
+						"Query_Case_Status": [
+							"Succeeded"
+						]
+					},
+					"type": "Http"
+				}
+			},
+			"runAfter": {},
+			"type": "Scope"
+		}
+	},
+	"contentVersion": "1.0.0.0",
+	"outputs": {},
+	"parameters": {
+		"$connections": {
+			"defaultValue": {},
+			"type": "Object"
+		}
+	},
+	"triggers": {
+		"manual": {
+			"inputs": {
+				"schema": {}
+			},
+			"kind": "Http",
+			"type": "Request"
+		}
+	}
+}

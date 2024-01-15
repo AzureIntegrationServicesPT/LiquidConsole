@@ -1,0 +1,58 @@
+{
+    
+    
+    
+    
+        
+            
+            
+            
+            
+        
+    
+
+    "S4SInstallation__c": [
+        
+                {
+                    "CurrencyIsoCode": "EUR",
+                    "Id": "a2YMz000000TxJgMAK",
+                    "Name": "Liegenschaft Gewerbestrasse 15, Thun",
+                    "Owner": {
+                        "Name": "iBase OAuth Integration"
+                    },
+                    "S4SActive_Contract__c": "false",
+                    "S4SAge_Years__c": "",
+                    "S4SBOM_items_Number__c": "",
+                    "S4SCity__c": "Thun",
+                    "S4SCountry__c": "CH",
+                    "S4SData_Point_Total__c": "",
+                    "S4SDivision__c": "SSI",
+                    "S4SExternal_ID__c": "CH70105558",
+                    "S4SExternal_Source__c": "iBase",
+                    "S4SInstallation_Description__c": "Customer: Liegenschaft \"Gewerbestrasse 15, Thun\"",
+                    "S4SInstallation_Number__c": "70105558",
+                    "S4SLead_Country__c": "CH-LC",
+                    "S4SLicense_Information__c": "",
+                    "S4SMarked_for_Deletion__c": "false",
+                    "S4SNumber_of_Active_Contracts__c": "0",
+                    "S4SOwned_by__c": {
+                        "Name": "",
+                        "S4SIfa__c": ""
+                    },
+                    "S4SPostal_Code__c": "3600",
+                    "S4SRemote_Access__c": "false",
+                    "S4SSite__c": "a2nMz000000GHgGIAW",
+                    "S4SSold_to_Party__c": {
+                        "Name": "",
+                        "S4SIfa__c": ""
+                    },
+                    "S4SStart_Up_Date__c": "2000-03-21",
+                    "S4SState__c": "",
+                    "S4SStreet__c": "Gewerbesstrasse",
+                    "S4SSystem_Portfolio__c": "FIRE-ALARM_ALGOREX",
+                    "S4SWarranty_End_Date__c": "",
+                    "S4SWarranty_Start_Date__c": ""
+                }
+            
+    ]
+}

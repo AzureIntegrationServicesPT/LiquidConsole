@@ -1,0 +1,167 @@
+{
+       "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+       "actions": {
+        "Initialize_variable_chanceOfSuccessRes": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "chanceOfSuccessRes",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_chanceOfSuccess": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "chanceOfSuccess",
+                        "type": "string",
+                        "value": "@triggerBody()?['chanceOfSuccess']"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Scope_Catch": {
+            "actions": {
+                "Failed_Response": {
+                    "inputs": {
+                        "body": "Internal Server Error",
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                },
+                "Terminate": {
+                    "inputs": {
+                        "runError": {
+                            "code": "500"
+                        },
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Failed_Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Scope_try": [
+                    "Failed",
+                    "Skipped",
+                    "TimedOut"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope_try": {
+            "actions": {
+                "Condition_to_check_chanceOfSuccess": {
+                    "actions": {
+                        "ChanceofSuccess": {
+                            "inputs": "@int(variables('chanceOfSuccess'))",
+                            "runAfter": {},
+                            "type": "Compose"
+                        },
+                        "Set_variable_Success": {
+                            "inputs": {
+                                "name": "chanceOfSuccessRes",
+                                "value": "@{if(equals(outputs('chanceOfSuccess'),0),'0%',if(lessOrEquals(outputs('chanceOfSuccess'),10),'10%',if(lessOrEquals(outputs('chanceOfSuccess'),30),'30%',if(lessOrEquals(outputs('chanceOfSuccess'),50),'50%',if(lessOrEquals(outputs('chanceOfSuccess'),70),'70%',if(lessOrEquals(outputs('chanceOfSuccess'),80),'80%',if(lessOrEquals(outputs('chanceOfSuccess'),99),'90%','100%')))))))}"
+                            },
+                            "runAfter": {
+                                "ChanceofSuccess": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "SetVariable"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Set_variable_Success1": {
+                                "inputs": {
+                                    "name": "chanceOfSuccessRes",
+                                    "value": "@{if(equals(variables('chanceOfSuccess'),'0'),'0%','100%')}"
+                                },
+                                "runAfter": {},
+                                "type": "SetVariable"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('chanceOfSuccess')",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                               "not": {
+                                    "equals": [
+                                        "@variables('chanceOfSuccess')",
+                                        "@string('0')"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('chanceOfSuccess')",
+                                        ""
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                },
+                "Success_Response": {
+                    "inputs": {
+                        "body": "@variables('chanceOfSuccessRes')",
+                        "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "Condition_to_check_chanceOfSuccess": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
+                }
+            },
+            "runAfter": {
+                "Initialize_variable_chanceOfSuccessRes": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_chanceOfSuccess": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Scope"
+        }
+    },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {},
+        "triggers": {
+            "manual": {
+                "inputs": {
+                    "schema": {}
+                },
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+   
+}

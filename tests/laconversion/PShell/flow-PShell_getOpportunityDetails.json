@@ -1,0 +1,294 @@
+{
+    
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Catch_Scope": {
+            "actions": {
+                "Response_in_Catch": {
+                    "inputs": {
+                        "body": {
+                            "Message": "@concat('Some error occurred while processing the request. Please find more details using tracking id : ', workflow()['run']['name'])",
+                            "Status": "Failure"
+                        },
+                        "headers": {
+                            "Content-Type": "application/json"
+                        },
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                },
+                "Terminate_in_catch": {
+                    "inputs": {
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Response_in_Catch": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Try_Scope": [
+                    "Failed",
+                    "Skipped",
+                    "TimedOut"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Initialize_variable_'varOpportunityId'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varOpportunityId",
+                        "type": "string",
+                        "value": "@{triggerOutputs()?['relativePathParameters']?['opportunityId']}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Try_Scope": {
+            "actions": {
+                "Condition_to_check_OpportunityId": {
+                    "actions": {
+                        "Condition_check_for_statusCode": {
+                            "actions": {
+                                "Condition_to_check_Id_in_Opportunity": {
+                                    "actions": {},
+                                    "else": {
+                                        "actions": {
+                                            "Response_for_wrong_opportunityId": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "response": "Invalid opportunityId"
+                                                    },
+                                                    "headers": {
+                                                        "Content-Type": "application/json",
+                                                        "reasonPhrase ": "NOT Found"
+                                                    },
+                                                    "statusCode": 400
+                                                },
+                                                "kind": "Http",
+                                                "runAfter": {},
+                                                "type": "Response"
+                                            },
+                                            "Terminate_when_wrong_opportunityId": {
+                                                "inputs": {
+                                                    "runStatus": "Succeeded"
+                                                },
+                                                "runAfter": {
+                                                    "Response_for_wrong_opportunityId": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "Terminate"
+                                            }
+                                        }
+                                    },
+                                    "expression": {
+                                        "and": [
+                                            {
+                                                "not": {
+                                                    "equals": [
+                                                        "@body('internal_fetchOppDetails')?['response']?['Opportunity']?['Id']",
+                                                        "@null"
+                                                    ]
+                                                }
+                                            },
+                                            {
+                                                "not": {
+                                                    "equals": [
+                                                        "@body('internal_fetchOppDetails')?['response']?['Opportunity']?['Id']",
+                                                        "@string('')"
+                                                    ]
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    "runAfter": {},
+                                    "type": "If"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "Error_Response": {
+                                        "inputs": {
+                                            "body": {
+                                                "OpportunityId": "@{variables('varOpportunityId')}",
+                                                "error details": "@{body('internal_fetchOppDetails')}"
+                                            },
+                                            "headers": {
+                                                "Content-Type": "application/json"
+                                            },
+                                            "statusCode": "@outputs('internal_fetchOppDetails')?['statusCode']"
+                                        },
+                                        "kind": "Http",
+                                        "runAfter": {},
+                                        "type": "Response"
+                                    },
+                                    "Terminate_in_with_Error": {
+                                        "inputs": {
+                                            "runStatus": "Failed"
+                                        },
+                                        "runAfter": {
+                                            "Error_Response": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "Terminate"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "equals": [
+                                            "@outputs('internal_fetchOppDetails')?['statusCode']",
+                                            200
+                                        ]
+                                    }
+                                ]
+                            },
+                            "runAfter": {
+                                "internal_fetchOppDetails": [
+                                    "Succeeded",
+                                    "Failed"
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "internal_fetchOppDetails": {
+                            "inputs": {
+                                "body": "@variables('varOpportunityId')",
+                                "host": {
+                                    "triggerName": "manual",
+                                    "workflow": {
+                                        "id": "${fetchOppDetails_logicApp_id}"
+                                    }
+                                },
+                                "retryPolicy": {
+                                    "type": "none"
+                                }
+                            },
+                            "runAfter": {},
+                            "type": "Workflow"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Response_when_OpportunityId_not_exists": {
+                                "inputs": {
+                                    "body": {
+                                        "response": "opportunityId not provided"
+                                    },
+                                    "headers": {
+                                        "Content-Type": "application/json",
+                                        "reasonPhrase ": "NOT Found"
+                                    },
+                                    "statusCode": 400
+                                },
+                                "kind": "Http",
+                                "runAfter": {},
+                                "type": "Response"
+                            },
+                            "Terminate_when_OpportunityId_not_exists": {
+                                "inputs": {
+                                    "runError": {
+                                        "message": "{\"response\":\"opportunityId not provided\"}"
+                                    },
+                                    "runStatus": "Failed"
+                                },
+                                "runAfter": {
+                                    "Response_when_OpportunityId_not_exists": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Terminate"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('varOpportunityId')",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('varOpportunityId')",
+                                        "@string('')"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                },
+                "Final_Response": {
+                    "inputs": {
+                        "body": "@body('internal_fetchOppDetails')",
+                        "headers": {
+                            "Content-Type": "application/json"
+                        },
+                        "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "Condition_to_check_OpportunityId": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
+                }
+            },
+            "runAfter": {
+                "Initialize_variable_'varOpportunityId'": [
+                    "Succeeded"
+                ]
+            },
+            "trackedProperties": {
+                "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+                "citizenName": "c00031",
+                "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'PShell')}",
+                "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'getOpportiunityDetails')}",
+                "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+                "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+            },
+            "type": "Scope"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {
+                "method": "POST",
+                "relativePath": "Opportunity/{opportunityId}"
+            },
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

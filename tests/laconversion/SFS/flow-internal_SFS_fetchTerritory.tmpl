@@ -1,0 +1,237 @@
+{
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Initialise_where_clause": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "BookingWhere Clause",
+                            "type": "string",
+                            "value": "@{null}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_SFDC_ID": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "SFDC_ID",
+                            "type": "string",
+                            "value": "@{triggerBody()?['records']?[0]?['S4STerritory_Structure__c']}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_SOQLquery_fetchTerritory": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "varSQLfetchTerritory",
+                            "type": "string",
+                            "value": "select Id,OwnerId,IsDeleted,Name,CurrencyIsoCode,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastActivityDate,LastViewedDate,LastReferencedDate,S4SActive__c,S4SLead_Country__c,S4SLevel__c,S4SParent_TerritoryPath__c,S4SSale_Country__c,S4SSales_Branch__c,S4SSales_Department__c,S4SSales_District__c,S4SSales_Office__c,S4SSales_SubRegion__c,S4SSales_Territory__c,S4SSiemens_Territory_Structure_LegacyID__c,S4SUnique_ID__c from S4SSiemens_Territory_Structure__c"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Initialize_SFDC_ID": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_error_response": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "SoapErrorResponse",
+                            "type": "string",
+                            "value": "<soap-env:Envelope xmlns:soap-env=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap-env:Header/><soap-env:Body><soap-env:Fault><faultcode>soap-env:Server</faultcode><faultstring>{errormessagedetails}</faultstring><detail/></soap-env:Fault></soap-env:Body></soap-env:Envelope>"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Scope-Catch": {
+                "actions": {
+                    "Failed_Response": {
+                        "inputs": {
+                            "body": "@replace(variables('SoapErrorResponse'),'{errormessagedetails}',concat('Some error occurred while connection. Please find more details using tracking id : ', workflow()['run']['name']))",
+                            "headers": {
+                                "Content-Type": "application/xml"
+                            },
+                            "statusCode": 500
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                        "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                        "type": "Response"
+                    },
+                    "Terminate": {
+                        "inputs": {
+                            "runStatus": "Failed"
+                        },
+                        "runAfter": {
+                            "Failed_Response": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Terminate"
+                    }
+                },
+                "runAfter": {
+                    "Scope-Try": [
+                        "Failed",
+                        "Skipped",
+                        "TimedOut"
+                    ]
+                },
+                "type": "Scope"
+            },
+            "Scope-Try": {
+                "actions": {
+                    "Condition_to_check_SFDC_ID": {
+                        "actions": {
+                            "Set_opportunityId_where_clause_append": {
+                                "inputs": {
+                                    "name": "BookingWhere Clause",
+                                    "value": "@{concat('Id =  ',string(''''),variables('SFDC_ID'),string(''''))}"
+                                },
+                                "runAfter": {},
+                                "type": "SetVariable"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('SFDC_ID')",
+                                            "@null"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('SFDC_ID')",
+                                            "@string('')"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {},
+                        "type": "If"
+                    },
+                    "Execute_Booking_Line_SOQL_query": {
+                        "inputs": {
+                            "body": {
+                                "query": "@{variables('varSQLfetchTerritory')} where @{variables('BookingWhere Clause')}"
+                            },
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                }
+                            },
+                            "method": "post",
+                            "path": "/soql/executesoqlquery",
+                            "retryPolicy": {
+                                "type": "none"
+                            }
+                        },
+                        "runAfter": {
+                            "Condition_to_check_SFDC_ID": [
+                                "Succeeded"
+                            ]
+                        },
+                        "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                        "type": "ApiConnection"
+                    },
+                    "Response": {
+                        "inputs": {
+                            "body": "@body('Execute_Booking_Line_SOQL_query')",
+                            "statusCode": 200
+                        },
+                        "kind": "Http",
+                        "runAfter": {
+                            "Execute_Booking_Line_SOQL_query": [
+                                "Succeeded"
+                            ]
+                        },
+                        "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                        "type": "Response"
+                    }
+                },
+                "runAfter": {
+                    "Initialise_where_clause": [
+                        "Succeeded"
+                    ],
+                    "Initialize_SOQLquery_fetchTerritory": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_error_response": [
+                        "Succeeded"
+                    ]
+                },
+                "trackedProperties": {
+                     "apimRouting": "external",
+                "citizenName": "c00031",
+                "correlationId": "not-defined",
+                "interfaceName": "SFS",
+                "interfacePartner": "not-defined",
+                "interfaceVersion": "not-defined",
+                "operationName": "internal_fetchTerritory",
+                "parentWorkflow": "not-defined"
+            },
+                "type": "Scope"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "manual": {
+                "inputs": {},
+                "kind": "Http",
+                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                "type": "Request"
+            }
+        }
+}

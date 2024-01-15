@@ -1,0 +1,1690 @@
+{
+	"$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+	"actions": {
+        "Condition_on_file_extension": {
+            "actions": {
+                "Move_file_from_incoming_to_working_dir": {
+                    "actions": {
+                        "BlobToZipConverterFunction": {
+                            "inputs": {
+                                "authentication": {
+                                    "type": "Raw",
+                                    "value": "[parameters('functionAppKey')]"
+                                },
+                                "body": {
+                                    "blobContainerName": "@{parameters('BlobContainerName')}",
+                                    "incomingBlobPath": "@{workflow()['run']['name']}/incoming",
+                                    "incominigBlobName": "@{triggerBody()?['Name']}",
+                                    "outcomingBlobPath": "@{workflow()['run']['name']}/zip"
+                                },
+                                "function": {
+                                    "id": "[concat(parameters('funcApp'), '/functions/BlobToZipConverterFunction')]"
+                                }
+                            },
+                            "runAfter": {
+                                "Create_incoming_blob": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Function"
+                        },
+                        "Create_incoming_blob": {
+                            "inputs": {
+                                "body": "@body('Get_received_file_content')",
+                                "headers": {
+                                    "ReadFileMetadataFromServer": true
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['azureBlobConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('${st_name}'))}/files",
+                                "queries": {
+                                    "folderPath": "@{parameters('blobContainerName')}/@{workflow()['run']['name']}/incoming",
+                                    "name": "@triggerBody()?['Name']",
+                                    "queryParametersSingleEncoded": true
+                                }
+                            },
+                            "runAfter": {
+                                "Get_received_file_content": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "runtimeConfiguration": {
+                                "contentTransfer": {
+                                    "transferMode": "Chunked"
+                                }
+                            },
+                            "type": "ApiConnection"
+                        },
+                        "Create_new_file_in_working_directory": {
+                            "inputs": {
+                                "body": "@body('Get_zip_blob_content_(V2)')",
+                                "headers": {
+                                    "ReadFileMetadataFromServer": false
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['azureblobsftpssh']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files",
+                                "queries": {
+                                    "folderPath": "@parameters('workingPath')",
+                                    "name": "@{substring(triggerBody()?['Name'], 0, sub(length(triggerBody()?['Name']), 4))}(@{convertTimeZone(utcNow(), 'UTC', 'Central Europe Standard Time')}).zip",
+                                    "queryParametersSingleEncoded": true
+                                }
+                            },
+                            "runAfter": {
+                                "Get_zip_blob_content_(V2)": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "runtimeConfiguration": {
+                                "contentTransfer": {
+                                    "transferMode": "Chunked"
+                                }
+                            },
+                            "type": "ApiConnection"
+                        },
+                        "Delete_file_from_incoming": {
+                            "inputs": {
+                                "headers": {
+                                    "SkipDeleteIfFileNotFoundOnServer": false
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['azureblobsftpssh']['connectionId']"
+                                    }
+                                },
+                                "method": "delete",
+                                "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files/@{encodeURIComponent(encodeURIComponent(triggerBody()?['Path']))}"
+                            },
+                            "runAfter": {
+                                "Create_new_file_in_working_directory": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection"
+                        },
+                        "Delete_zip_file_from_Blob_Container": {
+                            "inputs": {
+                                "headers": {
+                                    "SkipDeleteIfFileNotFoundOnServer": false
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['azureBlobConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "delete",
+                                "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files/@{encodeURIComponent(encodeURIComponent(parameters('BlobContainerName'),'/',body('BlobToZipConverterFunction')?['Value']))}"
+                            },
+                            "runAfter": {
+                                "Delete_file_from_incoming": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection"
+                        },
+                        "Get_received_file_content": {
+                            "inputs": {
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['azureblobsftpssh']['connectionId']"
+                                    }
+                                },
+                                "method": "get",
+                                "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files/@{encodeURIComponent(encodeURIComponent(triggerBody()?['Path']))}/content",
+                                "queries": {
+                                    "inferContentType": false
+                                }
+                            },
+                            "runAfter": {},
+                            "type": "ApiConnection"
+                        },
+                        "Get_zip_blob_content_(V2)": {
+                            "inputs": {
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['azureBlobConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "get",
+                                "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files/@{encodeURIComponent(encodeURIComponent(parameters('BlobContainerName'),'/',body('BlobToZipConverterFunction')?['Value']))}/content"
+                            },
+                            "runAfter": {
+                                "BlobToZipConverterFunction": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection"
+                        }
+                    },
+                    "runAfter": {},
+                    "type": "Scope"
+                }
+            },
+            "else": {
+                "actions": {
+                    "File_extension_not_correct": {
+                        "inputs": {
+                            "runError": {
+                                "message": "File extension is not correct"
+                            },
+                            "runStatus": "Failed"
+                        },
+                        "runAfter": {},
+                        "type": "Terminate"
+                    }
+                }
+            },
+            "expression": {
+                "and": [
+                    {
+                        "contains": [
+                            "@triggerBody()?['MediaType']",
+                            "@parameters('fileFilter')"
+                        ]
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_IncomingFileID": [
+                    "Succeeded"
+                ],
+                "Initialize_ParentRunID": [
+                    "Succeeded"
+                ],
+                "Initialize_SecondBulkData": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_ErrorsCount": [
+                    "Succeeded"
+                ]
+            },
+            "type": "If"
+        },
+        "Initialize_BulkData": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "BulkData",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_BulkState": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "BulkState",
+                        "type": "boolean",
+                        "value": false
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_BulkData": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Initialize_ConfigData": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "configData",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_IncomingFileID": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "IncomingFileID",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_variable_CurrentTime": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Initialize_ParentRunID": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "ParentRunID",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_variable_DeletedRecordsCount": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Initialize_Response": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "Response",
+                        "type": "string",
+                        "value": "\"sf__Id\";\"sf__Error\";\"S4SIfA__c\";\"S4SLocal_Search_Term__c\";\"S4SARE__c\";\"S4SOrganization_Code__c\";\"S4SCMD_NAME1__c\";\"S4SCMD_NAME2__c\";\"S4SCMD_NAME3__c\";\"S4SCMD_STREET__c\";\"S4SCMD_STREET2__c\";\"S4SPO_box__c\";\"BillingPostalCode\";\"S4SPO_Box_Postcode__c\";\"BillingCity\";\"CMD_Region__c\";\"BillingCountry\";\"S4STax_ID__c\";\"S4SCity_PO_Box__c\";\"S4SIfA_Siemens_Location__c\";\"S4SISIC__c\";\"S4SDUNS__c\";\"Ownership\";\"S4SSiemens_Account_Type__c\";\"Name\";\"S4SAccount_Name_International__c\";\"NationalStreet\";\"S4SCMD_REGION__c\";\"NationalState\";\"S4SInternational_CountryGP__c\";\"S4SInternational_RegionGP__c\";\"S4SInternational_Postal_Code__c\";\"S4SInternational_Street_Name_1__c\";\"S4SInternational_Street_Name_2__c\";\"S4SInternational_City__c\";\"RecordTypeID\"\n"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_SecondBulkData": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "SecondBulkData",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_variable_DeletionStatus": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_CurrentTime": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "CurrentTime",
+                        "type": "string",
+                        "value": "@{convertTimeZone(utcNow(), 'UTC', 'Central Europe Standard Time')}"
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_variable_DeletionResult": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_DeletedRecordsCount": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "DeletedRecordsCount",
+                        "type": "integer",
+                        "value": 0
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_variable_FunctionResponse": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_DeletionResult": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "DeletionResult",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_ConfigData": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_DeletionStatus": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "DeletionStatus",
+                        "type": "boolean",
+                        "value": false
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_BulkState": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_ErrorsCount": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "ErrorsCount",
+                        "type": "integer",
+                        "value": 0
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_variable__UnprocessedUpsertCounter": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_FunctionResponse": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "FunctionResponse",
+                        "type": "array"
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_Response": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_RecordsCounter": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "RecordsCounter",
+                        "type": "integer",
+                        "value": 0
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable__UnprocessedUpsertCounter": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "UnprocessedUpsertCounter",
+                        "type": "integer",
+                        "value": 0
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_variable_RecordsCounter": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Move_file_to_error_dir": {
+            "actions": {
+                "Copy_file_to_error_dir": {
+                    "inputs": {
+                        "headers": {
+                            "ReadFileMetadataFromServer": true
+                        },
+                        "host": {
+                            "connection": {
+                                "name": "@parameters('$connections')['azureblobsftpssh']['connectionId']"
+                            }
+                        },
+                        "method": "post",
+                        "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/copyFile",
+                        "queries": {
+                            "destination": "@parameters('errorPath')",
+                            "overwrite": false,
+                            "queryParametersSingleEncoded": true,
+                            "source": "@body('Create_new_file_in_working_directory')?['Path']"
+                        }
+                    },
+                    "runAfter": {},
+                    "type": "ApiConnection"
+                },
+                "Delete_file_from_working_dir": {
+                    "inputs": {
+                        "headers": {
+                            "SkipDeleteIfFileNotFoundOnServer": false
+                        },
+                        "host": {
+                            "connection": {
+                                "name": "@parameters('$connections')['azureblobsftpssh']['connectionId']"
+                            }
+                        },
+                        "method": "delete",
+                        "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files/@{encodeURIComponent(encodeURIComponent(body('Create_new_file_in_working_directory')?['Path']))}"
+                    },
+                    "runAfter": {
+                        "Copy_file_to_error_dir": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "ApiConnection"
+                },
+                "File_processing_failed": {
+                    "inputs": {
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Delete_file_from_working_dir": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Proceed_file": [
+                    "Failed",
+                    "Skipped",
+                    "TimedOut"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Move_file_to_processed_dir": {
+            "actions": {
+                "Copy_file_to_processed_dir": {
+                    "inputs": {
+                        "headers": {
+                            "ReadFileMetadataFromServer": true
+                        },
+                        "host": {
+                            "connection": {
+                                "name": "@parameters('$connections')['azureblobsftpssh']['connectionId']"
+                            }
+                        },
+                        "method": "post",
+                        "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/copyFile",
+                        "queries": {
+                            "destination": "@parameters('processedPath')",
+                            "overwrite": false,
+                            "queryParametersSingleEncoded": true,
+                            "source": "@body('Create_new_file_in_working_directory')?['Path']"
+                        }
+                    },
+                    "runAfter": {},
+                    "type": "ApiConnection"
+                },
+                "Delete_file_from_working": {
+                    "inputs": {
+                        "headers": {
+                            "SkipDeleteIfFileNotFoundOnServer": false
+                        },
+                        "host": {
+                            "connection": {
+                                "name": "@parameters('$connections')['azureblobsftpssh']['connectionId']"
+                            }
+                        },
+                        "method": "delete",
+                        "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files/@{encodeURIComponent(encodeURIComponent(body('Create_new_file_in_working_directory')?['Path']))}"
+                    },
+                    "runAfter": {
+                        "Copy_file_to_processed_dir": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "ApiConnection"
+                }
+            },
+            "runAfter": {
+                "Proceed_file": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Proceed_file": {
+            "actions": {
+                "Add_RecordTypeId_To_File_Content": {
+                    "inputs": {
+                        "body": {
+                            "input": {
+                                "RecordTypeId": "@ body('Get_RecordTypeId')?['records']?[0]?['Id']",
+                                "records": "@body('CSVToJSONParser_2')?['value']"
+                            }
+                        },
+                        "function": {
+                            "id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+                        },
+                        "headers": {
+                            "Accept": "text/plain",
+                            "Content-Type": "application/json",
+                            "Filename": "${liquid_SSDAddRecordTypeId}"
+                        },
+                        "method": "POST"
+                    },
+                    "runAfter": {
+                        "Get_RecordTypeId": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Function"
+                },
+                "Bulk_insert": {
+                    "actions": {
+                        "Close_job": {
+                            "inputs": {
+                                "body": {
+                                    "state": "UploadComplete"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "patch",
+                                "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Create_a_bulk_update_job_')?['id'])}"
+                            },
+                            "runAfter": {
+                                "Upload_job_data": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection"
+                        },
+                        "Condition_for_unprocessed_results": {
+                            "actions": {
+                                "Append_to_response": {
+                                    "inputs": {
+                                        "name": "Response",
+                                        "value": "@{substring(body('Get_job_unprocessed_results'),207)}\n"
+                                    },
+                                    "runAfter": {
+                                        "Increment_Unprocessed_records_counter": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "AppendToStringVariable"
+                                },
+                                "Increment_Unprocessed_records_counter": {
+                                    "inputs": {
+                                        "name": "UnprocessedUpsertCounter",
+                                        "value": "@div(sub(int(sub(length(split(body('Get_job_unprocessed_results'),';')),1)), 8), 8)"
+                                    },
+                                    "runAfter": {},
+                                    "type": "IncrementVariable"
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@body('Get_job_unprocessed_results')",
+                                                "@string('')"
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@body('Get_job_unprocessed_results')",
+                                                "@null"
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "greater": [
+                                            "@length(body('Get_job_unprocessed_results'))",
+                                            186
+                                        ]
+                                    }
+                                ]
+                            },
+                            "runAfter": {
+                                "Get_job_unprocessed_results": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "Create_a_bulk_update_job_": {
+                            "inputs": {
+                                "body": {
+                                    "columnDelimiter": "SEMICOLON",
+                                    "contentType": "CSV",
+                                    "externalIdFieldName": "S4SIfA__c",
+                                    "object": "Account",
+                                    "operation": "upsert"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/bulk/createjob"
+                            },
+                            "runAfter": {},
+                            "type": "ApiConnection"
+                        },
+                        "Get_failed_job_results": {
+                            "inputs": {
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "get",
+                                "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Create_a_bulk_update_job_')?['id'])}/results",
+                                "queries": {
+                                    "resultType": "Failed"
+                                }
+                            },
+                            "runAfter": {
+                                "Until_Bulk_state_is_Failed_or_Complete": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection"
+                        },
+                        "Get_job_successful_results": {
+                            "inputs": {
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "get",
+                                "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Close_job')?['id'])}/results",
+                                "queries": {
+                                    "resultType": "Successful"
+                                }
+                            },
+                            "runAfter": {
+                                "Until_Bulk_state_is_Failed_or_Complete": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection"
+                        },
+                        "Get_job_unprocessed_results": {
+                            "inputs": {
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "get",
+                                "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Close_job')?['id'])}/results",
+                                "queries": {
+                                    "resultType": "Unprocessed"
+                                }
+                            },
+                            "runAfter": {
+                                "Until_Bulk_state_is_Failed_or_Complete": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection"
+                        },
+                        "Reset_BulkData": {
+                            "inputs": {
+                                "name": "BulkData",
+                                "value": "@{string('')}"
+                            },
+                            "runAfter": {
+                                "Condition_for_unprocessed_results": [
+                                    "Succeeded"
+                                ],
+                                "Get_failed_job_results": [
+                                    "Succeeded"
+                                ],
+                                "Get_job_successful_results": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "SetVariable"
+                        },
+                        "Reset_BulkState": {
+                            "inputs": {
+                                "name": "BulkState",
+                                "value": false
+                            },
+                            "runAfter": {
+                                "Reset_BulkData": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "SetVariable"
+                        },
+                        "Until_Bulk_state_is_Failed_or_Complete": {
+                            "actions": {
+                                "Delay": {
+                                    "inputs": {
+                                        "interval": {
+                                            "count": 30,
+                                            "unit": "Second"
+                                        }
+                                    },
+                                    "runAfter": {},
+                                    "type": "Wait"
+                                },
+                                "Get_job_info": {
+                                    "inputs": {
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                            }
+                                        },
+                                        "method": "get",
+                                        "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Create_a_bulk_update_job_')?['id'])}"
+                                    },
+                                    "runAfter": {
+                                        "Delay": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ApiConnection"
+                                },
+                                "Until_file_is_uploaded": {
+                                    "actions": {
+                                        "Set_variable": {
+                                            "inputs": {
+                                                "name": "BulkState",
+                                                "value": true
+                                            },
+                                            "runAfter": {},
+                                            "type": "SetVariable"
+                                        }
+                                    },
+                                    "expression": {
+                                        "or": [
+                                            {
+                                                "equals": [
+                                                    "@body('Get_job_info')?['state']",
+                                                    "Failed"
+                                                ]
+                                            },
+                                            {
+                                                "equals": [
+                                                    "@body('Get_job_info')?['state']",
+                                                    "JobComplete"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "runAfter": {
+                                        "Get_job_info": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "If"
+                                }
+                            },
+                            "expression": "@equals(variables('BulkState'), true)",
+                            "limit": {
+                                "count": 30,
+                                "timeout": "PT1H"
+                            },
+                            "runAfter": {
+                                "Close_job": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Until"
+                        },
+                        "Upload_job_data": {
+                            "inputs": {
+                                "body": "@body('Add_RecordTypeId_To_File_Content')",
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "put",
+                                "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Create_a_bulk_update_job_')?['id'])}/batches"
+                            },
+                            "runAfter": {
+                                "Create_a_bulk_update_job_": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection"
+                        },
+                        "Validate_error_records_count": {
+                            "actions": {
+                                "CSVToJSONParser": {
+                                    "inputs": {
+                                        "authentication": {
+                                            "type": "Raw",
+                                            "value": "[parameters('functionAppKey')]"
+                                        },
+                                        "body": {
+                                            "fieldSeperator": ";",
+                                            "fileContent": "@{replace(substring(body('Get_failed_job_results'),669), '\"', '')}",
+                                            "fileHeaders": "sf__Id;sf__Error;S4SIfA__c;S4SLocal_Search_Term__c;S4SARE__c;S4SOrganization_Code__c;S4SCMD_NAME1__c;S4SCMD_NAME2__c;S4SCMD_NAME3__c;S4SCMD_STREET__c;S4SCMD_STREET2__c;S4SPO_box__c;BillingPostalCode;S4SPO_Box_Postcode__c;BillingCity;BillingCountry;S4STax_ID__c;S4SCity_PO_Box__c;S4SIfA_Siemens_Location__c;S4SISIC__c;S4SDUNS__c;Ownership;S4SSiemens_Account_Type__c;Name;S4SAccount_Name_International__c;BillingStreet;S4SCMD_REGION__c;BillingState;S4SInternational_CountryGP__c;S4SInternational_RegionGP__c;S4SInternational_Postal_Code__c;S4SInternational_Street_Name_1__c;S4SInternational_Steet_Name_2__c;S4SInternational_City__c;RecordTypeID",
+                                            "linesSkip": 0
+                                        },
+                                        "function": {
+                                            "id": "[concat(parameters('funcApp'), '/functions/CSVToJSONParser')]"
+                                        }
+                                    },
+                                    "runAfter": {},
+                                    "type": "Function"
+                                },
+                                "Close_or_abort_a_job": {
+                                    "inputs": {
+                                        "body": {
+                                            "state": "UploadComplete"
+                                        },
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                            }
+                                        },
+                                        "method": "patch",
+                                        "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Create_an_update_job_for_failed_records')?['id'])}"
+                                    },
+                                    "runAfter": {
+                                        "Upload_job_data_2": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ApiConnection"
+                                },
+                                "Condition_on_failed_records": {
+                                    "actions": {
+                                        "Append_to_response_Failed_record_data": {
+                                            "inputs": {
+                                                "name": "Response",
+                                                "value": "@{substring(body('Get_second_job_Failed_records'),206)}"
+                                            },
+                                            "runAfter": {
+                                                "Increment_variable_FailedUpsertCount": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "AppendToStringVariable"
+                                        },
+                                        "Increment_variable_FailedUpsertCount": {
+                                            "inputs": {
+                                                "name": "UnprocessedUpsertCounter",
+                                                "value": "@div(sub(length(split(body('Get_second_job_Failed_records'),';')), 10), 10)"
+                                            },
+                                            "runAfter": {},
+                                            "type": "IncrementVariable"
+                                        },
+                                        "nonSFS_internal_sf4sLog_2": {
+                                            "inputs": {
+                                                "body": {
+                                                    "message": "@{substring(body('Get_second_job_Failed_records'),205)}",
+                                                    "severity": "INFO"
+                                                },
+                                                "headers": {
+                                                    "interfaceName": "ExternalAgents",
+                                                    "runId": "@{workflow()['run']['name']}"
+                                                },
+                                                "host": {
+                                                    "triggerName": "manual",
+                                                    "workflow": {
+                                                        "id": "${nonsfs_internal_sf4sLog_logicAppId}"
+                                                    }
+                                                }
+                                            },
+                                            "runAfter": {
+                                                "Append_to_response_Failed_record_data": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "Workflow"
+                                        }
+                                    },
+                                    "expression": {
+                                        "and": [
+                                            {
+                                                "not": {
+                                                    "equals": [
+                                                        "@body('Get_second_job_Failed_records')",
+                                                        "@string('')"
+                                                    ]
+                                                }
+                                            },
+                                            {
+                                                "not": {
+                                                    "equals": [
+                                                        "@body('Get_second_job_Failed_records')",
+                                                        "@null"
+                                                    ]
+                                                }
+                                            },
+                                            {
+                                                "greater": [
+                                                    "@length(body('Get_second_job_Failed_records'))",
+                                                    206
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "runAfter": {
+                                        "Get_second_job_Failed_records": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "If"
+                                },
+                                "Condition_on_unprocessed_records": {
+                                    "actions": {
+                                        "Append_to_string_variable": {
+                                            "inputs": {
+                                                "name": "Response",
+                                                "value": "@{substring(body('Get_second_job_unprocessed_records'),186)}\n"
+                                            },
+                                            "runAfter": {
+                                                "Increment_variable_unprocessed_counter": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "AppendToStringVariable"
+                                        },
+                                        "Increment_variable_unprocessed_counter": {
+                                            "inputs": {
+                                                "name": "UnprocessedUpsertCounter",
+                                                "value": "@div(sub(int(sub(length(split(body('Get_second_job_unprocessed_records'),';')),1)), 8), 8)"
+                                            },
+                                            "runAfter": {},
+                                            "type": "IncrementVariable"
+                                        }
+                                    },
+                                    "expression": {
+                                        "and": [
+                                            {
+                                                "not": {
+                                                    "equals": [
+                                                        "@body('Get_second_job_Unprocessed_records')",
+                                                        "@string('')"
+                                                    ]
+                                                }
+                                            },
+                                            {
+                                                "equals": [
+                                                    "@body('Get_second_job_Unprocessed_records')",
+                                                    "@null"
+                                                ]
+                                            },
+                                            {
+                                                "greater": [
+                                                    "@length(body('Get_second_job_unprocessed_records'))",
+                                                    186
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "runAfter": {
+                                        "Get_second_job_Unprocessed_records": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "If"
+                                },
+                                "Create_an_update_job_for_failed_records": {
+                                    "inputs": {
+                                        "body": {
+                                            "columnDelimiter": "SEMICOLON",
+                                            "contentType": "CSV",
+                                            "externalIdFieldName": "S4SIfA__c",
+                                            "object": "Account",
+                                            "operation": "upsert"
+                                        },
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "path": "/bulk/createjob"
+                                    },
+                                    "runAfter": {
+                                        "For_each_failed_record": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ApiConnection"
+                                },
+                                "For_each_failed_record": {
+                                    "actions": {
+                                        "Append_to_SecondBulkData": {
+                                            "inputs": {
+                                                "name": "SecondBulkData",
+                                                "value": "@{items('For_each_failed_record')?['S4SIfA__c']};@{items('For_each_failed_record')?['S4SLocal_Search_Term__c']};@{items('For_each_failed_record')?['S4SARE__c']};@{items('For_each_failed_record')?['S4SOrganization_Code__c']};@{items('For_each_failed_record')?['S4SCMD_NAME1__c']};@{items('For_each_failed_record')?['S4SCMD_NAME2__c']};@{items('For_each_failed_record')?['S4SCMD_NAME3__c']};@{items('For_each_failed_record')?['S4SCMD_STREET__c']};@{items('For_each_failed_record')?['S4SCMD_STREET2__c']};@{items('For_each_failed_record')?['S4SPO_box__c']};@{items('For_each_failed_record')?['BillingPostalCode']};@{items('For_each_failed_record')?['S4SPO_Box_Postcode__c']};@{items('For_each_failed_record')?['BillingCity']};@{items('For_each_failed_record')?['BillingCountry']};@{items('For_each_failed_record')?['S4STax_ID__c']};@{items('For_each_failed_record')?['S4SCity_PO_Box__c']};@{items('For_each_failed_record')?['S4SIfA_Siemens_Location__c']};@{items('For_each_failed_record')?['S4SISIC__c']};@{items('For_each_failed_record')?['S4SDUNS__c']};@{items('For_each_failed_record')?['Ownership']};@{items('For_each_failed_record')?['S4SSiemens_Account_Type__c']};@{items('For_each_failed_record')?['Name']};@{items('For_each_failed_record')?['S4SAccount_Name_International__c']};@{items('For_each_failed_record')?['BillingStreet']};@{items('For_each_failed_record')?['S4SCMD_REGION__c']};@{items('For_each_failed_record')?['BillingState']};@{items('For_each_failed_record')?['S4SInternational_CountryGP__c']};@{items('For_each_failed_record')?['S4SInternational_RegionGP__c']};@{items('For_each_failed_record')?['S4SInternational_Postal_Code__c']};@{items('For_each_failed_record')?['S4SInternational_Street_Name_1__c']};@{items('For_each_failed_record')?['S4SInternational_Street_Name_2__c']};@{items('For_each_failed_record')?['S4SInternational_City__c']};@{items('For_each_failed_record')?['RecordTypeID']};@{items('For_each_failed_record')?['S4SData_Visibility__c']}\n"
+                                            },
+                                            "runAfter": {},
+                                            "type": "AppendToStringVariable"
+                                        }
+                                    },
+                                    "foreach": "@body('Parse_Failed_records')",
+                                    "runAfter": {
+                                        "Parse_Failed_records": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "runtimeConfiguration": {
+                                        "concurrency": {
+                                            "repetitions": 10
+                                        }
+                                    },
+                                    "type": "Foreach"
+                                },
+                                "Get_second_job_Failed_records": {
+                                    "inputs": {
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                            }
+                                        },
+                                        "method": "get",
+                                        "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Close_or_abort_a_job')?['id'])}/results",
+                                        "queries": {
+                                            "resultType": "Failed"
+                                        }
+                                    },
+                                    "runAfter": {
+                                        "Until_BulkState_is_Failed_or_Complete": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ApiConnection"
+                                },
+                                "Get_second_job_Successful_records": {
+                                    "inputs": {
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                            }
+                                        },
+                                        "method": "get",
+                                        "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Close_or_abort_a_job')?['id'])}/results",
+                                        "queries": {
+                                            "resultType": "Successful"
+                                        }
+                                    },
+                                    "runAfter": {
+                                        "Until_BulkState_is_Failed_or_Complete": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ApiConnection"
+                                },
+                                "Get_second_job_Unprocessed_records": {
+                                    "inputs": {
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                            }
+                                        },
+                                        "method": "get",
+                                        "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Close_or_abort_a_job')?['id'])}/results",
+                                        "queries": {
+                                            "resultType": "Unprocessed"
+                                        }
+                                    },
+                                    "runAfter": {
+                                        "Until_BulkState_is_Failed_or_Complete": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ApiConnection"
+                                },
+                                "Parse_Failed_records": {
+                                    "inputs": {
+                                        "content": "@body('CSVToJSONParser')?['Value']",
+                                        "schema": {
+                                            "items": {
+                                                "properties": {
+                                                    "BillingCity": {
+                                                        "type": "string"
+                                                    },
+                                                    "BillingCountry": {
+                                                        "type": "string"
+                                                    },
+                                                    "BillingPostalCode": {
+                                                        "type": "string"
+                                                    },
+                                                    "CMD_Region__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "Name": {
+                                                        "type": "string"
+                                                    },
+                                                    "NationalState": {
+                                                        "type": "string"
+                                                    },
+                                                    "NationalStreet": {
+                                                        "type": "string"
+                                                    },
+                                                    "Ownership": {
+                                                        "type": "string"
+                                                    },
+                                                    "RecordTypeID": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SARE__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SAccount_Name_International__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SCMD_NAME1__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SCMD_NAME2__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SCMD_NAME3__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SCMD_REGION__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SCMD_STREET2__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SCMD_STREET__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SCity_PO_Box__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SDUNS__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SISIC__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SIfA_Siemens_Location__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SIfA__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SInternational_City__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SInternational_CountryGP__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SInternational_Postal_Code__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SInternational_RegionGP__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SInternational_Street_Name_1__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SInternational_Street_Name_2__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SLocal_Search_Term__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SOrganization_Code__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SPO_Box_Postcode__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SPO_box__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SSiemens_Account_Type__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4STax_ID__c": {
+                                                        "type": "string"
+                                                    },
+                                                    "BillingStreet": {
+                                                        "type": "string"
+                                                    },
+                                                    "BillingState": {
+                                                        "type": "string"
+                                                    },
+                                                    "sf__Error": {
+                                                        "type": "string"
+                                                    },
+                                                    "sf__Id": {
+                                                        "type": "string"
+                                                    },
+                                                    "S4SData_Visibility__c": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        }
+                                    },
+                                    "runAfter": {
+                                        "CSVToJSONParser": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ParseJson"
+                                },
+                                "Until_BulkState_is_Failed_or_Complete": {
+                                    "actions": {
+                                        "Delay_2": {
+                                            "inputs": {
+                                                "interval": {
+                                                    "count": 30,
+                                                    "unit": "Second"
+                                                }
+                                            },
+                                            "runAfter": {},
+                                            "type": "Wait"
+                                        },
+                                        "Get_job_info_2": {
+                                            "inputs": {
+                                                "host": {
+                                                    "connection": {
+                                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                    }
+                                                },
+                                                "method": "get",
+                                                "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Close_or_abort_a_job')?['id'])}"
+                                            },
+                                            "runAfter": {
+                                                "Delay_2": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "ApiConnection"
+                                        },
+                                        "While_job_Succeed": {
+                                            "actions": {
+                                                "Set_BulkState": {
+                                                    "inputs": {
+                                                        "name": "BulkState",
+                                                        "value": true
+                                                    },
+                                                    "runAfter": {},
+                                                    "type": "SetVariable"
+                                                }
+                                            },
+                                            "expression": {
+                                                "or": [
+                                                    {
+                                                        "equals": [
+                                                            "@body('Get_job_info_2')?['state']",
+                                                            "JobComplete"
+                                                        ]
+                                                    },
+                                                    {
+                                                        "equals": [
+                                                            "@body('Get_job_info_2')?['state']",
+                                                            "Failed"
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "runAfter": {
+                                                "Get_job_info_2": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "If"
+                                        }
+                                    },
+                                    "expression": "@equals(variables('BulkState'), true)",
+                                    "limit": {
+                                        "count": 60,
+                                        "timeout": "PT1H"
+                                    },
+                                    "runAfter": {
+                                        "Close_or_abort_a_job": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Until"
+                                },
+                                "Upload_job_data_2": {
+                                    "inputs": {
+                                        "body": "S4SIfA__c;S4SLocal_Search_Term__c;S4SARE__c;S4SOrganization_Code__c;S4SCMD_NAME1__c;S4SCMD_NAME2__c;S4SCMD_NAME3__c;S4SCMD_STREET__c;S4SCMD_STREET2__c;S4SPO_box__c;BillingPostalCode;S4SPO_Box_Postcode__c;BillingCity;BillingCountry;S4STax_ID__c;S4SCity_PO_Box__c;S4SIfA_Siemens_Location__c;S4SISIC__c;S4SDUNS__c;Ownership;S4SSiemens_Account_Type__c;Name;S4SAccount_Name_International__c;BillingStreet;S4SCMD_REGION__c;BillingState;S4SInternational_CountryGP__c;S4SInternational_RegionGP__c;S4SInternational_Postal_Code__c;S4SInternational_Street_Name_1__c;S4SInternational_Steet_Name_2__c;S4SInternational_City__c;RecordTypeID;S4SData_Visibility__c\n@{variables('SecondBulkData')}",
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                            }
+                                        },
+                                        "method": "put",
+                                        "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Create_an_update_job_for_failed_records')?['id'])}/batches"
+                                    },
+                                    "runAfter": {
+                                        "Create_an_update_job_for_failed_records": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ApiConnection"
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "greater": [
+                                            "@length(body('Get_failed_job_results'))",
+                                            207
+                                        ]
+                                    },
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@body('Get_failed_job_results')",
+                                                "@null"
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "runAfter": {
+                                "Reset_BulkState": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "If"
+                        }
+                    },
+                    "runAfter": {
+                        "Add_RecordTypeId_To_File_Content": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Scope"
+                },
+                "CSVToJSONParser_2": {
+                    "inputs": {
+                        "body": {
+                            "fieldSeperator": ";",
+                            "fileContent": "@{body('Get_blob_content_using_path_(V2)')}",
+                            "fileHeaders": "S4SIfA__c;S4SLocal_Search_Term__c;S4SARE__c;S4SOrganization_Code__c;S4SCMD_NAME1__c;S4SCMD_NAME2__c;S4SCMD_NAME3__c;S4SCMD_STREET__c;S4SCMD_STREET2__c;S4SPO_box__c;BillingPostalCode;S4SPO_Box_Postcode__c;BillingCity;BillingCountry;S4STax_ID__c;S4SCity_PO_Box__c;S4SIfA_Siemens_Location__c;S4SISIC__c;S4SDUNS__c;Ownership;S4SSiemens_Account_Type__c;Name;S4SAccount_Name_International__c;BillingStreet;S4SCMD_REGION__c;BillingState;S4SInternational_CountryGP__c;S4SInternational_RegionGP__c;S4SInternational_Postal_Code__c;S4SInternational_Street_Name_1__c;S4SInternational_Steet_Name_2__c;S4SInternational_City__c;S4SData_Visibility__c",
+                            "linesSkip": 0
+                        },
+                        "function": {
+                            "id": "[concat(parameters('funcApp'), '/functions/CSVToJSONParser')]"
+                        }
+                    },
+                    "runAfter": {
+                        "Get_blob_content_using_path_(V2)": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Function"
+                },
+                "Get_RecordTypeId": {
+                    "inputs": {
+                        "body": {
+                            "query": "SELECT Id from recordtype WHERE Name = 'Internal Account'"
+                        },
+                        "host": {
+                            "connection": {
+                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                            }
+                        },
+                        "method": "post",
+                        "path": "/soql/executesoqlquery"
+                    },
+                    "runAfter": {
+                        "CSVToJSONParser_2": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "ApiConnection"
+                },
+                "Get_blob_content_using_path_(V2)": {
+                    "inputs": {
+                        "host": {
+                            "connection": {
+                                "name": "@parameters('$connections')['azureBlobConnection']['connectionId']"
+                            }
+                        },
+                        "method": "get",
+                        "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('${st_name}'))}/GetFileContentByPath",
+                        "queries": {
+                            "inferContentType": false,
+                            "path": "@{parameters('blobContainerName')}/@{workflow()['run']['name']}/incoming/@{body('Create_incoming_blob')?['Name']}",
+                            "queryParametersSingleEncoded": true
+                        }
+                    },
+                    "runAfter": {},
+                    "type": "ApiConnection"
+                }
+            },
+            "runAfter": {
+                "Condition_on_file_extension": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Save_error_logs": {
+            "actions": {
+                "Create_blob_for_Log_File": {
+                    "inputs": {
+                        "body": "@variables('Response')",
+                        "headers": {
+                            "ReadFileMetadataFromServer": true
+                        },
+                        "host": {
+                            "connection": {
+                                "name": "@parameters('$connections')['azureBlobConnection']['connectionId']"
+                            }
+                        },
+                        "method": "post",
+                        "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files",
+                        "queries": {
+                            "folderPath": "@{parameters('BlobContainerName')}/@{workflow()['run']['name']}/incoming",
+                            "name": "CSV_Log@{formatDateTime(utcNow(), 'yyyyMMddHHmmss')}.csv",
+                            "queryParametersSingleEncoded": true
+                        }
+                    },
+                    "runAfter": {},
+                    "runtimeConfiguration": {
+                        "contentTransfer": {
+                            "transferMode": "Chunked"
+                        }
+                    },
+                    "type": "ApiConnection"
+                },
+                "Create_error_log_file": {
+                    "inputs": {
+                        "body": "@body('Get_Log_blob_content')",
+                        "headers": {
+                            "ReadFileMetadataFromServer": true
+                        },
+                        "host": {
+                            "connection": {
+                                "name": "@parameters('$connections')['azureblobsftpssh']['connectionId']"
+                            }
+                        },
+                        "method": "post",
+                        "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files",
+                        "queries": {
+                            "folderPath": "@parameters('logPath')",
+                            "name": "Logs@{utcNow()}.zip",
+                            "queryParametersSingleEncoded": true
+                        }
+                    },
+                    "runAfter": {
+                        "Get_Log_blob_content": [
+                            "Succeeded"
+                        ]
+                    },
+                    "runtimeConfiguration": {
+                        "contentTransfer": {
+                            "transferMode": "Chunked"
+                        }
+                    },
+                    "type": "ApiConnection"
+                },
+                "Delete_Log_blob": {
+                    "inputs": {
+                        "headers": {
+                            "SkipDeleteIfFileNotFoundOnServer": false
+                        },
+                        "host": {
+                            "connection": {
+                                "name": "@parameters('$connections')['azureBlobConnection']['connectionId']"
+                            }
+                        },
+                        "method": "delete",
+                        "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files/@{encodeURIComponent(encodeURIComponent(body('Create_blob_for_Log_File')?['Id']))}"
+                    },
+                    "runAfter": {
+                        "Create_error_log_file": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "ApiConnection"
+                },
+                "Get_Log_blob_content": {
+                    "inputs": {
+                        "host": {
+                            "connection": {
+                                "name": "@parameters('$connections')['azureBlobConnection']['connectionId']"
+                            }
+                        },
+                        "method": "get",
+                        "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files/@{encodeURIComponent(encodeURIComponent(parameters('BlobContainerName'),'/',body('Log_BlobToZipConverterFunction')?['Value']))}/content",
+                        "queries": {
+                            "inferContentType": true
+                        }
+                    },
+                    "runAfter": {
+                        "Log_BlobToZipConverterFunction": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "ApiConnection"
+                },
+                "Log_BlobToZipConverterFunction": {
+                    "inputs": {
+                        "authentication": {
+                            "type": "Raw",
+                            "value": "[parameters('functionAppKey')]"
+                        },
+                        "body": {
+                            "blobContainerName": "@{parameters('BlobContainerName')}",
+                            "incomingBlobPath": "@{workflow()['run']['name']}/incoming",
+                            "incominigBlobName": "@{body('Create_blob_for_Log_File')?['DisplayName']}",
+                            "outcomingBlobPath": "@{workflow()['run']['name']}/logZip"
+                        },
+                        "function": {
+                            "id": "[concat(parameters('funcApp'), '/functions/BlobToZipConverterFunction')]"
+                        }
+                    },
+                    "runAfter": {
+                        "Create_blob_for_Log_File": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Function"
+                }
+            },
+            "runAfter": {
+                "Move_file_to_processed_dir": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Scope"
+        }
+    },
+	"contentVersion": "1.0.0.0",
+	"outputs": {},
+	"parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        },
+        "BlobContainerName": {
+            "defaultValue": "sftp-container-c00031-ssd",
+            "type": "String"
+        },
+        "InterfaceRootPath": {
+            "defaultValue": "/sftp-container-c00031/sftp-c00031/SSD/",
+            "type": "String"
+        },
+        "delimeter": {
+            "defaultValue": ";",
+            "type": "String"
+        },
+        "errorPath": {
+            "defaultValue": "/sftp-container-c00031/sftp-c00031/SSD/error",
+            "type": "String"
+        },
+        "fileFilter": {
+            "defaultValue": "text/csv",
+            "type": "String"
+        },
+        "incomingPath": {
+            "defaultValue": "/sftp-container-c00031/sftp-c00031/SSD/incoming",
+            "type": "String"
+        },
+        "logPath": {
+            "defaultValue": "/sftp-container-c00031/sftp-c00031/SSD/log",
+            "type": "String"
+        },
+        "processedPath": {
+            "defaultValue": "/sftp-container-c00031/sftp-c00031/SSD/archive",
+            "type": "String"
+        },
+        "workingPath": {
+            "defaultValue": "/sftp-container-c00031/sftp-c00031/SSD/working",
+            "type": "String"
+        }
+    },
+	"triggers": {
+        "When_files_are_added_or_modified_(properties_only)": {
+            "evaluatedRecurrence": {
+                "frequency": "Minute",
+                "interval": 20
+            },
+            "inputs": {
+                "host": {
+                    "connection": {
+                        "name": "@parameters('$connections')['azureblobsftpssh']['connectionId']"
+                    }
+                },
+                "method": "get",
+                "path": "/datasets/default/triggers/batch/onupdatedfile",
+                "queries": {
+                    "checkBothCreatedAndModifiedDateTime": false,
+                    "folderId": "@parameters('incomingPath')",
+                    "maxFileCount": 1
+                }
+            },
+            "recurrence": {
+                "frequency": "Minute",
+                "interval": 20
+            },
+            "runtimeConfiguration": {
+                "concurrency": {
+                    "runs": 5
+                }
+            },
+            "splitOn": "@triggerBody()",
+            "type": "ApiConnection"
+        }
+    }
+}

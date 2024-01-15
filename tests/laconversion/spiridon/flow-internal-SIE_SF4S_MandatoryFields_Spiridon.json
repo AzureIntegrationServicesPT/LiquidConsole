@@ -1,0 +1,716 @@
+{
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Compose": {
+                "runAfter": {},
+                "type": "Compose",
+                "inputs": "@triggerBody()?['SIE_SF4S_MandatoryFieldsReq_Spiridon']"
+            },
+            "Initialize_variable_AccountIFA": {
+                "runAfter": {
+                    "Compose": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable",
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "AccountIFA",
+                            "type": "string",
+                            "value": "@{outputs('Compose')?['AccountIFA']}"
+                        }
+                    ]
+                }
+            },
+            "Initialize_variable_Depth_Structure": {
+                "runAfter": {
+                    "Compose": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable",
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "DepthStructure",
+                            "type": "array",
+                            "value": "@outputs('Compose')?['DepthStructure']"
+                        }
+                    ]
+                }
+            },
+            "Initialize_variable_Message": {
+                "runAfter": {
+                    "Compose": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable",
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "Message",
+                            "type": "string"
+                        }
+                    ]
+                }
+            },
+            "Initialize_variable_ProductFinalResponse": {
+                "runAfter": {
+                    "Compose": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable",
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "ProductFinalResponse",
+                            "type": "string"
+                        }
+                    ]
+                }
+            },
+            "Initialize_variable_ProductResponse": {
+                "runAfter": {
+                    "Compose": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable",
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "ProductResponse",
+                            "type": "string"
+                        }
+                    ]
+                }
+            },
+            "Initialize_variable_SalesRep_GID": {
+                "runAfter": {
+                    "Compose": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable",
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "SalesRep_GID",
+                            "type": "string",
+                            "value": "@{outputs('Compose')?['SalesRep_GID']}"
+                        }
+                    ]
+                }
+            },
+            "Initialize_variable_Status": {
+                "runAfter": {
+                    "Compose": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable",
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "Status",
+                            "type": "string"
+                        }
+                    ]
+                }
+            },
+            "Initialize_variable_depthStructureMsg": {
+                "runAfter": {
+                    "Compose": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable",
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "depthStructureMsg",
+                            "type": "string"
+                        }
+                    ]
+                }
+            },
+            "Initialize_variable_mandatoryFieldsStatus": {
+                "runAfter": {
+                    "Compose": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable",
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "mandatoryFieldsStatus",
+                            "type": "string"
+                        }
+                    ]
+                }
+            },
+            "Scope_Catch": {
+                "actions": {
+                    "Send_Error_Response": {
+                        "runAfter": {},
+                        "type": "Response",
+                        "kind": "Http",
+                        "inputs": {
+                            "body": "Unexpected error occured. Please contact system administrator with the following tracking id:@{workflow()['run']['name']}",
+                            "headers": {
+                                "Content-Type": "text/xml"
+                            },
+                            "statusCode": 500
+                        }
+                    },
+                    "Terminate": {
+                        "runAfter": {
+                            "Send_Error_Response": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Terminate",
+                        "inputs": {
+                            "runError": {
+                                "code": "500"
+                            },
+                            "runStatus": "Failed"
+                        }
+                    }
+                },
+                "runAfter": {
+                    "Scope_Try": [
+                        "Failed",
+                        "TimedOut",
+                        "Skipped"
+                    ]
+                },
+                "type": "Scope"
+            },
+            "Scope_Try": {
+                "actions": {
+                    "Compose_MandatoryFields": {
+                        "runAfter": {
+                            "Condition_to_check_DepthStructure": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Compose",
+                        "inputs": {
+                            "Product": "@json(variables('ProductFinalResponse'))",
+                            "accountId": "@{body('fetchAccount_from_SalesForce')?['records']?[0]?['Id']}",
+                            "message": "@{variables('Message')}",
+                            "ownerId": "@{body('fetchUser_from_SalesForce')?['records']?[0]?['Id']}",
+                            "status": "@{variables('mandatoryFieldsStatus')}"
+                        }
+                    },
+                    "Compose_Response": {
+                        "runAfter": {
+                            "Compose_MandatoryFields": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Compose",
+                        "inputs": {
+                            "SIE_SF4S_MandatoryFieldsRes_Spiridon": "@outputs('Compose_MandatoryFields')"
+                        }
+                    },
+                    "Condition_to_check_AccountIAF": {
+                        "actions": {
+                            "Condition_to_check_Size_of_FetchAccount_Response": {
+                                "actions": {},
+                                "runAfter": {
+                                    "FetchAccount_from_SalesForce": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "else": {
+                                    "actions": {
+                                        "Set_variable_Message_1": {
+                                            "runAfter": {},
+                                            "type": "SetVariable",
+                                            "inputs": {
+                                                "name": "Message",
+                                                "value": "@{concat('Opportunity Creation failed as the Account IFA number: ',variables('AccountIFA'),' does not exist in the SieSales.')}"
+                                            }
+                                        },
+                                        "Set_variable_mandatoryFieldsStatus_1": {
+                                            "runAfter": {
+                                                "Set_variable_Message_1": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "SetVariable",
+                                            "inputs": {
+                                                "name": "mandatoryFieldsStatus",
+                                                "value": "@string('false')"
+                                            }
+                                        }
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "equals": [
+                                                "@body('FetchAccount_from_SalesForce')?['totalSize']",
+                                                1
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "FetchAccount_from_SalesForce": {
+                                "runAfter": {},
+                                "type": "ApiConnection",
+                                "inputs": {
+                                    "body": {
+                                        "query": "select Id from Account where S4SIfA__c = '@{variables('AccountIFA')}'"
+                                    },
+                                    "host": {
+                                        "connection": {
+                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                        }
+                                    },
+                                    "method": "post",
+                                    "path": "/soql/executesoqlquery"
+                                }
+                            }
+                        },
+                        "runAfter": {},
+                        "else": {
+                            "actions": {
+                                "Set_variable_Message_2": {
+                                    "runAfter": {},
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                        "name": "Message",
+                                        "value": "@{string('Opportunity Creation failed as No Account IFA number was provided in the Input')}"
+                                    }
+                                },
+                                "Set_variable_mandatoryFieldsStatus_2": {
+                                    "runAfter": {
+                                        "Set_variable_Message_2": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                        "name": "mandatoryFieldsStatus",
+                                        "value": "@string('false')"
+                                    }
+                                }
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('AccountIFA')",
+                                            "@null"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('AccountIFA')",
+                                            "@string('')"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Condition_to_check_DepthStructure": {
+                        "actions": {
+                            "Compose_For_Each_Record": {
+                                "runAfter": {
+                                    "For_each": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Compose",
+                                "inputs": "@if(equals(variables('ProductResponse'),''),outputs('Compose_Product_Details'),concat(variables('ProductResponse'),',',outputs('Compose_Product_Details')))"
+                            },
+                            "For_each": {
+                                "foreach": "@variables('DepthStructure')",
+                                "actions": {
+                                    "Compose_Product_Details": {
+                                        "runAfter": {
+                                            "Condition_message": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "Compose",
+                                        "inputs": {
+                                            "Id": "@{body('SIE_SF4S_depthStructure_Spiridon')?['Id']}",
+                                            "Name": "@{body('SIE_SF4S_depthStructure_Spiridon')?['Name']}",
+                                            "Status": "@{variables('Status')}",
+                                            "isPrimary": "@{items('For_each')?['isPrimary']}",
+                                            "message": "@{variables('depthStructureMsg')}"
+                                        }
+                                    },
+                                    "Condition_message": {
+                                        "actions": {
+                                            "Set_variable_Status": {
+                                                "runAfter": {},
+                                                "type": "SetVariable",
+                                                "inputs": {
+                                                    "name": "Status",
+                                                    "value": "@string('true')"
+                                                }
+                                            },
+                                            "Set_variable_depthStructureMessage_1": {
+                                                "runAfter": {
+                                                    "Set_variable_Status": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "SetVariable",
+                                                "inputs": {
+                                                    "name": "depthStructureMsg",
+                                                    "value": "@{body('SIE_SF4S_depthStructure_Spiridon')?['message']}"
+                                                }
+                                            }
+                                        },
+                                        "runAfter": {
+                                            "SIE_SF4S_depthStructure_Spiridon": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "else": {
+                                            "actions": {
+                                                "Set_variable_MandatoryMessage": {
+                                                    "runAfter": {
+                                                        "Set_variable_MandatoryStatus": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                        "name": "Message",
+                                                        "value": "The requested Product Doesn't exist in SieSales"
+                                                    }
+                                                },
+                                                "Set_variable_MandatoryStatus": {
+                                                    "runAfter": {
+                                                        "Set_variable_depthStructureStatus": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                        "name": "mandatoryFieldsStatus",
+                                                        "value": "@string('false')"
+                                                    }
+                                                },
+                                                "Set_variable_depthStructureMEssage_2": {
+                                                    "runAfter": {},
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                        "name": "depthStructureMsg",
+                                                        "value": "@{string('The requested Product does not exist in SieSales')}"
+                                                    }
+                                                },
+                                                "Set_variable_depthStructureStatus": {
+                                                    "runAfter": {
+                                                        "Set_variable_depthStructureMEssage_2": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                        "name": "Status",
+                                                        "value": "@string('false')"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "expression": {
+                                            "and": [
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@body('SIE_SF4S_depthStructure_Spiridon')?['message']",
+                                                            "@string('Could not fetch any fields from Depth Structure')"
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "type": "If"
+                                    },
+                                    "SIE_SF4S_depthStructure_Spiridon": {
+                                        "runAfter": {},
+                                        "type": "Workflow",
+                                        "inputs": {
+                                            "body": "@items('For_each')",
+                                            "headers": {
+                                                "Content-Type": "application/json"
+                                            },
+                                            "host": {
+                                                "triggerName": "manual",
+                                                "workflow": {
+                                                    "id": "${Spiridon_SIE_SF4S_depthStructure_Spiridon_logicAppId}"
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                "runAfter": {},
+                                "type": "Foreach"
+                            },
+                            "Set_variable_ProductResponse": {
+                                "runAfter": {
+                                    "Compose_For_Each_Record": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "SetVariable",
+                                "inputs": {
+                                    "name": "ProductFinalResponse",
+                                    "value": "@{outputs('Compose_For_Each_Record')}"
+                                }
+                            }
+                        },
+                        "runAfter": {
+                            "Condition_to_check_SalesRep_ID": [
+                                "Succeeded"
+                            ]
+                        },
+                        "else": {
+                            "actions": {
+                                "Set_variable_Message_5": {
+                                    "runAfter": {},
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                        "name": "Message",
+                                        "value": "Opportunity Creation failed as No Depth Structure was provided in the Input"
+                                    }
+                                },
+                                "Set_variable_mandatoryFieldsStatus_5": {
+                                    "runAfter": {
+                                        "Set_variable_Message_5": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                        "name": "mandatoryFieldsStatus",
+                                        "value": "@string('false')"
+                                    }
+                                }
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('DepthStructure')",
+                                            "@null"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Condition_to_check_SalesRep_ID": {
+                        "actions": {
+                            "Condition_to_check_Size_of_FetchUser_Response": {
+                                "actions": {},
+                                "runAfter": {
+                                    "FetchUser_from_SalesForce": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "else": {
+                                    "actions": {
+                                        "Set_variable_Message_3": {
+                                            "runAfter": {},
+                                            "type": "SetVariable",
+                                            "inputs": {
+                                                "name": "Message",
+                                                "value": "@{concat('Opportunity Creation failed as the SALESREP_GID: ',variables('SalesRep_GID'),' does not exist in the SieSales.')}"
+                                            }
+                                        },
+                                        "Set_variable_mandatoryFieldsStatus_3": {
+                                            "runAfter": {
+                                                "Set_variable_Message_3": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "SetVariable",
+                                            "inputs": {
+                                                "name": "mandatoryFieldsStatus",
+                                                "value": "@string('false')"
+                                            }
+                                        }
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "equals": [
+                                                "@body('FetchUser_from_SalesForce')?['totalSize']",
+                                                1
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "FetchUser_from_SalesForce": {
+                                "runAfter": {},
+                                "type": "ApiConnection",
+                                "inputs": {
+                                    "body": {
+                                        "query": "select Id from User where S4SGID_Technical__c = '@{variables('SalesRep_GID')}'"
+                                    },
+                                    "host": {
+                                        "connection": {
+                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                        }
+                                    },
+                                    "method": "post",
+                                    "path": "/soql/executesoqlquery"
+                                }
+                            }
+                        },
+                        "runAfter": {
+                            "Condition_to_check_AccountIAF": [
+                                "Succeeded"
+                            ]
+                        },
+                        "else": {
+                            "actions": {
+                                "Set_variable_Message_4": {
+                                    "runAfter": {},
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                        "name": "Message",
+                                        "value": "@{string('Opportunity Creation failed as No SALESREP_GID was provided in the Input')}"
+                                    }
+                                },
+                                "Set_variable_mandatoryFieldsStatus_4": {
+                                    "runAfter": {
+                                        "Set_variable_Message_4": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                        "name": "mandatoryFieldsStatus",
+                                        "value": "@string('false')"
+                                    }
+                                }
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('SalesRep_GID')",
+                                            "@null"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('SalesRep_GID')",
+                                            "@string('')"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Response": {
+                        "runAfter": {
+                            "Compose_Response": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Response",
+                        "kind": "Http",
+                        "inputs": {
+                            "body": "@outputs('Compose_Response')",
+                            "headers": {
+                                "Content-Type": "application/json"
+                            },
+                            "statusCode": 200
+                        }
+                    }
+                },
+                "runAfter": {
+                    "Initialize_variable_AccountIFA": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_Depth_Structure": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_Message": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_ProductFinalResponse": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_ProductResponse": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_SalesRep_GID": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_Status": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_depthStructureMsg": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_mandatoryFieldsStatus": [
+                        "Succeeded"
+                    ]
+                },
+                "trackedProperties": {
+                    "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+                    "citizenName": "c00031",
+                    "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'Spiridon')}",
+                    "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                    "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                    "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'mandatoryfields')}",
+                    "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}"
+                },
+                "type": "Scope"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "manual": {
+                "inputs": {
+                    "schema": {}
+                },
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+  
+}

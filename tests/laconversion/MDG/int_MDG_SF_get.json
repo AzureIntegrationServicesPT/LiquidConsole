@@ -1,0 +1,288 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "Select Params": {
+      "defaultValue": "Id,Name,S4SIfA__c,S4SMD_Status__c,RecordTypeId",
+      "type": "String"
+    },
+    "Where Clause": {
+      "defaultValue": "Id ",
+      "type": "String"
+    }
+  },
+  "triggers": {
+    "manual": {
+      "type": "Request",
+      "kind": "Http",
+      "inputs": {
+        "schema": {
+          "properties": {
+            "CountryList": {
+              "type": "string"
+            },
+            "Data": {
+              "type": "string"
+            },
+            "tokenType": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      }
+    }
+  },
+  "actions": {
+    "Transform_Payload": {
+      "inputs": {
+        "authentication": {
+          "type": "Raw",
+          "value": "[parameters('functionAppKey')]"
+        },
+        "body": {
+          "CountryList": "@json(triggerBody()?['CountryList'])",
+          "Data": "@json(triggerBody()?['Data'])"
+        },
+        "function": {
+          "id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "Filename": "MDGToSalesforceResponseTransformation"
+        },
+        "method": "POST"
+      },
+      "runAfter": {
+        "logic-c00031-getSFOauthToken-weu-dev": ["Succeeded"]
+      },
+      "type": "Function"
+    },
+    "check_if_records_are_present_for_pull_from_MDG": {
+      "actions": {
+        "For_each": {
+          "actions": {
+            "Fetch_Account_from_Salesforce": {
+              "inputs": {
+                "headers": {
+                  "Authorization": "Bearer @{body('logic-c00031-getSFOauthToken-weu-dev')?['access_token']}"
+                },
+                "method": "GET",
+                "queries": {
+                  "q": "Select @{parameters('Select Params')} from Account where  S4SCID_number__c = '@{items('For_each')?['S4SCID_Number__c']}'"
+                },
+                "uri": "@{body('logic-c00031-getSFOauthToken-weu-dev')?['instance_url']}/services/data/v53.0/query"
+              },
+              "runAfter": {},
+              "type": "Http"
+            },
+            "Switch_On_ACTION": {
+              "cases": {
+                "Case": {
+                  "actions": {
+                    "Switch": {
+                      "cases": {
+                        "Case": {
+                          "actions": {},
+                          "case": "Duplicate"
+                        }
+                      },
+                      "default": {
+                        "actions": {
+                          "Update_Account_as_Not_Managed": {
+                            "inputs": {
+                              "body": {
+                                "S4SMD_Status__c": "Not managed in CMD",
+                                "S4SIfA__c": "",
+                                "S4SPrevious_IfA_Number__c": "@body('Fetch_Account_from_Salesforce')?['records']?[0]?['S4SIfA__c']",
+                                "S4SNotification_from_CMD__c": "@{items('For_each')?['S4SNotification_from_CMD__c']}"
+                              },
+                              "headers": {
+                                "Authorization": "Bearer @{body('logic-c00031-getSFOauthToken-weu-dev')?['access_token']}"
+                              },
+                              "method": "PATCH",
+                              "uri": "@{body('logic-c00031-getSFOauthToken-weu-dev')?['instance_url']}/services/data/v54.0/sobjects/Account/@{body('Fetch_Account_from_Salesforce')?['records']?[0]?['Id']}"
+                            },
+                            "runAfter": {},
+                            "type": "Http"
+                          }
+                        }
+                      },
+                      "expression": "@body('Fetch_Account_from_Salesforce')?['records']?[0]?['S4SMD_Status__c']",
+                      "runAfter": {},
+                      "type": "Switch"
+                    }
+                  },
+                  "case": "V"
+                }
+              },
+              "default": {
+                "actions": {
+                  "Switch_on_IFA": {
+                    "cases": {
+                      "Case": {
+                        "actions": {
+                          "Update_Account_as_Rejected": {
+                            "inputs": {
+                              "body": {
+                                "S4SMD_Status__c": "CMD subscription rejected",
+                                "S4SIfA__c":"",
+                                "S4SPrevious_IfA_Number__c":"@body('Fetch_Account_from_Salesforce')?['records']?[0]?['S4SIfA__c']",
+                                "S4SNotification_from_CMD__c": "@{items('For_each')?['S4SNotification_from_CMD__c']}"
+                              },
+                              "headers": {
+                                "Authorization": "Bearer @{body('logic-c00031-getSFOauthToken-weu-dev')?['access_token']}"
+                              },
+                              "method": "PATCH",
+                              "uri": "@{body('logic-c00031-getSFOauthToken-weu-dev')?['instance_url']}/services/data/v54.0/sobjects/Account/@{body('Fetch_Account_from_Salesforce')?['records']?[0]?['Id']}"
+                            },
+                            "runAfter": {},
+                            "type": "Http"
+                          }
+                        },
+                        "case": "0000000000"
+                      }
+                    },
+                    "default": {
+                      "actions": {
+                        "Fetch_Account_from_Salesforce_with_IFA": {
+                          "inputs": {
+                            "headers": {
+                              "Authorization": "Bearer @{body('logic-c00031-getSFOauthToken-weu-dev')?['access_token']}"
+                            },
+                            "method": "GET",
+                            "queries": {
+                              "q": "Select @{parameters('Select Params')} from Account where S4SIfA__c = '@{items('For_each')?['S4SIfA__c']}'  and S4SCID_number__c != '@{items('For_each')?['S4SCID_Number__c']}' and RecordTypeId = '@{body('Fetch_Account_from_Salesforce')?['records']?[0]?['RecordTypeId']}'"
+                            },
+                            "uri": "@{body('logic-c00031-getSFOauthToken-weu-dev')?['instance_url']}/services/data/v53.0/query"
+                          },
+                          "runAfter": {},
+                          "type": "Http"
+                        },
+                        "Switch_on_Number_of_Records_in_SieSales_for_the_same_IFA": {
+                          "cases": {
+                            "Case": {
+                              "actions": {
+                                "Update_Account_with_data_from_MDG": {
+                                  "inputs": {
+                                    "body": "@removeProperty(setProperty(items('For_each'),'S4SMD_Status__c','Managed in CMD'),'ACTION')",
+                                    "headers": {
+                                      "Authorization": "Bearer @{body('logic-c00031-getSFOauthToken-weu-dev')?['access_token']}"
+                                    },
+                                    "method": "PATCH",
+                                    "uri": "@{body('logic-c00031-getSFOauthToken-weu-dev')?['instance_url']}/services/data/v54.0/sobjects/Account/@{body('Fetch_Account_from_Salesforce')?['records']?[0]?['Id']}"
+                                  },
+                                  "runAfter": {},
+                                  "type": "Http"
+                                }
+                              },
+                              "case": 0
+                            }
+                          },
+                          "default": {
+                            "actions": {
+                              "Update_Account_as_a_Duplicate": {
+                                "inputs": {
+                                  "body": {
+                                    "S4SIfA__c":" ",
+                                    "S4SPrevious_IfA_Number__c": "@{body('Fetch_Account_from_Salesforce')?['records']?[0]?['S4SIfA__c']}",
+                                    "S4SDuplicate_IfA_Number__c": "@{items('For_each')?['S4SIfA__c']}",
+                                    "S4SMD_Status__c": "Duplicate"
+                                  },
+                                  "headers": {
+                                    "Authorization": "Bearer @{body('logic-c00031-getSFOauthToken-weu-dev')?['access_token']}"
+                                  },
+                                  "method": "PATCH",
+                                  "uri": "@{body('logic-c00031-getSFOauthToken-weu-dev')?['instance_url']}/services/data/v54.0/sobjects/Account/@{body('Fetch_Account_from_Salesforce')?['records']?[0]?['Id']}"
+                                },
+                                "runAfter": {},
+                                "type": "Http"
+                              }
+                            }
+                          },
+                          "expression": "@body('Fetch_Account_from_Salesforce_with_IFA')?['totalSize']",
+                          "runAfter": {
+                            "Fetch_Account_from_Salesforce_with_IFA": [
+                              "Succeeded"
+                            ]
+                          },
+                          "type": "Switch"
+                        }
+                      }
+                    },
+                    "expression": "@items('For_each')?['S4SIfA__c']",
+                    "runAfter": {},
+                    "type": "Switch"
+                  }
+                }
+              },
+              "expression": "@items('For_each')?['ACTION']",
+              "runAfter": {
+                "Fetch_Account_from_Salesforce": ["Succeeded"]
+              },
+              "type": "Switch"
+            }
+          },
+          "foreach": "@body('Transform_Payload')?['Output']",
+          "runAfter": {},
+          "type": "Foreach"
+        },
+        "Response": {
+            "inputs": {
+                "statusCode": 200
+            },
+            "kind": "Http",
+            "runAfter": {
+                "For_each": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Response"
+        }
+      },
+      "else": {
+        "actions": {
+          "NoRecordstoPull": {
+            "inputs": {
+              "body": {
+                "message": "No records to be pulled from MDG to process"
+              },
+              "statusCode": 200
+            },
+            "kind": "Http",
+            "runAfter": {},
+            "type": "Response"
+          }
+        }
+      },
+      "expression": {
+        "and": [
+          {
+            "equals": ["@empty(body('Transform_Payload')?['Output'])", false]
+          }
+        ]
+      },
+      "runAfter": {
+        "Transform_Payload": ["Succeeded"]
+      },
+      "type": "If"
+    },
+    "logic-c00031-getSFOauthToken-weu-dev": {
+      "inputs": {
+        "body": {
+          "tokenType": "@triggerBody()?['tokenType']"
+        },
+        "host": {
+          "triggerName": "manual",
+          "workflow": {
+            "id": "${logic_getSFOauthToken}"
+          }
+        }
+      },
+      "runAfter": {},
+      "type": "Workflow"
+    }
+  },
+  "outputs": {}
+}

@@ -1,0 +1,368 @@
+{
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Initialize_Id_array": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "IdArray",
+                            "type": "array"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_response": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "response",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Scope-Catch": {
+                "actions": {
+                    "Failed_Response": {
+                        "inputs": {
+                            "body": "@variables('response')",
+                            "headers": {
+                                "Content-Type": "application/xml"
+                            },
+                            "statusCode": "@coalesce(500,outputs('HTTP-Delete-QL')['statusCode'],outputs('HTTP-Delete-BL')['statusCode'])"
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                        "type": "Response"
+                    },
+                    "Terminate-Failed": {
+                        "inputs": {
+                            "runStatus": "Failed"
+                        },
+                        "runAfter": {
+                            "Failed_Response": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Terminate"
+                    }
+                },
+                "runAfter": {
+                    "Scope-Try": [
+                        "TimedOut",
+                        "Skipped",
+                        "Failed"
+                    ]
+                },
+                "type": "Scope"
+            },
+            "Scope-Try": {
+                "actions": {
+                    "Condition_to_check_OpportunityId": {
+                        "actions": {
+                            "Condition_to_check_BookingTotalSize": {
+                                "actions": {
+                                    "Execute_JavaScript_Code-BL": {
+                                        "inputs": {
+                                            "code": "var records=workflowContext.actions.Execute_fetchBookingLine.outputs.body.records\r\nvar totalSize=Object.keys(records).length;\r\nvar idArray='';\r\nvar result;\r\nvar splitArray;\r\nvar j=199;\r\nfor(var i=0;i<totalSize;i++)\r\n{\r\nidArray=idArray+records[i].Id;\r\nif(i==j)\r\n{\r\n    idArray=idArray+';' ;\r\n    j=j+200;\r\n}\r\nelse if(i==totalSize-1)\r\n{\r\n    idArray=idArray+'';\r\n}\r\nelse{\r\n    idArray=idArray+',';\r\n}\r\n}\r\n\r\nsplitArray = idArray.split(';');\r\nreturn splitArray.filter(item => item);"
+                                        },
+                                        "runAfter": {},
+                                        "type": "JavaScriptCode"
+                                    },
+                                    "For_each-BL": {
+                                        "actions": {
+                                            "HTTP-Delete-BL": {
+                                                "inputs": {
+                                                    "headers": {
+                                                        "Authorization": "Bearer @{body('Get_Token')}",
+                                                        "Content-Type": "application/json"
+                                                    },
+                                                    "method": "DELETE",
+                                                    "uri": "${instanceURL}/composite/sobjects?ids=@{items('For_each-BL')}&allOrNone=true"
+                                                },
+                                                "runAfter": {},
+                                                "type": "Http"
+                                            },
+                                            "Set_variable-FailedResponse-BL": {
+                                                "inputs": {
+                                                    "name": "response",
+                                                    "value": "{\n \"SIE_SF4S_upsertResponse\":{\n            \"Id\":\"\",\n            \"created\":\"\",\n            \"Status\":\"false\",\n            \"Message\":\"@{body('HTTP-Delete-BL')}\"\n         }\n}"
+                                                },
+                                                "runAfter": {
+                                                    "HTTP-Delete-BL": [
+                                                        "Failed"
+                                                    ]
+                                                },
+                                                "type": "SetVariable"
+                                            },
+                                            "Set_variable-SuccessResponse-BL": {
+                                                "inputs": {
+                                                    "name": "response",
+                                                    "value": "{\n \"SIE_SF4S_upsertResponse\":{\n            \"Id\":\"\",\n            \"created\":\"\",\n            \"Status\":\"true\",\n            \"Message\":\"@{body('HTTP-Delete-BL')}\"\n         }\n}"
+                                                },
+                                                "runAfter": {
+                                                    "HTTP-Delete-BL": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "SetVariable"
+                                            }
+                                        },
+                                        "foreach": "@outputs('Execute_JavaScript_Code-BL')?['body']",
+                                        "runAfter": {
+                                            "Execute_JavaScript_Code-BL": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "Foreach"
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "greater": [
+                                                "@body('Execute_fetchBookingLine')['totalSize']",
+                                                0
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "Execute_fetchBookingLine": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "Execute_fetchBookingLine": {
+                                "inputs": {
+                                    "body": {
+                                        "query": "Select Id from S4SBooking_Line_Item__c where @{concat('S4SOpportunity__c = ',string(''''),triggerOutputs()['headers']?['opportunityId'],string(''''),\r\nif(not(equals(triggerOutputs()['headers']?['S4SExternal_Source__c'],null))\r\n,concat(' AND S4SExternal_Source__c = ',string(''''), triggerOutputs()['headers']?['S4SExternal_Source__c'],string('''')),\r\n ''))}"
+                                    },
+                                    "host": {
+                                        "connection": {
+                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                        }
+                                    },
+                                    "method": "post",
+                                    "path": "/soql/executesoqlquery"
+                                },
+                                "runAfter": {},
+                                "type": "ApiConnection"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@triggerOutputs()['headers']?['opportunityId']",
+                                            "@null"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@triggerOutputs()['headers']?['opportunityId']",
+                                            "@string('')"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Get_Token": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Condition_to_check_QuoteId": {
+                        "actions": {
+                            "Condition_to_check_QL_TotalSize": {
+                                "actions": {
+                                    "Execute_JavaScript_Code-QL": {
+                                        "inputs": {
+                                           "code": "var records=workflowContext.actions.Execute_fetchQuoteLine.outputs.body.records\r\nvar totalSize=Object.keys(records).length;\r\nvar idArray='';\r\nvar result;\r\nvar splitArray;\r\nvar j=199;\r\nfor(var i=0;i<totalSize;i++)\r\n{\r\nidArray=idArray+records[i].Id;\r\nif(i==j)\r\n{\r\n    idArray=idArray+';' ;\r\n    j=j+200;\r\n}\r\nelse if(i==totalSize-1)\r\n{\r\n    idArray=idArray+'';\r\n}\r\nelse{\r\n    idArray=idArray+',';\r\n}\r\n}\r\n\r\nsplitArray = idArray.split(';');\r\nreturn splitArray.filter(item => item);"
+                                        },
+                                        "runAfter": {},
+                                        "type": "JavaScriptCode"
+                                    },
+                                    "For_each-QL": {
+                                        "actions": {
+                                            "HTTP-Delete-QL": {
+                                                "inputs": {
+                                                    "headers": {
+                                                        "Authorization": "Bearer @{body('Get_Token')}",
+                                                        "Content-Type": "application/json"
+                                                    },
+                                                    "method": "DELETE",
+                                                    "uri": "${instanceURL}/composite/sobjects?ids=@{items('For_each-QL')}&allOrNone=true"
+                                                },
+                                                "runAfter": {},
+                                                "type": "Http"
+                                            },
+                                            "Set_variable-FailedResponse-QL": {
+                                                "inputs": {
+                                                    "name": "response",
+                                                    "value": "{\n \"SIE_SF4S_upsertResponse\":{\n            \"Id\":\"\",\n            \"created\":\"\",\n            \"Status\":\"false\",\n            \"Message\":\"@{body('HTTP-Delete-QL')}\"\n         }\n}"
+                                                },
+                                                "runAfter": {
+                                                    "HTTP-Delete-QL": [
+                                                        "Failed"
+                                                    ]
+                                                },
+                                                "type": "SetVariable"
+                                            },
+                                            "Set_variable-SuccessResponse-QL": {
+                                                "inputs": {
+                                                    "name": "response",
+                                                    "value": "{\n \"SIE_SF4S_upsertResponse\":{\n            \"Id\":\"\",\n            \"created\":\"\",\n            \"Status\":\"true\",\n            \"Message\":\"@{body('HTTP-Delete-QL')}\"\n         }\n}"
+                                                },
+                                                "runAfter": {
+                                                    "HTTP-Delete-QL": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "SetVariable"
+                                            }
+                                        },
+                                        "foreach": "@outputs('Execute_JavaScript_Code-QL')?['body']",
+                                        "runAfter": {
+                                            "Execute_JavaScript_Code-QL": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "Foreach"
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "greater": [
+                                                "@body('Execute_fetchQuoteLine')?['totalSize']",
+                                                0
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "Execute_fetchQuoteLine": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "Execute_fetchQuoteLine": {
+                                "inputs": {
+                                    "body": {
+                                        "query": "Select Id from QuoteLineItem where @{concat('QuoteId= ',string(''''),triggerOutputs()['headers']?['quoteId'],string(''''))} \n"
+                                    },
+                                    "host": {
+                                        "connection": {
+                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                        }
+                                    },
+                                    "method": "post",
+                                    "path": "/soql/executesoqlquery"
+                                },
+                                "runAfter": {},
+                                "type": "ApiConnection"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@triggerOutputs()['headers']?['quoteId']",
+                                            "@string('')"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@triggerOutputs()['headers']?['quoteId']",
+                                            "@null"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Condition_to_check_OpportunityId": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Get_Token": {
+                        "inputs": {
+                            "headers": {
+                                "Ocp-Apim-Subscription-Key": "${apimKey}"
+                            },
+                            "method": "POST",
+                            "uri": "${apimURL}"
+                        },
+                        "runAfter": {},
+                        "type": "Http"
+                    },
+                    "Response-Success": {
+                        "inputs": {
+                            "body": "@variables('response')",
+                            "statusCode": "@coalesce(200,outputs('HTTP-Delete-QL')['statusCode'],outputs('HTTP-Delete-BL')['statusCode'])"
+                        },
+                        "kind": "Http",
+                        "runAfter": {
+                            "Condition_to_check_QuoteId": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Response"
+                    }
+                },
+                "runAfter": {
+                    "Initialize_Id_array": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_response": [
+                        "Succeeded"
+                    ]
+                },
+                "trackedProperties": {
+                    "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+                    "citizenName": "c00031",
+                    "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'Compas')}",
+                    "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                    "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                    "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'internal_DeleteBooking_Quote')}",
+                    "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+                    "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                    "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+                },
+                "type": "Scope"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "manual": {
+                "inputs": {},
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+}

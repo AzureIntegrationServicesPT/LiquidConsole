@@ -1,0 +1,1214 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "actions": {
+    "Catch": {
+        "actions": {
+            "Failed_Response": {
+                "inputs": {
+                    "body": {
+                        "statusResponse": {
+                            "message": "@{replace(string(xpath(xml(body('Invoke_CMD')),'.//ET_MESSAGES/item/MESSAGE/text()')?[0]),'&amp;','&')}",
+                            "type": "@{string(xpath(xml(body('Invoke_CMD')),'.//ET_MESSAGES/item/TYPE/text()')?[0])}"
+                        }
+                    },
+                    "headers": {
+                        "Content-Type": "application/json"
+                    },
+                    "statusCode": "@outputs('Invoke_CMD')['statusCode']"
+                },
+                "kind": "Http",
+                "runAfter": {},
+                "type": "Response"
+            },
+            "Terminate_Flow": {
+                "inputs": {
+                    "runStatus": "Failed"
+                },
+                "runAfter": {
+                    "Failed_Response": ["Succeeded"]
+                },
+                "type": "Terminate"
+            }
+        },
+        "runAfter": {
+            "Try-Invoke": ["Failed", "TimedOut"]
+        },
+        "type": "Scope"
+    },
+    "Condition_check_for_SOAP_Version": {
+        "actions": {
+            "Compose_Canonical_Request_1.1": {
+                "inputs": "<soapenv:Envelope\n\txmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"\n\txmlns:urn=\"urn:sap-com:document:sap:rfc:functions\">\n\t<soapenv:Header/>\n\t<soapenv:Body>\n\t\t<urn:_-SIE_-CMDF_SEARCH_BY_SYSCLT>\n\t\t\t<IT_INDATA>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>GP_NR</COMP_NAME>\n\t\t\t\t\t<VALUE>@{variables('idNum')}</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>HITS</COMP_NAME>\n\t\t\t\t\t<VALUE>@{variables('imaxhits')}</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>REQUESTER_ID</COMP_NAME>\n\t\t\t\t\t<VALUE>1023</VALUE>\n\t\t\t\t</item>\n\t\t\t</IT_INDATA>\n\t\t</urn:_-SIE_-CMDF_SEARCH_BY_SYSCLT>\n\t</soapenv:Body>\n</soapenv:Envelope>",
+                "runAfter": {
+                    "Set_variable_SOAP_Action_for_1.1": ["Succeeded"]
+                },
+                "type": "Compose"
+            },
+            "Set_variable_Content-Type_for_1.1": {
+                "inputs": {
+                    "name": "Content-Type",
+                    "value": "text/xml;charset=UTF-8"
+                },
+                "runAfter": {},
+                "type": "SetVariable"
+            },
+            "Set_variable_SOAP_Action_for_1.1": {
+                "inputs": {
+                    "name": "SOAP Action",
+                    "value": "\"urn:sap-com:document:sap:rfc:functions:_-SIE_-CMDF_SEARCH_BY_SYSCLT:_-SIE_-CMDF_SEARCH_BY_SYSCLTRequest\""
+                },
+                "runAfter": {
+                    "Set_variable_Content-Type_for_1.1": ["Succeeded"]
+                },
+                "type": "SetVariable"
+            }
+        },
+        "else": {
+            "actions": {
+                "Compose_Canonical_Request_1.2": {
+                    "inputs": "<soapenv:Envelope\n\txmlns:soapenv=\"http://www.w3.org/2003/05/soap-envelope\"\n\txmlns:urn=\"urn:sap-com:document:sap:rfc:functions\">\n\t<soapenv:Header/>\n\t<soapenv:Body>\n\t\t<urn:_-SIE_-CMDF_SEARCH_BY_SYSCLT>\n\t\t\t<IT_INDATA>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>GP_NR</COMP_NAME>\n\t\t\t\t\t<VALUE>@{variables('idNum')}</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>HITS</COMP_NAME>\n\t\t\t\t\t<VALUE>@{variables('imaxhits')}</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>REQUESTER_ID</COMP_NAME>\n\t\t\t\t\t<VALUE>1023</VALUE>\n\t\t\t\t</item>\n\t\t\t</IT_INDATA>\n\t\t</urn:_-SIE_-CMDF_SEARCH_BY_SYSCLT>\n\t</soapenv:Body>\n</soapenv:Envelope>",
+                    "runAfter": {
+                        "Set_variable_Content_Type__for_1.2": ["Succeeded"]
+                    },
+                    "type": "Compose"
+                },
+                "Set_variable_Content_Type__for_1.2": {
+                    "inputs": {
+                        "name": "Content-Type",
+                        "value": "application/soap+xml;charset=UTF-8;action=\"urn:sap-com:document:sap:rfc:functions:_-SIE_-CMDF_SEARCH_BY_SYSCLT:_-SIE_-CMDF_SEARCH_BY_SYSCLTRequest\""
+                    },
+                    "runAfter": {},
+                    "type": "SetVariable"
+                }
+            }
+        },
+        "expression": {
+            "and": [
+                {
+                    "equals": ["@trim(variables('SOAP Version'))", "@string('1.1')"]
+                }
+            ]
+        },
+        "runAfter": {
+            "HTTP_Get_Certificate": ["Succeeded"],
+        "HTTP_Get_Certificate_Password": ["Succeeded"],
+        "Initialize_Soap_Version_based_ET_RESULTS": ["Succeeded"],
+        "Initialize_variable_CMD_Request": ["Succeeded"],
+        "Initialize_variable_CMD_Response_Final": ["Succeeded"],
+        "Initialize_variable_Content-Type": ["Succeeded"],
+        "Initialize_variable_ET_RESULTS": ["Succeeded"],
+        "Initialize_variable_ET_RESULTS_Arrray": ["Succeeded"],
+        "Initialize_variable_REGION": ["Succeeded"],
+        "Initialize_variable_REGION_I": ["Succeeded"],
+        "Initialize_variable_SFDC_Final_Response": ["Succeeded"],
+        "Initialize_variable_SOAP_Action": ["Succeeded"],
+        "Initialize_variable_accounts_output": ["Succeeded"],
+        "Initialize_variable_configData": ["Succeeded"],
+        "Initialize_variable_idNum": ["Succeeded"],
+        "Initialize_variable_imaxhits": ["Succeeded"],
+        "Initialize_variable_sapClient": ["Succeeded"],
+        "Initialize_variable_sapSys": ["Succeeded"],
+        "Set_variable_SOAP_Version": ["Succeeded"]
+        },
+        "type": "If"
+    },
+    "Condition_check_for_sapSys_and_sapClient": {
+        "actions": {
+            "Condition_to_check_sapClient": {
+                "actions": {
+                    "Compose_Request_on_SOAP_Version": {
+                        "actions": {
+                            "Compose_Request_with_sapSys_and_sapClient_1.1": {
+                                "inputs": "<soapenv:Envelope\n\txmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"\n\txmlns:urn=\"urn:sap-com:document:sap:rfc:functions\">\n\t<soapenv:Header/>\n\t<soapenv:Body>\n\t\t<urn:_-SIE_-CMDF_SEARCH_BY_SYSCLT>\n\t\t\t<IT_INDATA>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>GP_NR</COMP_NAME>\n\t\t\t\t\t<VALUE>@{variables('idNum')}</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>HITS</COMP_NAME>\n\t\t\t\t\t<VALUE>@{variables('imaxhits')}</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>REQUESTER_ID</COMP_NAME>\n\t\t\t\t\t<VALUE>1023</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>SAP_SYSID</COMP_NAME>\n\t\t\t\t\t<VALUE>@{variables('sapSys')}</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>SAP_CLIENT</COMP_NAME>\n\t\t\t\t\t<VALUE>@{variables('sapClient')}</VALUE>\n\t\t\t\t</item>\n\t\t\t</IT_INDATA>\n\t\t</urn:_-SIE_-CMDF_SEARCH_BY_SYSCLT>\n\t</soapenv:Body>\n</soapenv:Envelope>",
+                                "runAfter": {},
+                                "type": "Compose"
+                            },
+                            "Request_with_sapSys_and_sapClient_1.1": {
+                                "inputs": "@xml(replace(outputs('Compose_Request_with_sapSys_and_sapClient_1.1'), '&', '&amp;'))",
+                                "runAfter": {
+                                    "Compose_Request_with_sapSys_and_sapClient_1.1": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Compose"
+                            },
+                            "Set_CMD_Request_with_sapSys_and_sapClient_1.1": {
+                                "inputs": {
+                                    "name": "CMD Request",
+                                    "value": "@{outputs('Request_with_sapSys_and_sapClient_1.1')}"
+                                },
+                                "runAfter": {
+                                    "Request_with_sapSys_and_sapClient_1.1": ["Succeeded"]
+                                },
+                                "type": "SetVariable"
+                            }
+                        },
+                        "else": {
+                            "actions": {
+                                "Compose_Request_with_sapSys_and_sapClient_1.2": {
+                                    "inputs": "<soapenv:Envelope\n\txmlns:soapenv=\"http://www.w3.org/2003/05/soap-envelope\"\n\txmlns:urn=\"urn:sap-com:document:sap:rfc:functions\">\n\t<soapenv:Header/>\n\t<soapenv:Body>\n\t\t<urn:_-SIE_-CMDF_SEARCH_BY_SYSCLT>\n\t\t\t<IT_INDATA>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>GP_NR</COMP_NAME>\n\t\t\t\t\t<VALUE>@{variables('idNum')}</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>HITS</COMP_NAME>\n\t\t\t\t\t<VALUE>@{variables('imaxhits')}</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>REQUESTER_ID</COMP_NAME>\n\t\t\t\t\t<VALUE>1023</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>SAP_SYSID</COMP_NAME>\n\t\t\t\t\t<VALUE>@{variables('sapSys')}</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>SAP_CLIENT</COMP_NAME>\n\t\t\t\t\t<VALUE>@{variables('sapClient')}</VALUE>\n\t\t\t\t</item>\n\t\t\t</IT_INDATA>\n\t\t</urn:_-SIE_-CMDF_SEARCH_BY_SYSCLT>\n\t</soapenv:Body>\n</soapenv:Envelope>",
+                                    "runAfter": {},
+                                    "type": "Compose"
+                                },
+                                "Request_with_sapSys_and_sapClient_1.2": {
+                                    "inputs": "@xml(replace(outputs('Compose_Request_with_sapSys_and_sapClient_1.2'), '&', '&amp;'))",
+                                    "runAfter": {
+                                        "Compose_Request_with_sapSys_and_sapClient_1.2": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Compose"
+                                },
+                                "Set_CMD_Request_with_sapSys_and_sapClient_1.2": {
+                                    "inputs": {
+                                        "name": "CMD Request",
+                                        "value": "@{outputs('Request_with_sapSys_and_sapClient_1.2')}"
+                                    },
+                                    "runAfter": {
+                                        "Request_with_sapSys_and_sapClient_1.2": ["Succeeded"]
+                                    },
+                                    "type": "SetVariable"
+                                }
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "equals": [
+                                        "@trim(variables('SOAP Version'))",
+                                        "@string('1.1')"
+                                    ]
+                                }
+                            ]
+                        },
+                        "runAfter": {},
+                        "type": "If"
+                    }
+                },
+                "else": {
+                    "actions": {
+                        "Compose_Request_based_on_SOAP_Version": {
+                            "actions": {
+                                "Compose_Request_with_sapSys_1.1": {
+                                    "inputs": "<soapenv:Envelope\n\txmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"\n\txmlns:urn=\"urn:sap-com:document:sap:rfc:functions\">\n\t<soapenv:Header/>\n\t<soapenv:Body>\n\t\t<urn:_-SIE_-CMDF_SEARCH_BY_SYSCLT>\n\t\t\t<IT_INDATA>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>GP_NR</COMP_NAME>\n\t\t\t\t\t<VALUE>@{variables('idNum')}</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>HITS</COMP_NAME>\n\t\t\t\t\t<VALUE>@{variables('imaxhits')}</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>REQUESTER_ID</COMP_NAME>\n\t\t\t\t\t<VALUE>1023</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>SAP_SYSID</COMP_NAME>\n\t\t\t\t\t<VALUE>@{variables('sapSys')}</VALUE>\n\t\t\t\t</item>\n\t\t\t</IT_INDATA>\n\t\t</urn:_-SIE_-CMDF_SEARCH_BY_SYSCLT>\n\t</soapenv:Body>\n</soapenv:Envelope>",
+                                    "runAfter": {},
+                                    "type": "Compose"
+                                },
+                                "Request_with_sapSys_1.1": {
+                                    "inputs": "@xml(replace(outputs('Compose_Request_with_sapSys_1.1'), '&', '&amp;'))",
+                                    "runAfter": {
+                                        "Compose_Request_with_sapSys_1.1": ["Succeeded"]
+                                    },
+                                    "type": "Compose"
+                                },
+                                "Set_variable_CMD_Request_with_sapSys_1.1": {
+                                    "inputs": {
+                                        "name": "CMD Request",
+                                        "value": "@{outputs('Request_with_sapSys_1.1')}"
+                                    },
+                                    "runAfter": {
+                                        "Request_with_sapSys_1.1": ["Succeeded"]
+                                    },
+                                    "type": "SetVariable"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "Compose_Request_with_sapSys_1.2": {
+                                        "inputs": "<soapenv:Envelope\n\txmlns:soapenv=\"http://www.w3.org/2003/05/soap-envelope\"\n\txmlns:urn=\"urn:sap-com:document:sap:rfc:functions\">\n\t<soapenv:Header/>\n\t<soapenv:Body>\n\t\t<urn:_-SIE_-CMDF_SEARCH_BY_SYSCLT>\n\t\t\t<IT_INDATA>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>GP_NR</COMP_NAME>\n\t\t\t\t\t<VALUE>@{variables('idNum')}</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>HITS</COMP_NAME>\n\t\t\t\t\t<VALUE>@{variables('imaxhits')}</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>REQUESTER_ID</COMP_NAME>\n\t\t\t\t\t<VALUE>1023</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>SAP_SYSID</COMP_NAME>\n\t\t\t\t\t<VALUE>@{variables('sapSys')}</VALUE>\n\t\t\t\t</item>\n\t\t\t</IT_INDATA>\n\t\t</urn:_-SIE_-CMDF_SEARCH_BY_SYSCLT>\n\t</soapenv:Body>\n</soapenv:Envelope>",
+                                        "runAfter": {},
+                                        "type": "Compose"
+                                    },
+                                    "Request_with_sapSys_1.2": {
+                                        "inputs": "@xml(replace(outputs('Compose_Request_with_sapSys_1.2'), '&', '&amp;'))",
+                                        "runAfter": {
+                                            "Compose_Request_with_sapSys_1.2": ["Succeeded"]
+                                        },
+                                        "type": "Compose"
+                                    },
+                                    "Set_variable_CMD_Request_with_sapSys_1.2": {
+                                        "inputs": {
+                                            "name": "CMD Request",
+                                            "value": "@{outputs('Request_with_sapSys_1.2')}"
+                                        },
+                                        "runAfter": {
+                                            "Request_with_sapSys_1.2": ["Succeeded"]
+                                        },
+                                        "type": "SetVariable"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "equals": [
+                                            "@trim(variables('SOAP Version'))",
+                                            "@string(1.1)"
+                                        ]
+                                    }
+                                ]
+                            },
+                            "runAfter": {},
+                            "type": "If"
+                        }
+                    }
+                },
+                "expression": {
+                    "and": [
+                        {
+                            "not": {
+                                "equals": ["@variables('sapClient')", ""]
+                            }
+                        },
+                        {
+                            "not": {
+                                "equals": ["@variables('sapClient')", "@null"]
+                            }
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "If"
+            }
+        },
+        "else": {
+            "actions": {
+                "Condition_check_for_sapClient": {
+                    "actions": {
+                        "Request_check_on_SOAP_Version": {
+                            "actions": {
+                                "Compose_Request_with_sapClient_1.1": {
+                                    "inputs": "<soapenv:Envelope\n\txmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"\n\txmlns:urn=\"urn:sap-com:document:sap:rfc:functions\">\n\t<soapenv:Header/>\n\t<soapenv:Body>\n\t\t<urn:_-SIE_-CMDF_SEARCH_BY_SYSCLT>\n\t\t\t<IT_INDATA>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>GP_NR</COMP_NAME>\n\t\t\t\t\t<VALUE>0013467568</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>HITS</COMP_NAME>\n\t\t\t\t\t<VALUE>@{variables('imaxhits')}</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>REQUESTER_ID</COMP_NAME>\n\t\t\t\t\t<VALUE>1023</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>SAP_CLIENT</COMP_NAME>\n\t\t\t\t\t<VALUE>@{variables('sapClient')}</VALUE>\n\t\t\t\t</item>\n\t\t\t</IT_INDATA>\n\t\t</urn:_-SIE_-CMDF_SEARCH_BY_SYSCLT>\n\t</soapenv:Body>\n</soapenv:Envelope>",
+                                    "runAfter": {},
+                                    "type": "Compose"
+                                },
+                                "Request_with_sapClient_1.1": {
+                                    "inputs": "@xml(replace(outputs('Compose_Request_with_sapClient_1.1'), '&', '&amp;'))",
+                                    "runAfter": {
+                                        "Compose_Request_with_sapClient_1.1": ["Succeeded"]
+                                    },
+                                    "type": "Compose"
+                                },
+                                "Set_variable_CMD_Request_with_sapClient_1.1": {
+                                    "inputs": {
+                                        "name": "CMD Request",
+                                        "value": "@{outputs('Request_with_sapClient_1.1')}"
+                                    },
+                                    "runAfter": {
+                                        "Request_with_sapClient_1.1": ["Succeeded"]
+                                    },
+                                    "type": "SetVariable"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "Compose_Request_with_sapClient_1.2": {
+                                        "inputs": "<soapenv:Envelope\n\txmlns:soapenv=\"http://www.w3.org/2003/05/soap-envelope\"\n\txmlns:urn=\"urn:sap-com:document:sap:rfc:functions\">\n\t<soapenv:Header/>\n\t<soapenv:Body>\n\t\t<urn:_-SIE_-CMDF_SEARCH_BY_SYSCLT>\n\t\t\t<IT_INDATA>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>GP_NR</COMP_NAME>\n\t\t\t\t\t<VALUE>0013467568</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>HITS</COMP_NAME>\n\t\t\t\t\t<VALUE>@{variables('imaxhits')}</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>REQUESTER_ID</COMP_NAME>\n\t\t\t\t\t<VALUE>1023</VALUE>\n\t\t\t\t</item>\n\t\t\t\t<item>\n\t\t\t\t\t<COMP_NAME>SAP_CLIENT</COMP_NAME>\n\t\t\t\t\t<VALUE>@{variables('sapClient')}</VALUE>\n\t\t\t\t</item>\n\t\t\t</IT_INDATA>\n\t\t</urn:_-SIE_-CMDF_SEARCH_BY_SYSCLT>\n\t</soapenv:Body>\n</soapenv:Envelope>",
+                                        "runAfter": {},
+                                        "type": "Compose"
+                                    },
+                                    "Request_with_sapClient_1.2": {
+                                        "inputs": "@xml(replace(outputs('Compose_Request_with_sapClient_1.2'), '&', '&amp;'))",
+                                        "runAfter": {
+                                            "Compose_Request_with_sapClient_1.2": ["Succeeded"]
+                                        },
+                                        "type": "Compose"
+                                    },
+                                    "Set_variable_CMD_Request_with_sapClient_1.2": {
+                                        "inputs": {
+                                            "name": "CMD Request",
+                                            "value": "@{outputs('Request_with_sapClient_1.2')}"
+                                        },
+                                        "runAfter": {
+                                            "Request_with_sapClient_1.2": ["Succeeded"]
+                                        },
+                                        "type": "SetVariable"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "equals": [
+                                            "@trim(variables('SOAP Version'))",
+                                            "@string(1.1)"
+                                        ]
+                                    }
+                                ]
+                            },
+                            "runAfter": {},
+                            "type": "If"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Check_on_SOAP_Version_-_default_case": {
+                                "actions": {
+                                    "Set_CMD_Request_Default_1.1": {
+                                        "inputs": {
+                                            "name": "CMD Request",
+                                            "value": "@{outputs('Compose_Canonical_Request_1.1')}"
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    }
+                                },
+                                "else": {
+                                    "actions": {
+                                        "Set_CMD_Request_Default_1.2": {
+                                            "inputs": {
+                                                "name": "CMD Request",
+                                                "value": "@{outputs('Compose_Canonical_Request_1.2')}"
+                                            },
+                                            "runAfter": {},
+                                            "type": "SetVariable"
+                                        }
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "equals": [
+                                                "@trim(variables('SOAP Version'))",
+                                                "@string(1.1)"
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "runAfter": {},
+                                "type": "If"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": ["@variables('sapClient')", ""]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": ["@variables('sapClient')", "@null"]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                }
+            }
+        },
+        "expression": {
+            "and": [
+                {
+                    "not": {
+                        "equals": ["@variables('sapSys')", ""]
+                    }
+                },
+                {
+                    "not": {
+                        "equals": ["@variables('sapSys')", "@null"]
+                    }
+                }
+            ]
+        },
+        "runAfter": {
+            "Condition_check_for_SOAP_Version": ["Succeeded"]
+        },
+        "type": "If"
+    },
+    "GetConfiguration": {
+        "inputs": {
+            "body": {
+                "key": "cmd-config"
+            },
+            "host": {
+                "triggerName": "manual",
+                "workflow": {
+                    "id": "${getConfiguration_logicAppId}"
+                }
+            },
+            "retryPolicy": {
+                "type": "none"
+            }
+        },
+        "runAfter": {},
+        "type": "Workflow"
+    },
+    "HTTP_Get_Certificate": {
+        "inputs": {
+            "body": {
+                "key": "SieSalesCRM-certificate"
+            },
+            "host": {
+                "triggerName": "manual",
+                "workflow": {
+                    "id": "${getConfiguration_logicAppId}"
+                }
+            },
+            "retryPolicy": {
+                "type": "none"
+            }
+        },
+        "runAfter": {},
+        "type": "Workflow"
+    },
+    "HTTP_Get_Certificate_Password": {
+        "inputs": {
+            "body": {
+                "key": "SieSalesCRM-certificate-password"
+            },
+            "host": {
+                "triggerName": "manual",
+                "workflow": {
+                    "id": "${getConfiguration_logicAppId}"
+                }
+            },
+            "retryPolicy": {
+                "type": "none"
+            }
+        },
+        "runAfter": {},
+        "type": "Workflow"
+    },
+    "Initialize_Soap_Version_based_ET_RESULTS": {
+        "inputs": {
+            "variables": [
+                {
+                    "name": "ET_RESULTS_Response",
+                    "type": "string"
+                }
+            ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+    },
+    "Initialize_variable_CMD_Request": {
+        "inputs": {
+            "variables": [
+                {
+                    "name": "CMD Request",
+                    "type": "string"
+                }
+            ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+    },
+    "Initialize_variable_CMD_Response_Final": {
+        "inputs": {
+            "variables": [
+                {
+                    "name": "CMD Response Final",
+                    "type": "string"
+                }
+            ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+    },
+    "Initialize_variable_Content-Type": {
+        "inputs": {
+            "variables": [
+                {
+                    "name": "Content-Type",
+                    "type": "string"
+                }
+            ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+    },
+    "Initialize_variable_ET_RESULTS": {
+        "inputs": {
+            "variables": [
+                {
+                    "name": "ET_RESULTS",
+                    "type": "array"
+                }
+            ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+    },
+    "Initialize_variable_ET_RESULTS_Arrray": {
+        "inputs": {
+            "variables": [
+                {
+                    "name": "ET_RESULTS_Array",
+                    "type": "string"
+                }
+            ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+    },
+    "Initialize_variable_REGION": {
+        "inputs": {
+            "variables": [
+                {
+                    "name": "REGION",
+                    "type": "string"
+                }
+            ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+    },
+    "Initialize_variable_REGION_I": {
+        "inputs": {
+            "variables": [
+                {
+                    "name": "REGION_I",
+                    "type": "string"
+                }
+            ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+    },
+    "Initialize_variable_SFDC_Final_Response": {
+        "inputs": {
+            "variables": [
+                {
+                    "name": "SFDC Final Response",
+                    "type": "string"
+                }
+            ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+    },
+    "Initialize_variable_SOAP_Action": {
+        "inputs": {
+            "variables": [
+                {
+                    "name": "SOAP Action",
+                    "type": "string"
+                }
+            ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+    },
+    "Initialize_variable_accounts_output": {
+        "inputs": {
+            "variables": [
+                {
+                    "name": "accounts_output",
+                    "type": "string"
+                }
+            ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+    },
+    "Initialize_variable_configData": {
+        "inputs": {
+            "variables": [
+                {
+                    "name": "configData",
+                    "type": "string",
+                    "value": "@body('GetConfiguration')"
+                }
+            ]
+        },
+        "runAfter": {
+            "GetConfiguration": ["Succeeded"]
+        },
+        "type": "InitializeVariable"
+    },
+    "Initialize_variable_idNum": {
+        "inputs": {
+            "variables": [
+                {
+                    "name": "idNum",
+                    "type": "string",
+                    "value": "@{triggerBody()?['idNum']}"
+                }
+            ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+    },
+    "Initialize_variable_imaxhits": {
+        "inputs": {
+            "variables": [
+                {
+                    "name": "imaxhits",
+                    "type": "string",
+                    "value": "@{triggerBody()['imaxhits']}"
+                }
+            ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+    },
+    "Initialize_variable_sapClient": {
+        "inputs": {
+            "variables": [
+                {
+                    "name": "sapClient",
+                    "type": "string",
+                    "value": "@{triggerBody()?['sapClient']}"
+                }
+            ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+    },
+    "Initialize_variable_sapSys": {
+        "inputs": {
+            "variables": [
+                {
+                    "name": "sapSys",
+                    "type": "string",
+                    "value": "@{triggerBody()?['sapSys']}"
+                }
+            ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+    },
+    "Set_variable_SOAP_Version": {
+        "inputs": {
+            "variables": [
+                {
+                    "name": "SOAP Version",
+                    "type": "string",
+                    "value": "@{triggerOutputs()['headers']?['SOAPVersion']}"
+                }
+            ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+    },
+    "Try-Invoke": {
+        "actions": {
+            "Condition_check_CMD_Response": {
+                "actions": {
+                    "Condition_check_on_Fault_Response": {
+                        "actions": {
+                            "Compose_Error_Status_Response": {
+                                "inputs": {
+                                    "statusResponse": {
+                                        "message": "@{replace(json(string(body('Invoke_CMD')))['soap-env:Envelope']?['soap-env:Body']?['soap-env:Fault']?['faultstring'],'&amp;','&')}",
+                                        "type": "E"
+                                    }
+                                },
+                                "runAfter": {},
+                                "type": "Compose"
+                            },
+                            "Terminate_flow_with_Soap_Fault_Error": {
+                                "inputs": {
+                                    "runError": {
+                                        "code": "500",
+                                        "message": "@{outputs('Compose_Error_Status_Response')}"
+                                    },
+                                    "runStatus": "Failed"
+                                },
+                                "runAfter": {                    
+                                    "Compose_Error_Status_Response": ["Succeeded"]
+                                },
+                                "type": "Terminate"
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@string(xpath(xml(body('Invoke_CMD')),'.//faultstring/text()')?[0])",
+                                            ""
+                                        ]
+                                    }
+                                },
+                                {
+                                    "equals": [
+                                        "@string(xpath(xml(body('Invoke_CMD')),'.//faultstring/text()')?[0])",
+                                        "@null"
+                                    ]
+                                }
+                            ]
+                        },
+                        "runAfter": {},
+                        "type": "If"
+                    }
+                },
+                "else": {
+                    "actions": {
+                        "Condition_to_check_ET_RESULTS_count": {
+                            "actions": {
+                                "Compose_Array": {
+                                    "inputs": "@if(equals(variables('ET_RESULTS_Array'),''),outputs('Compose_ET_RESULTS_Final'),concat(variables('ET_RESULTS_Array'),',',outputs('Compose_ET_RESULTS_Final')))",
+                                    "runAfter": {
+                                        "For_each_ET_RESULTS_item": ["Succeeded"]
+                                    },
+                                    "type": "Compose"
+                                },
+                                "Compose_Final_Response_ET_RESULTS": {
+                                    "inputs": "@concat('{\"ET_RESULTS\":',variables('ET_RESULTS_ARRAY'),'}')",
+                                    "runAfter": {
+                                        "Set_variable_ET_RESULTS_Array": ["Succeeded"]
+                                    },
+                                    "type": "Compose"
+                                },
+                                "For_each_ET_RESULTS_item": {
+                                    "actions": {
+                                        "Compose-EachItemToJson": {
+                                            "inputs": "@json(items('For_each_ET_RESULTS_item'))",
+                                            "runAfter": {},
+                                            "type": "Compose"
+                                        },
+                                        "Compose_ET_RESULTS_Final": {
+                                            "inputs": {
+                                                "ANNUAL_SALES_CC": "@{outputs('Compose-EachItemToJson')?['item']?['ANNUAL_SALES_CC']}",
+                                                "ANNUAL_SALES_USD": "@{outputs('Compose-EachItemToJson')?['item']?['ANNUAL_SALES_USD']}",
+                                                "BRANCH1": "@{outputs('Compose-EachItemToJson')?['item']?['BRANCH1']}",
+                                                "BRANCH2": "@{outputs('Compose-EachItemToJson')?['item']?['BRANCH2']}",
+                                                "BRANCH3": "@{outputs('Compose-EachItemToJson')?['item']?['BRANCH3']}",
+                                                "BRA_SIC": "@{outputs('Compose-EachItemToJson')?['item']?['BRA_SIC']}",
+                                                "CAP": "@{outputs('Compose-EachItemToJson')?['item']?['CAP']}",
+                                                "CAPNAME": "@{outputs('Compose-EachItemToJson')?['item']?['CAPNAME']}",
+                                                "CAP_ID": "@{outputs('Compose-EachItemToJson')?['item']?['CAP_ID']}",
+                                                "CID": "@{outputs('Compose-EachItemToJson')?['item']?['CID']}",
+                                                "CITY": "@{outputs('Compose-EachItemToJson')?['item']?['CITY']}",
+                                                "CITY_I": "@{outputs('Compose-EachItemToJson')?['item']?['CITY_I']}",
+                                                "CITY_PO_BOX": "@{outputs('Compose-EachItemToJson')?['item']?['CITY_PO_BOX']}",
+                                                "CITY_PO_BOX_I": "@{outputs('Compose-EachItemToJson')?['item']?['CITY_PO_BOX_I']}",
+                                                "COMPANY_PSTCD": "@{outputs('Compose-EachItemToJson')?['item']?['COMPANY_PSTCD']}",
+                                                "COMP_HEAD_IFA": "@{outputs('Compose-EachItemToJson')?['item']?['COMP_HEAD_IFA']}",
+                                                "COMP_HEAD_NAME": "@{outputs('Compose-EachItemToJson')?['item']?['COMP_HEAD_IFA']}",
+                                                "COUNTRYCODE2": "@{outputs('Compose-EachItemToJson')?['item']?['COUNTRYCODE2']}",
+                                                "CREFO_NR": "@{outputs('Compose-EachItemToJson')?['item']?['CREFO_NR']}",
+                                                "CURR_CD_CC": "@{outputs('Compose-EachItemToJson')?['item']?['CURR_CD_CC']}",
+                                                "DNB_BR": "@{outputs('Compose-EachItemToJson')?['item']?['DNB_BR']}",
+                                                "DUNS": "@{outputs('Compose-EachItemToJson')?['item']?['DUNS']}",
+                                                "EMAIL_ADDRESS": "@{outputs('Compose-EachItemToJson')?['item']?['EMAIL_ADDRESS']}",
+                                                "EMPL_CNT": "@{outputs('Compose-EachItemToJson')?['item']?['EMPL_CNT']}",
+                                                "EMPL_CNT_TOT": "@{outputs('Compose-EachItemToJson')?['item']?['EMPL_CNT_TOT']}",
+                                                "FI_IND": "@{outputs('Compose-EachItemToJson')?['item']?['FI_IND']}",
+                                                "FOUNDATION_YEAR": "@{outputs('Compose-EachItemToJson')?['item']?['FOUNDATION_YEAR']}",
+                                                "GP_NR": "@{outputs('Compose-EachItemToJson')?['item']?['GP_NR']}",
+                                                "GP_TYP": "@{outputs('Compose-EachItemToJson')?['item']?['GP_TYP']}",
+                                                "IFA_NACH": "@{outputs('Compose-EachItemToJson')?['item']?['IFA_NACH']}",
+                                                "IFA_NR": "@{outputs('Compose-EachItemToJson')?['item']?['IFA_NR']}",
+                                                "ISIC": "@{outputs('Compose-EachItemToJson')?['item']?['ISIC']}",
+                                                "KS": "@{outputs('Compose-EachItemToJson')?['item']?['KS']}",
+                                                "KS_FLAG": "@{outputs('Compose-EachItemToJson')?['item']?['KS_FLAG']}",
+                                                "KUKLA": "@{outputs('Compose-EachItemToJson')?['item']?['KUKLA']}",
+                                                "LOCKED": "@{outputs('Compose-EachItemToJson')?['item']?['LOCKED']}",
+                                                "LOEKZ": "@{outputs('Compose-EachItemToJson')?['item']?['LOEKZ']}",
+                                                "NAME1": "@{outputs('Compose-EachItemToJson')?['item']?['NAME1']}",
+                                                "NAME1_I": "@{outputs('Compose-EachItemToJson')?['item']?['NAME1_I']}",
+                                                "NAME2": "@{outputs('Compose-EachItemToJson')?['item']?['NAME2']}",
+                                                "NAME2_I": "@{outputs('Compose-EachItemToJson')?['item']?['NAME2_I']}",
+                                                "NAME3": "@{outputs('Compose-EachItemToJson')?['item']?['NAME3']}",
+                                                "NAME3_I": "@{outputs('Compose-EachItemToJson')?['item']?['NAME3_I']}",
+                                                "NAT_ID": "@{outputs('Compose-EachItemToJson')?['item']?['NAT_ID']}",
+                                                "NAT_ID_SYS": "@{outputs('Compose-EachItemToJson')?['item']?['NAT_ID_SYS']}",
+                                                "OOBI": "@{outputs('Compose-EachItemToJson')?['item']?['OOBI']}",
+                                                "PID": "@{outputs('Compose-EachItemToJson')?['item']?['PID']}",
+                                                "POSTAL_CODE": "@{outputs('Compose-EachItemToJson')?['item']?['POSTAL_CODE']}",
+                                                "POSTAL_CODE_I": "@{outputs('Compose-EachItemToJson')?['item']?['POSTAL_CODE_I']}",
+                                                "POSTAL_CODE_POB": "@{outputs('Compose-EachItemToJson')?['item']?['POSTAL_CODE_POB']}",
+                                                "POSTAL_CODE_POB_I": "@{outputs('Compose-EachItemToJson')?['item']?['POSTAL_CODE_POB_I']}",
+                                                "PO_BOX": "@{outputs('Compose-EachItemToJson')?['item']?['PO_BOX']}",
+                                                "PO_BOX_I": "@{outputs('Compose-EachItemToJson')?['item']?['PO_BOX_I']}",
+                                                "PRIORI": "@{outputs('Compose-EachItemToJson')?['item']?['PRIORI']}",
+                                                "PRIOR_DUNS": "@{outputs('Compose-EachItemToJson')?['item']?['PRIOR_DUNS']}",
+                                                "REGION": "@{outputs('Replace_REGION')}",
+                                                "REGION_I": "@{outputs('Replace_REGION_I')}",
+                                                "RMANDT": "@{outputs('Compose-EachItemToJson')?['item']?['RMANDT']}",
+                                                "RPA_ARE": "@{outputs('Compose-EachItemToJson')?['item']?['RPA_ARE']}",
+                                                "SALESTAX_ID": "@{outputs('Compose-EachItemToJson')?['item']?['SALESTAX_ID']}",
+                                                "SHORTADDRESS": "@{outputs('Compose-EachItemToJson')?['item']?['SHORTADDRESS']}",
+                                                "SIMILARITY_DEG": "@{outputs('Compose-EachItemToJson')?['item']?['SIMILARITY_DEG']}",
+                                                "STANDARD": "@{outputs('Compose-EachItemToJson')?['item']?['STANDARD']}",
+                                                "STATUS": "@{outputs('Compose-EachItemToJson')?['item']?['STATUS']}",
+                                                "STATUS_TEXT": "@{outputs('Compose-EachItemToJson')?['item']?['STATUS_TEXT']}",
+                                                "STREET": "@{outputs('Compose-EachItemToJson')?['item']?['STREET']}",
+                                                "STREET2": "@{outputs('Compose-EachItemToJson')?['item']?['STREET2']}",
+                                                "STREET2_I": "@{outputs('Compose-EachItemToJson')?['item']?['STREET2_I']}",
+                                                "STREET_I": "@{outputs('Compose-EachItemToJson')?['item']?['STREET_I']}",
+                                                "SUGG_DUNS": "@{outputs('Compose-EachItemToJson')?['item']?['SUGG_DUNS']}",
+                                                "SYSID": "@{outputs('Compose-EachItemToJson')?['item']?['SYSID']}",
+                                                "TELEFAX_NUMBER": "@{outputs('Compose-EachItemToJson')?['item']?['TELEFAX_NUMBER']}",
+                                                "TELEX_NUMBER": "@{outputs('Compose-EachItemToJson')?['item']?['TELEX_NUMBER']}",
+                                                "TEL_COUNTRY_PREF": "@{outputs('Compose-EachItemToJson')?['item']?['TEL_COUNTRY_PREF']}",
+                                                "TEL_NUMBER": "@{outputs('Compose-EachItemToJson')?['item']?['TEL_NUMBER']}",
+                                                "TEXT": "@{outputs('Compose-EachItemToJson')?['item']?['TEXT']}",
+                                                "TEXT_FLAG": "@{outputs('Compose-EachItemToJson')?['item']?['TEXT_FLAG']}",
+                                                "TRADE_STYLE": "@{outputs('Compose-EachItemToJson')?['item']?['TRADE_STYLE']}",
+                                                "TYPE": "@{outputs('Compose-EachItemToJson')?['item']?['TYPE']}",
+                                                "WWW_ADDRESS": "@{outputs('Compose-EachItemToJson')?['item']?['WWW_ADDRESS']}",
+                                                "YEAR_EMP": "@{outputs('Compose-EachItemToJson')?['item']?['YEAR_EMP']}",
+                                                "YEAR_SALES": "@{outputs('Compose-EachItemToJson')?['item']?['YEAR_SALES']}"
+                                            },
+                                            "runAfter": {
+                                                "Condition_to_check_Region_and_RegionI_length": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "Compose"
+                                        },
+                                        "Condition_to_check_Region_and_RegionI_length": {
+                                            "actions": {
+                                                "Concat_REGION_I_and_COUNTRYCODE2": {
+                                                    "inputs": "@concat(outputs('Compose-EachItemToJson')?['item']?['REGION_I'],'_',outputs('Compose-EachItemToJson')?['item']?['COUNTRYCODE2'])",
+                                                    "runAfter": {
+                                                        "Set_variable_REGION_I": ["Succeeded"]
+                                                    },
+                                                    "type": "Compose"
+                                                },
+                                                "Concat_REGION_and_COUNTRYCODE2": {
+                                                    "inputs": "@concat(outputs('Compose-EachItemToJson')?['item']?['REGION'],'_',outputs('Compose-EachItemToJson')?['item']?['COUNTRYCODE2'])",
+                                                    "runAfter": {
+                                                        "Set_variable_REGION": ["Succeeded"]
+                                                    },
+                                                    "type": "Compose"
+                                                },
+                                                "Replace_REGION": {
+                                                    "inputs": "@replace(variables('REGION'), variables('REGION'), outputs('Concat_REGION_and_COUNTRYCODE2'))",
+                                                    "runAfter": {
+                                                        "Concat_REGION_I_and_COUNTRYCODE2": ["Succeeded"]
+                                                     },
+                                                    "type": "Compose"
+                                                },
+                                                "Replace_REGION_I": {
+                                                    "inputs": "@replace(variables('REGION_I'), variables('REGION_I'), outputs('Concat_REGION_I_and_COUNTRYCODE2'))",
+                                                    "runAfter": {
+                                                        "Replace_REGION": ["Succeeded"]
+                                                    },
+                                                    "type": "Compose"
+                                                },
+                                                "Set_variable_REGION": {
+                                                    "inputs": {
+                                                        "name": "Region",
+                                                        "value": "@{outputs('Compose-EachItemToJson')?['item']?['REGION']}"
+                                                    },
+                                                    "runAfter": {},
+                                                    "type": "SetVariable"
+                                                },
+                                                "Set_variable_REGION_I": {
+                                                    "inputs": {
+                                                        "name": "REGION_I",
+                                                        "value": "@{outputs('Compose-EachItemToJson')?['item']?['REGION_I']}"
+                                                    },
+                                                    "runAfter": {
+                                                        "Concat_REGION_and_COUNTRYCODE2": ["Succeeded"]
+                                                    },
+                                                    "type": "SetVariable"
+                                                }
+                                            },
+                                            "else": {
+                                                "actions": {
+                                                    "Condition_to_check_FAULT": {
+                                                        "actions": {
+                                                            "Compose_JSON_Response": {
+                                                                "inputs": "X",
+                                                                "runAfter": {},
+                                                                "type": "Compose"
+                                                            }
+                                                        },
+                                                        "expression": {
+                                                            "or": [
+                                                                {
+                                                                  "equals": ["", "@null"]
+                                                                },
+                                                                {
+                                                                  "not": {
+                                                                    "equals": ["", ""]
+                                                                  }
+                                                                }
+                                                              ]
+                                                        },
+                                                        "runAfter": {},
+                                                        "type": "If"
+                                                    }
+                                                }
+                                            },
+                                            "expression": {
+                                                "and": [
+                                                    {
+                                                        "greater": [
+                                                            "@length(string(outputs('Compose-EachItemToJson')?['item']?['REGION']))",
+                                                            0
+                                                        ]
+                                                    },
+                                                    {
+                                                        "greater": [
+                                                            "@length(string(outputs('Compose-EachItemToJson')?['item']?['REGION_I']))",
+                                                            0
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "runAfter": {
+                                                "Compose-EachItemToJson": ["Succeeded"]
+                                            },
+                                            "type": "If"
+                                        }
+                                    },
+                                    "foreach": "@xpath(xml(body('Invoke_CMD')),'.//ET_RESULTS/item')",
+                                    "runAfter": {},
+                                    "runtimeConfiguration": {
+                                        "concurrency": {
+                                            "repetitions": 1
+                                        }
+                                    },
+                                    "type": "Foreach"
+                                },
+                                "Scope_-_SFDC_Response": {
+                                    "actions": {
+                                        "Compose_StatusResponse": {
+                                            "inputs": "  \"statusResponse\": {\n    \"type\":\"@{string(xpath(xml(body('Invoke_CMD')),'.//ET_MESSAGES/item/TYPE/text()')?[0])}\",\n    \"message\":\"@{replace(string(xpath(xml(body('Invoke_CMD')),'.//ET_MESSAGES/item/MESSAGE/text()')?[0]),'&amp;','&')}\"\n}",
+                                            "runAfter": {},
+                                            "type": "Compose"
+                                        },
+                                        "For_each_Output_ET_RESULTS": {
+                                            "actions": {
+                                                "Compose_Final_Response_accounts": {
+                                                    "inputs": "@concat('{\"accounts\":[',variables('accounts_output'),']')",
+                                                    "runAfter": {
+                                                        "Set_variable_accounts_output": ["Succeeded"]
+                                                    },
+                                                    "type": "Compose"
+                                                },
+                                                "Compose_Final_SFDC_Response": {
+                                                    "inputs": "@concat(outputs('Compose_Final_Response_Accounts'),',',outputs('Compose_StatusResponse'),'}')",
+                                                    "runAfter": {
+                                                        "Compose_Final_Response_accounts": ["Succeeded"]
+                                                    },
+                                                    "type": "Compose"
+                                                },
+                                                "Compose_Output_Account": {
+                                                    "inputs": {
+                                                        "city": "@{items('For_each_Output_ET_RESULTS')['CITY']}",
+                                                        "cityI": "@{items('For_each_Output_ET_RESULTS')['CITY_I']}",
+                                                        "cityPoBox": "@{items('For_each_Output_ET_RESULTS')['CITY_PO_BOX']}",
+                                                        "country": "@{items('For_each_Output_ET_RESULTS')['COUNTRYCODE2']}",
+                                                        "duns": "@{items('For_each_Output_ET_RESULTS')['DUNS']}",
+                                                        "idNum": "@{items('For_each_Output_ET_RESULTS')['GP_NR']}",
+                                                        "ifa": "@{items('For_each_Output_ET_RESULTS')['IFA_NR']}",
+                                                        "isic": "@{items('For_each_Output_ET_RESULTS')['ISIC']}",
+                                                        "kukla": "@{items('For_each_Output_ET_RESULTS')['KUKLA']}",
+                                                        "name1": "@{items('For_each_Output_ET_RESULTS')['NAME1']}",
+                                                        "name1I": "@{items('For_each_Output_ET_RESULTS')['NAME1_I']}",
+                                                        "name2": "@{items('For_each_Output_ET_RESULTS')['NAME2']}",
+                                                        "name2I": "@{items('For_each_Output_ET_RESULTS')['NAME2_I']}",
+                                                        "name3": "@{items('For_each_Output_ET_RESULTS')['NAME3']}",
+                                                        "name3I": "@{items('For_each_Output_ET_RESULTS')['NAME3_I']}",
+                                                        "natId": "@{items('For_each_Output_ET_RESULTS')['NAT_ID']}",
+                                                        "poBox": "@{items('For_each_Output_ET_RESULTS')['PO_BOX']}",
+                                                        "postalCode": "@{items('For_each_Output_ET_RESULTS')['POSTAL_CODE']}",
+                                                        "postalCodePob": "@{items('For_each_Output_ET_RESULTS')['POSTAL_CODE_POB']}",
+                                                        "region": "@{items('For_each_Output_ET_RESULTS')['REGION']}",
+                                                        "regionI": "@{items('For_each_Output_ET_RESULTS')['REGION_I']}",
+                                                        "salesTaxId": "@{items('For_each_Output_ET_RESULTS')['SALESTAX_ID']}",
+                                                        "sapClient": "@{items('For_each_Output_ET_RESULTS')['RMANDT']}",
+                                                        "sapSys": "@{items('For_each_Output_ET_RESULTS')['SYSID']}",
+                                                        "street": "@{items('For_each_Output_ET_RESULTS')['STREET']}",
+                                                        "street2": "@{items('For_each_Output_ET_RESULTS')['STREET2']}",
+                                                        "street2I": "@{items('For_each_Output_ET_RESULTS')['STREET2_I']}",
+                                                        "streetI": "@{items('For_each_Output_ET_RESULTS')['STREET_I']}"
+                                                    },
+                                                    "runAfter": {},
+                                                    "type": "Compose"
+                                                },
+                                                "Compose_Output_Array": {
+                                                    "inputs": "@if(equals(variables('accounts_output'),''),outputs('Compose_Output_Account'),concat(variables('accounts_output'),',',outputs('Compose_Output_Account')))",
+                                                    "runAfter": {
+                                                        "Compose_Output_Account": ["Succeeded"]
+                                                    },
+                                                    "type": "Compose"
+                                                },
+                                                "Set_variable_SFDC_Final_Response": {
+                                                    "inputs": {
+                                                        "name": "SFDC Final Response",
+                                                        "value": "@{replace(string(outputs('Compose_Final_SFDC_Response')),'&amp;','&')}"
+                                                    },
+                                                    "runAfter": {
+                                                        "Compose_Final_SFDC_Response": ["Succeeded"]
+                                                    },
+                                                    "type": "SetVariable"
+                                                },
+                                                "Set_variable_accounts_output": {
+                                                    "inputs": {
+                                                        "name": "accounts_output",
+                                                        "value": "@{outputs('Compose_Output_Array')}"
+                                                    },
+                                                    "runAfter": {
+                                                        "Compose_Output_Array": ["Succeeded"]
+                                                    },
+                                                    "type": "SetVariable"
+                                                }
+                                            },
+                                            "foreach": "@json(variables('CMD Response Final'))['ET_RESULTS']",
+                                            "runAfter": {
+                                                "Compose_StatusResponse": ["Succeeded"]
+                                            },
+                                            "runtimeConfiguration": {
+                                                "concurrency": {
+                                                    "repetitions": 1
+                                                }
+                                            },
+                                            "type": "Foreach"
+                                        }
+                                    },
+                                    "runAfter": {
+                                        "Set_variable_CMD_Response_Final": ["Succeeded"]
+                                    },
+                                    "type": "Scope"
+                                },
+                                "Set_variable_CMD_Response_Final": {
+                                    "inputs": {
+                                        "name": "CMD Response Final",
+                                        "value": "@outputs('Compose_Final_Response_ET_RESULTS')"
+                                    },
+                                    "runAfter": {
+                                        "Compose_Final_Response_ET_RESULTS": ["Succeeded"]
+                                    },
+                                    "type": "SetVariable"
+                                },
+                                "Set_variable_ET_RESULTS_Array": {
+                                    "inputs": {
+                                        "name": "ET_RESULTS_Array",
+                                        "value": "@{array(outputs('Compose_Array'))}"
+                                    },
+                                    "runAfter": {
+                                        "Compose_Array": ["Succeeded"]
+                                    },
+                                    "type": "SetVariable"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "Response_-_Empty_ET_RESULTS": {
+                                        "inputs": {
+                                            "body": {
+                                                "statusResponse": {
+                                                    "message": "@{replace(string(xpath(xml(body('Invoke_CMD')),'.//ET_MESSAGES/item/MESSAGE/text()')?[0]),'&amp;','&')}",
+                                                    "type": "@{string(xpath(xml(body('Invoke_CMD')),'.//ET_MESSAGES/item/TYPE/text()')?[0])}"
+                                                }
+                                            },
+                                            "statusCode": "@outputs('Invoke_CMD')['statusCode']"
+                                        },
+                                        "kind": "Http",
+                                        "runAfter": {},
+                                        "type": "Response"
+                                    },
+                                    "Terminate_flow_with_CMD_Response": {
+                                        "inputs": {
+                                            "runStatus": "Succeeded"
+                                        },
+                                        "runAfter": {
+                                            "Response_-_Empty_ET_RESULTS": ["Succeeded"]
+                                        },
+                                        "type": "Terminate"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@string(xpath(xml(body('Invoke_CMD')),'.//ET_MESSAGES/item/TYPE/text()')?[0])",
+                                                "@string('E')"
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "runAfter": {},
+                            "type": "If"
+                        }
+                    }
+                },
+                "expression": {
+                    "and": [
+                        {
+                            "not": {
+                                "equals": [
+                                    "@contains(string(body('Invoke_CMD')),'_-SIE_-CMDF_SEARCH_BY_SYSCLTResponse')",
+                                    true
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Invoke_CMD": ["Succeeded", "Failed"]
+                },
+                "type": "If"
+            },
+            "Invoke_CMD": {
+                "inputs": {
+                    "authentication": {
+                        "password": "@body('HTTP_Get_Certificate_Password')",
+                        "pfx": "@body('HTTP_Get_Certificate')",
+                        "type": "ClientCertificate"
+                    },
+                    "body": "@variables('CMD Request')",
+                    "headers": {
+                        "Content-Type": "@variables('Content-Type')",
+                        "SOAPAction": "@variables('SOAP Action')"
+                    },
+                    "method": "POST",
+                    "retryPolicy": {
+                        "type": "none"
+                    },
+                    "uri": "@{json(variables('configData'))?['ws_sapNumber']?['url']}"
+                },
+                "runAfter": {},
+                "type": "Http"
+            },
+            "Send_CMD_Service_Success_Response": {
+                "inputs": {
+                    "body": "@variables('SFDC Final Response')",
+                    "headers": {
+                        "Content-Type": "application/json"
+                    },
+                    "statusCode": 200
+                },
+                "kind": "Http",
+                "runAfter": {
+                    "Condition_check_CMD_Response": ["Succeeded"]
+                },
+                "type": "Response"
+            }
+        },
+        "runAfter": {
+            "Condition_check_for_sapSys_and_sapClient": ["Succeeded"]
+        },
+        "trackedProperties": {
+            "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+            "citizenName": "c00031",
+            "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+            "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'CMD')}",
+            "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'CMD')}",
+            "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+            "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'SearchSAPNumber')}",
+            "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+            "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+            "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+        },
+        "type": "Scope"
+    }
+  },
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {},
+  "triggers": {
+    "manual": {
+      "inputs": {
+        "method": "POST",
+        "schema": {}
+      },
+      "kind": "Http",
+      "type": "Request"
+    }
+  }
+}

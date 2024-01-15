@@ -1,0 +1,295 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Parse_XML_to_JSON": {
+        "inputs": {
+          "content": "@json(xml(triggerBody()))",
+          "schema": {
+            "properties": {
+              "Body": {
+                "properties": {
+                  "notifications": {
+                    "properties": {
+                      "ActionId": {
+                        "type": "string"
+                      },
+                      "EnterpriseUrl": {
+                        "type": "string"
+                      },
+                      "Notification": {
+                        "items": {
+                          "properties": {
+                            "Id": {
+                              "type": "string"
+                            },
+                            "sObject": {
+                              "properties": {
+                                "BillingCity": {
+                                  "type": "string"
+                                },
+                                "BillingPostalCode": {
+                                  "type": "string"
+                                },
+                                "BillingState": {
+                                  "type": "string"
+                                },
+                                "BillingStateCode": {
+                                  "type": "string"
+                                },
+                                "BillingStreet": {
+                                  "type": "string"
+                                },
+                                "Id": {
+                                  "type": "string"
+                                },
+                                "Name": {
+                                  "type": "string"
+                                },
+                                "S4SCID_Number__c": {
+                                  "type": "string"
+                                },
+                                "S4SCMD_KUKLA__c": {
+                                  "type": "string"
+                                },
+                                "S4SCMD_NAME1_I__c": {
+                                  "type": "string"
+                                },
+                                "S4SCMD_NAME2_I__c": {
+                                  "type": "string"
+                                },
+                                "S4SCMD_NAME3_I__c": {
+                                  "type": "string"
+                                },
+                                "S4SCMD_NAME3__c": {
+                                  "type": "string"
+                                },
+                                "S4SCity_PO_Box__c": {
+                                  "type": "string"
+                                },
+                                "S4SCompany_Postal_Code__c": {
+                                  "type": "string"
+                                },
+                                "S4SDUNS__c": {
+                                  "type": "string"
+                                },
+                                "S4SISIC__c": {
+                                  "type": "string"
+                                },
+                                "S4SIfA__c": {
+                                  "type": "string"
+                                },
+                                "S4SInternational_City__c": {
+                                  "type": "string"
+                                },
+                                "S4SInternational_Steet_Name_2__c": {
+                                  "type": "string"
+                                },
+                                "S4SInternational_Street_Name_1__c": {
+                                  "type": "string"
+                                },
+                                "S4SLegal_Status__c": {
+                                  "type": "string"
+                                },
+                                "S4SMD_Status__c": {
+                                  "type": "string"
+                                },
+                                "S4SNat_Company_ID__c": {
+                                  "type": "string"
+                                },
+                                "S4SPO_Box_Postcode__c": {
+                                  "type": "string"
+                                },
+                                "S4SPO_box__c": {
+                                  "type": "string"
+                                },
+                                "S4SSISIC_Direct_Name__c": {
+                                  "type": "string"
+                                },
+                                "S4SSISIC_Ship_To_Name__c": {
+                                  "type": "string"
+                                },
+                                "S4STax_ID__c": {
+                                  "type": "string"
+                                }
+                              },
+                              "type": "object"
+                            }
+                          },
+                          "required": [
+                            "Id",
+                            "sObject"
+                          ],
+                          "type": "object"
+                        },
+                        "type": [
+                          "array",
+                          "object"
+                        ]
+                      },
+                      "OrganizationId": {
+                        "type": "string"
+                      },
+                      "PartnerUrl": {
+                        "type": "string"
+                      },
+                      "SessionId": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              },
+              "Header": {}
+            },
+            "type": "object"
+          }
+        },
+        "runAfter": {},
+        "type": "ParseJson"
+      },
+      "Scope_-_Catch": {
+        "actions": {
+          "Send_error_response": {
+            "inputs": {
+              "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n    <soapenv:Header/>\n    <soapenv:Body>\n        <out:notificationsResponse>\n            <out:Ack>0</out:Ack>\n        </out:notificationsResponse>\n    </soapenv:Body>\n</soapenv:Envelope>",
+              "headers": {
+                "Content-Type": "application/xml"
+              },
+              "statusCode": 500
+            },
+            "kind": "Http",
+            "runAfter": {},
+            "type": "Response"
+          },
+          "Terminate_Failed": {
+            "inputs": {
+              "runStatus": "Failed"
+            },
+            "runAfter": {
+              "Send_error_response": [
+                "Succeeded"
+              ]
+            },
+            "type": "Terminate"
+          }
+        },
+        "runAfter": {
+          "Scope_-_Try": [
+            "Failed"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Scope_-_Try": {
+        "actions": {
+          "For_each": {
+            "actions": {
+              "HTTP_fetchAccountsToProcess": {
+                "inputs": {
+                  "headers": {
+                    "Authorization": "Bearer @{body('logic-c00031-getSFOauthToken-weu-dev')?['access_token']}"
+                  },
+                  "method": "GET",
+                  "queries": {
+                    "q": "select @{parameters('Select fields')} from Account where id in ('@{items('For_each')?['sObject']?['sf:Id']}')"
+                  },
+                  "retryPolicy": {
+                    "count": 2,
+                    "interval": "PT5S",
+                    "type": "fixed"
+                  },
+                  "uri": "@{body('logic-c00031-getSFOauthToken-weu-dev')?['instance_url']}/services/data/v55.0/query"
+                },
+                "runAfter": {},
+                "type": "Http"
+              },
+              "logic-c00031-int_SF_MDG_set-weu-dev": {
+                "inputs": {
+                  "host": {
+                    "workflow": {
+                      "id": "logic_mdg"
+                    }
+                  },
+                  "body": {
+                    "BearerToken": "Bearer @{body('logic-c00031-getSFOauthToken-weu-dev')?['access_token']}",
+                    "InstanceURL": "@{body('logic-c00031-getSFOauthToken-weu-dev')?['instance_url']}",
+                    "MDGRequest": "@{body('HTTP_fetchAccountsToProcess')?['records']?[0]}",
+                    "Sender": "SieSales"
+                  },
+                  "headers": null
+                },
+                "runAfter": {
+                  "HTTP_fetchAccountsToProcess": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Workflow"
+              }
+            },
+            "foreach": "@array(body('Parse_XML_to_JSON')?['soapenv:Envelope']?['soapenv:Body']?['notifications']?['Notification'])",
+            "runAfter": {},
+            "runtimeConfiguration": {
+              "concurrency": {
+                "repetitions": 3
+              }
+            },
+            "type": "Foreach"
+          },
+          "Response": {
+            "inputs": {
+              "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n    <soapenv:Header/>\n    <soapenv:Body>\n        <out:notificationsResponse>\n            <out:Ack>1</out:Ack>\n        </out:notificationsResponse>\n    </soapenv:Body>\n</soapenv:Envelope>",
+              "headers": {
+                "Content-Type": "application/xml"
+              },
+              "statusCode": 200
+            },
+            "kind": "Http",
+            "runAfter": {
+              "For_each": [
+                "Succeeded"
+              ]
+            },
+            "type": "Response"
+          }
+        },
+        "runAfter": {
+          "Parse_XML_to_JSON": [
+            "Succeeded"
+          ],
+          "logic-c00031-getSFOauthToken-weu-dev": [
+            "Succeeded"
+          ]
+        },
+        "type": "Scope"
+      },
+      "logic-c00031-getSFOauthToken-weu-dev": {
+        "inputs": {
+          "host": {
+            "workflow": {
+              "id": "logic_getsfoauthtoken}"
+            }
+          },
+          "body": {
+            "tokenType": "nonsfs"
+          },
+          "headers": null
+        },
+        "runAfter": {},
+        "type": "Workflow"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {},
+        "kind": "Http",
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

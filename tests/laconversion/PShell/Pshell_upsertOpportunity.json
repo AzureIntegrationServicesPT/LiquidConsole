@@ -1,0 +1,216 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Catch_Scope": {
+            "actions": {
+                "Response_in_Catch": {
+                    "inputs": {
+                        "body": {
+                            "Message": "@concat('Some error occurred while processing the request. Please find more details using tracking id : ', workflow()['run']['name'])",
+                            "Status": "Failure"
+                        },
+                        "headers": {
+                            "Content-Type": "application/json"
+                        },
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                },
+                "Terminate_in_Catch": {
+                    "inputs": {
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Response_in_Catch": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Try_Scope": [
+                    "Failed",
+                    "Skipped",
+                    "TimedOut"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Try_Scope": {
+            "actions": {
+                "Check_for_Opportunity_Existance": {
+                    "actions": {
+                        "Condition_to_check_statusCode_of_upsertOppObjects": {
+                            "actions": {
+                                "Success_Response": {
+                                    "inputs": {
+                                        "body": "@body('upsertOppObjects')",
+                                        "headers": {
+                                            "Content-Type": "application/json"
+                                        },
+                                        "statusCode": "@outputs('upsertOppObjects')['statusCode']"
+                                    },
+                                    "kind": "http",
+                                    "runAfter": {},
+                                    "type": "Response"
+                                },
+                                "Success_Terminate": {
+                                    "inputs": {
+                                        "runStatus": "Succeeded"
+                                    },
+                                    "runAfter": {
+                                        "Success_Response": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Terminate"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "Error_Response": {
+                                        "inputs": {
+                                            "body": "@body('upsertOppObjects')",
+                                            "headers": {
+                                                "Content-Type": "application/json"
+                                            },
+                                            "statusCode": "@outputs('upsertOppObjects')['statusCode']"
+                                        },
+                                        "kind": "Http",
+                                        "runAfter": {},
+                                        "type": "Response"
+                                    },
+                                    "Error_Terminate": {
+                                        "inputs": {
+                                            "runStatus": "Failed"
+                                        },
+                                        "runAfter": {
+                                            "Error_Response": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "Terminate"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "equals": [
+                                            "@outputs('upsertOppObjects')?['statusCode']",
+                                            200
+                                        ]
+                                    }
+                                ]
+                            },
+                            "runAfter": {
+                                "upsertOppObjects": [
+                                    "Succeeded",
+                                    "Failed"
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "upsertOppObjects": {
+                            "inputs": {
+                                "body": "@triggerBody()",
+                                "host": {
+                                    "triggerName": "manual",
+                                    "workflow": {
+                                        "id": "[parameters('Pshell_upsertOppObjects_logicAppId')]"
+                                    }
+                                },
+                                "retryPolicy": {
+                                    "type": "none"
+                                }
+                            },
+                            "runAfter": {},
+                            "type": "Workflow"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Response_when_No_input": {
+                                "inputs": {
+                                    "body": {
+                                        "reasonPhrase": "Unprocessable Entity",
+                                        "reasonString": "No input"
+                                    },
+                                    "headers": {
+                                        "Content-Type": "application/json"
+                                    },
+                                    "statusCode": 422
+                                },
+                                "kind": "Http",
+                                "runAfter": {},
+                                "type": "Response"
+                            },
+                            "Terminate_when_No_input": {
+                                "inputs": {
+                                    "runStatus": "Succeeded"
+                                },
+                                "runAfter": {
+                                    "Response_when_No_input": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Terminate"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@triggerBody()?['Opportunity']",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@triggerBody()?['Opportunity']",
+                                        "@string('')"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                }
+            },
+            "runAfter": {},
+            "trackedProperties": {
+                "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+                "citizenName": "c00031",
+                "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'PShell')}",
+                "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'upsertOpportiunity')}",
+                "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+                "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+            },
+            "type": "Scope"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {},
+    "triggers": {
+        "manual": {
+            "inputs": {
+                "schema": {}
+            },
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

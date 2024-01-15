@@ -1,0 +1,620 @@
+{
+  
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+            "Initialize_ResAccountId": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "ResAccountId",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_XSLTInput": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "XSLTInput",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_AccountId": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "AccountId",
+                            "type": "string",
+                            "value": "@{triggerOutputs()?['relativePathParameters']?['accountId']}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_RemoveXmlTag": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "XsltResponse",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_S4SSISIC_Direct__c": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "S4SSISIC_Direct__c",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Scope_Catch": {
+                "actions": {
+                    "Send_Error_Response": {
+                        "inputs": {
+                            "body": "Unexpected error occured. Please contact system administrator with the following tracking id:@{workflow()['run']['name']}",
+                            "headers": {
+                                "Content-Type": "application/json"
+                            },
+                            "statusCode": 500
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                         "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                        "type": "Response"
+                    },
+                    "Terminate": {
+                        "inputs": {
+                            "runError": {
+                                "code": "500"
+                            },
+                            "runStatus": "Failed"
+                        },
+                        "runAfter": {
+                            "Send_Error_Response": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Terminate"
+                    }
+                },
+                "runAfter": {
+                    "Scope_Try": [
+                        "Failed"
+                    ]
+                },
+                "type": "Scope"
+            },
+            "Scope_Try": {
+                "actions": {
+                    "Compose_Set_XSLTinput": {
+                        "inputs": {
+                            "response": {
+                                "Account": "@body('Account')",
+                                "AccountTeamMember": [
+                                    "@if(greater(length(string(body('AccountTeamMember')?['records'])), 1), body('AccountTeamMember')?['records'], null)"
+                                ],
+                                "GID_Technical": "@{body('GID_Technical')?['records']?[0]?['S4SGID_Technical__c']}",
+                                "RelatedContacts": [
+                                    "@if(greater(length(string(body('Related_Contacts')?['records'])), 1), body('Related_Contacts')?['records'], null)"
+                                ],
+                                "S4SIdentification_Number": [
+                                    "@if(greater(length(string(body('S4SIdentification_Number__c')?['records'])), 1), body('S4SIdentification_Number__c')?['records'], null)"
+                                ],
+                                "S4SRole": [
+                                    "@if(greater(length(string(body('S4SRole__c')?['records'])), 1), body('S4SRole__c')?['records'], null)"
+                                ],
+                                "S4SSISIC": [
+                                    "@if(greater(length(string(body('S4SSISIC__c')?['records'])), 1), body('S4SSISIC__c')?['records'], null)"
+                                ]
+                            }
+                    },
+                        "runAfter": {
+                            "Condition_-_check_for_Response_AccountId": [
+                                "Succeeded"
+                            ]
+                        },
+                         "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                        "type": "Compose"
+                    },
+                    "Compose_response": {
+                        "inputs": "@replace(string(json(body('Transform_XML'))),'\"\"','null')",
+                        "runAfter": {
+                            "Transform_XML": [
+                                "Succeeded"
+                            ]
+                        },
+                         "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                        "type": "Compose"
+                    },
+                    "Condition_-_Check_for_AccountId": {
+                        "actions": {
+                            "Account": {
+                                "inputs": {
+                                    "body": {
+                                        "query": "select Id ,IsDeleted ,MasterRecordId ,Name ,Type ,RecordTypeId ,ParentId ,BillingStreet ,BillingCity ,\nBillingState ,BillingPostalCode ,BillingCountry ,BillingStateCode ,BillingCountryCode ,BillingLatitude ,\nBillingLongitude ,BillingGeocodeAccuracy ,ShippingStreet ,ShippingCity ,ShippingState ,ShippingPostalCode ,\nShippingCountry ,ShippingStateCode ,ShippingCountryCode ,ShippingLatitude ,ShippingLongitude ,ShippingGeocodeAccuracy ,\nPhone ,Fax ,AccountNumber ,Website ,PhotoUrl ,Sic ,Industry ,AnnualRevenue ,NumberOfEmployees ,Ownership ,TickerSymbol ,\nDescription ,Rating ,Site ,CurrencyIsoCode ,OwnerId ,CreatedDate ,CreatedById ,LastModifiedDate ,LastModifiedById ,\nSystemModstamp ,LastActivityDate ,LastViewedDate ,LastReferencedDate ,IsPartner ,IsCustomerPortal ,ChannelProgramName ,\nChannelProgramLevelName ,Jigsaw ,JigsawCompanyId ,AccountSource ,SicDesc ,S4SACCOUNT_LegacyID__c ,S4SARE__c ,\nS4SAccount_Name_International__c ,S4SAccount_Role__c ,S4SBusiness_Unit__c ,S4SCID_Number__c ,S4SCMD_KUKLA__c ,S4SCMD_NAME1_I__c ,S4SCMD_NAME1__c ,\nS4SCMD_NAME2_I__c ,S4SCMD_NAME2__c ,S4SCMD_NAME3_I__c ,S4SCMD_NAME3__c ,S4SCMD_REGION__c ,S4SCMD_STREET2__c ,S4SCMD_STREET__c ,\nS4SCMD_Subscription_Rejected_Date__c ,S4SChange_n__c ,S4SChange_of_NPS__c ,S4SCheck_IFAs_and_Contacts__c ,\nS4SCity_PO_Box_International__c ,S4SCity_PO_Box__c ,S4SCompany_Postal_Code__c ,S4SCompany_Summary__c ,S4SCurrent_FY_NPS__c ,\nS4SDUNS__c ,S4SDivision__c ,S4SDomestic_Ultimate_DUNS__c ,S4SDuns_Information__c ,S4SDuplicate_IfA_Number__c ,\nS4SEmail__c ,S4SEngineering_electrical__c ,S4SEngineering_mechanical__c ,S4SExternal_Account_HelpText__c ,S4SFacebook__c ,\nS4SField_Services_24_7__c ,S4SFounding_Year__c ,S4SFrom_Search__c ,S4SGlobal_Frame_Agreement_Database__c ,\nS4SGlobal_Ultimate_DUNS__c ,S4SISIC__c ,S4SIfAAutoNumber__c ,S4SIfA_Siemens_Location__c ,S4SIfA__c ,S4SIndustry_Direct__c ,\nS4SIndustry_Segment_Direct__c ,S4SIndustry_Segment_Ship_To__c ,S4SIndustry_Ship_To__c ,S4SInternational_City__c ,\nS4SInternational_CountryGP__c ,S4SInternational_Country__c ,S4SInternational_Postal_Code__c ,S4SInternational_RegionGP__c ,\nS4SInternational_Region__c ,S4SInternational_Steet_Name_2__c ,S4SInternational_Street_Name_1__c ,S4SIsOwnerCMDUser__c ,\nS4SIs_Partner__c ,S4SLead_Country__c ,S4SLead_Org__c ,S4SLegalOwner__c ,S4SLocal_Search_Term__c ,S4SMD_Status__c ,\nS4SNPS_Trend__c ,S4SNat_Company_ID__c ,S4SNo_Legal_Form_available__c ,S4SNo_of_Active_Candidature__c ,\nS4SNo_of_Cancelled_Candidature__c ,S4SNomination_Letter__c ,S4SNormal_Business_Hours__c ,S4SNotification_from_CMD__c ,\nS4SOfferings_to_the_market_SOP__c ,S4SOfferings_to_the_market_VAR__c ,S4SOperational_radius__c ,S4SOrganization_Code__c ,\nS4SPO_Box_Postcode__c ,S4SPO_box__c ,S4SParent_Account_Group__c ,S4SParent_DUNS__c ,S4SPartner_Main_Industries__c ,\nS4SPartner_Type__c ,S4SPartnership_Status__c ,S4SPartnership_with_competing_vendors__c ,S4SPrevious_FY_NPS__c ,\nS4SPrevious_FY_n__c ,S4SPrevious_IfA_Number__c ,S4SPulse_Link__c ,S4SRelevant_Portfolio__c ,S4SResponders_current_FY_n__c ,\nS4SSFS_Confidential__c ,S4SSISIC_Direct_Description__c ,S4SSISIC_Direct__c ,S4SSISIC_Ship_To_Description__c ,\nS4SSISIC_Ship_To__c ,S4SSalesCountry__c ,S4SSales_Branch__c ,S4SSales_Country__c ,S4SSales_Department__c ,\nS4SSales_Office__c ,S4SSales_Org_Type__c ,S4SSales_Sub_Region__c ,S4SSales_Territory__c ,S4SService_electrical__c ,\nS4SService_mechanical__c ,S4SShopfloor_level_square_meters__c ,S4SShort_Partner_company_description__c ,\nS4SSiemens_Account_Type__c ,S4STax_ID__c ,S4SVertical_Name__c ,S4SNumber_of_Pricing_Primary__c ,S4SDAndBCreated__c ,\nS4SIdentification_Number__c ,S4SLegal_Status__c ,S4SMarked_for_Deletion__c ,S4SExternal_Source__c ,S4SGeographical_Code__c ,\nS4SLocal_ID__c,S4SUltimate_SFS_Parent_Account__c, S4SSupplier_to_Siemens__c, S4SSFS_Rating_Type__c, S4SSFS_Rating_Date__c, S4SSFS_Rating__C, S4SRoles__c, S4SRelationship_Status__c, S4SPhilos_Id__c, S4SOrigination_ID__c, S4SLegal_Entity__c, S4SGovernmental_Registration_Number__c, S4SFinancial_Framework__c,S4S_Expiry_Date_Risk_Approval__c, S4SExpiry_Date_Financial_Framework__c, S4S_Customer_of_Siemens__c, S4SCOF_Country__c, S4SIVA_Account_Program__c, S4SSync_invalidated_Origination_ID__c, S4SSync_with_Ext_Source_Invalidated_Date__c, S4SSync_with_External_Source_invalidated__c, S4SDeletion_According_GDPR_Rules__c, S4SBackend_Id__c, S4SInitial_Account_Role__c from Account where id = '@{variables('AccountId')}'"
+                                    },
+                                    "host": {
+                                        "connection": {
+                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                        }
+                                    },
+                                    "method": "post",
+                                    "path": "/soql/executesoqlquery"
+                                },
+                                "runAfter": {},
+                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                "type": "ApiConnection"
+                            },
+                            "Set_variable_-_ResAccountId": {
+                                "inputs": {
+                                    "name": "ResAccountId",
+                                    "value": "@{body('Account')?['records']?[0]?['id']}"
+                                },
+                                "runAfter": {
+                                    "Account": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "SetVariable"
+                            }
+                        },
+                        "else": {
+                            "actions": {
+                                "Response_-_Not_found": {
+                                    "inputs": {
+                                        "body": "Account Id not provided",
+                                        "statusCode": 404
+                                    },
+                                    "kind": "Http",
+                                    "runAfter": {},
+                                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },                                    
+                                    "type": "Response"
+                                },
+                                "Terminate_3": {
+                                    "inputs": {
+                                        "runStatus": "Succeeded"
+                                    },
+                                    "runAfter": {
+                                        "Response_-_Not_found": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Terminate"
+                                }
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('AccountId')",
+                                            "@string('')"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {},
+                        "type": "If"
+                    },
+                    "Condition_-_check_for_Response_AccountId": {
+                        "actions": {
+                            "AccountTeamMember": {
+                                "inputs": {
+                                    "body": {
+                                        "query": "select Id ,AccountId ,UserId ,TeamMemberRole ,PhotoUrl ,Title ,AccountAccessLevel ,OpportunityAccessLevel ,CaseAccessLevel ,ContactAccessLevel ,CreatedDate ,CreatedById ,LastModifiedDate ,LastModifiedById ,SystemModstamp ,IsDeleted from AccountTeamMember where AccountId='@{variables('ResAccountId')}' AND TeamMemberRole='Owner'"
+                                    },
+                                    "host": {
+                                        "connection": {
+                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                        }
+                                    },
+                                    "method": "post",
+                                    "path": "/soql/executesoqlquery"
+                                },
+                                "runAfter": {
+                                    "Condition_check_for_S4SSISIC_Direct__c": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                "type": "ApiConnection"
+                            },
+                            "Condition_check_for_S4SSISIC_Direct__c": {
+                                "actions": {
+                                    "S4SSISIC__c": {
+                                        "inputs": {
+                                            "body": {
+                                                "query": "select Id ,IsDeleted ,OwnerId ,Name ,CurrencyIsoCode ,CreatedDate ,CreatedById ,LastModifiedDate ,LastModifiedById ,SystemModstamp ,LastViewedDate ,LastReferencedDate ,S4SExternal_ID__c ,S4SIndustry_Description__c ,S4SIndustry_Segment__c ,S4SIndustry__c ,S4SNAF_ID__c from S4SSISIC__c where Id= '@{variables('S4SSISIC_Direct__c')}' LIMIT+1"
+                                            },
+                                            "host": {
+                                                "connection": {
+                                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                }
+                                            },
+                                            "method": "post",
+                                            "path": "/soql/executesoqlquery"
+                                        },
+                                        "runAfter": {},
+                                         "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                        "type": "ApiConnection"
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@variables('S4SSISIC_Direct__c')",
+                                                    "@string('')"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "Set_variable_S4SSISIC_Direct__c": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "GID_Technical": {
+                            "inputs": {
+                                "body": {
+                                    "query": "select S4SGID_Technical__c from user where id = '@{body('Account')?['records']?[0]?['CreatedById']}'"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/soql/executesoqlquery"
+                            },
+                            "runAfter": {
+                                "AccountTeamMember": [
+                                    "Succeeded"
+                                ]
+                            },
+                             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                            "type": "ApiConnection"
+                            },
+                            "Related_Contacts": {
+                                "inputs": {
+                                    "body": {
+                                        "query": "select ContactId from AccountContactRelation where AccountId = '@{variables('ResAccountId')}'"
+                                    },
+                                    "host": {
+                                        "connection": {
+                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                        }
+                                    },
+                                    "method": "post",
+                                    "path": "/soql/executesoqlquery"
+                                },
+                                "runAfter": {
+                                    "GID_Technical": [
+                                        "Succeeded"
+                                    ]
+                                },
+                             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                            "type": "ApiConnection"
+                        },
+                            "S4SIdentification_Number__c": {
+                                "inputs": {
+                                    "body": {
+                                        "query": "select Id ,IsDeleted ,Name ,CurrencyIsoCode ,CreatedDate ,CreatedById ,LastModifiedDate ,LastModifiedById ,SystemModstamp ,LastActivityDate ,LastViewedDate ,LastReferencedDate ,S4SAccount__c ,S4SIdentification_Number__c ,S4SIfA__c ,S4SLocal_Source_System__c ,S4SPrimary__c ,S4SSource_System__c ,S4SSubtype__c ,S4SType__c ,S4SExternal_ID__c ,S4SCompany_Code__c ,S4SMarked_for_Deletion__c ,S4SOrder_Block__c ,S4SSAP_Account_Group__c ,S4SSales_Org__c ,S4SExternal_Source__c from S4SIdentification_Number__c where S4SACCOUNT__C= '@{variables('ResAccountId')}'"
+                                    },
+                                    "host": {
+                                        "connection": {
+                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                        }
+                                    },
+                                    "method": "post",
+                                    "path": "/soql/executesoqlquery"
+                                },
+                                "runAfter": {},
+                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                "type": "ApiConnection"
+                            },
+                            "S4SRole__c": {
+                                "inputs": {
+                                    "body": {
+                                        "query": "select Id ,IsDeleted ,Name ,CurrencyIsoCode ,CreatedDate ,CreatedById ,LastModifiedDate ,LastModifiedById ,SystemModstamp ,S4SAccount__c ,S4SBU__c ,S4SCountries__c ,S4SDivision__c ,S4SLead_Country__c ,S4SPricing_Primary__c ,S4SROLE_LegacyID__c ,S4SRolesGP__c ,S4SRoles__c ,S4SAccount_Classification__c ,S4SAccount_Status__c ,S4SSource_Type__c,S4STarget_Volume__c, S4SIntroducer_Approval_Status__c, S4SAccount_Role_Status__c, S4STarget_Volume_EUR__c, S4SFY_Target_Set__c from S4SRole__c where S4SAccount__c='@{variables('ResAccountId')}'"
+                                    },
+                                    "host": {
+                                        "connection": {
+                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                        }
+                                    },
+                                    "method": "post",
+                                    "path": "/soql/executesoqlquery"
+                                },
+                                "runAfter": {
+                                    "S4SIdentification_Number__c": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                "type": "ApiConnection"
+                            },
+                            "Set_variable_S4SSISIC_Direct__c": {
+                                "inputs": {
+                                    "name": "S4SSISIC_Direct__c",
+                                    "value": "@{body('Account')?['records']?[0]?['S4SSISIC_Direct__c']}"
+                                },
+                                "runAfter": {
+                                    "S4SRole__c": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "SetVariable"
+                            }
+                        },
+                        "else": {
+                            "actions": {
+                                "Response-Not_Found": {
+                                    "inputs": {
+                                        "body": "Account Id: '@{variables('AccountId')}' provided doesn't exist in SieSales.",
+                                        "statusCode": 404
+                                    },
+                                    "kind": "Http",
+                                    "runAfter": {},
+                                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                                    "type": "Response"
+                                },
+                                "Terminate_2": {
+                                    "inputs": {
+                                        "runStatus": "Succeeded"
+                                    },
+                                    "runAfter": {
+                                        "Response-Not_Found": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Terminate"
+                                }
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('ResAccountId')",
+                                            "@string('')"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Condition_-_Check_for_AccountId": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Final_Response": {
+                        "inputs": {
+                            "body": "@outputs('Compose_response')",
+                            "headers": {
+                                "Content-Type": "application/json"
+                            },
+                            "statusCode": 200
+                        },
+                        "kind": "Http",
+                        "runAfter": {
+                            "Compose_response": [
+                                "Succeeded"
+                            ]
+                        },
+                         "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                        "type": "Response"
+                    },
+                    "Transform_XML": {
+                        "inputs": {
+                            "content": "@{xml(outputs('Compose_Set_XSLTinput'))}",
+                            "integrationAccount": {
+                                "map": {
+                                    "name": "map-c00031-SFS-Will-getAccDetails"
+                                }
+                            },
+                            "transformOptions": "ApplyXsltOutputAttributes"
+                        },
+                        "runAfter": {
+                            "Compose_Set_XSLTinput": [
+                                "Succeeded"
+                            ]
+                        },
+                         "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                        "type": "Xslt"
+                    }
+                },
+                "runAfter": {
+                    "Initialize_ResAccountId": [
+                        "Succeeded"
+                    ],
+                    "Initialize_XSLTInput": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_AccountId": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_RemoveXmlTag": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_S4SSISIC_Direct__c": [
+                        "Succeeded"
+                    ],
+                    "logic-c00031-SFS_internal_sf4sLog-weu-dev": [
+                        "Succeeded"
+                    ]
+                },
+                "trackedProperties": {
+                    "accountId": "not-defined",
+                    "apimRouting": "not-defined",
+                    "citizenName": "c00031",
+                    "correlationId": "not-defined",
+                    "interfaceName": "SFS",
+                    "interfacePartner": "not-defined",
+                    "operationName": "will_getAccount",
+                    "parentWorkflow": "not-defined"
+                },
+                "type": "Scope"
+            },
+            "logic-c00031-SFS_internal_sf4sLog-weu-dev": {
+                "inputs": {
+                    "body": {
+                        "message": "AccountId is @{triggerOutputs()['relativePathParameters']['accountId']} for logic app logic-c00031-SFS_Will_getAccDetails",
+                        "severity": "INFO"
+                    },
+                    "host": {
+                        "triggerName": "manual",
+                        "workflow": {
+                            "id": "[parameters('sf4sLog_logicApp_id')]"
+                        }
+                    }
+                },
+                "runAfter": {},
+                "type": "Workflow"
+            }
+        },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {
+                "method": "POST",
+                "relativePath": "accountDetails/{accountId}"
+            },
+            "kind": "Http",
+               "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+            "type": "Request"
+        }
+ 
+}
+}

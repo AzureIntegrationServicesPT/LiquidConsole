@@ -1,0 +1,697 @@
+{
+	"$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+	"actions": {
+		"Catch-Scope": {
+			"actions": {
+				"Copy_file_to_error": {
+					"inputs": {
+						"body": "@body('Get_zip_blob_content_(V2)')",
+						"headers": {
+							"ReadFileMetadataFromServer": true
+						},
+						"host": {
+							"connection": {
+								"name": "@parameters('$connections')['azureblobsftpssh']['connectionId']"
+							}
+						},
+						"method": "post",
+						"path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files",
+						"queries": {
+							"folderPath": "@parameters('errorPath')",
+							"name": "@body('Create_file_in_working_directory')?['Name']",
+							"queryParametersSingleEncoded": true
+						}
+					},
+					"runAfter": {},
+					"runtimeConfiguration": {
+						"contentTransfer": {
+							"transferMode": "Chunked"
+						}
+					},
+					"type": "ApiConnection"
+				},
+				"Delete_file_from_working": {
+					"inputs": {
+						"headers": {
+							"SkipDeleteIfFileNotFoundOnServer": false
+						},
+						"host": {
+							"connection": {
+								"name": "@parameters('$connections')['azureblobsftpssh']['connectionId']"
+							}
+						},
+						"method": "delete",
+						"path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files/@{encodeURIComponent(encodeURIComponent(body('Create_file_in_working_directory')?['Path']))}"
+					},
+					"runAfter": {
+						"Copy_file_to_error": [
+							"Succeeded"
+						]
+					},
+					"type": "ApiConnection"
+				}
+			},
+			"runAfter": {
+				"Try-Scope": [
+					"TimedOut",
+					"Failed",
+					"Skipped"
+				]
+			},
+			"type": "Scope"
+		},
+		"Condition": {
+			"actions": {
+				"BlobToZipConverterFunction": {
+					"inputs": {
+						"authentication": {
+							"type": "Raw",
+							"value": "[parameters('functionAppKey')]"
+						},
+						"body": {
+							"blobContainerName": "@{parameters('BlobContainerName')}",
+							"incomingBlobPath": "@{workflow()['run']['name']}/incoming",
+							"incominigBlobName": "@{triggerBody()?['Name']}",
+							"outcomingBlobPath": "@{workflow()['run']['name']}/zip"
+						},
+						"function": {
+							"id": "[concat(parameters('funcApp'), '/functions/BlobToZipConverterFunction')]"
+						}
+					},
+					"runAfter": {
+						"Create_blob_(V2)": [
+							"Succeeded"
+						]
+					},
+					"type": "Function"
+				},
+				"Create_blob_(V2)": {
+					"inputs": {
+						"body": "@body('Get_incoming_file_content')",
+						"headers": {
+							"ReadFileMetadataFromServer": true
+						},
+						"host": {
+							"connection": {
+								"name": "@parameters('$connections')['azureBlobConnection']['connectionId']"
+							}
+						},
+						"method": "post",
+						"path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('${st_name}'))}/files",
+						"queries": {
+							"folderPath": "@{parameters('blobContainerName')}/@{workflow()['run']['name']}/incoming",
+							"name": "@triggerBody()?['Name']",
+							"queryParametersSingleEncoded": true
+						}
+					},
+					"runAfter": {
+						"Get_incoming_file_content": [
+							"Succeeded"
+						]
+					},
+					"runtimeConfiguration": {
+						"contentTransfer": {
+							"transferMode": "Chunked"
+						}
+					},
+					"type": "ApiConnection"
+				},
+				"Create_file_in_working_directory": {
+					"inputs": {
+						"body": "@body('Get_zip_blob_content_(V2)')",
+						"headers": {
+							"ReadFileMetadataFromServer": true
+						},
+						"host": {
+							"connection": {
+								"name": "@parameters('$connections')['azureblobsftpssh']['connectionId']"
+							}
+						},
+						"method": "post",
+						"path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files",
+						"queries": {
+							"folderPath": "@parameters('workingPath')",
+							"name": "@{substring(triggerBody()?['Name'], 0, sub(length(triggerBody()?['Name']), 4))}(@{convertTimeZone(utcNow(), 'UTC', 'Central Europe Standard Time')}).zip",
+							"queryParametersSingleEncoded": true
+						}
+					},
+					"runAfter": {
+						"Get_zip_blob_content_(V2)": [
+							"Succeeded"
+						]
+					},
+					"runtimeConfiguration": {
+						"contentTransfer": {
+							"transferMode": "Chunked"
+						}
+					},
+					"type": "ApiConnection"
+				},
+				"Delete_file_from_incoming_dir": {
+					"inputs": {
+						"headers": {
+							"SkipDeleteIfFileNotFoundOnServer": false
+						},
+						"host": {
+							"connection": {
+								"name": "@parameters('$connections')['azureblobsftpssh']['connectionId']"
+							}
+						},
+						"method": "delete",
+						"path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files/@{encodeURIComponent(encodeURIComponent(triggerBody()?['Path']))}"
+					},
+					"runAfter": {
+						"Create_file_in_working_directory": [
+							"Succeeded"
+						]
+					},
+					"type": "ApiConnection"
+				},
+				"Get_incoming_file_content": {
+					"inputs": {
+						"host": {
+							"connection": {
+								"name": "@parameters('$connections')['azureblobsftpssh']['connectionId']"
+							}
+						},
+						"method": "get",
+						"path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files/@{encodeURIComponent(encodeURIComponent(triggerBody()?['Path']))}/content",
+						"queries": {
+							"inferContentType": true
+						}
+					},
+					"runAfter": {},
+					"type": "ApiConnection"
+				},
+				"Get_zip_blob_content_(V2)": {
+					"inputs": {
+						"host": {
+							"connection": {
+								"name": "@parameters('$connections')['azureBlobConnection']['connectionId']"
+							}
+						},
+						"method": "get",
+						"path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files/@{encodeURIComponent(encodeURIComponent(parameters('BlobContainerName'),'/',body('BlobToZipConverterFunction')?['Value']))}/content",
+						"queries": {
+							"inferContentType": true
+						}
+					},
+					"runAfter": {
+						"BlobToZipConverterFunction": [
+							"Succeeded"
+						]
+					},
+					"type": "ApiConnection"
+				}
+			},
+			"else": {
+				"actions": {
+					"Terminate": {
+						"inputs": {
+							"runError": {
+								"message": "File extension is not correct"
+							},
+							"runStatus": "Failed"
+						},
+						"runAfter": {},
+						"type": "Terminate"
+					}
+				}
+			},
+			"expression": {
+				"and": [
+					{
+						"contains": [
+							"@triggerBody()?['MediaType']",
+							"@parameters('Filter')"
+						]
+					}
+				]
+			},
+			"runAfter": {
+				"Initialize_variable_Logs": [
+					"Succeeded"
+				]
+			},
+			"type": "If"
+		},
+		"Initialize_variable_Logs": {
+			"inputs": {
+				"variables": [
+					{
+						"name": "Logs",
+						"type": "array"
+					}
+				]
+			},
+			"runAfter": {},
+			"type": "InitializeVariable"
+		},
+		"Try-Scope": {
+			"actions": {
+				"CSVToJSONParser": {
+					"inputs": {
+						"authentication": {
+							"type": "Raw",
+							"value": "[parameters('functionAppKey')]"
+						},
+						"body": {
+							"fieldSeperator": ";",
+							"fileContent": "@{body('Get_incoming_file_content')}",
+							"fileHeaders": "IfA;Ownership;GID;Fix Value;Currency ",
+							"linesSkip": 1
+						},
+						"function": {
+							"id": "[concat(parameters('funcApp'), '/functions/CSVToJSONParser')]"
+						}
+					},
+					"runAfter": {},
+					"type": "Function"
+				},
+				"Condition_on_function_result_status_code": {
+					"actions": {
+						"Parse_JSON": {
+							"inputs": {
+								"content": "@body('CSVToJSONParser')['Value']",
+								"schema": {
+									"items": {
+										"properties": {
+											"Currency ": {
+												"type": "string"
+											},
+											"Fix Value": {
+												"type": "string"
+											},
+											"GID": {
+												"type": "string"
+											},
+											"IfA": {
+												"type": "string"
+											},
+											"Ownership": {
+												"type": "string"
+											}
+										},
+										"required": [
+											"IfA",
+											"Ownership",
+											"GID",
+											"Fix Value",
+											"Currency "
+										],
+										"type": "object"
+									},
+									"type": "array"
+								}
+							},
+							"runAfter": {},
+							"type": "ParseJson"
+						}
+					},
+					"else": {
+						"actions": {
+							"Move_file_to_error_dir": {
+								"actions": {
+									"Create_file": {
+										"inputs": {
+											"body": "@body('Get_zip_blob_content_(V2)')",
+											"headers": {
+												"ReadFileMetadataFromServer": true
+											},
+											"host": {
+												"connection": {
+													"name": "@parameters('$connections')['azureblobsftpssh']['connectionId']"
+												}
+											},
+											"method": "post",
+											"path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files",
+											"queries": {
+												"folderPath": "@parameters('errorPath')",
+												"name": "@body('Create_file_in_working_directory')?['Name']",
+												"queryParametersSingleEncoded": true
+											}
+										},
+										"runAfter": {},
+										"runtimeConfiguration": {
+											"contentTransfer": {
+												"transferMode": "Chunked"
+											}
+										},
+										"type": "ApiConnection"
+									},
+									"Delete_file": {
+										"inputs": {
+											"headers": {
+												"SkipDeleteIfFileNotFoundOnServer": false
+											},
+											"host": {
+												"connection": {
+													"name": "@parameters('$connections')['azureblobsftpssh']['connectionId']"
+												}
+											},
+											"method": "delete",
+											"path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files/@{encodeURIComponent(encodeURIComponent(body('Create_file_in_working_directory')?['Path']))}"
+										},
+										"runAfter": {
+											"Create_file": [
+												"Succeeded"
+											]
+										},
+										"type": "ApiConnection"
+									}
+								},
+								"runAfter": {},
+								"type": "Scope"
+							}
+						}
+					},
+					"expression": {
+						"and": [
+							{
+								"equals": [
+									"@outputs('CSVToJSONParser')['statusCode']",
+									200
+								]
+							}
+						]
+					},
+					"runAfter": {
+						"CSVToJSONParser": [
+							"Succeeded"
+						]
+					},
+					"type": "If"
+				},
+				"For_each_record": {
+					"actions": {
+						"Append_to_Logs_variable": {
+							"inputs": {
+								"name": "Logs",
+								"value": "@body('IFACreateAccount')"
+							},
+							"runAfter": {
+								"Log": [
+									"Succeeded"
+								]
+							},
+							"type": "AppendToArrayVariable"
+						},
+						"IFACreateAccount": {
+							"inputs": {
+								"body": [
+									{
+										"CreatedByGID": "@items('For_each_record')?['GID']",
+										"Currency": "@items('For_each_record')?['Currency ']",
+										"Ownership": "@items('For_each_record')?['Ownership']",
+										"S4SIfA__c": "@items('For_each_record')?['IfA']",
+										"SourceSystemCode": "@items('For_each_record')?['Fix Value']"
+									}
+								],
+								"host": {
+									"triggerName": "manual",
+									"workflow": {
+										"id": "${IFACreateAccount_logicAppId}"
+									}
+								}
+							},
+							"runAfter": {},
+							"type": "Workflow"
+						},
+						"Log": {
+							"inputs": {
+								"body": {
+									"message": "@{body('IFACreateAccount')} ",
+									"severity": "INFO"
+								},
+								"headers": {
+									"interfaceName": "CreateAccountSFTP",
+									"runId": "@{workflow()['run']['name']}"
+								},
+								"host": {
+									"triggerName": "manual",
+									"workflow": {
+										"id": "${nonsfs_internal_sf4sLog_logicAppId}"
+									}
+								}
+							},
+							"runAfter": {
+								"IFACreateAccount": [
+									"Succeeded"
+								]
+							},
+							"type": "Workflow"
+						}
+					},
+					"foreach": "@body('Parse_JSON')",
+					"runAfter": {
+						"Condition_on_function_result_status_code": [
+							"Succeeded"
+						]
+					},
+					"type": "Foreach"
+				},
+				"Move_files_to_archive": {
+					"actions": {
+						"BlobToZipConverterFunction_2": {
+							"inputs": {
+								"authentication": {
+									"type": "Raw",
+									"value": "[parameters('functionAppKey')]"
+								},
+								"body": {
+									"blobContainerName": "@{parameters('BlobContainerName')}",
+									"incomingBlobPath": "@{workflow()['run']['name']}/incoming",
+									"incominigBlobName": "@{body('Create_log_blob_(V2)_2')?['DisplayName']}",
+									"outcomingBlobPath": "@{workflow()['run']['name']}/logZip"
+								},
+								"function": {
+									"id": "[concat(parameters('funcApp'), '/functions/BlobToZipConverterFunction')]"
+								}
+							},
+							"runAfter": {
+								"Create_log_blob_(V2)_2": [
+									"Succeeded"
+								]
+							},
+							"type": "Function"
+						},
+						"Create_Log": {
+							"inputs": {
+								"body": "@body('Get_blob_content_(V2)')",
+								"headers": {
+									"ReadFileMetadataFromServer": true
+								},
+								"host": {
+									"connection": {
+										"name": "@parameters('$connections')['azureblobsftpssh']['connectionId']"
+									}
+								},
+								"method": "post",
+								"path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files",
+								"queries": {
+									"folderPath": "@parameters('logsPath')",
+									"name": "Log@{formatDateTime(utcNow(), 'yyyyMMddHHmmss')}.zip",
+									"queryParametersSingleEncoded": true
+								}
+							},
+							"runAfter": {
+								"Get_blob_content_(V2)": [
+									"Succeeded"
+								]
+							},
+							"runtimeConfiguration": {
+								"contentTransfer": {
+									"transferMode": "Chunked"
+								}
+							},
+							"type": "ApiConnection"
+						},
+						"Create_file_Archive": {
+							"inputs": {
+								"body": "@body('Get_zip_blob_content_(V2)')",
+								"headers": {
+									"ReadFileMetadataFromServer": true
+								},
+								"host": {
+									"connection": {
+										"name": "@parameters('$connections')['azureblobsftpssh']['connectionId']"
+									}
+								},
+								"method": "post",
+								"path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files",
+								"queries": {
+									"folderPath": "@parameters('archivePath')",
+									"name": "@body('Create_file_in_working_directory')?['Name']",
+									"queryParametersSingleEncoded": true
+								}
+							},
+							"runAfter": {
+								"Create_Log": [
+									"Succeeded"
+								]
+							},
+							"runtimeConfiguration": {
+								"contentTransfer": {
+									"transferMode": "Chunked"
+								}
+							},
+							"type": "ApiConnection"
+						},
+						"Create_log_blob_(V2)_2": {
+							"inputs": {
+								"body": "@variables('Logs')",
+								"headers": {
+									"ReadFileMetadataFromServer": true
+								},
+								"host": {
+									"connection": {
+										"name": "@parameters('$connections')['azureBlobConnection']['connectionId']"
+									}
+								},
+								"method": "post",
+								"path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files",
+								"queries": {
+									"folderPath": "@{parameters('blobContainerName')}/@{workflow()['run']['name']}/incoming",
+									"name": "CSV_Log@{formatDateTime(utcNow(), 'yyyyMMddHHmmss')}.json",
+									"queryParametersSingleEncoded": true
+								}
+							},
+							"runAfter": {},
+							"runtimeConfiguration": {
+								"contentTransfer": {
+									"transferMode": "Chunked"
+								}
+							},
+							"type": "ApiConnection"
+						},
+						"Delete_file_Incoming": {
+							"inputs": {
+								"headers": {
+									"SkipDeleteIfFileNotFoundOnServer": false
+								},
+								"host": {
+									"connection": {
+										"name": "@parameters('$connections')['azureblobsftpssh']['connectionId']"
+									}
+								},
+								"method": "delete",
+								"path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files/@{encodeURIComponent(encodeURIComponent(body('Create_file_in_working_directory')?['Path']))}"
+							},
+							"runAfter": {
+								"Create_file_Archive": [
+									"Succeeded"
+								]
+							},
+							"type": "ApiConnection"
+						},
+						"Get_blob_content_(V2)": {
+							"inputs": {
+								"host": {
+									"connection": {
+										"name": "@parameters('$connections')['azureBlobConnection']['connectionId']"
+									}
+								},
+								"method": "get",
+								"path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files/@{encodeURIComponent(encodeURIComponent(parameters('BlobContainerName'),'/',body('BlobToZipConverterFunction_2')?['Value']))}/content",
+								"queries": {
+									"inferContentType": true
+								}
+							},
+							"runAfter": {
+								"BlobToZipConverterFunction_2": [
+									"Succeeded"
+								]
+							},
+							"type": "ApiConnection"
+						}
+					},
+					"runAfter": {
+						"For_each_record": [
+							"Succeeded"
+						]
+					},
+					"type": "Scope"
+				}
+			},
+			"runAfter": {
+				"Condition": [
+					"Succeeded"
+				]
+			},
+			"type": "Scope"
+		}
+	},
+	"contentVersion": "1.0.0.0",
+	"outputs": {},
+	"parameters": {
+		"$connections": {
+			"defaultValue": {},
+			"type": "Object"
+		},
+		"Filter": {
+			"defaultValue": "csv",
+			"type": "String"
+		},
+		"InterfaceRootPath": {
+			"defaultValue": "Accounts/in/Accounts/",
+			"type": "String"
+		},
+		"archivePath": {
+			"defaultValue": "/sftp-container-c00031/sftp-c00031/Accounts/in/Accounts/archive/",
+			"type": "String"
+		},
+		"blobContainerName": {
+			"defaultValue": "sftp-container-c00031-createaccountifa",
+			"type": "String"
+		},
+		"errorPath": {
+			"defaultValue": "/sftp-container-c00031/sftp-c00031/Accounts/in/Accounts/error",
+			"type": "String"
+		},
+		"incomingPath": {
+			"defaultValue": "/sftp-container-c00031/sftp-c00031/Accounts/in/Accounts/incoming",
+			"type": "String"
+		},
+		"logsPath": {
+			"defaultValue": "/sftp-container-c00031/sftp-c00031/Accounts/in/Accounts/log/",
+			"type": "String"
+		},
+		"workingPath": {
+			"defaultValue": "/sftp-container-c00031/sftp-c00031/Accounts/in/Accounts/working",
+			"type": "String"
+		}
+	},
+	"triggers": {
+		"When_a_blob_is_added_or_modified_(properties_only)_(V2)": {
+			"evaluatedRecurrence": {
+				"frequency": "Minute",
+				"interval": 30
+			},
+			"inputs": {
+				"host": {
+					"connection": {
+						"name": "@parameters('$connections')['azureblobsftpssh']['connectionId']"
+					}
+				},
+				"method": "get",
+				"path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/triggers/batch/onupdatedfile",
+				"queries": {
+					"checkBothCreatedAndModifiedDateTime": false,
+					"folderId": "@parameters('incomingPath')",
+					"maxFileCount": 1
+				}
+			},
+			"recurrence": {
+				"frequency": "Minute",
+				"interval": 30
+			},
+			"runtimeConfiguration": {
+				"concurrency": {
+					"runs": 1
+				}
+			},
+			"splitOn": "@triggerBody()",
+			"type": "ApiConnection"
+		}
+	}
+}

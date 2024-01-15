@@ -1,0 +1,79 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Failure_Response": {
+            "inputs": {
+                "body": {},
+                "statusCode": 500
+            },
+            "kind": "Http",
+            "runAfter": {
+                "Transform_XML": [
+                    "TimedOut",
+                    "Failed"
+                ]
+            },
+            "type": "Response"
+        },
+        "Success_Response": {
+            "inputs": {
+                "body": "@body('Transform_XML')",
+                "statusCode": 200
+            },
+            "kind": "Http",
+            "runAfter": {
+                "Transform_XML": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Response"
+        },
+        "Terminate_Failure": {
+            "inputs": {
+                "runStatus": "Failed"
+            },
+            "runAfter": {
+                "Failure_Response": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Terminate"
+        },
+        "Terminate_Success": {
+            "inputs": {
+                "runStatus": "Succeeded"
+            },
+            "runAfter": {
+                "Success_Response": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Terminate"
+        },
+        "Transform_XML": {
+            "inputs": {
+                "content": "@{triggerBody()}",
+                "integrationAccount": {
+                    "map": {
+                        "name": "@{triggerOutputs()?['headers']?['MapName']}"
+                    }
+                },
+                "transformOptions": "ApplyXsltOutputAttributes"
+            },
+            "runAfter": {},
+            "type": "Xslt"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {},
+    "triggers": {
+        "manual": {
+            "inputs": {
+                "schema": {}
+            },
+            "kind": "Http",
+            "type": "Request"
+    }
+}
+}

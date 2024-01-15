@@ -1,0 +1,194 @@
+{
+	"$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+	"actions": {
+		"Scope_-_Catch": {
+			"actions": {
+				"Send_Error_Response": {
+					"inputs": {
+						"body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <out:notificationsResponse>\n         <out:Ack>0</out:Ack>\n      </out:notificationsResponse>\n   </soapenv:Body>\n</soapenv:Envelope>",
+						"headers": {
+							"Content-Type": "application/xml"
+						},
+						"statusCode": 500
+					},
+					"kind": "Http",
+					"runAfter": {},
+					"type": "Response"
+				}
+			},
+			"runAfter": {
+				"Scope_-_Try": [
+					"Failed",
+					"Skipped",
+					"TimedOut"
+				]
+			},
+			"type": "Scope"
+		},
+		"Scope_-_Notifications": {
+			"actions": {
+				"LiquidTransformer": {
+					"inputs": {
+						"body": "@triggerBody()",
+						"authentication": {
+							"type": "Raw",
+							"value": "[parameters('functionAppKey')]"
+						},
+						"function": {
+							"id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+						},
+						"headers": {
+							"Accept": "application/json",
+							"Content-Type": "application/xml",
+							"Filename": "${liquid}"
+						},
+						"retryPolicy": {
+							"type": "none"
+						}
+					},
+					"runAfter": {},
+					"type": "Function"
+				},
+				"Parse_JSON": {
+					"inputs": {
+						"content": "@body('LiquidTransformer')?['notifications']",
+						"schema": {
+							"items": {
+								"properties": {
+									"Id": {
+										"type": "string"
+									},
+									"sObject": {
+										"properties": {
+											"@@xmlns:sf": {
+												"type": "string"
+											},
+											"@@xsi:type": {
+												"type": "string"
+											},
+											"sf:Email": {
+												"type": "string"
+											},
+											"sf:FirstName": {
+												"type": "string"
+											},
+											"sf:Id": {
+												"type": "string"
+											},
+											"sf:LastName": {
+												"type": "string"
+											},
+											"sf:S4SPartner_External_Access_Account_Id__c": {
+												"type": "string"
+											},
+											"sf:S4SPartner_Extranet_Access__c": {
+												"type": "string"
+											},
+											"sf:S4SWebSSO_Email__c": {
+												"type": "string"
+											},
+											"sf:S4SWebSSO_account__c": {
+												"type": "string"
+											}
+										},
+										"type": "object"
+									}
+								},
+								"required": [
+									"Id",
+									"sObject"
+								],
+								"type": "object"
+							},
+							"type": "array"
+						}
+					},
+					"runAfter": {
+						"LiquidTransformer": [
+							"Succeeded"
+						]
+					},
+					"type": "ParseJson"
+				}
+			},
+			"runAfter": {},
+			"type": "Scope"
+		},
+		"Scope_-_Try": {
+			"actions": {
+				"For_each": {
+					"actions": {
+						"process_each_record": {
+							"inputs": {
+								"body": "@items('For_each')",
+								"host": {
+									"triggerName": "manual",
+									"workflow": {
+										"id": "[parameters('websso_InitiateOBMSync_processRecord_logicApp_id')]"
+									}
+								},
+								"retryPolicy": {
+									"type": "none"
+								}
+							},
+							"runAfter": {},
+							"type": "Workflow"
+						}
+					},
+					"foreach": "@body('Parse_JSON')",
+					"runAfter": {},
+					"runtimeConfiguration": {
+						"concurrency": {
+							"repetitions": 20
+						}
+					},
+					"type": "Foreach"
+				},
+				"Response": {
+					"inputs": {
+						"body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <out:notificationsResponse>\n         <out:Ack>1</out:Ack>\n      </out:notificationsResponse>\n   </soapenv:Body>\n</soapenv:Envelope>",
+						"headers": {
+							"Content-Type": "application/xml"
+						},
+						"statusCode": 200
+					},
+					"kind": "Http",
+					"runAfter": {
+						"For_each": [
+							"Succeeded"
+						]
+					},
+					"type": "Response"
+				}
+			},
+			"runAfter": {
+				"Scope_-_Notifications": [
+					"Succeeded"
+				]
+			},
+			"trackedProperties": {
+				"apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+				"citizenName": "c00031",
+				"correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+				"interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'webSSO')}",
+				"interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+				"interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'non-defined')}",
+				"operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'webSSOInitiateOBMSync')}",
+				"parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+				"clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+				"clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+			},
+			"type": "Scope"
+		}
+	},
+	"contentVersion": "1.0.0.0",
+	"outputs": {},
+	"parameters": {},
+	"triggers": {
+		"manual": {
+			"inputs": {},
+			"kind": "Http",
+			"type": "Request"
+		}
+	}
+}

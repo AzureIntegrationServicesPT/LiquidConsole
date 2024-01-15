@@ -1,0 +1,233 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "actions": {
+    "Scope": {
+      "actions": {
+        "Check_Id": {
+          "actions": {
+            "Fetch_Contact_by_Id": {
+              "inputs": {
+                "body": {
+                  "query": "@{variables('Select')} @{variables('WhereClause')}"
+                },
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                  }
+                },
+                "method": "post",
+                "path": "/soql/executesoqlquery"
+              },
+              "runAfter": {
+                "Set_WhereClause_with_Id": ["Succeeded"]
+              },
+              "type": "ApiConnection"
+            },
+            "Fetch_by_Id_Failed": {
+              "inputs": {
+                "body": "@body('Fetch_Contact_by_Id')",
+                "statusCode": 400
+              },
+              "kind": "Http",
+              "runAfter": {
+                "Fetch_Contact_by_Id": ["Failed", "Skipped", "TimedOut"]
+              },
+              "type": "Response"
+            },
+            "Fetch_by_Id_Success": {
+              "inputs": {
+                "body": "@body('Fetch_Contact_by_Id')",
+                "statusCode": 200
+              },
+              "kind": "Http",
+              "runAfter": {
+                "Fetch_Contact_by_Id": ["Succeeded"]
+              },
+              "type": "Response"
+            },
+            "Set_WhereClause_with_Id": {
+              "inputs": {
+                "name": "WhereClause",
+                "value": "where Id ='@{triggerBody()?['ID']}' and S4SEmail_Duplicate__c  = false"
+              },
+              "runAfter": {},
+              "type": "SetVariable"
+            },
+            "Terminate_400_by_Id": {
+              "inputs": {
+                "runError": {
+                  "code": "400",
+                  "message": "@{body('Fetch_Contact_by_Id')}"
+                },
+                "runStatus": "Failed"
+              },
+              "runAfter": {
+                "Fetch_by_Id_Failed": ["Succeeded"]
+              },
+              "type": "Terminate"
+            }
+          },
+          "else": {
+            "actions": {
+              "Fetch_Contact_by_Email": {
+                "inputs": {
+                  "body": {
+                    "query": "@{variables('Select')} @{variables('WhereClause')}"
+                  },
+                  "host": {
+                    "connection": {
+                      "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                    }
+                  },
+                  "method": "post",
+                  "path": "/soql/executesoqlquery"
+                },
+                "runAfter": {
+                  "Set_WhereClause_with_Email": ["Succeeded"]
+                },
+                "type": "ApiConnection"
+              },
+              "Fetch_by_Email_Failed": {
+                "inputs": {
+                  "body": "@body('Fetch_Contact_by_Email')",
+                  "statusCode": 400
+                },
+                "kind": "Http",
+                "runAfter": {
+                  "Fetch_Contact_by_Email": ["TimedOut", "Failed", "Skipped"]
+                },
+                "type": "Response"
+              },
+              "Fetch_by_Email_Success": {
+                "inputs": {
+                  "body": "@body('Fetch_Contact_by_Email')",
+                  "statusCode": 200
+                },
+                "kind": "Http",
+                "runAfter": {
+                  "Fetch_Contact_by_Email": ["Succeeded"]
+                },
+                "type": "Response"
+              },
+              "Set_WhereClause_with_Email": {
+                "inputs": {
+                  "name": "WhereClause",
+                  "value": "where Email='@{triggerBody()?['EMAIL']}' and Email != '' and S4SEmail_Duplicate__c  = false"
+                },
+                "runAfter": {},
+                "type": "SetVariable"
+              },
+              "Terminate_400_by_Email": {
+                "inputs": {
+                  "runError": {
+                    "code": "400",
+                    "message": "@{body('Fetch_Contact_by_Email')}"
+                  },
+                  "runStatus": "Failed"
+                },
+                "runAfter": {
+                  "Fetch_by_Email_Failed": ["Succeeded"]
+                },
+                "type": "Terminate"
+              }
+            }
+          },
+          "expression": {
+            "and": [
+              {
+                "not": {
+                  "equals": ["@triggerBody()?['ID']", "@null"]
+                }
+              },
+              {
+                "not": {
+                  "equals": ["@length(triggerBody()?['ID'])", 0]
+                }
+              }
+            ]
+          },
+          "runAfter": {},
+          "type": "If"
+        }
+      },
+      "runAfter": {
+        "Select": ["Succeeded"],
+        "WhereClause": ["Succeeded"]
+      },
+      "trackedProperties": {
+        "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+        "citizenName": "c00031",
+        "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'Esker')}",
+        "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+        "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'non-defined')}",
+        "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'esker-GetContact')}",
+        "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+        "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+        "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+        },
+      "type": "Scope"
+    },
+    "Select": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "Select",
+            "type": "string",
+            "value": "Select Name,Id From Contact "
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "Terminate": {
+      "inputs": {
+        "runStatus": "Succeeded"
+      },
+      "runAfter": {
+        "Scope": ["Succeeded"]
+      },
+      "type": "Terminate"
+    },
+    "WhereClause": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "WhereClause",
+            "type": "string"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    }
+  },
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {
+    "$connections": {
+      "defaultValue": {},
+      "type": "Object"
+    }
+  },
+  "triggers": {
+    "manual": {
+      "inputs": {
+        "schema": {
+          "properties": {
+            "EMAIL": {
+              "type": "string"
+            },
+            "ID": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "kind": "Http",
+      "type": "Request"
+    }
+  }
+}

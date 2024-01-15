@@ -1,0 +1,704 @@
+{
+    
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "actions": {
+    "Condition_check_for_Opportunity": {
+        "actions": {
+            "Condition_check_for_S4SBooking_Line_Item": {
+                "actions": {
+                    "Set_variable_OpportunityId_for_Booking_Line_Item": {
+                        "inputs": {
+                            "name": "opportunityId",
+                            "value": "@{trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"notifications\"]/*[local-name()=\"Notification\"]/*[local-name()=\"sObject\"]/*[local-name()=\"S4SOpportunity__c\"])'))}"
+                        },
+                        "runAfter": {},
+                        "trackedProperties": {
+                            "sfObject": "opportunity",
+                            "sfObjectId": "@{coalesce(trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"notifications\"]/*[local-name()=\"Notification\"]/*[local-name()=\"sObject\"]/*[local-name()=\"S4SOpportunity__c\"])')),'not-defined')}"
+                        },
+                        "type": "SetVariable"
+                    }
+                },
+                "else": {
+                    "actions": {
+                        "Set_variable_OpportunityId_for_Opportunity": {
+                            "inputs": {
+                                "name": "opportunityId",
+                                "value": "@{trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"notifications\"]/*[local-name()=\"Notification\"]/*[local-name()=\"sObject\"]/*[local-name()=\"Id\"])'))}"
+                            },
+                            "runAfter": {},
+                            "trackedProperties": {
+                                "sfObject": "opportunity",
+                                "sfObjectId": "@{coalesce(trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"notifications\"]/*[local-name()=\"Notification\"]/*[local-name()=\"sObject\"]/*[local-name()=\"Id\"])')),'not-defined')}"
+                            },
+                            "type": "SetVariable"
+                        }
+                    }
+                },
+                "expression": {
+                    "and": [
+                        {
+                            "not": {
+                                "equals": [
+                                    "@trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"notifications\"]/*[local-name()=\"Notification\"]/*[local-name()=\"sObject\"]/*[local-name()=\"S4SOpportunity__c\"])'))",
+                                    ""
+                                ]
+                            }
+                        },
+                        {
+                            "not": {
+                                "equals": [
+                                    "@trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"notifications\"]/*[local-name()=\"Notification\"]/*[local-name()=\"sObject\"]/*[local-name()=\"S4SOpportunity__c\"])'))",
+                                    "@null"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "If"
+            }
+        },
+        "else": {
+            "actions": {
+                "Set_variable_OpportunityId": {
+                    "inputs": {
+                        "name": "opportunityId",
+                        "value": "@{trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"notifications\"]/*[local-name()=\"Notification\"]/*[local-name()=\"sObject\"]/*[local-name()=\"Id\"])'))}"
+                    },
+                    "runAfter": {},
+                    "trackedProperties": {
+                        "sfObject": "opportunity",
+                        "sfObjectId": "@{coalesce(trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"notifications\"]/*[local-name()=\"Notification\"]/*[local-name()=\"sObject\"]/*[local-name()=\"Id\"])')),'not-defined')}"
+                    },
+                    "type": "SetVariable"
+                }
+            }
+        },
+        "expression": {
+            "and": [
+                {
+                    "not": {
+                        "equals": [
+                            "@trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"notifications\"]/*[local-name()=\"Notification\"]/*[local-name()=\"sObject\"]/*[local-name()=\"Id\"])'))",
+                            ""
+                        ]
+                    }
+                },
+                {
+                    "not": {
+                        "equals": [
+                            "@trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"notifications\"]/*[local-name()=\"Notification\"]/*[local-name()=\"sObject\"]/*[local-name()=\"Id\"])'))",
+                            "@null"
+                        ]
+                    }
+                }
+            ]
+        },
+        "runAfter": {
+            "Initialize_variable_InitialTactonToken": [
+                "Succeeded"
+            ],
+            "Initialize_variable_RefreshTactonToken": [
+                "Succeeded"
+            ],
+            "Initialize_variable_configData": [
+                "Succeeded"
+            ],
+            "Initialize_variable_expires_in": [
+                "Succeeded"
+            ],
+            "Initialize_variable_opportunityId": [
+                "Succeeded"
+            ],
+            "Set_Content-Type_for_Request_Token": [
+                "Succeeded"
+            ]
+        },
+        "type": "If"
+    },
+    "GetConfiguration": {
+        "inputs": {
+            "body": {
+                "key": "Tacton-config"
+            },
+            "host": {
+                "triggerName": "manual",
+                "workflow": {
+                    "id": "${getConfiguration_logicAppId}"
+                }
+            },
+            "retryPolicy": {
+                "type": "none"
+            }
+        },
+        "runAfter": {},
+        "type": "Workflow"
+    },
+    "Initialize_variable_InitialTactonToken": {
+        "inputs": {
+            "variables": [
+                {
+                    "name": "InitialTactonToken",
+                    "type": "string"
+                }
+            ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+    },
+    "Initialize_variable_RefreshTactonToken": {
+        "inputs": {
+            "variables": [
+                {
+                    "name": "RefreshTactonToken",
+                    "type": "string"
+                }
+            ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+    },
+    "Initialize_variable_configData": {
+        "inputs": {
+            "variables": [
+                {
+                    "name": "configData",
+                    "type": "string",
+                    "value": "@{body('GetConfiguration')}"
+                }
+            ]
+        },
+        "runAfter": {
+            "GetConfiguration": [
+                "Succeeded"
+            ]
+        },
+        "type": "InitializeVariable"
+    },
+    "Initialize_variable_expires_in": {
+        "inputs": {
+            "variables": [
+                {
+                    "name": "expires_in",
+                    "type": "integer"
+                }
+            ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+    },
+    "Initialize_variable_opportunityId": {
+        "inputs": {
+            "variables": [
+                {
+                    "name": "opportunityId",
+                    "type": "string"
+                }
+            ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+    },
+    "Scope_-_Try": {
+        "actions": {
+            "Scope_-_Tacton_Opportunity_OBM": {
+                "actions": {
+                    "Condition_check_for_Token_in_KeyVault": {
+                        "actions": {
+                            "Add_ExpiryTime_in_KeyVault": {
+                                "inputs": "@setProperty(body('Invoke_RefreshTokenTacton_API'),'expires_date','')",
+                                "runAfter": {
+                                    "Invoke_RefreshTokenTacton_API": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Compose"
+                            },
+                            "Invoke_RefreshTokenTacton_API": {
+                                "inputs": {
+                                    "body": "@concat('client_id=',encodeUriComponent(json(body('GetConfiguration'))?['REFRESHTOKEN']?['ClientID']),'&client_secret=',encodeUriComponent(json(body('GetConfiguration'))?['REFRESHTOKEN']?['ClientSecret']),'&grant_type=',encodeUriComponent(json(body('GetConfiguration'))?['REFRESHTOKEN']?['grant_type']))",
+                                    "headers": {
+                                        "Content-Type": "@variables('Content-Type for Request Token')"
+                                    },
+                                    "method": "POST",
+                                    "uri": "@{json(string(variables('configData')))?['REFRESHTOKEN']?['url']}"
+                                },
+                                "runAfter": {},
+                                "type": "Http"
+                            },
+                            "Set_variable_TactonToken": {
+                                "inputs": {
+                                    "name": "InitialTactonToken",
+                                    "value": "@{body('Invoke_RefreshTokenTacton_API')?['access_token']}"
+                                },
+                                "runAfter": {
+                                    "Invoke_RefreshTokenTacton_API": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "SetVariable"
+                            },
+                            "Update_Token_in_Key_Vault": {
+                                "inputs": {
+                                    "authentication": {
+                                        "audience": "https://vault.azure.net",
+                                        "type": "ManagedServiceIdentity"
+                                    },
+                                    "body": {
+                                        "body": "@{outputs('Add_ExpiryTime_in_KeyVault')}"
+                                    },
+                                    "headers": {
+                                        "key": "Tacton-InitialTokenValue"
+                                    },
+                                    "host": {
+                                        "triggerName": "manual",
+                                        "workflow": {
+                                            "id": "${setConfiguration_logicAppId}"
+                                        }
+                                    },
+                                    "method": "PUT",
+                                    "queries": {
+                                        "api-version": "2016-10-01"
+                                    },
+                                    "uri": "[parameters('Tacton-InitialTokenValue')]"
+                                },
+                                "runAfter": {
+                                    "Add_ExpiryTime_in_KeyVault": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Workflow"
+                            }
+                        },
+                        "else": {
+                            "actions": {
+                                "Condition_to_check_Expiry_Time": {
+                                    "actions": {
+                                        "Compose_Next_Token_Generation_Time": {
+                                            "inputs": "@addSeconds(utcNow('yyyy-MM-dd hh:mm:ss'), sub(variables('expires_in'),600),'yyyy-MM-dd hh:mm:ss')",
+                                            "runAfter": {},
+                                            "type": "Compose"
+                                        },
+                                        "Compose_expiry_date": {
+                                            "inputs": "@setProperty(body('Invoke_TactonToken_API'),'expires_date',outputs('Compose_Next_Token_Generation_Time'))",
+                                            "runAfter": {
+                                                "Invoke_TactonToken_API": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "Compose"
+                                        },
+                                        "Invoke_TactonToken_API": {
+                                            "inputs": {
+                                                "body": "@concat('client_id=',encodeUriComponent(json(body('GetConfiguration'))?['REFRESHTOKEN']?['ClientID']),'&client_secret=',encodeUriComponent(json(body('GetConfiguration'))?['REFRESHTOKEN']?['ClientSecret']),'&grant_type=',encodeUriComponent(json(body('GetConfiguration'))?['REFRESHTOKEN']?['grant_type']))",
+                                                "headers": {
+                                                    "Content-Type": "@variables('Content-Type for Request Token')"
+                                                },
+                                                "method": "POST",
+                                                "uri": "@{json(string(variables('configData')))?['REFRESHTOKEN']?['url']}"
+                                            },
+                                            "runAfter": {
+                                                "Compose_Next_Token_Generation_Time": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "Http"
+                                        },
+                                        "Set_variable_Token": {
+                                            "inputs": {
+                                                "name": "InitialTactonToken",
+                                                "value": "@{body('Invoke_TactonToken_API')?['access_token']}"
+                                            },
+                                            "runAfter": {
+                                                "Invoke_TactonToken_API": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "SetVariable"
+                                        },
+                                        "Updated_Token_in_Key_Vault": {
+                                            "inputs": {
+                                                "authentication": {
+                                                    "audience": "https://vault.azure.net",
+                                                    "type": "ManagedServiceIdentity"
+                                                },
+                                                "body": {
+                                                    "body": "@{outputs('Compose_expiry_date')}"
+                                                },
+                                                "headers": {
+                                                    "key": "Tacton-InitialTokenValue"
+                                                },
+                                                "host": {
+                                                    "triggerName": "manual",
+                                                    "workflow": {
+                                                        "id": "${setConfiguration_logicAppId}"
+                                                    }
+                                                },
+                                                "method": "PUT",
+                                                "queries": {
+                                                    "api-version": "2016-10-01"
+                                                },
+                                                "uri": "[parameters('Tacton-InitialTokenValue')]"
+                                            },
+                                            "runAfter": {
+                                                "Compose_expiry_date": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "Workflow"
+                                        }
+                                    },
+                                    "expression": {
+                                        "and": [
+                                            {
+                                                "greaterOrEquals": [
+                                                    "@utcNow('yyyy-MM-dd hh:mm:ss')",
+                                                    "@string(json(body('Get_InitialTokenValue_from_Key_Vault'))?['expires_date'])"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "runAfter": {
+                                        "Set_variable_expires_in": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "If"
+                                },
+                                "Set_variable_InitialTactonToken": {
+                                    "inputs": {
+                                        "name": "InitialTactonToken",
+                                        "value": "@{json(body('Get_InitialTokenValue_from_Key_Vault'))?['access_token']}"
+                                    },
+                                    "runAfter": {},
+                                    "type": "SetVariable"
+                                },
+                                "Set_variable_expires_in": {
+                                    "inputs": {
+                                        "name": "expires_in",
+                                        "value": "@int(json(string(body('Get_InitialTokenValue_from_Key_Vault')))?['expires_in'])"
+                                    },
+                                    "runAfter": {
+                                        "Set_variable_InitialTactonToken": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "SetVariable"
+                                }
+                            }
+                        },
+                        "expression": {
+                            "or": [
+                                {
+                                    "equals": [
+                                        "@body('Get_InitialTokenValue_from_Key_Vault')",
+                                        "@null"
+                                    ]
+                                },
+                                {
+                                    "equals": [
+                                        "@body('Get_InitialTokenValue_from_Key_Vault')",
+                                        "@string('')"
+                                    ]
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Get_InitialTokenValue_from_Key_Vault": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Condition_on_Tacton_OBM_API_Response": {
+                        "actions": {
+                            "Condition_check_on_Tacton_OBM_Response": {
+                                "actions": {
+                                    "Success_Response": {
+                                        "inputs": {
+                                            "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <out:notificationsResponse>\n         <out:Ack>true</out:Ack>\n      </out:notificationsResponse>\n   </soapenv:Body>\n</soapenv:Envelope>",
+                                            "headers": {
+                                                "Content-Type": "text/xml"
+                                            },
+                                            "statusCode": "@outputs('Invoke_Tacton_OBM_API_with_RefreshToken')['statusCode']"
+                                        },
+                                        "kind": "Http",
+                                        "runAfter": {},
+                                        "type": "Response"
+                                    }
+                                },
+                                "else": {
+                                    "actions": {
+                                        "Failed_Response": {
+                                            "inputs": {
+                                                "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <out:notificationsResponse>\n         <out:Ack>false</out:Ack>\n      </out:notificationsResponse>\n   </soapenv:Body>\n</soapenv:Envelope>",
+                                                "headers": {
+                                                    "Content-Type": "text/xml"
+                                                },
+                                                "statusCode": "@outputs('Invoke_Tacton_OBM_API_with_RefreshToken')['statusCode']"
+                                            },
+                                            "kind": "Http",
+                                            "runAfter": {},
+                                            "type": "Response"
+                                        },
+                                        "Terminate-Failed_Response": {
+                                            "inputs": {
+                                                "runStatus": "Failed"
+                                            },
+                                            "runAfter": {
+                                                "Failed_Response": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "Terminate"
+                                        }
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@body('Invoke_Tacton_OBM_API_with_RefreshToken')",
+                                                    ""
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "not": {
+                                                "equals": [
+                                                    "@body('Invoke_Tacton_OBM_API_with_RefreshToken')",
+                                                    "@null"
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "equals": [
+                                                "@body('Invoke_Tacton_OBM_API_with_RefreshToken')?['Status']",
+                                                "202 ACCEPTED"
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "runAfter": {
+                                    "Invoke_Tacton_OBM_API_with_RefreshToken": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "If"
+                            },
+                            "Invoke_Refresh_Token_API": {
+                                "inputs": {
+                                    "body": "@concat('client_id=',encodeUriComponent(json(body('GetConfiguration'))?['REFRESHTOKEN']?['ClientID']),'&client_secret=',encodeUriComponent(json(body('GetConfiguration'))?['REFRESHTOKEN']?['ClientSecret']),'&grant_type=',encodeUriComponent(json(body('GetConfiguration'))?['REFRESHTOKEN']?['grant_type']))",
+                                    "headers": {
+                                        "Content-Type": "@variables('Content-Type for Request Token')"
+                                    },
+                                    "method": "POST",
+                                    "uri": "@{json(string(variables('configData')))['REFRESHTOKEN']?['url']}"
+                                },
+                                "runAfter": {},
+                                "type": "Http"
+                            },
+                            "Invoke_Tacton_OBM_API_with_RefreshToken": {
+                                "inputs": {
+                                    "body": {
+                                        "Input": {
+                                            "OpportunityId": "@{variables('opportunityId')}"
+                                        }
+                                    },
+                                    "headers": {
+                                        "Content-Type": "application/json",
+                                        "@{json(string(variables('configData')))?['TACTON']?['auth']}": "@{json(string(variables('configData')))?['TACTON']?['Bearer']}@{body('Invoke_Refresh_Token_API')?['access_token']}"
+                                    },
+                                    "method": "POST",
+                                    "retryPolicy": {
+                                        "type": "none"
+                                    },
+                                    "uri": "@{json(string(variables('configData')))?['TACTON']?['url']}"
+                                },
+                                "runAfter": {
+                                    "Invoke_Refresh_Token_API": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Http"
+                            }
+                        },
+                        "else": {
+                            "actions": {
+                                "Success_Response_from_OBM_with_Initial_Token": {
+                                    "inputs": {
+                                        "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <out:notificationsResponse>\n         <out:Ack>true</out:Ack>\n      </out:notificationsResponse>\n   </soapenv:Body>\n</soapenv:Envelope>",
+                                        "headers": {
+                                            "Content-Type": "text/xml"
+                                        },
+                                        "statusCode": "@outputs('Invoke_Tacton_OBM_API')?['statusCode']"
+                                    },
+                                    "kind": "Http",
+                                    "runAfter": {},
+                                    "type": "Response"
+                                }
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@body('Invoke_Tacton_OBM_API')",
+                                            ""
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@body('Invoke_Tacton_OBM_API')",
+                                            "@null"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "equals": [
+                                        "@body('Invoke_Tacton_OBM_API')?['message']",
+                                        "Unauthorized"
+                                    ]
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Invoke_Tacton_OBM_API": [
+                                "Succeeded",
+                                "Skipped",
+                                "Failed"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Get_InitialTokenValue_from_Key_Vault": {
+                        "inputs": {
+                            "body": {
+                                "key": "Tacton-InitialTokenValue"
+                            },
+                            "host": {
+                                "triggerName": "manual",
+                                "workflow": {
+                                    "id": "${getConfiguration_logicAppId}"
+                                }
+                            }
+                        },
+                        "runAfter": {},
+                        "type": "Workflow"
+                    },
+                    "Invoke_Tacton_OBM_API": {
+                        "inputs": {
+                            "body": {
+                                "Input": {
+                                    "OpportunityId": "@{variables('opportunityId')}"
+                                }
+                            },
+                            "headers": {
+                                "Content-Type": "application/json",
+                                "@{json(string(variables('configData')))?['TACTON']?['auth']}": "@{json(string(variables('configData')))?['TACTON']?['Bearer']}@{variables('InitialTactonToken')}"
+                            },
+                            "method": "POST",
+                            "retryPolicy": {
+                                "type": "none"
+                            },
+                            "uri": "@{json(string(variables('configData')))?['TACTON']?['url']}"
+                        },
+                        "runAfter": {
+                            "Condition_check_for_Token_in_KeyVault": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Http"
+                    }
+                },
+                "runAfter": {},
+                "type": "Scope"
+            }
+        },
+        "runAfter": {
+            "Condition_check_for_Opportunity": [
+                "Succeeded"
+            ]
+        },
+        "trackedProperties": {
+            "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+            "citizenName": "c00031",
+            "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+            "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'Tacton')}",
+            "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+            "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+            "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'Tacton_opportunity')}",
+            "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+            "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+            "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+        },
+        "type": "Scope"
+    },
+    "Scope_Catch": {
+        "actions": {
+            "Error_Response": {
+                "inputs": {
+                    "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <out:notificationsResponse>\n         <out:Ack>false</out:Ack>\n      </out:notificationsResponse>\n   </soapenv:Body>\n</soapenv:Envelope>",
+                    "headers": {
+                        "Content-Type": "text/xml"
+                    },
+                    "statusCode": 500
+                },
+                "kind": "http",
+                "runAfter": {},
+                "type": "Response"
+            },
+            "Terminate_Flow": {
+                "inputs": {
+                    "runStatus": "Failed"
+                },
+                "runAfter": {
+                    "Error_Response": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Terminate"
+            }
+        },
+        "runAfter": {
+            "Scope_-_Try": [
+                "Failed",
+                "Skipped",
+                "TimedOut"
+            ]
+        },
+        "type": "Scope"
+    },
+    "Set_Content-Type_for_Request_Token": {
+        "inputs": {
+            "variables": [
+                {
+                    "name": "Content-Type for Request Token",
+                    "type": "string",
+                    "value": "application/x-www-form-urlencoded"
+                }
+            ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+    }
+  },
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {},
+  "triggers": {
+      "manual": {
+          "inputs": {
+              "method": "POST",
+              "schema": {}
+          },
+          "kind": "Http",
+          "type": "Request"
+      }
+  }
+}

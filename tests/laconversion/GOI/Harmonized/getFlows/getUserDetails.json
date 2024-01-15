@@ -1,0 +1,263 @@
+{
+	"$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+	"actions": {
+        "Catch_Scope": {
+            "actions": {
+                "Compose_Error_Message": {
+                    "inputs": {
+                        "input": "@createArray(result('Condition_to_Check_User_Query_Size'),result('Try_Scope'))"
+                    },
+                    "runAfter": {},
+                    "type": "Compose"
+                },
+                "Error_Response": {
+                    "inputs": {
+                        "body": {
+                            "searchUserResponse": {
+                                "message": "Unable to get the User details for the request combination at current time; If you are seeing this error message from long please reach out to the AMC team with the Workflow Run ID.",
+                                "success": "@false",
+                                "workflowRunId": "@workflow()?['run']?['name']"
+                            }
+                        },
+                        "statusCode": 400
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "Set_Error_Message": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
+                },
+                "Set_Error_Message": {
+                    "inputs": {
+                        "authentication": {
+                            "type": "Raw",
+                            "value": "[parameters('functionAppKey')]"
+                        },
+                        "body": "@outputs('Compose_Error_Message')",
+                        "function": {
+                            "id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+                        },
+                        "headers": {
+                            "Accept": "application/json",
+                            "Content-Type": "application/json",
+                            "Filename": "${liquid_setError}"
+                        },
+                        "method": "POST",
+                        "retryPolicy": {
+                            "type": "none"
+                        }
+                    },
+                    "runAfter": {
+                        "Compose_Error_Message": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Function"
+                }
+            },
+            "runAfter": {
+                "Try_Scope": [
+                    "Failed",
+                    "TimedOut"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Try_Scope": {
+            "actions": {
+                "Condition_to_Check_User_Query_Size": {
+                    "actions": {
+                        "Set_Response_Result": {
+                            "inputs": {
+                                "authentication": {
+                                    "type": "Raw",
+                                    "value": "[parameters('functionAppKey')]"
+                                },
+                                "body": {
+                                    "excludeNulls": "@triggerBody()?['searchUser']?['excludeNulls']",
+                                    "input": "@body('HTTP_Query_User')"
+                                },
+                                "function": {
+                                    "id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+                                },
+                                "headers": {
+                                    "Accept": "application/json",
+                                    "Content-Type": "application/json",
+                                    "Filename": "${liquid_responseUserDetails}"
+                                },
+                                "method": "POST",
+                                "retryPolicy": {
+                                    "type": "none"
+                                }
+                            },
+                            "runAfter": {},
+                            "type": "Function"
+                        },
+                        "Success_Response": {
+                            "inputs": {
+                                "body": {
+                                    "searchUserResponse": {
+                                        "User": "@body('Set_Response_Result')",
+                                        "success": "@true",
+                                        "workflowRunId": "@workflow()?['run']?['name']"
+                                    }
+                                },
+                                "statusCode": 200
+                            },
+                            "kind": "Http",
+                            "runAfter": {
+                                "Set_Response_Result": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Response"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "No_User_Found_Response": {
+                                "inputs": {
+                                    "body": {
+                                        "searchUserResponse": {
+                                            "message": "No user found with the information provided!",
+                                            "success": "@false",
+                                            "workflowRunId": "@workflow()?['run']?['name']"
+                                        }
+                                    },
+                                    "statusCode": 200
+                                },
+                                "kind": "Http",
+                                "runAfter": {},
+                                "type": "Response"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "greater": [
+                                    "@length(body('HTTP_Query_User')?['records'])",
+                                    "@int(0)"
+                                ]
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "HTTP_Query_User": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "HTTP_Get_SF_Token": {
+                    "inputs": {
+                        "headers": {
+                            "Ocp-Apim-Subscription-Key": "${apimKey}"
+                        },
+                        "method": "POST",
+                        "retryPolicy": {
+                            "type": "none"
+                        },
+                        "uri": "${baseUrl_apim_ise}/c00031/token/oAuth/nonsfs"
+                    },
+                    "runAfter": {
+                        "Query_User_Details": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Http"
+                },
+                "HTTP_Query_User": {
+                    "inputs": {
+                        "headers": {
+                            "Authorization": "Bearer @{body('HTTP_GET_SF_TOKEN')}"
+                        },
+                        "method": "GET",
+                        "queries": {
+                            "q": "SELECT Id,IsActive,LastName,FirstName,Email,Country,MobilePhone,Phone,Department,S4SGID_Technical__c FROM User @{body('Query_User_Details')?['clause']} LIMIT 100"
+                        },
+                        "retryPolicy": {
+                            "type": "none"
+                        },
+                        "uri": "${instance_NonSFS_URL}/query"
+                    },
+                    "runAfter": {
+                        "HTTP_Get_SF_Token": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Http"
+                },
+                "Query_User_Details": {
+                    "inputs": {
+                        "authentication": {
+                            "type": "Raw",
+                            "value": "[parameters('functionAppKey')]"
+                        },
+                        "body": "@triggerBody()",
+                        "function": {
+                            "id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+                        },
+                        "headers": {
+                            "Accept": "application/json",
+                            "Content-Type": "application/json",
+                            "Filename": "${liquid_UserSearchQuery}"
+                        },
+                        "method": "POST",
+                        "retryPolicy": {
+                            "type": "none"
+                        }
+                    },
+                    "runAfter": {},
+                    "type": "Function"
+                }
+            },
+            "runAfter": {},
+            "type": "Scope"
+        }
+    },
+	"contentVersion": "1.0.0.0",
+	"outputs": {},
+	"parameters": {
+        "$connections": {
+			"defaultValue": {},
+			"type": "Object"
+		}
+    },
+	"triggers": {
+        "manual": {
+            "inputs": {
+                "schema": {
+                    "searchUser": {
+                        "User": {
+                            "Department": {
+                                "type": "string"
+                            },
+                            "FirstName": {
+                                "type": "string"
+                            },
+                            "Id": {
+                                "type": "string"
+                            },
+                            "LastName": {
+                                "type": "string"
+                            },
+                            "S4SGID_Technical__c": {
+                                "type": "string"
+                            }
+                        },
+                        "excludeNulls": {
+                            "type": "boolean"
+                        },
+                        "type": "object"
+                    }
+                }
+            },
+            "kind": "Http",
+            "operationOptions": "EnableSchemaValidation",
+            "type": "Request"
+        }
+    }
+}

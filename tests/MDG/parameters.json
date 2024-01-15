@@ -1,0 +1,10 @@
+{
+  "Select fields": {"value": "@appsetting('Select fields')", "type": "string"},
+  "Select fields
+fetchAccountWhereClausefromMDStatus
+fetchAccountWhereClausefromRecordType": {"value": "@appsetting('Select fields
+fetchAccountWhereClausefromMDStatus
+fetchAccountWhereClausefromRecordType')", "type": "string"},
+  "fetchRecordTypesWhereClause": {"value": "@appsetting('fetchRecordTypesWhereClause')", "type": "string"},
+  "Select Params": {"value": "@appsetting('Select Params')", "type": "string"},
+}

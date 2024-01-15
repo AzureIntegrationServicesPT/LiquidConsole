@@ -1,0 +1,137 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+    "GetConfiguration": {
+        "inputs": {
+            "body": {
+                "key": "sirene-access-key"
+            },
+            "host": {
+                "triggerName": "manual",
+                "workflow": {
+                    "id": "${getConfiguration_logicAppId}"
+                }
+            },
+            "retryPolicy": {
+                "type": "none"
+            }
+        },
+        "runAfter": {},
+        "type": "Workflow"
+    },
+    "Scope-Catch": {
+        "actions": {
+            "Send_Error_Response": {
+                "inputs": {
+                    "body": "@if(equals(outputs('Call-Sirene')['statusCode'],404),'{\"response\": {\"SIE_SF4S_SireneV3_output\": [{}]}}',if(equals(outputs('Call-Sirene')['statusCode'],401),'Authorization Failure','Internal server error'))\r\n",
+                    "statusCode": "@if(equals(int(outputs('Call-Sirene')['statusCode']),404),'200',outputs('Call-Sirene')['statusCode'])"
+                },
+                "kind": "Http",
+                "runAfter": {},
+                "type": "Response"
+            },
+            "Terminate": {
+                "inputs": {
+                    "runError": {
+                        "code": "400"
+                    },
+                    "runStatus": "Failed"
+                },
+                "runAfter": {
+                    "Send_Error_Response": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Terminate"
+            }
+        },
+        "runAfter": {
+            "Scope-Try": [
+                "Failed",
+                "Skipped",
+                "TimedOut"
+            ]
+        },
+        "type": "Scope"
+    },
+    "Scope-Try": {
+        "actions": {
+            "Call-Sirene": {
+                "inputs": {
+                    "headers": {
+                        "Authorization": "Bearer @{body('GetConfiguration')}"
+                    },
+                    "method": "GET",
+                    "uri": "https://api.insee.fr/entreprises/sirene/V3/siret?q=denominationUniteLegale:\"*@{triggerOutputs()['queries']?['accountName']}*\" AND codePostalEtablissement:@{triggerOutputs()['queries']?['postalCode']}*"
+                },
+                "runAfter": {},
+                "type": "Http"
+            },
+            "Execute_SireneFormatOutput_logic_app": {
+                "inputs": {
+                    "body": "@body('Call-Sirene')",
+                    "host": {
+                        "triggerName": "manual",
+                        "workflow": {
+                            "id": "[parameters('SireneFormatOutput_logicApp_id')]"
+                        }
+                    }
+                },
+                "runAfter": {
+                    "Call-Sirene": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Workflow"
+            },
+            "Response": {
+                "inputs": {
+                    "body": "@body('Execute_SireneFormatOutput_logic_app')",
+                    "headers": {
+                        "Content-Type": "application/json"
+                    },
+                    "statusCode": 200
+                },
+                "kind": "Http",
+                "runAfter": {
+                    "Execute_SireneFormatOutput_logic_app": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Response"
+            }
+        },
+        "runAfter": {
+            "GetConfiguration": [
+                "Succeeded"
+            ]
+        },
+        "trackedProperties": {
+            "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+            "citizenName": "c00031",
+            "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+            "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'Sirene')}",
+            "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+            "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'non-defined')}",
+            "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'sireneSearchQueryParams')}",
+            "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+            "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+            "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+            },
+        "type": "Scope"
+    }
+},
+"contentVersion": "1.0.0.0",
+"outputs": {},
+"parameters": {},
+"triggers": {
+    "manual": {
+        "inputs": {
+            "method": "POST",
+            "relativePath": "q/{q}"
+        },
+        "kind": "Http",
+        "type": "Request"
+    }
+}
+}

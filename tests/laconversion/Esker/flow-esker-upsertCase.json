@@ -1,0 +1,393 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "actions": {
+    "Check_responseCode": {
+      "actions": {
+        "Terminate_200": {
+          "inputs": {
+            "runStatus": "Succeeded"
+          },
+          "runAfter": {},
+          "type": "Terminate"
+        }
+      },
+      "else": {
+        "actions": {
+          "Terminate_400": {
+            "inputs": {
+              "runError": {
+                "code": "400",
+                "message": "@variables('responseBody')"
+              },
+              "runStatus": "Failed"
+            },
+            "runAfter": {},
+            "type": "Terminate"
+          }
+        }
+      },
+      "expression": {
+        "and": [
+          {
+            "equals": ["@variables('responseCode')", 200]
+          }
+        ]
+      },
+      "runAfter": {
+        "Response": ["Succeeded"]
+      },
+      "type": "If"
+    },
+    "Response": {
+      "inputs": {
+        "body": "@variables('responseBody')",
+        "statusCode": "@variables('responseCode')"
+      },
+      "kind": "Http",
+      "runAfter": {
+        "Scope": ["Succeeded", "Failed", "Skipped", "TimedOut"]
+      },
+      "type": "Response"
+    },
+    "Scope": {
+      "actions": {
+        "Condition_Id": {
+          "actions": {
+            "Create_Case": {
+              "inputs": {
+                "body": {
+                  "AccountId": "@triggerBody()?['AccountId']",
+                  "BusinessHoursId": "@triggerBody()?['BusinessHoursId']",
+                  "ContactId": "@triggerBody()?['ContactId']",
+                  "OwnerId": "@triggerBody()?['OwnerId']",
+                  "ProductId": "@triggerBody()?['ProductId']",
+                  "RecordTypeId": "@triggerBody()?['RecordTypeId']",
+                  "S4SExternal_Source__c": "@triggerBody()?['ExternalSource']",
+                  "S4SFinal_Resolution__c": "@triggerBody()?['S4SFinal_Resolution__c']",
+                  "S4SOriginalPO__c": "@triggerBody()?['S4SORIGINALPO__C']",
+                  "S4SProfit_Center__c": "@triggerBody()?['S4SProfit_Center__c']",
+                  "S4SSAPSalesOrder__c": "@triggerBody()?['SalesOrder']",
+                  "S4SSiemens_Territory_Structure__c": "@triggerBody()?['TerritoryStructureId']",
+                  "S4SSubType__c": "@triggerBody()?['S4SSUBTYPE__C']",
+                  "Status": "@triggerBody()?['Status']",
+                  "Subject": "@triggerBody()?['SUBJECT']",
+                  "Type": "@triggerBody()?['TYPE']"
+                },
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                  }
+                },
+                "method": "post",
+                "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Case'))}/items"
+              },
+              "runAfter": {},
+              "type": "ApiConnection"
+            },
+            "Set_responseBody_success_Create": {
+              "inputs": {
+                "name": "responseBody",
+                "value": "{\n  \"Case\": {\n    \"CaseId\": '@{body('Create_Case')?['Id']}',\n    \"Created\": \"true\",\n    \"Message\": \"\",\n    \"S4SCASE_NUMBER__C\": '@{body('Create_Case')?['CaseNumber']}',\n    \"Success\": \"true\"\n  }\n}"
+              },
+              "runAfter": {
+                "Create_Case": ["Succeeded"]
+              },
+              "type": "SetVariable"
+            },
+            "Set_responseCode_fail_Create": {
+              "inputs": {
+                "name": "responseCode",
+                "value": 400
+              },
+              "runAfter": {
+                "Set_responsebody_fail_Create": ["Succeeded"]
+              },
+              "type": "SetVariable"
+            },
+            "Set_responseCode_success_Create": {
+              "inputs": {
+                "name": "responseCode",
+                "value": 200
+              },
+              "runAfter": {
+                "Set_responseBody_success_Create": ["Succeeded"]
+              },
+              "type": "SetVariable"
+            },
+            "Set_responsebody_fail_Create": {
+              "inputs": {
+                "name": "responseBody",
+                "value": "{\n  \"Case\": {\n    \"CaseId\": \" @{triggerBody()?['Id']}\",\n    \"Created\": \"false\",\n    \"Message\": \"@{body('Create_Case')?['message']}\",\n    \"S4SCASE_NUMBER__C\": \"@{triggerBody()?['CaseNumber']}\",\n    \"Success\": \"false\"\n  }\n}"
+              },
+              "runAfter": {
+                "Create_Case": ["Failed", "Skipped", "TimedOut"]
+              },
+              "type": "SetVariable"
+            }
+          },
+          "else": {
+            "actions": {
+              "Fetch_existing_Case_by_Id": {
+                "inputs": {
+                  "body": {
+                    "query": "@{variables('Select')} where id = '@{triggerBody()?['Id']}'"
+                  },
+                  "host": {
+                    "connection": {
+                      "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                    }
+                  },
+                  "method": "post",
+                  "path": "/soql/executesoqlquery"
+                },
+                "runAfter": {},
+                "type": "ApiConnection"
+              },
+              "Set_responseBody_fail_Fetch_Case": {
+                "inputs": {
+                  "name": "responseBody",
+                  "value": "{\n  \"Case\": {\n    \"CaseId\": \" @{triggerBody()?['Id']}\",\n    \"Created\": \"false\",\n    \"Message\": \"@{body('Fetch_existing_Case_by_Id')?['message']}\",\n    \"S4SCASE_NUMBER__C\": \"@{triggerBody()?['CaseNumber']}\",\n    \"Success\": \"false\"\n  }\n}"
+                },
+                "runAfter": {
+                  "Fetch_existing_Case_by_Id": ["Failed", "Skipped", "TimedOut"]
+                },
+                "type": "SetVariable"
+              },
+              "Set_responseBody_fail_Update": {
+                "inputs": {
+                  "name": "responseBody",
+                  "value": "{\n  \"Case\": {\n    \"CaseId\": \" @{triggerBody()?['Id']}\",\n    \"Created\": \"false\",\n    \"Message\": \"@{body('Update_Case')?['message']}\",\n    \"S4SCASE_NUMBER__C\": \"@{triggerBody()?['CaseNumber']}\",\n    \"Success\": \"false\"\n  }\n}"
+                },
+                "runAfter": {
+                  "Update_Case": ["Failed", "TimedOut"]
+                },
+                "type": "SetVariable"
+              },
+              "Set_responseBody_success_Update": {
+                "inputs": {
+                  "name": "responseBody",
+                  "value": "{\n  \"Case\": {\n    \"CaseId\": \" @{body('Update_Case')?['Id']}\",\n    \"Created\": \"false\",\n    \"Message\": \"\",\n    \"S4SCASE_NUMBER__C\": \"@{body('Update_Case')?['CaseNumber']}\",\n    \"Success\": \"true\"\n  }\n}"
+                },
+                "runAfter": {
+                  "Update_Case": ["Succeeded"]
+                },
+                "type": "SetVariable"
+              },
+              "Set_responseCode_fail_Fetch_Case": {
+                "inputs": {
+                  "name": "responseCode",
+                  "value": 400
+                },
+                "runAfter": {
+                  "Set_responseBody_fail_Fetch_Case": ["Succeeded"]
+                },
+                "type": "SetVariable"
+              },
+              "Set_responseCode_fail_Update": {
+                "inputs": {
+                  "name": "responseCode",
+                  "value": 400
+                },
+                "runAfter": {
+                  "Set_responseBody_fail_Update": ["Succeeded"]
+                },
+                "type": "SetVariable"
+              },
+              "Set_responseCode_success_Update": {
+                "inputs": {
+                  "name": "responseCode",
+                  "value": 200
+                },
+                "runAfter": {
+                  "Set_responseBody_success_Update": ["Succeeded"]
+                },
+                "type": "SetVariable"
+              },
+              "Update_Case": {
+                "inputs": {
+                  "body": {
+                    "AccountId": "@{coalesce(body('remove_blank_values')?['AccountId'],body('Fetch_existing_Case_by_Id')?['records']?[0]?['AccountId'],'')}",
+                    "BusinessHoursId": "@{coalesce(body('remove_blank_values')?['BusinessHoursId'],body('Fetch_existing_Case_by_Id')?['records']?[0]?['BusinessHoursId'],'')}",
+                    "ContactId": "@{coalesce(body('remove_blank_values')?['ContactId'],body('Fetch_existing_Case_by_Id')?['records']?[0]?['ContactId'],'')}",
+                    "OwnerId": "@{if(or(equals(triggerBody()?['OwnerId'], null), equals(triggerBody()?['OwnerId'], '')), body('Fetch_existing_Case_by_Id')?['records']?[0]?['S4SOwner_Id__c'], triggerBody()?['OwnerId'])}",
+                    "ProductId": "@{coalesce(body('remove_blank_values')?['ProductId'],body('Fetch_existing_Case_by_Id')?['records']?[0]?['ProductId'],'')}",
+                    "RecordTypeId": "@{coalesce(body('remove_blank_values')?['RecordTypeId'],body('Fetch_existing_Case_by_Id')?['records']?[0]?['RecordTypeId'],'')}",
+                    "S4SExternal_Source__c": "@{coalesce(body('remove_blank_values')?['ExternalSource'],body('Fetch_existing_Case_by_Id')?['records']?[0]?['S4SExternal_Source__c'],'')}",
+                    "S4SFinal_Resolution__c": "@{coalesce(body('remove_blank_values')?['S4SFinal_Resolution__c'],body('Fetch_existing_Case_by_Id')?['records']?[0]?['S4SFinal_Resolution__c'],'')}",
+                    "S4SOriginalPO__c": "@{coalesce(body('remove_blank_values')?['S4SOriginalPO__c'],body('Fetch_existing_Case_by_Id')?['records']?[0]?['S4SOriginalPO__c'],'')}",
+                    "S4SProfit_Center__c": "@{coalesce(body('remove_blank_values')?['S4SProfit_Center__c'],body('Fetch_existing_Case_by_Id')?['records']?[0]?['S4SProfit_Center__c'],'')}",
+                    "S4SSAPSalesOrder__c": "@{coalesce(body('remove_blank_values')?['S4SSAPSalesOrder__c'],body('Fetch_existing_Case_by_Id')?['records']?[0]?['S4SSAPSalesOrder__c'],'')}",
+                    "S4SSiemens_Territory_Structure__c": "@{coalesce(body('remove_blank_values')?['S4SSiemens_Territory_Structure__c'],body('Fetch_existing_Case_by_Id')?['records']?[0]?['S4SSiemens_Territory_Structure__c'],'')}",
+                    "S4SSubType__c": "@{coalesce(body('remove_blank_values')?['S4SSubType__c'],body('Fetch_existing_Case_by_Id')?['records']?[0]?['S4SSubType__c'],'')}",
+                    "Status": "@{coalesce(body('remove_blank_values')?['Status'],body('Fetch_existing_Case_by_Id')?['records']?[0]?['Status'],'')}",
+                    "Subject": "@{coalesce(body('remove_blank_values')?['Subject'],body('Fetch_existing_Case_by_Id')?['records']?[0]?['Subject'],'')}",
+                    "Type": "@{coalesce(body('remove_blank_values')?['Type'],body('Fetch_existing_Case_by_Id')?['records']?[0]?['Type'],'')}"
+                  },
+                  "host": {
+                    "connection": {
+                      "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                    }
+                  },
+                  "method": "patch",
+                  "path": "/v3/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Case'))}/items/@{encodeURIComponent(encodeURIComponent(triggerBody()?['Id']))}"
+                },
+                "runAfter": {
+                  "remove_blank_values": ["Succeeded"]
+                },
+                "type": "ApiConnection"
+              },
+              "remove_blank_values": {
+                "inputs": {
+                  "code": " var obj = workflowContext.trigger.outputs.body;\r\n for (var propName in obj) {\r\n    if (obj[propName] == null || obj[propName] == undefined ||  obj[propName] == \"\") {\r\n      delete obj[propName];\r\n    }\r\n  }\r\n  \r\n  return obj;"
+                },
+                "runAfter": {
+                  "Fetch_existing_Case_by_Id": ["Succeeded"]
+                },
+                "type": "JavaScriptCode"
+              }
+            }
+          },
+          "expression": {
+            "and": [
+              {
+                "equals": ["@length(triggerBody()?['Id'])", 0]
+              }
+            ]
+          },
+          "runAfter": {},
+          "type": "If"
+        }
+      },
+      "runAfter": {
+        "Select": ["Succeeded"],
+        "responseBody": ["Succeeded"],
+        "responseCode": ["Succeeded"]
+      },
+      "trackedProperties": {
+        "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+        "citizenName": "c00031",
+        "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'Esker')}",
+        "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+        "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'non-defined')}",
+        "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'esker-upsertCase')}",
+        "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+        "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+        "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+        },
+      "type": "Scope"
+    },
+    "Select": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "Select",
+            "type": "string",
+            "value": "Select id, S4SOwner_Id__c, AccountId, BusinessHoursId,CaseNumber,ContactId,s4sexternal_source__c,ProductId,RecordTypeId,S4SFinal_Resolution__c,S4SOriginalPO__c,S4SProfit_Center__c,S4SSAPSalesOrder__c,S4SSiemens_Territory_Structure__c   ,S4SSubType__c  ,Status   ,Subject  ,Type from case"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "responseBody": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "responseBody",
+            "type": "string"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "responseCode": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "responseCode",
+            "type": "integer"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    }
+  },
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {
+    "$connections": {
+      "defaultValue": {},
+      "type": "Object"
+    }
+  },
+  "triggers": {
+    "manual": {
+      "inputs": {
+        "schema": {
+          "properties": {
+            "AccountId": {
+              "type": "string"
+            },
+            "BusinessHoursId": {
+              "type": "string"
+            },
+            "CaseNumber": {
+              "type": "string"
+            },
+            "ContactId": {
+              "type": "string"
+            },
+            "ExternalSource": {
+              "type": "string"
+            },
+            "Id": {
+              "type": "string"
+            },
+            "OwnerId": {
+              "type": "string"
+            },
+            "ProductId": {
+              "type": "string"
+            },
+            "RecordTypeId": {
+              "type": "string"
+            },
+            "S4SFinal_Resolution__c": {
+              "type": "string"
+            },
+            "S4SOriginalPO__c": {
+              "type": "string"
+            },
+            "S4SProfit_Center__c": {
+              "type": "string"
+            },
+            "S4SSAPSalesOrder__c": {
+              "type": "string"
+            },
+            "S4SSiemens_Territory_Structure__c": {
+              "type": "string"
+            },
+            "S4SSubType__c": {
+              "type": "string"
+            },
+            "Status": {
+              "type": "string"
+            },
+            "Subject": {
+              "type": "string"
+            },
+            "Type": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "kind": "Http",
+      "type": "Request"
+    }
+  }
+}

@@ -1,0 +1,541 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Initialize_variable 'final_Response'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "finalResponse",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_'S4SOrder_Intake__c'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "S4SOrder_Intake__c",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_'S4SWeighted_Order_Intake_EUR__c'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "S4SWeighted_Order_Intake_EUR__c",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_'S4SWeighted_Order_Intake_USD__c'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "S4SWeighted_Order_Intake_USD__c",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_'bookingLineItemId'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "bookingLineItemId",
+                        "type": "string",
+                        "value": "@{trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"SIE_SF4S_fetchBookingLineItemRequest\"]/*[local-name()=\"bookingLineItemId\"])'))}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_'opportunityId'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "opportunityId",
+                        "type": "string",
+                        "value": "@{trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"SIE_SF4S_fetchBookingLineItemRequest\"]/*[local-name()=\"opportunityId\"])'))}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_'primaryFlag'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "primaryFlag",
+                        "type": "boolean",
+                        "value": "@bool(trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"SIE_SF4S_fetchBookingLineItemRequest\"]/*[local-name()=\"primaryFlag\"])')))"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_'whereClause'": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "whereClause",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Scope_-_Catch": {
+            "actions": {
+                "Error_Response": {
+                    "inputs": {
+                        "body": "Internal Server Server",
+                        "headers": {
+                            "Content-Type": "text/xml"
+                        },
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                }
+            },
+            "runAfter": {
+                "Scope_-_Try": [
+                    "Failed",
+                    "Skipped",
+                    "TimedOut"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope_-_Try": {
+            "actions": {
+                "BookingLineItem": {
+                    "inputs": {
+                        "body": {
+                            "query": "select Id,ISDeleted,Name,CurrencyIsoCode,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastActivityDate,S4SOpportunity__c,S4SOrder_Intake__c,S4SPrimary_Flag__c,S4SWeighted_Order_Intake__c,S4SDepth_Structure__c,S4SBusiness_Segment__c,S4SBusiness_Sub_Segment__c,S4SBusiness_Unit__c,S4SDivisions__c,S4SGCK__c,S4SOrder_Intake_EUR__c,S4SOrder_Intake_USD__c,S4SWeighted_Order_Intake_EUR__c,S4SWeighted_Order_Intake_USD__c,S4SPCK__c,S4SQuantity__c,S4SSPG__c,S4SSales_Price__c,S4SProgram_Fund__c,S4SX1st_Year_return__c,S4SX2nd_Year_Return__c,X3rd_Year_Return__c,S4SExternal_Source__c from S4SBooking_Line_Item__c where @{variables('whereClause')} LIMIT+50"
+                        },
+                        "host": {
+                            "connection": {
+                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                            }
+                        },
+                        "method": "post",
+                        "path": "/soql/executesoqlquery"
+                    },
+                    "runAfter": {
+                        "Condition_'primaryFlag'": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "ApiConnection"
+                },
+                "Compose_Response": {
+                    "inputs": "@concat('<SIE_SF4S_fetchBookingLineItemResponse>',variables('finalResponse'),'</SIE_SF4S_fetchBookingLineItemResponse>')",
+                    "runAfter": {
+                        "For_each_BookingLineItem": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Compose"
+                },
+                "Condition_'bookingLineItemId'": {
+                    "actions": {
+                        "Append_to_string_variable_'whereCLause'": {
+                            "inputs": {
+                                "name": "whereClause",
+                                "value": "@concat('Id = ',string(''''),variables('bookingLineItemId'),string(''''))"
+                            },
+                            "runAfter": {},
+                            "type": "AppendToStringVariable"
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('bookingLineItemId')",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('bookingLineItemId')",
+                                        "@string('')"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                },
+                "Condition_'opportunityId'": {
+                    "actions": {
+                        "Condition_'whereClause'": {
+                            "actions": {
+                                "Append_to_string_variable": {
+                                    "inputs": {
+                                        "name": "whereClause",
+                                        "value": "@concat(' AND ','S4SOpportunity__c = ',string(''''),variables('opportunityId'),string(''''))"
+                                    },
+                                    "runAfter": {},
+                                    "type": "AppendToStringVariable"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "Set_variable": {
+                                        "inputs": {
+                                            "name": "whereClause",
+                                            "value": "@{concat('S4SOpportunity__c = ',string(''''),variables('opportunityId'),string(''''))}"
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@variables('whereClause')",
+                                                "@null"
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@variables('whereClause')",
+                                                "@string('')"
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "runAfter": {},
+                            "type": "If"
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('opportunityId')",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('opportunityId')",
+                                        "@string('')"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Condition_'bookingLineItemId'": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Condition_'primaryFlag'": {
+                    "actions": {
+                        "Condition": {
+                            "actions": {
+                                "Append_to_string_variable_2": {
+                                    "inputs": {
+                                        "name": "whereClause",
+                                        "value": "@concat(' AND ','S4SPrimary_Flag__c = ',variables('primaryFlag'))"
+                                    },
+                                    "runAfter": {},
+                                    "type": "AppendToStringVariable"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "Set_variable_2": {
+                                        "inputs": {
+                                            "name": "whereClause",
+                                            "value": "@{concat('S4SPrimary_Flag__c = ',variables('primaryFlag'))}"
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@variables('whereClause')",
+                                                "@null"
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@variables('whereClause')",
+                                                "@string('')"
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "runAfter": {},
+                            "type": "If"
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('primaryFlag')",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('primaryFlag')",
+                                        "@string('')"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Condition_'opportunityId'": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "For_each_BookingLineItem": {
+                    "actions": {
+                        "Compose": {
+                            "inputs": "<CreatedById>@{items('For_each_BookingLineItem')?['CreatedById']}</CreatedById>\n   <CreatedDate>@{items('For_each_BookingLineItem')?['CreatedDate']}</CreatedDate>\n   <CurrencyIsoCode>@{items('For_each_BookingLineItem')?['CurrencyIsoCode']}</CurrencyIsoCode>\n   <Id>@{items('For_each_BookingLineItem')?['Id']}</Id>\n   <IsDeleted>@{items('For_each_BookingLineItem')?['IsDeleted']}</IsDeleted>\n   <LastActivityDate>@{items('For_each_BookingLineItem')?['LastActivityDate']}</LastActivityDate>\n   <LastModifiedById>@{items('For_each_BookingLineItem')?['LastModifiedById']}</LastModifiedById>\n   <LastModifiedDate>@{items('For_each_BookingLineItem')?['LastModifiedDate']}</LastModifiedDate>\n   <Name>@{items('For_each_BookingLineItem')?['Name']}</Name>\n   <S4SBusiness_Segment__c>@{items('For_each_BookingLineItem')?['S4SBusiness_Segment__c']}</S4SBusiness_Segment__c>\n   <S4SBusiness_Sub_Segment__c>@{items('For_each_BookingLineItem')?['S4SBusiness_Sub_Segment__c']}</S4SBusiness_Sub_Segment__c>\n   <S4SBusiness_Unit__c>@{items('For_each_BookingLineItem')?['S4SBusiness_Unit__c']}</S4SBusiness_Unit__c>\n   <S4SDepth_Structure__c>@{items('For_each_BookingLineItem')?['S4SDepth_Structure__c']}</S4SDepth_Structure__c>\n   <S4SDivisions__c>@{items('For_each_BookingLineItem')?['S4SDivisions__c']}</S4SDivisions__c>\n   <S4SExternal_Source__c>@{items('For_each_BookingLineItem')?['S4SExternal_Source__c']}</S4SExternal_Source__c>\n   <S4SGCK__c>@{items('For_each_BookingLineItem')?['S4SGCK__c']}</S4SGCK__c>\n   <S4SOpportunity__c>@{items('For_each_BookingLineItem')?['S4SOpportunity__c']}</S4SOpportunity__c>\n   <S4SOrder_Intake_EUR__c>@{items('For_each_BookingLineItem')?['S4SOrder_Intake_EUR__c']}</S4SOrder_Intake_EUR__c>\n   <S4SOrder_Intake_USD__c>@{items('For_each_BookingLineItem')?['S4SOrder_Intake_USD__c']}</S4SOrder_Intake_USD__c>\n   <S4SOrder_Intake__c >@{variables('S4SOrder_Intake__c')}<S4SOrder_Intake__c >\n   <S4SPCK__c>@{items('For_each_BookingLineItem')?['S4SPCK__c']}</S4SPCK__c>\n   <S4SPrimary_Flag__c>@{items('For_each_BookingLineItem')?['S4SPrimary_Flag__c']}</S4SPrimary_Flag__c>\n   <S4SProgram_Fund__c>@{items('For_each_BookingLineItem')?['S4SProgram_Fund__c']}</S4SProgram_Fund__c>\n   <S4SQuantity__c>@{items('For_each_BookingLineItem')?['S4SQuantity__c']}</S4SQuantity__c>\n   <S4SSPG__c>@{items('For_each_BookingLineItem')?['S4SSPG__c']}</S4SSPG__c>\n   <S4SSales_Price__c>@{items('For_each_BookingLineItem')?['S4SSales_Price__c']}</S4SSales_Price__c>\n   <S4SWeighted_Order_Intake_EUR__c>@{variables('S4SWeighted_Order_Intake_EUR__c')}</S4SWeighted_Order_Intake_EUR__c>\n  <S4SWeighted_Order_Intake_USD__c>@{variables('S4SWeighted_Order_Intake_USD__c')}</S4SWeighted_Order_Intake_USD__c>\n   <S4SWeighted_Order_Intake__c>@{items('For_each_BookingLineItem')?['S4SWeighted_Order_Intake__c']}</S4SWeighted_Order_Intake__c>\n   <S4SX1st_Year_return__c>@{items('For_each_BookingLineItem')?['S4SX1st_Year_return__c']}</S4SX1st_Year_return__c>\n   <S4SX2nd_Year_Return__c>@{items('For_each_BookingLineItem')?['S4SX2nd_Year_Return__c']}</S4SX2nd_Year_Return__c>\n   <SystemModstamp>@{items('For_each_BookingLineItem')?['SystemModstamp']}</SystemModstamp>\n   <X3rd_Year_Return__c>@{items('For_each_BookingLineItem')?['X3rd_Year_Return__c']}</X3rd_Year_Return__c>",
+                            "runAfter": {
+                                "Set_variable_5": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Compose"
+                        },
+                        "Compose_ForEachRecord": {
+                            "inputs": "@if(equals(variables('finalResponse'),''),outputs('Compose'),concat(variables('finalResponse'),',',outputs('Compose')))",
+                            "runAfter": {
+                                "Compose": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Compose"
+                        },
+                        "SafeAbsoluteValue_for_'S4SWeighted_Order_Intake_EUR__c'": {
+                            "inputs": {
+                                "body": "@items('For_each_BookingLineItem')?['S4SWeighted_Order_Intake_EUR__c']",
+                                "host": {
+                                    "triggerName": "manual",
+                                    "workflow": {
+                                        "id": "${Spiridon_safeabsolutevalue_logicAppId}"
+                                    }
+                                }
+                            },
+                            "runAfter": {
+                                "Set_variable_3": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Workflow"
+                        },
+                        "SafeAbsoluteValue_for_'S4SWeighted_Order_Intake_USD__c'": {
+                            "inputs": {
+                                "body": "@items('For_each_BookingLineItem')?['S4SWeighted_Order_Intake_USD__c']",
+                                "host": {
+                                    "triggerName": "manual",
+                                    "workflow": {
+                                        "id": "${Spiridon_safeabsolutevalue_logicAppId}"
+                                    }
+                                }
+                            },
+                            "runAfter": {
+                                "Set_variable_4": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Workflow"
+                        },
+                        "SafeAbsoluteValue_for_'S4S_Order_Intake__c'_": {
+                            "inputs": {
+                                "body": "@items('For_each_BookingLineItem')?['S4SOrder_Intake__c']",
+                                "host": {
+                                    "triggerName": "manual",
+                                    "workflow": {
+                                        "id": "${Spiridon_safeabsolutevalue_logicAppId}"
+                                    }
+                                }
+                            },
+                            "runAfter": {},
+                            "type": "Workflow"
+                        },
+                        "Set_variable_3": {
+                            "inputs": {
+                                "name": "s4sOrder_intake__c",
+                                "value": "@{body('SafeAbsoluteValue_for_''S4S_Order_Intake__c''_')}"
+                            },
+                            "runAfter": {
+                                "SafeAbsoluteValue_for_'S4S_Order_Intake__c'_": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "SetVariable"
+                        },
+                        "Set_variable_4": {
+                            "inputs": {
+                                "name": "S4SWeighted_Order_Intake_EUR__c",
+                                "value": "@{body('SafeAbsoluteValue_for_''S4SWeighted_Order_Intake_EUR__c''')}"
+                            },
+                            "runAfter": {
+                                "SafeAbsoluteValue_for_'S4SWeighted_Order_Intake_EUR__c'": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "SetVariable"
+                        },
+                        "Set_variable_5": {
+                            "inputs": {
+                                "name": "S4SWeighted_Order_Intake_USD__c",
+                                "value": "@{body('SafeAbsoluteValue_for_''S4SWeighted_Order_Intake_USD__c''')}"
+                            },
+                            "runAfter": {
+                                "SafeAbsoluteValue_for_'S4SWeighted_Order_Intake_USD__c'": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "SetVariable"
+                        },
+                        "Set_variable_finalResponse": {
+                            "inputs": {
+                                "name": "finalResponse",
+                                "value": "@{outputs('Compose_ForEachRecord')}"
+                            },
+                            "runAfter": {
+                                "Compose_ForEachRecord": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "SetVariable"
+                        }
+                    },
+                    "foreach": "@body('BookingLineItem')['records']",
+                    "runAfter": {
+                        "BookingLineItem": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Foreach"
+                },
+                "Success_Response": {
+                    "inputs": {
+                        "body": "@outputs('Compose_Response')",
+                        "headers": {
+                            "Content-Type": "text/xml"
+                        },
+                        "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "Compose_Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
+                }
+            },
+            "runAfter": {
+                "Initialize_variable 'final_Response'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_'S4SOrder_Intake__c'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_'S4SWeighted_Order_Intake_EUR__c'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_'S4SWeighted_Order_Intake_USD__c'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_'bookingLineItemId'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_'opportunityId'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_'primaryFlag'": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_'whereClause'": [
+                    "Succeeded"
+                ]
+            },
+            "trackedProperties": {
+                "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+                "citizenName": "c00031",
+                "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'Spiridon')}",
+                "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'fetchbookingLine')}",
+                "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+                "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+            },
+            "type": "Scope"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {},
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

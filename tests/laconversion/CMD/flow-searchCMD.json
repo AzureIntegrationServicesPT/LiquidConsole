@@ -1,0 +1,743 @@
+{
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "actions": {
+          "Catch": {
+              "actions": {
+                  "Failed_Response": {
+                      "inputs": {
+                          "body": {
+                              "statusResponse": {
+                                  "message": "ERROR",
+                                  "type": "E"
+                              }
+                          },
+                          "headers": {
+                              "Content-Type": "application/json"
+                          },
+                          "statusCode": "@outputs('Invoke_CMD_Service_Endpoint')['statusCode']"
+                      },
+                      "kind": "Http",
+                      "runAfter": {},
+                      "type": "Response"
+                  },
+                  "Terminate": {
+                      "inputs": {
+                          "runStatus": "Failed"
+                      },
+                      "runAfter": {
+                          "Failed_Response": [
+                              "Succeeded"
+                          ]
+                      },
+                      "type": "Terminate"
+                  }
+              },
+              "runAfter": {
+                  "Try-Invoke": [
+                      "Failed",
+                      "TimedOut"
+                  ]
+              },
+              "type": "Scope"
+          },
+          "Condition_check_for_SOAP_Version": {
+              "actions": {
+                  "Set_variable_Content-Type_for_1.1": {
+                      "inputs": {
+                          "name": "Content-Type",
+                          "value": "text/xml;charset=UTF-8"
+                      },
+                      "runAfter": {},
+                      "type": "SetVariable"
+                  },
+                  "soapSchema_for_1.1": {
+                      "inputs": {
+                          "name": "soapSchema",
+                          "value": "http://schemas.xmlsoap.org/soap/envelope/"
+                      },
+                      "runAfter": {
+                          "Set_variable_Content-Type_for_1.1": [
+                              "Succeeded"
+                          ]
+                      },
+                      "type": "SetVariable"
+                  }
+              },
+              "else": {
+                  "actions": {
+                      "Set_variable_Content_Type__for_1.2": {
+                          "inputs": {
+                              "name": "Content-Type",
+                              "value": "application/soap+xml;charset=UTF-8;action=\"urn:sap-com:document:sap:soap:functions:mc-style:_-SIE_-CMDF_GPSEARCH_BISNODE_CMD:_-sie_-cmdfGpsearchBisnodeCmdRequest\""
+                          },
+                          "runAfter": {},
+                          "type": "SetVariable"
+                      },
+                      "soapSchema_for_1.2": {
+                          "inputs": {
+                              "name": "soapSchema",
+                              "value": "http://www.w3.org/2003/05/soap-envelope"
+                          },
+                          "runAfter": {
+                              "Set_variable_Content_Type__for_1.2": [
+                                  "Succeeded"
+                              ]
+                          },
+                          "type": "SetVariable"
+                      }
+                  }
+              },
+              "expression": {
+                  "and": [
+                      {
+                          "equals": [
+                              "@trim(variables('SOAP Version'))",
+                              "@string('1.1')"
+                          ]
+                      }
+                  ]
+              },
+              "runAfter": {
+                  "HTTP_Get_Certificate": [
+                      "Succeeded"
+                  ],
+                  "HTTP_Get_Certificate_Password": [
+                      "Succeeded"
+                  ],
+                  "Initialize_variable_'Content-Type'": [
+                      "Succeeded"
+                  ],
+                  "Initialize_variable_'Request'": [
+                      "Succeeded"
+                  ],
+                  "Initialize_variable_'SOAP Version'": [
+                      "Succeeded"
+                  ],
+                  "Initialize_variable_'nationalState'": [
+                      "Succeeded"
+                  ],
+                  "Initialize_variable_'soapSchema'": [
+                      "Succeeded"
+                  ],
+                  "Initialize_variable_Accounts": [
+                      "Succeeded"
+                  ],
+                  "Initialize_variable_configData": [
+                      "Succeeded"
+                  ],
+                  "getConfiguration_region": [
+                      "Succeeded"
+                  ]
+              },
+              "type": "If"
+          },
+          "Condition_to_check_NationalState": {
+              "actions": {
+                  "Compose_Request": {
+                      "inputs": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<soap:Envelope xmlns:soap=\"@{variables('soapSchema')}\" xmlns:urn=\"urn:sap-com:document:sap:soap:functions:mc-style\">\n<soap:Header />\n<soap:Body>\n<n0:_-SIE_-AIF_CMD_BISNODE_SEARCH_Root_Request xmlns:n0=\"urn:sap-com:document:sap:rfc:functions\">\n<Header>\n<INTERFACE_IDENTIFIER>cmdfGpsearchBisnodeCmd_To_CMDBusinessPartnerBisNodeQuery_In.CMDBusinessPartnerBisNodeFindByAdvancedParameterQuery</INTERFACE_IDENTIFIER>\n<SENDER>SieSales</SENDER>\n<RECEIVER>@{json(body('GetConfiguration'))?['SFToCMD']?['Receiver']}</RECEIVER>\n<DATE8></DATE8>\n<TIME></TIME>\n</Header>\n<Data>\n<_-SIE_-AIF_CMD_BISNODE_SEARCH>\n<ADDRESSREQUEST>\n<IFANR>@{triggerbody()?['ifa']}</IFANR>\n<DUNS>@{triggerBody()?['duns']}</DUNS>\n<NAME>@{triggerBody()?['accountName']}</NAME>\n<CITY>@{triggerBody()?['nationalCity']}</CITY>\n<STREET>@{triggerBody()?['nationalStreet']}</STREET>\n<POSTCODE>@{triggerBody()?['nationalPostcode']}</POSTCODE>\n<COUNTRY>@{triggerBody()?['nationalCountry']}</COUNTRY>\n<REGION>@{variables('splitNationalState')?[1]}</REGION>\n<MAXHITS>@{triggerBody()?['imaxhits']}</MAXHITS>\n<LANGUAGE/>\n<REQUESTER>1023</REQUESTER>\n</ADDRESSREQUEST>\n<SIDEREQUEST>@{triggerBody()?['searchDB']}</SIDEREQUEST>\n<REQUESTEDFIELDS>STREET2</REQUESTEDFIELDS>\n</_-SIE_-AIF_CMD_BISNODE_SEARCH>\n</Data>\n</n0:_-SIE_-AIF_CMD_BISNODE_SEARCH_Root_Request>\n</soap:Body></soap:Envelope>",
+                      "runAfter": {
+                          "Set_variable_nationalState": [
+                              "Succeeded"
+                          ]
+                      },
+                      "type": "Compose"
+                  },
+                  "Set_variable": {
+                      "inputs": {
+                          "name": "splitNationalState",
+                          "value": "@array(array(split(triggerBody()?['nationalState'],'_')))"
+                      },
+                      "runAfter": {},
+                      "type": "SetVariable"
+                  },
+                  "Set_variable_Request": {
+                      "inputs": {
+                          "name": "Request",
+                          "value": "@{xml(replace(outputs('Compose_Request'), '&', '&amp;'))}"
+                      },
+                      "runAfter": {
+                          "Compose_Request": [
+                              "Succeeded"
+                          ]
+                      },
+                      "type": "SetVariable"
+                  },
+                  "Set_variable_nationalState": {
+                      "inputs": {
+                          "name": "nationalState",
+                          "value": "@{variables('splitNationalState')?[1]}"
+                      },
+                      "runAfter": {
+                          "Set_variable": [
+                              "Succeeded"
+                          ]
+                      },
+                      "type": "SetVariable"
+                  }
+              },
+              "else": {
+                  "actions": {
+                      "Compose_CMD_Request": {
+                          "inputs": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<soap:Envelope xmlns:soap=\"@{variables('soapSchema')}\" xmlns:urn=\"urn:sap-com:document:sap:soap:functions:mc-style\">\n<soap:Header />\n<soap:Body>\n<n0:_-SIE_-AIF_CMD_BISNODE_SEARCH_Root_Request xmlns:n0=\"urn:sap-com:document:sap:rfc:functions\">\n<Header>\n<INTERFACE_IDENTIFIER>cmdfGpsearchBisnodeCmd_To_CMDBusinessPartnerBisNodeQuery_In.CMDBusinessPartnerBisNodeFindByAdvancedParameterQuery</INTERFACE_IDENTIFIER>\n<SENDER>SieSales</SENDER>\n<RECEIVER>@{json(body('GetConfiguration'))?['SFToCMD']?['Receiver']}</RECEIVER>\n<DATE8></DATE8>\n<TIME></TIME>\n</Header>\n<Data>\n<_-SIE_-AIF_CMD_BISNODE_SEARCH>\n<ADDRESSREQUEST>\n<IFANR>@{triggerbody()?['ifa']}</IFANR>\n<DUNS>@{triggerBody()?['duns']}</DUNS>\n<NAME>@{triggerBody()?['accountName']}</NAME>\n<CITY>@{triggerBody()?['nationalCity']}</CITY>\n<STREET>@{triggerBody()?['nationalStreet']}</STREET>\n<POSTCODE>@{triggerBody()?['nationalPostcode']}</POSTCODE>\n<COUNTRY>@{triggerBody()?['nationalCountry']}</COUNTRY>\n<REGION>@{variables('splitNationalState')?[1]}</REGION>\n<MAXHITS>@{triggerBody()?['imaxhits']}</MAXHITS>\n<LANGUAGE/>\n<REQUESTER>1023</REQUESTER>\n</ADDRESSREQUEST>\n<SIDEREQUEST>@{triggerBody()?['searchDB']}</SIDEREQUEST>\n<REQUESTEDFIELDS>STREET2</REQUESTEDFIELDS>\n</_-SIE_-AIF_CMD_BISNODE_SEARCH>\n</Data>\n</n0:_-SIE_-AIF_CMD_BISNODE_SEARCH_Root_Request>\n</soap:Body></soap:Envelope>",
+                          "runAfter": {},
+                          "type": "Compose"
+                      },
+                      "Set_variable_'request'": {
+                          "inputs": {
+                              "name": "Request",
+                              "value": "@{xml(replace(outputs('Compose_CMD_Request'), '&', '&amp;'))}"
+                          },
+                          "runAfter": {
+                              "Compose_CMD_Request": [
+                                  "Succeeded"
+                              ]
+                          },
+                          "type": "SetVariable"
+                      }
+                  }
+              },
+              "expression": {
+                  "and": [
+                      {
+                          "not": {
+                              "equals": [
+                                  "@triggerBody()?['nationalState']",
+                                  "@null"
+                              ]
+                          }
+                      },
+                      {
+                          "not": {
+                              "equals": [
+                                  "@triggerBody()?['nationalState']",
+                                  ""
+                              ]
+                          }
+                      }
+                  ]
+              },
+              "runAfter": {
+                  "Condition_check_for_SOAP_Version": [
+                      "Succeeded"
+                  ]
+              },
+              "type": "If"
+          },
+          "GetConfiguration": {
+              "inputs": {
+                  "body": {
+                      "key": "cmd-config"
+                  },
+                  "host": {
+                      "triggerName": "manual",
+                      "workflow": {
+                          "id": "${getConfiguration_logicAppId}"
+                      }
+                  },
+                  "retryPolicy": {
+                      "type": "none"
+                  }
+              },
+              "runAfter": {},
+              "type": "Workflow"
+          },
+          "HTTP_Get_Certificate": {
+              "inputs": {
+                  "body": {
+                      "key": "SieSalesCRM-certificate"
+                  },
+                  "host": {
+                      "triggerName": "manual",
+                      "workflow": {
+                          "id": "${getConfiguration_logicAppId}"
+                      }
+                  },
+                  "retryPolicy": {
+                      "type": "none"
+                  }
+              },
+              "runAfter": {},
+              "type": "Workflow"
+          },
+          "HTTP_Get_Certificate_Password": {
+              "inputs": {
+                  "body": {
+                      "key": "SieSalesCRM-certificate-password"
+                  },
+                  "host": {
+                      "triggerName": "manual",
+                      "workflow": {
+                          "id": "${getConfiguration_logicAppId}"
+                      }
+                  }
+              },
+              "runAfter": {},
+              "type": "Workflow"
+          },
+          "Initialize_variable_'Content-Type'": {
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "Content-Type",
+                          "type": "string"
+                      }
+                  ]
+              },
+              "runAfter": {},
+              "type": "InitializeVariable"
+          },
+          "Initialize_variable_'Request'": {
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "Request",
+                          "type": "string"
+                      }
+                  ]
+              },
+              "runAfter": {},
+              "type": "InitializeVariable"
+          },
+          "Initialize_variable_'SOAP Version'": {
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "SOAP Version",
+                          "type": "string",
+                          "value": "@{triggerOutputs()['headers']?['SOAPVersion']}"
+                      }
+                  ]
+              },
+              "runAfter": {},
+              "type": "InitializeVariable"
+          },
+          "Initialize_variable_'nationalState'": {
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "nationalState",
+                          "type": "string",
+                          "value": "@{variables('splitNationalState')?[1]}"
+                      }
+                  ]
+              },
+              "runAfter": {
+                  "Initialize_variable_'splitNationalState'": [
+                      "Succeeded"
+                  ]
+              },
+              "type": "InitializeVariable"
+          },
+          "Initialize_variable_'soapSchema'": {
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "soapSchema",
+                          "type": "string"
+                      }
+                  ]
+              },
+              "runAfter": {},
+              "type": "InitializeVariable"
+          },
+          "Initialize_variable_'splitNationalState'": {
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "splitNationalState",
+                          "type": "array"
+                      }
+                  ]
+              },
+              "runAfter": {},
+              "type": "InitializeVariable"
+          },
+          "Initialize_variable_Accounts": {
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "Accounts",
+                          "type": "array"
+                      }
+                  ]
+              },
+              "runAfter": {},
+              "type": "InitializeVariable"
+          },
+          "Initialize_variable_configData": {
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "configData",
+                          "type": "string",
+                          "value": "@body('GetConfiguration')"
+                      }
+                  ]
+              },
+              "runAfter": {
+                  "GetConfiguration": [
+                      "Succeeded"
+                  ]
+              },
+              "type": "InitializeVariable"
+          },
+          "Try-Invoke": {
+              "actions": {
+                  "Condition": {
+                      "actions": {
+                          "Compose": {
+                              "inputs": {
+                                  "accounts": "@json(replace(string(body('Remove_PO_Fields')?['mdg_response']),'&amp;','&'))",
+                                  "statusResponse": "@outputs('StatusResponse')"
+                              },
+                              "runAfter": {
+                                  "Remove_PO_Fields": [
+                                      "Succeeded"
+                                  ]
+                              },
+                              "type": "Compose"
+                          },
+                          "Compose_2": {
+                              "inputs": {
+                                  "AddressTabResponse": [
+                                      {
+                                          "item": "@variables('Accounts')"
+                                      }
+                                  ],
+                                  "KeyVaultSecret": "@body('Get_KeyVault_Secret')['value']"
+                              },
+                              "runAfter": {
+                                  "Get_KeyVault_Secret": [
+                                      "Succeeded"
+                                  ]
+                              },
+                              "type": "Compose"
+                          },
+                          "For_each": {
+                              "actions": {
+                                  "Compare_Region": {
+                                      "actions": {
+                                          "Append_to_array_variable_no_Region": {
+                                              "inputs": {
+                                                  "name": "Accounts",
+                                                  "value": {
+                                                      "City": "@items('For_each')?['CITY']",
+                                                      "CityI": "@items('For_each')?['CITYI']",
+                                                      "CityPoBox": "@items('For_each')?['CITYPOBOX']",
+                                                      "Country": "@items('For_each')?['COUNTRY']",
+                                                      "Duns": "@items('For_each')?['DUNS']",
+                                                      "DunsGlobal": "@items('For_each')?['DUNSGLOBAL']",
+                                                      "DunsParent": "@items('For_each')?['DUNSPARENT']",
+                                                      "IfaNr": "@items('For_each')?['IFANR']",
+                                                      "Isic": "@items('For_each')?['ISIC']",
+                                                      "Kukla": "@items('For_each')?['KUKLA']",
+                                                      "Name1": "@items('For_each')?['NAME1']",
+                                                      "Name1I": "@items('For_each')?['NAME1I']",
+                                                      "Name2": "@items('For_each')?['NAME2']",
+                                                      "Name2I": "@items('For_each')?['NAME2I']",
+                                                      "Name3": "@items('For_each')?['NAME3']",
+                                                      "Name3I": "@items('For_each')?['NAME3I']",
+                                                      "NatId": "@items('For_each')?['NATID']",
+                                                      "PoBox": "@items('For_each')?['POBOX']",
+                                                      "PostalCode": "@items('For_each')?['POSTALCODE']",
+                                                      "PostalCodePob": "@items('For_each')?['POSTALCODEPOB']",
+                                                      "RpaAre": "@items('For_each')?['RPAARE']",
+                                                      "SalestaxId": "@items('For_each')?['SALESTAXID']",
+                                                      "Status": "@items('For_each')?['STATUS']",
+                                                      "Street": "@items('For_each')?['STREET']",
+                                                      "Street2": "@items('For_each')?['STREET2']",
+                                                      "Street2I": "@items('For_each')?['STREET2I']",
+                                                      "StreetI": "@items('For_each')?['STREETI']"
+                                                  }
+                                              },
+                                              "runAfter": {},
+                                              "type": "AppendToArrayVariable"
+                                          }
+                                      },
+                                      "else": {
+                                          "actions": {
+                                              "Append_to_array_variable_with_Region": {
+                                                  "inputs": {
+                                                      "name": "Accounts",
+                                                      "value": {
+                                                          "City": "@items('For_each')?['CITY']",
+                                                          "CityI": "@items('For_each')?['CITYI']",
+                                                          "CityPoBox": "@items('For_each')?['CITYPOBOX']",
+                                                          "Country": "@items('For_each')?['COUNTRY']",
+                                                          "Duns": "@items('For_each')?['DUNS']",
+                                                          "DunsGlobal": "@items('For_each')?['DUNSGLOBAL']",
+                                                          "DunsParent": "@items('For_each')?['DUNSPARENT']",
+                                                          "IfaNr": "@items('For_each')?['IFANR']",
+                                                          "Isic": "@items('For_each')?['ISIC']",
+                                                          "Kukla": "@items('For_each')?['KUKLA']",
+                                                          "Name1": "@items('For_each')?['NAME1']",
+                                                          "Name1I": "@items('For_each')?['NAME1I']",
+                                                          "Name2": "@items('For_each')?['NAME2']",
+                                                          "Name2I": "@items('For_each')?['NAME2I']",
+                                                          "Name3": "@items('For_each')?['NAME3']",
+                                                          "Name3I": "@items('For_each')?['NAME3I']",
+                                                          "NatId": "@items('For_each')?['NATID']",
+                                                          "PoBox": "@items('For_each')?['POBOX']",
+                                                          "PostalCode": "@items('For_each')?['POSTALCODE']",
+                                                          "PostalCodePob": "@items('For_each')?['POSTALCODEPOB']",
+                                                          "Region": "@items('For_each')?['REGION']",
+                                                          "RegionI": "@items('For_each')?['REGIONI']",
+                                                          "RpaAre": "@items('For_each')?['RPAARE']",
+                                                          "SalestaxId": "@items('For_each')?['SALESTAXID']",
+                                                          "Status": "@items('For_each')?['STATUS']",
+                                                          "Street": "@items('For_each')?['STREET']",
+                                                          "Street2": "@items('For_each')?['STREET2']",
+                                                          "Street2I": "@items('For_each')?['STREET2I']",
+                                                          "StreetI": "@items('For_each')?['STREETI']"
+                                                      }
+                                                  },
+                                                  "runAfter": {},
+                                                  "type": "AppendToArrayVariable"
+                                              }
+                                          }
+                                      },
+                                      "expression": {
+                                          "and": [
+                                              {
+                                                  "contains": [
+                                                      "@body('getConfiguration_region')",
+                                                      "@items('For_each')?['COUNTRY']"
+                                                  ]
+                                              }
+                                          ]
+                                      },
+                                      "runAfter": {},
+                                      "type": "If"
+                                  }
+                              },
+                              "foreach": "@array(json(xml(body('Invoke_CMD_Service_Endpoint')))?['SOAP:Envelope']?['SOAP:Body']?['n0:_-SIE_-AIF_CMD_BISNODE_SEARCH_Root_Response']?['Data']?['_-SIE_-AIF_CMD_BISNODE_SEARCH_Response']?['ADDRESSTABRESPONSE']?['ADDRESSTABRESPONSE']['item'])",
+                              "runAfter": {},
+                              "type": "Foreach"
+                          },
+                          "Get_KeyVault_Secret": {
+                              "inputs": {
+                                  "authentication": {
+                                      "audience": "https://vault.azure.net",
+                                      "type": "ManagedServiceIdentity"
+                                  },
+                                  "method": "GET",
+                                  "queries": {
+                                      "api-version": "2016-10-01"
+                                  },
+                                  "uri": "[concat(parameters('baseUrl_kv'), '/secrets/cmd-region-config')]"
+                              },
+                              "runAfter": {
+                                  "For_each": [
+                                      "Succeeded"
+                                  ]
+                              },
+                              "type": "Http"
+                          },
+                          "Prepare_Liquid_Input": {
+                              "inputs": {
+                                  "accounts": "@json(body('searchCMDManipulateFunction'))",
+                                  "pinCodeCountriesToExempt": "@parameters('pinCodeCountriesToExempt')"
+                              },
+                              "runAfter": {
+                                  "searchCMDManipulateFunction": [
+                                      "Succeeded"
+                                  ]
+                              },
+                              "type": "Compose"
+                          },
+                          "Remove_PO_Fields": {
+                              "inputs": {
+                                  "authentication": {
+                                      "type": "Raw",
+                                      "value": "[parameters('functionAppKey')]"
+                                  },
+                                  "body": "@outputs('Prepare_Liquid_Input')",
+                                  "function": {
+                                      "id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+                                  },
+                                  "headers": {
+                                      "Accept": "application/json",
+                                      "Content -Type": "application/json",
+                                      "Filename": "${liquid_searchCMDPORemoval}"
+                                  },
+                                  "method": "POST",
+                                  "retryPolicy": {
+                                      "type": "none"
+                                  }
+                              },
+                              "runAfter": {
+                                  "Prepare_Liquid_Input": [
+                                      "Succeeded"
+                                  ]
+                              },
+                              "type": "Function"
+                          },
+                          "Response_to_SF": {
+                              "inputs": {
+                                  "body": "@outputs('Compose')",
+                                  "headers": {
+                                      "Content-Type": "application/json"
+                                  },
+                                  "statusCode": 200
+                              },
+                              "kind": "Http",
+                              "runAfter": {
+                                  "Compose": [
+                                      "Succeeded"
+                                  ]
+                              },
+                              "type": "Response"
+                          },
+                          "searchCMDManipulateFunction": {
+                              "inputs": {
+                                  "authentication": {
+                                      "type": "Raw",
+                                      "value": "[parameters('functionAppKey')]"
+                                  },
+                                  "body": "@outputs('Compose_2')",
+                                  "function": {
+                                      "id":  "[concat(parameters('funcApp'), '/functions/searchCMDManipulateFunction')]"
+                                  }
+                              },
+                              "runAfter": {
+                                  "Compose_2": [
+                                      "Succeeded"
+                                  ]
+                              },
+                              "type": "Function"
+                          }
+                      },
+                      "else": {
+                          "actions": {
+                              "Response": {
+                                  "inputs": {
+                                      "body": {
+                                          "statusResponse": "@outputs('StatusResponse')"
+                                      },
+                                      "headers": {
+                                          "Content-Type": "application/json"
+                                      },
+                                      "statusCode": "@outputs('Invoke_CMD_Service_Endpoint')['statusCode']"
+                                  },
+                                  "kind": "Http",
+                                  "runAfter": {},
+                                  "type": "Response"
+                              }
+                          }
+                      },
+                      "expression": {
+                          "and": [
+                              {
+                                  "not": {
+                                      "equals": [
+                                          "@string(xpath(xml(body('Invoke_CMD_Service_Endpoint')),'.//ADDRESSTABRESPONSE/ADDRESSTABRESPONSE/item')?[0])",
+                                          ""
+                                      ]
+                                  }
+                              },
+                              {
+                                  "not": {
+                                      "equals": [
+                                          "@string(xpath(xml(body('Invoke_CMD_Service_Endpoint')),'.//ADDRESSTABRESPONSE/ADDRESSTABRESPONSE/item')?[0])",
+                                          "@null"
+                                      ]
+                                  }
+                              }
+                          ]
+                      },
+                      "runAfter": {
+                          "StatusResponse": [
+                              "Succeeded"
+                          ]
+                      },
+                      "type": "If"
+                  },
+                  "Invoke_CMD_Service_Endpoint": {
+                      "inputs": {
+                          "authentication": {
+                              "password": "@body('HTTP_Get_Certificate_Password')",
+                              "pfx": "@body('HTTP_Get_Certificate')",
+                              "type": "ClientCertificate"
+                          },
+                          "body": "@variables('Request')",
+                          "headers": {
+                              "Content-Type": "@variables('Content-Type')",
+                              "Receiver": "@{json(variables('configData'))?['SFToCMD']?['Receiver']}"
+                          },
+                          "method": "POST",
+                          "retryPolicy": {
+                              "type": "none"
+                          },
+                          "uri": "@{json(variables('configData'))?['ws']?['url']}"
+                      },
+                      "runAfter": {},
+                      "type": "Http"
+                  },
+                  "StatusResponse": {
+                      "inputs": {
+                          "message": "@{replace(string(xpath(xml(body('Invoke_CMD_Service_Endpoint')),'.//STATUSRESPONSE/MESSAGE/text()')?[0]),'&amp;','&')}",
+                          "type": "@{string(xpath(xml(body('Invoke_CMD_Service_Endpoint')),'.//STATUSRESPONSE/TYPE/text()')?[0])}"
+                      },
+                      "runAfter": {
+                          "Invoke_CMD_Service_Endpoint": [
+                              "Succeeded",
+                              "Failed"
+                          ]
+                      },
+                      "type": "Compose"
+                  }
+              },
+              "runAfter": {
+                  "Condition_to_check_NationalState": [
+                      "Succeeded"
+                  ]
+              },
+              "trackedProperties": {
+                  "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+                  "citizenName": "c00031",
+                  "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                  "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}",
+                  "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                  "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'CMD')}",
+                  "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'CMD')}",
+                  "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                  "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'SEARCHCMD')}",
+                  "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}"
+              },
+              "type": "Scope"
+          },
+          "getConfiguration_region": {
+              "inputs": {
+                  "body": {
+                      "key": "cmd-region-config"
+                  },
+                  "host": {
+                      "triggerName": "manual",
+                      "workflow": {
+                          "id": "${getConfiguration_logicAppId}"
+                      }
+                  }
+              },
+              "runAfter": {},
+              "type": "Workflow"
+          }
+      },
+      "contentVersion": "1.0.0.0",
+      "outputs": {},
+      "parameters": {
+          "pinCodeCountriesToExempt": {
+              "defaultValue": "US,IN,FI,NL,SE,CA,CY,NZ,BR,ID,ZA,NO,IS,RU,DE,SA",
+              "type": "String"
+          }
+      },
+      "triggers": {
+          "manual": {
+              "inputs": {
+                  "method": "POST",
+                  "schema": {}
+              },
+              "kind": "Http",
+              "type": "Request"
+          }
+      }
+  }

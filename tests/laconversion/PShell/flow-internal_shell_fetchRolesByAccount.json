@@ -1,0 +1,243 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Initialize_variable_finalResponse": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "finalResponse",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_whereClause": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "whereClause",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_zeroResults": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "zeroResults",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Scope-Catch": {
+            "actions": {
+                "Error_Response": {
+                    "inputs": {
+                        "body": {
+                            "Message": "@concat('Some error occurred while processing the request. Please find more details using tracking id : ', workflow()['run']['name'])",
+                            "Status": "Failure"
+                        },
+                        "headers": {
+                            "Content-Type": "application/json"
+                        },
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                },
+                "Terminate_in_Catch": {
+                    "inputs": {
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Error_Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Scope-Try": [
+                    "Failed",
+                    "Skipped",
+                    "TimedOut"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope-Try": {
+            "actions": {
+                "Compose_to_get_AccountId": {
+                    "inputs": "@triggerBody()?['accountId']",
+                    "runAfter": {},
+                    "type": "Compose"
+                },
+                "Final_Response_Compose": {
+                    "inputs": "@if(equals(variables('finalResponse'),''),concat('{\"SIE_SF4S_fetchRoleOutput\":{\"S4SRole__C\":[',variables('zeroResults'),']}}'),concat('{\"SIE_SF4S_fetchRoleOutput\":{\"S4SRole__C\":[',variables('finalResponse'),']}}'))",
+                    "runAfter": {
+                        "For_each_record_in_Query_Result": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Compose"
+                },
+                "Execute_a_SOQL_query": {
+                    "inputs": {
+                        "body": {
+                            "query": "select \nId,IsDeleted,Name,CurrencyIsoCode,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,S4SAccount__c,S4SBU__c,S4SCountries__c,S4SDivision__c,S4SLead_Country__c,S4SPricing_Primary__c,S4SROLE_LegacyID__c,S4SRolesGP__c,S4SRoles__c,S4SAccount_Classification__c,S4SAccount_Status__c,S4SSource_Type__c from S4SRole__c where @{variables('whereClause')}"
+                        },
+                        "host": {
+                            "connection": {
+                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                            }
+                        },
+                        "method": "post",
+                        "path": "/soql/executesoqlquery"
+                    },
+                    "runAfter": {
+                        "Set_variable_whereClause": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "ApiConnection"
+                },
+                "For_each_record_in_Query_Result": {
+                    "actions": {
+                        "Compose_Response_from_QueryResult": {
+                            "inputs": {
+                                "CreatedById": "@{items('For_each_record_in_Query_Result')?['CreatedById']}",
+                                "CreatedDate": "@replace(coalesce(items('For_each_record_in_Query_Result')?['CreatedDate'], ''), '+00:00', '.000Z')",
+                                "CurrencyIsoCode": "@{items('For_each_record_in_Query_Result')?['CurrencyIsoCode']}",
+                                "Id": "@{items('For_each_record_in_Query_Result')?['Id']}",
+                                "IsDeleted": "@{items('For_each_record_in_Query_Result')?['IsDeleted']}",
+                                "LastModifiedById": "@{items('For_each_record_in_Query_Result')?['LastModifiedById']}",
+                                "LastModifiedDate": "@replace(coalesce(items('For_each_record_in_Query_Result')?['LastModifiedDate'], ''), '+00:00', '.000Z')",
+                                "Name": "@{items('For_each_record_in_Query_Result')?['Name']}",
+                                "S4SAccount_Classification__c": "@{items('For_each_record_in_Query_Result')?['S4SAccount_Classification__c']}",
+                                "S4SAccount_Status__c": "@{items('For_each_record_in_Query_Result')?['S4SAccount_Status__c']}",
+                                "S4SAccount__c": "@{items('For_each_record_in_Query_Result')?['S4SAccount__c']}",
+                                "S4SBU__c": "@{items('For_each_record_in_Query_Result')?['S4SBU__c']}",
+                                "S4SCountries__c": "@{items('For_each_record_in_Query_Result')?['S4SCountries__c']}",
+                                "S4SDivision__c": "@{items('For_each_record_in_Query_Result')?['S4SDivision__c']}",
+                                "S4SLead_Country__c": "@{items('For_each_record_in_Query_Result')?['S4SLead_Country__c']}",
+                                "S4SPricing_Primary__c": "@{items('For_each_record_in_Query_Result')?['S4SPricing_Primary__c']}",
+                                "S4SROLE_LegacyID__c": "@{items('For_each_record_in_Query_Result')?['S4SROLE_LegacyID__c']}",
+                                "S4SRolesGP__c": "@{items('For_each_record_in_Query_Result')?['S4SRolesGP__c']}",
+                                "S4SRoles__c": "@{items('For_each_record_in_Query_Result')?['S4SRoles__c']}",
+                                "S4SSource_Type__c": "@{items('For_each_record_in_Query_Result')?['S4SSource_Type__c']}",
+                                "SystemModstamp": "@replace(coalesce(items('For_each_record_in_Query_Result')?['SystemModstamp'], ''), '+00:00', '.000Z')"
+                            },
+                            "runAfter": {},
+                            "type": "Compose"
+                        },
+                        "Compose_to_add_result_to_FinalResponse": {
+                            "inputs": "@if(equals(variables('finalResponse'),''),outputs('Compose_Response_from_QueryResult'),concat(variables('finalResponse'),',',outputs('Compose_Response_from_QueryResult')))",
+                            "runAfter": {
+                                "Compose_Response_from_QueryResult": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Compose"
+                        },
+                        "Set_variable_Final_Response": {
+                            "inputs": {
+                                "name": "finalResponse",
+                                "value": "@{outputs('Compose_to_add_result_to_FinalResponse')}"
+                            },
+                            "runAfter": {
+                                "Compose_to_add_result_to_FinalResponse": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "SetVariable"
+                        }
+                    },
+                    "foreach": "@body('Execute_a_SOQL_query')['records']",
+                    "runAfter": {
+                        "Execute_a_SOQL_query": [
+                            "Succeeded"
+                        ]
+                    },
+                    "runtimeConfiguration": {
+                        "concurrency": {
+                            "repetitions": 1
+                        }
+                    },
+                    "type": "Foreach"
+                },
+                "Final_Response": {
+                    "inputs": {
+                        "body": "@json(outputs('Final_Response_Compose'))",
+                        "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "Final_Response_Compose": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
+                },
+                "Set_variable_whereClause": {
+                    "inputs": {
+                        "name": "whereClause",
+                        "value": "S4SAccount__c='@{outputs('Compose_to_get_AccountId')}'"
+                    },
+                    "runAfter": {
+                        "Compose_to_get_AccountId": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "SetVariable"
+                }
+            },
+            "runAfter": {
+                "Initialize_variable_finalResponse": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_whereClause": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_zeroResults": [
+                    "Succeeded"
+                ]
+            },
+            "trackedProperties": {
+                "citizenName": "c00031",
+                "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'PShell')}",
+                "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'fetchRolesByAccount')}",
+                "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+                "parentWorkflow" : "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}"
+            },
+            "type": "Scope"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {},
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

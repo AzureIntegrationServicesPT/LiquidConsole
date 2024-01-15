@@ -1,0 +1,211 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "actions": {
+    "Condition_Account_or_Contact_": {
+      "actions": {
+        "Set_Status_to_Vetting": {
+          "inputs": {
+            "name": "Status",
+            "value": "Vetting"
+          },
+          "runAfter": {},
+          "type": "SetVariable"
+        }
+      },
+      "else": {
+        "actions": {
+          "Set_Status_from_request": {
+            "inputs": {
+              "name": "Status",
+              "value": "@triggerBody()?['Status']"
+            },
+            "runAfter": {},
+            "type": "SetVariable"
+          }
+        }
+      },
+      "expression": {
+        "or": [
+          {
+            "equals": ["@length(triggerBody()?['AccountId'])", 0]
+          },
+          {
+            "equals": ["@length(triggerBody()?['ContactId'])", 0]
+          }
+        ]
+      },
+      "runAfter": {
+        "Status": ["Succeeded"]
+      },
+      "type": "If"
+    },
+    "Response_fail_upsert": {
+      "inputs": {
+        "body": "@body('Upsert')",
+        "statusCode": 400
+      },
+      "kind": "Http",
+      "runAfter": {
+        "Upsert": ["Failed", "Skipped", "TimedOut"]
+      },
+      "type": "Response"
+    },
+    "Response_success_upsert": {
+      "inputs": {
+        "body": "@body('Upsert')",
+        "statusCode": 200
+      },
+      "kind": "Http",
+      "runAfter": {
+        "Upsert": ["Succeeded"]
+      },
+      "type": "Response"
+    },
+    "Status": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "Status",
+            "type": "string"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "Terminate_fail": {
+      "inputs": {
+        "runError": {
+          "code": "400",
+          "message": "@{body('Upsert')}"
+        },
+        "runStatus": "Failed"
+      },
+      "runAfter": {
+        "Response_fail_upsert": ["Succeeded"]
+      },
+      "type": "Terminate"
+    },
+    "Terminate_success": {
+      "inputs": {
+        "runStatus": "Succeeded"
+      },
+      "runAfter": {
+        "Response_success_upsert": ["Succeeded"]
+      },
+      "type": "Terminate"
+    },
+    "Upsert": {
+      "inputs": {
+        "body": {
+          "AccountId": "@triggerBody()?['AccountId']",
+          "BusinessHoursId": "@triggerBody()?['BusinessHoursId']",
+          "CaseNumber": "@triggerBody()?['CaseNumber']",
+          "ContactId": "@triggerBody()?['ContactId']",
+          "ExternalSource": "@triggerBody()?['ExternalSource']",
+          "Id": "@triggerBody()?['Id']",
+          "OwnerId": "@triggerBody()?['OwnerId']",
+          "ProductId": "@triggerBody()?['ProductId']",
+          "RecordTypeId": "@triggerBody()?['RecordTypeId']",
+          "S4SFinal_Resolution__c": "@triggerBody()?['S4SFinal_Resolution__c']",
+          "S4SOriginalPO__c": "@triggerBody()?['S4SOriginalPO__c']",
+          "S4SProfit_Center__c": "@triggerBody()?['S4SProfit_Center__c']",
+          "S4SSAPSalesOrder__c": "@triggerBody()?['S4SSAPSalesOrder__c']",
+          "S4SSiemens_Territory_Structure__c": "@triggerBody()?['S4SSiemens_Territory_Structure__c']",
+          "S4SSubType__c": "@triggerBody()?['S4SSubType__c']",
+          "Status": "@variables('Status')",
+          "Subject": "@triggerBody()?['Subject']",
+          "Type": "@triggerBody()?['Type']"
+        },
+        "host": {
+          "triggerName": "manual",
+          "workflow": {
+            "id": "${eskerUpsertCase_logicApp_id}"
+          }
+        },
+        "retryPolicy": {
+          "type": "none"
+        }
+      },
+      "runAfter": {
+        "Condition_Account_or_Contact_": ["Succeeded"]
+      },
+      "type": "Workflow"
+    }
+  },
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {
+    "$connections": {
+      "defaultValue": {},
+      "type": "Object"
+    }
+  },
+  "triggers": {
+    "manual": {
+      "inputs": {
+        "schema": {
+          "properties": {
+            "AccountId": {
+              "type": "string"
+            },
+            "BusinessHoursId": {
+              "type": "string"
+            },
+            "CaseNumber": {
+              "type": "string"
+            },
+            "ContactId": {
+              "type": "string"
+            },
+            "ExternalSource": {
+              "type": "string"
+            },
+            "Id": {
+              "type": "string"
+            },
+            "OwnerId": {
+              "type": "string"
+            },
+            "ProductId": {
+              "type": "string"
+            },
+            "RecordTypeId": {
+              "type": "string"
+            },
+            "S4SFinal_Resolution__c": {
+              "type": "string"
+            },
+            "S4SOriginalPO__c": {
+              "type": "string"
+            },
+            "S4SProfit_Center__c": {
+              "type": "string"
+            },
+            "S4SSAPSalesOrder__c": {
+              "type": "string"
+            },
+            "S4SSiemens_Territory_Structure__c": {
+              "type": "string"
+            },
+            "S4SSubType__c": {
+              "type": "string"
+            },
+            "Status": {
+              "type": "string"
+            },
+            "Subject": {
+              "type": "string"
+            },
+            "Type": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "kind": "Http",
+      "type": "Request"
+    }
+  }
+}

@@ -1,0 +1,93 @@
+{
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Scope_Try": {
+                "actions": {
+                    "Failure_Response": {
+                        "inputs": {
+                            "body": {},
+                            "headers": {
+                                "Content-Type": "application/json"
+                            },
+                            "statusCode": "@outputs('SetConfiguration_in_Key_Vault')['statusCode']"
+                        },
+                        "kind": "Http",
+                        "runAfter": {
+                            "Scope_-_Retrieve_Configuration": [
+                                "Failed",
+                                "Skipped",
+                                "TimedOut"
+                            ]
+                        },
+                        "type": "Response"
+                    },
+                    "Scope_-_Retrieve_Configuration": {
+                        "actions": {
+                            "SetConfiguration_in_Key_Vault": {
+                                "inputs": {
+                                    "authentication": {
+                                        "audience": "https://vault.azure.net",
+                                        "type": "ManagedServiceIdentity"
+                                    },
+                                    "body": {
+                                        "value": "@{triggerBody()?['body']}"
+                                    },
+                                    "method": "PUT",
+                                    "queries": {
+                                        "api-version": "2016-10-01"
+                                    },
+                                    "uri": "${keyVaultSecretBaseUri}/@{coalesce(triggerOutputs()?['headers']?['key'])}"
+                                },
+                                "runAfter": {},
+                                "type": "Http"
+                            }
+                        },
+                        "runAfter": {},
+                        "type": "Scope"
+                    },
+                    "Success_Response": {
+                        "inputs": {
+                            "body": "@body('SetConfiguration_in_Key_Vault')?['value']",
+                            "statusCode": 200
+                        },
+                        "kind": "Http",
+                        "runAfter": {
+                            "Scope_-_Retrieve_Configuration": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Response"
+                    }
+                },
+                "runAfter": {},
+                "type": "Scope"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {},
+        "triggers": {
+            "manual": {
+                "inputs": {
+                    "schema": {
+                        "properties": {
+                            "body": {
+                                "description": "Configuration item to fetch from configuration store.",
+                                "type": "string"
+                            },
+                            "trackedProperties": {
+                                "description": "tracked properties (json structure) from the parent integration.",
+                                "properties": {},
+                                "type": "object"
+                            }
+                        },
+                        "required": [
+                        ],
+                        "type": "object"
+                    }
+                },
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+}

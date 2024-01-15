@@ -1,0 +1,209 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+        "HTTP-GetToken": {
+            "inputs": {
+                "headers": {
+                    "Ocp-Apim-Subscription-Key": "${apimKey}"
+                },
+                "method": "POST",
+                "uri": "${apimURL}"
+            },
+            "runAfter": {},
+            "type": "Http"
+        },
+        "Scope-UpsertBookingLine": {
+            "actions": {
+                "Condition_check_on_StatusCode_of_UpsertBookingLine": {
+                    "actions": {
+                        "Success_Response": {
+                            "inputs": {
+                                "body": "@coalesce(outputs('Create_record_BookingLine')?['body'],outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID_BookingLine')?['body'])",
+                                "statusCode": "@coalesce(outputs('Create_record_BookingLine')?['statusCode'],outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID_BookingLine')?['statusCode'])"
+                            },
+                            "kind": "Http",
+                            "runAfter": {},
+                            "type": "Response"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Failed_Response_Upsert_BookingLine": {
+                                "inputs": {
+                                    "body": {
+                                        "ERROR_MSG": "@{coalesce(outputs('Create_record_BookingLine')?['body']?[0],outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID_BookingLine')?['body']?[0])}",
+                                        "success": false
+                                    },
+                                    "statusCode": "@coalesce(outputs('Create_record_BookingLine')?['statusCode'],outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID_BookingLine')?['statusCode'])"
+                                },
+                                "kind": "Http",
+                                "runAfter": {},
+                                "type": "Response"
+                            },
+                            "Terminate-Failed-Upsert-BookingLine": {
+                                "inputs": {
+                                    "runStatus": "Failed"
+                                },
+                                "runAfter": {
+                                    "Failed_Response_Upsert_BookingLine": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Terminate"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "or": [
+                            {
+                                "equals": [
+                                    "@coalesce(outputs('Create_record_BookingLine')?['statusCode'],outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID_BookingLine')?['statusCode'])",
+                                    200
+                                ]
+                            },
+                            {
+                                "equals": [
+                                    "@coalesce(outputs('Create_record_BookingLine')?['statusCode'],outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID_BookingLine')?['statusCode'])",
+                                    201
+                                ]
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Condition_to_check_Id_BookingLine": [
+                            "Succeeded",
+                            "Failed"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Condition_to_check_Id_BookingLine": {
+                    "actions": {
+                        "Create_record_BookingLine": {
+                            "inputs": {
+                                "body": "@removeProperty(triggerBody(),'Id')",
+                                "headers": {
+                                    "Authorization": "Bearer @{body('HTTP-GetToken')}",
+                                    "Content-Type": "application/json"
+                                },
+                                "method": "POST",
+                                "retryPolicy": {
+                                    "count": 2,
+                                    "interval": "PT5S",
+                                    "type": "fixed"
+                                },
+                                "uri": "${instance_NonSFS_URL}/sobjects/S4SBooking_Line_Item__c/"
+                            },
+                            "runAfter": {},
+                            "type": "Http"
+                        }
+                    },
+                    "else": {
+                        "actions": {
+                            "Insert_or_Update_(Upsert)_a_Record_by_External_ID_BookingLine": {
+                                "inputs": {
+                                    "body": "@removeProperty(triggerBody(),'Id')",
+                                    "headers": {
+                                        "Authorization": "Bearer @{body('HTTP-GetToken')}",
+                                        "Content-Type": "application/json"
+                                    },
+                                    "method": "PATCH",
+                                    "uri": "${instance_NonSFS_URL}/sobjects/S4SBooking_Line_Item__c/Id/@{triggerBody()?['Id']}"
+                                },
+                                "runAfter": {},
+                                "type": "Http"
+                            }
+                        }
+                    },
+                    "expression": {
+                        "or": [
+                            {
+                                "equals": [
+                                    "@triggerBody()?['Id']",
+                                    "@null"
+                                ]
+                            },
+                            {
+                                "equals": [
+                                    "@triggerBody()?['Id']",
+                                    "@string('')"
+                                ]
+                            }
+                        ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                }
+            },
+            "runAfter": {
+                "HTTP-GetToken": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope_Catch": {
+            "actions": {
+                "Catch_Response": {
+                    "inputs": {
+                        "body": {
+                            "ERROR_MSG": "@{concat('Some error occurred while Logic App Execution. Please find more details using tracking id : ', workflow()['run']['name'])}",
+                            "success": false
+                        },
+                        "headers": {
+                            "Content-Type": "text/xml"
+                        },
+                        "statusCode": 500
+                    },
+                    "kind": "http",
+                    "runAfter": {},
+                    "type": "Response"
+                },
+                "Terminate-Failed": {
+                    "inputs": {
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Catch_Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Scope-UpsertBookingLine": [
+                    "Failed",
+                    "Skipped",
+                    "TimedOut"
+                ]
+            },
+            "trackedProperties": {
+                "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+                "citizenName": "c00031",
+                "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'shared')}",
+                "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'internal_insert_update_BookingLine')}",
+                "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}"
+            },
+            "type": "Scope"
+        }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "manual": {
+                "inputs": {},
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+}

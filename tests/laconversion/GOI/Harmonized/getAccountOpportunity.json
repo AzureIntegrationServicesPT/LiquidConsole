@@ -1,0 +1,1000 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Initialize_Account_Query_String": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "AccQuery",
+                        "type": "string",
+                        "value": "SELECT Id, Name, S4SDUNS__c, S4SIfA__c, BillingStreet, BillingCountry, BillingState, BillingPostalCode, S4SCMD_NAME1__c, S4SCMD_NAME2__c, S4SCMD_NAME3__c, S4SSiemens_Account_Type__c, ParentId, BillingCity, ShippingCountry, ShippingPostalCode, ShippingCity, ShippingState, Phone, Fax, S4SEmail__c, Website, S4SSISIC_Ship_To__r.Name, S4SSISIC_Ship_To__r.S4SIndustry_Description__c, S4SACCOUNT_LegacyID__c FROM Account "
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_Accounts": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "Accs",
+                        "type": "array"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_Condition_Integer": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "conditionCheck",
+                        "type": "integer",
+                        "value": -1
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_Identification_Number_Query_String": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "IdentQuery",
+                        "type": "string",
+                        "value": "SELECT S4SIdentification_Number__c, S4SLocal_Source_System__c from S4SIdentification_Number__c "
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_Opportunity_Array": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "Opps",
+                        "type": "array"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_Opportunity_Query_String": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "OppQuery",
+                        "type": "string",
+                        "value": "SELECT S4SChance_of_Execution__c, S4SChance_of_Success__c, S4SOrder_Intake__c, Description, Name, S4SRelevant_for_Forecast__c, Id, S4SOpportunity_Industry__c, S4SBid_approval_PM040__c, S4SSales_Status__c, StageName, CurrencyIsoCode, Type, CloseDate, S4SReference_ID__c, S4SEnd_Account__r.name, S4SEnd_Account__r.S4SIfA__c, S4SEnd_Account__r.Id, Account.name , Account.Id, Account.S4SIfA__c, Owner.Name, Owner.S4SGID_Technical__c, Owner.Id, Owner.Email, OwnerId, S4SOPPORTUNITY_LegacyID__c, S4SLOA_ID_Number__c FROM Opportunity "
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Scope_Catch": {
+            "actions": {
+                "Compose_Error_Message": {
+                    "inputs": {
+                        "input": "@createArray(result('For_each_Account'), result('For_each_AccountId'), result('Condition_check_if_there_is_AccountID_in_Opportunity'), result('Condition_Found_Accounts'), result('Condition_Result_Specification_Contains_O'), result('For_each_Opportunity_no_Account'), result('Condition_Matches_in_Account_Query'), result('Condition_Query_Opportunity_has_Records'), result('Switch_Condition'), result('Scope_Try'))"
+                    },
+                    "runAfter": {},
+                    "type": "Compose"
+                },
+                "Error_Response": {
+                    "inputs": {
+                        "body": "@body('Set_Error_Message')",
+                        "headers": {
+                            "Content-Type": "application/json"
+                        },
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "Set_Error_Message": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
+                },
+                "Set_Error_Message": {
+                    "inputs": {
+                        "authentication": {
+                            "type": "Raw",
+                            "value": "[parameters('functionAppKey')]"
+                        },
+                        "body": "@outputs('Compose_Error_Message')",
+                        "function": {
+                            "id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+                        },
+                        "headers": {
+                            "Accept": "application/json",
+                            "Content-Type": "application/json",
+                            "Filename": "${liquid_setError}"
+                        },
+                        "method": "POST"
+                    },
+                    "runAfter": {
+                        "Compose_Error_Message": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Function"
+                },
+                "Terminate": {
+                    "inputs": {
+                        "runError": {
+                            "code": "500"
+                        },
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Error_Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Scope_Try": [
+                    "Failed"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope_Check_resultSpecification": {
+            "actions": {
+                "Compose_resultSpecification": {
+                    "inputs": "@triggerBody()?['searchAccountOpportunityRequest']['resultSpecification']",
+                    "runAfter": {},
+                    "type": "Compose"
+                }
+            },
+            "runAfter": {
+                "Initialize_Account_Query_String": [
+                    "Succeeded"
+                ],
+                "Initialize_Accounts": [
+                    "Succeeded"
+                ],
+                "Initialize_Condition_Integer": [
+                    "Succeeded"
+                ],
+                "Initialize_Identification_Number_Query_String": [
+                    "Succeeded"
+                ],
+                "Initialize_Opportunity_Array": [
+                    "Succeeded"
+                ],
+                "Initialize_Opportunity_Query_String": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope_Try": {
+            "actions": {
+                "Compose_Final_Response": {
+                    "inputs": {
+                        "authentication": {
+                            "type": "Raw",
+                            "value": "[parameters('functionAppKey')]"
+                        },
+                        "body": {
+                            "accounts": "@json(string(variables('Accs')))",
+                            "excludeNulls": "@triggerBody()?['searchAccountOpportunityRequest']?['excludeNulls']",
+                            "opportunities": "@json(string(variables('Opps')))",
+                            "resultSpecification": "@triggerBody()?['searchAccountOpportunityRequest']?['resultSpecification']"
+                        },
+                        "function": {
+                            "id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+                        },
+                        "headers": {
+                            "Accept": "application/json",
+                            "Content-Type": "application/json",
+                            "Filename": "${liquid_response}"
+                        },
+                        "method": "POST",
+                        "retryPolicy": {
+                            "type": "none"
+                        }
+                    },
+                    "runAfter": {
+                        "Switch_Condition": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Function"
+                },
+                "Final_Response": {
+                    "inputs": {
+                        "body": {
+                            "searchAccountOpportunityResponse": {
+                                "@{if(\r\n        or(or(equals(toUpper(triggerBody()?['searchAccountOpportunityRequest']?['resultSpecification']), 'AO'), equals(toUpper(triggerBody()?['searchAccountOpportunityRequest']?['resultSpecification']), 'OA')), equals(toUpper(triggerBody()?['searchAccountOpportunityRequest']?['resultSpecification']), 'A')),\r\n        string('Account'),\r\n        string('Opportunity')\r\n)}": "@if(\r\n        or(or(equals(toUpper(triggerBody()?['searchAccountOpportunityRequest']?['resultSpecification']), 'AO'), equals(toUpper(triggerBody()?['searchAccountOpportunityRequest']?['resultSpecification']), 'OA')), equals(toUpper(triggerBody()?['searchAccountOpportunityRequest']?['resultSpecification']), 'A')),\r\n        body('Compose_Final_Response')?['Account'],\r\n        body('Compose_Final_Response')?['Opportunity']\r\n)",
+                                "success": "@true",
+                                "workflowRunId": "@workflow()?['run']?['name']"
+                            }
+                        },
+                        "headers": {
+                            "Content-Type": "application/json"
+                        },
+                        "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "Compose_Final_Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
+                },
+                "HTTP_Get_SF_Token": {
+                    "inputs": {
+                        "headers": {
+                            "Ocp-Apim-Subscription-Key": "${apimKey}"
+                        },
+                        "method": "POST",
+                        "retryPolicy": {
+                            "type": "none"
+                        },
+                        "uri": "${apimURL}"
+                    },
+                    "runAfter": {},
+                    "type": "Http"
+                },
+                "Prepare_Where_Clauses": {
+                    "inputs": {
+                        "authentication": {
+                            "type": "Raw",
+                            "value": "[parameters('functionAppKey')]"
+                        },
+                        "body": {
+                            "account": "@triggerBody()?['searchAccountOpportunityRequest']?['Account']",
+                            "opportunity": "@triggerBody()?['searchAccountOpportunityRequest']?['Opportunity']"
+                        },
+                        "function": {
+                            "id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+                        },
+                        "headers": {
+                            "Accept": "application/json",
+                            "Content-Type": "application/json",
+                            "Filename": "${liquid_where}"
+                        },
+                        "method": "POST",
+                        "retryPolicy": {
+                            "type": "none"
+                        }
+                    },
+                    "runAfter": {
+                        "HTTP_Get_SF_Token": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Function"
+                },
+                "Set_variable_Condition": {
+                    "inputs": {
+                        "name": "conditionCheck",
+                        "value": "@if(\r\n        and(not(equals(triggerBody()?['searchAccountOpportunityRequest']?['Opportunity'], null)), not(equals(triggerBody()?['searchAccountOpportunityRequest']?['Opportunity'], string('')))),\r\n        if(\r\n                and(not(equals(triggerBody()?['searchAccountOpportunityRequest']?['Account'], null)), not(equals(triggerBody()?['searchAccountOpportunityRequest']?['Account'], string('')))),\r\n                3,\r\n                1\r\n        ),\r\n        if(\r\n                and(not(equals(triggerBody()?['searchAccountOpportunityRequest']?['Account'], null)), not(equals(triggerBody()?['searchAccountOpportunityRequest']?['Account'], string('')))),\r\n                2, \r\n                0\r\n        )\r\n)"
+                    },
+                    "runAfter": {
+                        "Prepare_Where_Clauses": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "SetVariable"
+                },
+                "Switch_Condition": {
+                    "cases": {
+                        "Case_Account_and_Opportunity": {
+                            "actions": {
+                                "Condition_Found_Accounts": {
+                                    "actions": {
+                                        "For_each_Account": {
+                                            "actions": {
+                                                "Append_to_Accounts_array": {
+                                                    "inputs": {
+                                                        "name": "Accs",
+                                                        "value": "@addProperty(\r\n        items('For_each_Account'), \r\n        string('S4SIdentification_Number__c'), \r\n        if(\r\n                greaterOrEquals(body('Query_Identification_Number')?['totalSize'], 1),\r\n                body('Query_Identification_Number')?['records'],\r\n                null\r\n        )        \r\n)"
+                                                    },
+                                                    "runAfter": {
+                                                        "Query_Identification_Number": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "AppendToArrayVariable"
+                                                },
+                                                "Query_Identification_Number": {
+                                                    "inputs": {
+                                                        "headers": {
+                                                            "Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+                                                        },
+                                                        "method": "GET",
+                                                        "queries": {
+                                                            "q": "@{concat(\r\n        variables('IdentQuery'), \r\n        body('Prepare_Where_Clauses')?['identification_clause'], \r\n        if(\r\n                or(equals(body('Prepare_Where_Clauses')?['identification_clause'], string('')), equals(body('Prepare_Where_Clauses')?['identification_clause'], null)),\r\n                string('WHERE S4SAccount__c = '),\r\n                string(' AND S4SAccount__c = ')\r\n        ), \r\n        string(''''), items('For_each_Account')?['Id'], string(''''), \r\n        string(' LIMIT 200')\r\n)}"
+                                                        },
+                                                        "uri": "${instance_NonSFS_URL}/query"
+                                                    },
+                                                    "runAfter": {
+                                                        "Set_Opportunities_Array": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "Http"
+                                                },
+                                                "Query_Opportunities": {
+                                                    "inputs": {
+                                                        "headers": {
+                                                            "Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+                                                        },
+                                                        "method": "GET",
+                                                        "queries": {
+                                                            "q": "@{concat(\r\n        variables('OppQuery'), \r\n        body('Prepare_Where_Clauses')?['opportunity_clause'], \r\n        if(\r\n                or(equals(body('Prepare_Where_Clauses')?['opportunity_clause'], null), equals(body('Prepare_Where_Clauses')?['opportunity_clause'], string(''))),\r\n                string(' WHERE AccountId = '),\r\n                string(' AND AccountId = ')\r\n        ), \r\n        string(''''), \r\n        items('For_each_Account')?['Id'], \r\n        string(''''), \r\n        string(' LIMIT 200')\r\n)}"
+                                                        },
+                                                        "retryPolicy": {
+                                                            "type": "none"
+                                                        },
+                                                        "uri": "${instance_NonSFS_URL}/query"
+                                                    },
+                                                    "runAfter": {},
+                                                    "type": "Http"
+                                                },
+                                                "Set_Opportunities_Array": {
+                                                    "inputs": {
+                                                        "name": "Opps",
+                                                        "value": "@body('Query_Opportunities')?['records']"
+                                                    },
+                                                    "runAfter": {
+                                                        "Query_Opportunities": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "SetVariable"
+                                                }
+                                            },
+                                            "foreach": "@body('Query_Accounts')?['records']",
+                                            "runAfter": {},
+                                            "type": "Foreach"
+                                        }
+                                    },
+                                    "else": {
+                                        "actions": {
+                                            "Response_No_Matches_for_Account": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "searchAccountOpportunityResponse": {
+                                                            "Account": "@null",
+                                                            "message": "No matches for provided Account data",
+                                                            "success": "@true",
+                                                            "workflowRunId": "@workflow()?['run']?['name']"
+                                                        }
+                                                    },
+                                                    "statusCode": 200
+                                                },
+                                                "kind": "Http",
+                                                "runAfter": {},
+                                                "type": "Response"
+                                            },
+                                            "Terminate_No_Matches_for_Account": {
+                                                "inputs": {
+                                                    "runStatus": "Succeeded"
+                                                },
+                                                "runAfter": {
+                                                    "Response_No_Matches_for_Account": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "Terminate"
+                                            }
+                                        }
+                                    },
+                                    "expression": {
+                                        "and": [
+                                            {
+                                                "greater": [
+                                                    "@body('Query_Accounts')?['totalSize']",
+                                                    0
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "runAfter": {
+                                        "Query_Accounts": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "If"
+                                },
+                                "Query_Accounts": {
+                                    "inputs": {
+                                        "headers": {
+                                            "Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+                                        },
+                                        "method": "GET",
+                                        "queries": {
+                                            "q": "@{concat(variables('AccQuery'), body('Prepare_Where_Clauses')?['account_clause'], string(' LIMIT 200'))}"
+                                        },
+                                        "retryPolicy": {
+                                            "type": "none"
+                                        },
+                                        "uri": "${instance_NonSFS_URL}/query"
+                                    },
+                                    "runAfter": {},
+                                    "type": "Http"
+                                }
+                            },
+                            "case": 3
+                        },
+                        "Case_Only_Account": {
+                            "actions": {
+                                "Condition_Matches_in_Account_Query": {
+                                    "actions": {
+                                        "For_each_AccountId": {
+                                            "actions": {
+                                                "Append_to_Accounts_array_no_Opportunity": {
+                                                    "inputs": {
+                                                        "name": "Accs",
+                                                        "value": "@addProperty(\r\n        items('For_each_AccountId'), \r\n        string('S4SIdentification_Number__c'), \r\n        if(\r\n                greaterOrEquals(body('Query_Identification_Number_no_Opportunity')?['totalSize'], 1),\r\n                body('Query_Identification_Number_no_Opportunity')?['records'],\r\n                null\r\n        )        \r\n)"
+                                                    },
+                                                    "runAfter": {
+                                                        "Query_Identification_Number_no_Opportunity": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "AppendToArrayVariable"
+                                                },
+                                                "Condition_Result_Specification_Contains_O": {
+                                                    "actions": {
+                                                        "Query_Opportunities_with_AccID": {
+                                                            "inputs": {
+                                                                "headers": {
+                                                                    "Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+                                                                },
+                                                                "method": "GET",
+                                                                "queries": {
+                                                                    "q": "@{concat(variables('OppQuery'), string('WHERE AccountId = '), string(''''), items('For_each_AccountId')?['Id'], string(''''), string(' LIMIT 200'))}"
+                                                                },
+                                                                "retryPolicy": {
+                                                                    "type": "none"
+                                                                },
+                                                                "uri": "${instance_NonSFS_URL}/query"
+                                                            },
+                                                            "runAfter": {},
+                                                            "type": "Http"
+                                                        },
+                                                        "Set_variable": {
+                                                            "inputs": {
+                                                                "name": "Opps",
+                                                                "value": "@body('Query_Opportunities_with_AccID')?['records']"
+                                                            },
+                                                            "runAfter": {
+                                                                "Query_Opportunities_with_AccID": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "SetVariable"
+                                                        }
+                                                    },
+                                                    "expression": {
+                                                        "or": [
+                                                            {
+                                                                "equals": [
+                                                                    "@toUpper(triggerBody()?['searchAccountOpportunityRequest']?['resultSpecification'])",
+                                                                    "@string('O')"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "equals": [
+                                                                    "@toUpper(triggerBody()?['searchAccountOpportunityRequest']?['resultSpecification'])",
+                                                                    "@string('OA')"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "equals": [
+                                                                    "@toUpper(triggerBody()?['searchAccountOpportunityRequest']?['resultSpecification'])",
+                                                                    "@string('AO')"
+                                                                ]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "runAfter": {
+                                                        "Append_to_Accounts_array_no_Opportunity": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "If"
+                                                },
+                                                "Query_Identification_Number_no_Opportunity": {
+                                                    "inputs": {
+                                                        "headers": {
+                                                            "Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+                                                        },
+                                                        "method": "GET",
+                                                        "queries": {
+                                                            "q": "@{concat(\r\n        variables('IdentQuery'), \r\n        body('Prepare_Where_Clauses')?['identification_clause'], \r\n        if(\r\n                or(equals(body('Prepare_Where_Clauses')?['identification_clause'], string('')), equals(body('Prepare_Where_Clauses')?['identification_clause'], null)),\r\n                string('WHERE S4SAccount__c = '),\r\n                string(' AND S4SAccount__c = ')\r\n        ), \r\n        string(''''), items('For_each_AccountId')?['Id'], string(''''), \r\n        string(' LIMIT 200')\r\n)}"
+                                                        },
+                                                        "uri": "${instance_NonSFS_URL}/query"
+                                                    },
+                                                    "runAfter": {},
+                                                    "type": "Http"
+                                                }
+                                            },
+                                            "foreach": "@body('Query_Accounts_no_Opportunity')?['records']",
+                                            "runAfter": {},
+                                            "type": "Foreach"
+                                        }
+                                    },
+                                    "else": {
+                                        "actions": {
+                                            "Response_No_Matches_For_Account_Query": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "searchAccountOpportunityResponse": {
+                                                            "Account": "@null",
+                                                            "message": "No matches for provided Account data",
+                                                            "success": "@true",
+                                                            "workflowRunId": "@workflow()?['run']?['name']"
+                                                        }
+                                                    },
+                                                    "statusCode": 200
+                                                },
+                                                "kind": "Http",
+                                                "runAfter": {},
+                                                "type": "Response"
+                                            },
+                                            "Terminate_No_Matches_For_Account_Query": {
+                                                "inputs": {
+                                                    "runStatus": "Succeeded"
+                                                },
+                                                "runAfter": {
+                                                    "Response_No_Matches_For_Account_Query": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "Terminate"
+                                            }
+                                        }
+                                    },
+                                    "expression": {
+                                        "and": [
+                                            {
+                                                "greater": [
+                                                    "@body('Query_Accounts_no_Opportunity')?['totalSize']",
+                                                    0
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "runAfter": {
+                                        "Query_Accounts_no_Opportunity": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "If"
+                                },
+                                "Query_Accounts_no_Opportunity": {
+                                    "inputs": {
+                                        "headers": {
+                                            "Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+                                        },
+                                        "method": "GET",
+                                        "queries": {
+                                            "q": "@{concat(variables('AccQuery'), body('Prepare_Where_Clauses')?['account_clause'], string(' LIMIT 200'))}"
+                                        },
+                                        "retryPolicy": {
+                                            "type": "none"
+                                        },
+                                        "uri": "${instance_NonSFS_URL}/query"
+                                    },
+                                    "runAfter": {},
+                                    "type": "Http"
+                                }
+                            },
+                            "case": 2
+                        },
+                        "Case_Only_Opportunity": {
+                            "actions": {
+                                "Condition_Query_Opportunity_has_Records": {
+                                    "actions": {
+                                        "For_each_Opportunity_no_Account": {
+                                            "actions": {
+                                                "Condition_check_if_there_is_AccountID_in_Opportunity": {
+                                                    "actions": {
+                                                        "Append_to_Accounts_array_based_on_Opportunity": {
+                                                            "inputs": {
+                                                                "name": "Accs",
+                                                                "value": "@addProperty(\r\n        body('Query_Accounts_based_on_AccountID_in_Opportunity')?['records']?[0], \r\n        string('S4SIdentification_Number__c'), \r\n        if(\r\n                greaterOrEquals(body('Query_Identification_Number_on_AccountId_in_Opportunity')?['totalSize'], 1),\r\n                body('Query_Identification_Number_on_AccountId_in_Opportunity')?['records'],\r\n                null\r\n        )        \r\n)"
+                                                            },
+                                                            "runAfter": {
+                                                                "Query_Identification_Number_on_AccountId_in_Opportunity": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "AppendToArrayVariable"
+                                                        },
+                                                        "Query_Accounts_based_on_AccountID_in_Opportunity": {
+                                                            "inputs": {
+                                                                "headers": {
+                                                                    "Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+                                                                },
+                                                                "method": "GET",
+                                                                "queries": {
+                                                                    "q": "@{concat(variables('AccQuery'), string('WHERE Id = '), string(''''), items('For_each_Opportunity_no_Account')?['Account']?['Id'], string(''''), string(' LIMIT 200'))}"
+                                                                },
+                                                                "retryPolicy": {
+                                                                    "type": "none"
+                                                                },
+                                                                "uri": "${instance_NonSFS_URL}/query"
+                                                            },
+                                                            "runAfter": {},
+                                                            "type": "Http"
+                                                        },
+                                                        "Query_Identification_Number_on_AccountId_in_Opportunity": {
+                                                            "inputs": {
+                                                                "headers": {
+                                                                    "Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+                                                                },
+                                                                "method": "GET",
+                                                                "queries": {
+                                                                    "q": "@{concat(\r\n        variables('IdentQuery'), \r\n        body('Prepare_Where_Clauses')?['identification_clause'], \r\n        if(\r\n                or(equals(body('Prepare_Where_Clauses')?['identification_clause'], string('')), equals(body('Prepare_Where_Clauses')?['identification_clause'], null)),\r\n                string('WHERE S4SAccount__c = '),\r\n                string(' AND S4SAccount__c = ')\r\n        ), \r\n        string(''''), body('Query_Accounts_based_on_AccountID_in_Opportunity')?['records']?[0]?['Id'], string(''''), \r\n        string(' LIMIT 200')\r\n)}"
+                                                                },
+                                                                "uri": "${instance_NonSFS_URL}/query"
+                                                            },
+                                                            "runAfter": {
+                                                                "Query_Accounts_based_on_AccountID_in_Opportunity": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "Http"
+                                                        }
+                                                    },
+                                                    "expression": {
+                                                        "and": [
+                                                            {
+                                                                "not": {
+                                                                    "equals": [
+                                                                        "@items('For_each_Opportunity_no_Account')?['Account']?['Id']",
+                                                                        "@null"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            {
+                                                                "not": {
+                                                                    "equals": [
+                                                                        "@items('For_each_Opportunity_no_Account')?['Account']?['Id']",
+                                                                        "@string('')"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    "runAfter": {},
+                                                    "type": "If"
+                                                }
+                                            },
+                                            "foreach": "@body('Query_Opportunities_no_Account')?['records']",
+                                            "runAfter": {},
+                                            "type": "Foreach"
+                                        }
+                                    },
+                                    "else": {
+                                        "actions": {
+                                            "Response_No_Matches_For_Opportunity_Query": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "searchAccountOpportunityResponse": {
+                                                            "Account": "@null",
+                                                            "message": "No matches for provided Opportunity data",
+                                                            "success": "@true",
+                                                            "workflowRunId": "@workflow()?['run']?['name']"
+                                                        }
+                                                    },
+                                                    "statusCode": 200
+                                                },
+                                                "kind": "Http",
+                                                "runAfter": {},
+                                                "type": "Response"
+                                            },
+                                            "Terminate_No_Matches_For_Opportunity_Query": {
+                                                "inputs": {
+                                                    "runStatus": "Succeeded"
+                                                },
+                                                "runAfter": {
+                                                    "Response_No_Matches_For_Opportunity_Query": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "Terminate"
+                                            }
+                                        }
+                                    },
+                                    "expression": {
+                                        "and": [
+                                            {
+                                                "greater": [
+                                                    "@body('Query_Opportunities_no_Account')?['totalSize']",
+                                                    0
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "runAfter": {
+                                        "Set_variable_Opportunities_no_Account": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "If"
+                                },
+                                "Query_Opportunities_no_Account": {
+                                    "inputs": {
+                                        "headers": {
+                                            "Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+                                        },
+                                        "method": "GET",
+                                        "queries": {
+                                            "q": "@{concat(variables('OppQuery'), body('Prepare_Where_Clauses')?['opportunity_clause'], string(' LIMIT 200'))}"
+                                        },
+                                        "retryPolicy": {
+                                            "type": "none"
+                                        },
+                                        "uri": "${instance_NonSFS_URL}/query"
+                                    },
+                                    "runAfter": {},
+                                    "type": "Http"
+                                },
+                                "Set_variable_Opportunities_no_Account": {
+                                    "inputs": {
+                                        "name": "Opps",
+                                        "value": "@body('Query_Opportunities_no_Account')?['records']"
+                                    },
+                                    "runAfter": {
+                                        "Query_Opportunities_no_Account": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "SetVariable"
+                                }
+                            },
+                            "case": 1
+                        }
+                    },
+                    "default": {
+                        "actions": {
+                            "Response_Bad_Body": {
+                                "inputs": {
+                                    "body": {
+                                        "searchAccountOpportunityResponse": {
+                                            "message": "Please provide Opportunity and/or Account data in search parameters.",
+                                            "success": "@false",
+                                            "workflowRunId": "@workflow()?['run']?['name']"
+                                        }
+                                    },
+                                    "statusCode": 200
+                                },
+                                "kind": "Http",
+                                "runAfter": {},
+                                "type": "Response"
+                            },
+                            "Terminate_Bad_Body": {
+                                "inputs": {
+                                    "runStatus": "Succeeded"
+                                },
+                                "runAfter": {
+                                    "Response_Bad_Body": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Terminate"
+                            }
+                        }
+                    },
+                    "expression": "@variables('conditionCheck')",
+                    "runAfter": {
+                        "Set_variable_Condition": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Switch"
+                }
+            },
+            "runAfter": {
+                "Scope_Check_resultSpecification": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope_no_resultSpecification": {
+            "actions": {
+                "Response_no_resultSpecification": {
+                    "inputs": {
+                        "body": {
+                            "searchAccountOpportunityResponse": {
+                                "message": "Please provide search result options.",
+                                "success": "@false",
+                                "workflowRunId": "@workflow()?['run']?['name']"
+                            }
+                        },
+                        "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                },
+                "Terminate_no_resultSpecification": {
+                    "inputs": {
+                        "runStatus": "Succeeded"
+                    },
+                    "runAfter": {
+                        "Response_no_resultSpecification": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Scope_Check_resultSpecification": [
+                    "Failed"
+                ]
+            },
+            "type": "Scope"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {
+                "schema": {
+                    "properties": {
+                        "searchAccountOpportunityRequest": {
+                            "properties": {
+                                "Account": {
+                                    "properties": {
+                                        "BillingCity": {
+                                            "type": "string"
+                                        },
+                                        "BillingCountry": {
+                                            "type": "string"
+                                        },
+                                        "BillingPostalCode": {
+                                            "type": "string"
+                                        },
+                                        "BillingState": {
+                                            "type": "string"
+                                        },
+                                        "Id": {
+                                            "type": "string"
+                                        },
+                                        "Name": {
+                                            "type": "string"
+                                        },
+                                        "Ownership": {
+                                            "type": "string"
+                                        },
+                                        "S4SACCOUNT_LegacyID__c": {
+                                            "type": "string"
+                                        },
+                                        "S4SDUNS__c": {
+                                            "type": "string"
+                                        },
+                                        "S4SIdentification_Number__c": {
+                                            "properties": {
+                                                "S4SIdentification_Number__c": {
+                                                    "type": "string"
+                                                },
+                                                "S4SLocal_Source_System__c": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "S4SIfA__c": {
+                                            "type": "string"
+                                        },
+                                        "S4SMDStatus__c": {
+                                            "type": "string"
+                                        },
+                                        "S4SSiemens_Account_Type__c": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                "Opportunity": {
+                                    "properties": {
+                                        "Account": {
+                                            "type": "string"
+                                        },
+                                        "Id": {
+                                            "type": "string"
+                                        },
+                                        "Name": {
+                                            "type": "string"
+                                        },
+                                        "Owner": {
+                                            "properties": {
+                                                "Email": {
+                                                    "type": "string"
+                                                },
+                                                "Id": {
+                                                    "type": "string"
+                                                },
+                                                "Name": {
+                                                    "type": "string"
+                                                },
+                                                "S4SGID_Technical__c": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "S4SDivision__c": {
+                                            "type": "string"
+                                        },
+                                        "S4SEnd_Account__c": {
+                                            "properties": {
+                                                "Id": {
+                                                    "type": "string"
+                                                },
+                                                "Name": {
+                                                    "type": "string"
+                                                },
+                                                "S4SIfA__c": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "S4SLOA_ID_Number__c": {
+                                            "type": "string"
+                                        },
+                                        "S4SOPPORTUNITY_LegacyID__c": {
+                                            "type": "string"
+                                        },
+                                        "S4SReference_ID__c": {
+                                            "type": "string"
+                                        },
+                                        "S4SSales_Status__c": {
+                                            "type": "string"
+                                        },
+                                        "S4STerritory_Structure__c": {
+                                            "type": "string"
+                                        },
+                                        "StageName": {
+                                            "type": "string"
+                                        },
+                                        "Type": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                "excludeNulls": {
+                                    "type": "boolean"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "type": "object"
+                }
+            },
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

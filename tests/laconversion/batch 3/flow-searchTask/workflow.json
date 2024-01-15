@@ -1,0 +1,794 @@
+{
+  "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "actions": {
+          "Catch_Scope": {
+              "actions": {
+                  "Response_in_Catch": {
+                      "inputs": {
+                          "body": {
+                              "errormessagedetails": "@concat('Some error occurred while connection. Please find more details using tracking id : ', workflow()['run']['name'])"
+                          },
+                          "headers": {
+                              "Content-Type": "application/json"
+                          },
+                          "statusCode": 500
+                      },
+                      "kind": "Http",
+                      "runAfter": {},
+                      "type": "Response"
+                  },
+                  "Terminate_1": {
+                      "inputs": {
+                          "runStatus": "Failed"
+                      },
+                      "runAfter": {
+                          "Response_in_Catch": [
+                              "Succeeded"
+                          ]
+                      },
+                      "type": "Terminate"
+                  }
+              },
+              "runAfter": {
+                  "Try_Scope": [
+                      "Failed"
+                  ]
+              },
+              "type": "Scope"
+          },
+          "Initialize_ZeroResults_variable": {
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "ZeroResults",
+                          "type": "string",
+                          "value": "{\"AccountId\": \"\",\"OpportunityId\":\"\"}"
+                      }
+                  ]
+              },
+              "runAfter": {},
+              "type": "InitializeVariable"
+          },
+          "Initialize_finalWhereClause": {
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "finalWhereClause",
+                          "type": "string",
+                          "value": "@{''}"
+                      }
+                  ]
+              },
+              "runAfter": {},
+              "type": "InitializeVariable"
+          },
+          "Initialize_trimmedWildcard": {
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "trimmedWildcard",
+                          "type": "string",
+                          "value": "@{''}"
+                      }
+                  ]
+              },
+              "runAfter": {},
+              "type": "InitializeVariable"
+          },
+          "Initialize_value": {
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "WhatIdsubString",
+                          "type": "string"
+                      }
+                  ]
+              },
+              "runAfter": {},
+              "type": "InitializeVariable"
+          },
+          "Initialize_variable_finalTaskResponse": {
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "finalTaskResponse",
+                          "type": "string"
+                      }
+                  ]
+              },
+              "runAfter": {},
+              "type": "InitializeVariable"
+          },
+          "Initialize_whereClause": {
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "whereClause",
+                          "type": "string",
+                          "value": "@{''}"
+                      }
+                  ]
+              },
+              "runAfter": {},
+              "type": "InitializeVariable"
+          },
+          "Initialize_wildcardLength": {
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "wildcardLength",
+                          "type": "integer",
+                          "value": 0
+                      }
+                  ]
+              },
+              "runAfter": {},
+              "type": "InitializeVariable"
+          },
+          "Try_Scope": {
+              "actions": {
+                  "Activity_task_check": {
+                      "actions": {
+                          "ActivityId": {
+                              "actions": {
+                                  "Set_whereClause_for_ActivityId": {
+                                      "inputs": {
+                                          "name": "whereClause",
+                                          "value": "Id='@{outputs('Compose')['ActivityId']}'"
+                                      },
+                                      "runAfter": {},
+                                      "type": "SetVariable"
+                                  }
+                              },
+                              "else": {
+                                  "actions": {
+                                      "S4STASK_LegacyID__c_check": {
+                                          "actions": {
+                                              "Set_whereClause_for_S4STask_LegacyID__c": {
+                                                  "inputs": {
+                                                      "name": "whereClause",
+                                                      "value": "S4STask_LegacyID__c='@{outputs('Compose')?['S4STASK_LegacyID__c']}'"
+                                                  },
+                                                  "runAfter": {},
+                                                  "type": "SetVariable"
+                                              }
+                                          },
+                                          "else": {
+                                              "actions": {
+                                                  "Subject_check": {
+                                                      "actions": {
+                                                          "Condition": {
+                                                              "actions": {
+                                                                  "Set_whereClause_for_Subject": {
+                                                                      "inputs": {
+                                                                          "name": "whereClause",
+                                                                          "value": "Subject like '@{outputs('compose')?['Subject']}'"
+                                                                      },
+                                                                      "runAfter": {},
+                                                                      "type": "SetVariable"
+                                                                  }
+                                                              },
+                                                              "else": {
+                                                                  "actions": {
+                                                                      "Response": {
+                                                                          "inputs": {
+                                                                              "body": {
+                                                                                  "Message": "Too short search criteria."
+                                                                              },
+                                                                              "headers": {
+                                                                                  "Content-Type": "application/json"
+                                                                              },
+                                                                              "statusCode": 404
+                                                                          },
+                                                                          "kind": "Http",
+                                                                          "runAfter": {},
+                                                                          "type": "Response"
+                                                                      },
+                                                                      "Terminate_2": {
+                                                                          "inputs": {
+                                                                              "runError": {
+                                                                                  "code": "404",
+                                                                                  "message": "Too short search criteria."
+                                                                              },
+                                                                              "runStatus": "Failed"
+                                                                          },
+                                                                          "runAfter": {
+                                                                              "Response": [
+                                                                                  "Succeeded"
+                                                                              ]
+                                                                          },
+                                                                          "type": "Terminate"
+                                                                      }
+                                                                  }
+                                                              },
+                                                              "expression": {
+                                                                  "and": [
+                                                                      {
+                                                                          "greater": [
+                                                                              "@variables('wildcardLength')",
+                                                                              2
+                                                                          ]
+                                                                      }
+                                                                  ]
+                                                              },
+                                                              "runAfter": {
+                                                                  "length_of_trimmedWildcard": [
+                                                                      "Succeeded"
+                                                                  ]
+                                                              },
+                                                              "type": "If"
+                                                          },
+                                                          "Remove_*": {
+                                                              "inputs": {
+                                                                  "name": "trimmedWildcard",
+                                                                  "value": "@{replace(outputs('compose')?['Subject'],'*','')}"
+                                                              },
+                                                              "runAfter": {},
+                                                              "type": "SetVariable"
+                                                          },
+                                                          "length_of_trimmedWildcard": {
+                                                              "inputs": {
+                                                                  "name": "wildcardLength",
+                                                                  "value": "@length(variables('trimmedWildcard'))"
+                                                              },
+                                                              "runAfter": {
+                                                                  "Remove_*": [
+                                                                      "Succeeded"
+                                                                  ]
+                                                              },
+                                                              "type": "SetVariable"
+                                                          }
+                                                      },
+                                                      "else": {
+                                                          "actions": {
+                                                              "Response_2": {
+                                                                  "inputs": {
+                                                                      "body": {
+                                                                          "Message": "Input parameters not provided!"
+                                                                      },
+                                                                      "headers": {
+                                                                          "Content-Type": "application/json"
+                                                                      },
+                                                                      "statusCode": 422
+                                                                  },
+                                                                  "kind": "Http",
+                                                                  "runAfter": {},
+                                                                  "type": "Response"
+                                                              }
+                                                          }
+                                                      },
+                                                      "expression": {
+                                                          "and": [
+                                                              {
+                                                                  "not": {
+                                                                      "equals": [
+                                                                          "@outputs('compose')?['Subject']",
+                                                                          "@''"
+                                                                      ]
+                                                                  }
+                                                              },
+                                                              {
+                                                                  "not": {
+                                                                      "equals": [
+                                                                          "@outputs('compose')?['Subject']",
+                                                                          "@null"
+                                                                      ]
+                                                                  }
+                                                              }
+                                                          ]
+                                                      },
+                                                      "runAfter": {},
+                                                      "type": "If"
+                                                  }
+                                              }
+                                          },
+                                          "expression": {
+                                              "and": [
+                                                  {
+                                                      "not": {
+                                                          "equals": [
+                                                              "@outputs('Compose')?['S4STASK_LegacyID__c']",
+                                                              "@''"
+                                                          ]
+                                                      }
+                                                  },
+                                                  {
+                                                      "not": {
+                                                          "equals": [
+                                                              "@outputs('Compose')?['S4STASK_LegacyID__c']",
+                                                              "@null"
+                                                          ]
+                                                      }
+                                                  }
+                                              ]
+                                          },
+                                          "runAfter": {},
+                                          "type": "If"
+                                      }
+                                  }
+                              },
+                              "expression": {
+                                  "and": [
+                                      {
+                                          "not": {
+                                              "equals": [
+                                                  "@outputs('Compose')?['ActivityId']",
+                                                  "@''"
+                                              ]
+                                          }
+                                      },
+                                      {
+                                          "not": {
+                                              "equals": [
+                                                  "@outputs('Compose')?['ActivityId']",
+                                                  "@string('null')"
+                                              ]
+                                          }
+                                      }
+                                  ]
+                              },
+                              "runAfter": {},
+                              "type": "If"
+                          }
+                      },
+                      "else": {
+                          "actions": {
+                              "Error_Response": {
+                                  "inputs": {
+                                      "body": {
+                                          "Message": "Input parameters not provided!"
+                                      },
+                                      "headers": {
+                                          "Content-Type": "application/json"
+                                      },
+                                      "statusCode": 422
+                                  },
+                                  "kind": "Http",
+                                  "runAfter": {},
+                                  "type": "Response"
+                              }
+                          }
+                      },
+                      "expression": {
+                          "and": [
+                              {
+                                  "not": {
+                                      "equals": [
+                                          "@outputs('Compose')",
+                                          "@string('null')"
+                                      ]
+                                  }
+                              },
+                              {
+                                  "not": {
+                                      "equals": [
+                                          "@outputs('Compose')",
+                                          "@null"
+                                      ]
+                                  }
+                              }
+                          ]
+                      },
+                      "runAfter": {
+                          "Compose": [
+                              "Succeeded"
+                          ]
+                      },
+                      "type": "If"
+                  },
+                  "Compose": {
+                      "inputs": "@triggerBody()?['Task']",
+                      "runAfter": {},
+                      "type": "Compose"
+                  },
+                  "whereClause_check": {
+                      "actions": {
+                          "Compose_Response": {
+                              "inputs": "@if(equals(variables('finalTaskResponse'),''),concat('{\"Task\":[',variables('ZeroResults'),']}'),concat('{\"Task\":[',variables('finalTaskResponse'),']}'))",
+                              "runAfter": {
+                                  "Condition_check_for_statusCode": [
+                                      "Succeeded"
+                                  ]
+                              },
+                              "type": "Compose"
+                          },
+                          "Condition_check_for_statusCode": {
+                              "actions": {
+                                  "For_each": {
+                                      "actions": {
+                                          "Substring_of_WhatId": {
+                                              "inputs": {
+                                                  "name": "WhatIdsubString",
+                                                  "value": "@{if(equals(item()?['WhatId'],null),'',substring(items('For_each')?['WhatId'],0,3))}"
+                                              },
+                                              "runAfter": {},
+                                              "type": "SetVariable"
+                                          },
+                                          "if_Substring_is_equal_to_001": {
+                                              "actions": {
+                                                  "Compose_2": {
+                                                      "inputs": {
+                                                          "AccountId": "@{items('For_each')?['WhatId']}",
+                                                          "Activity": "Task",
+                                                          "ActivityId": "@{items('For_each')?['Id']}",
+                                                          "Assigned_to_ID": "@{items('For_each')?['Owner']?['Id']}",
+                                                          "Assigned_to_Name": "@{items('For_each')?['Owner']?['Name']}",
+                                                          "Comments": "@{items('For_each')?['Description']}",
+                                                          "ContactId": "@{items('For_each')?['WhoId']}",
+                                                          "CreatedDate": "@{items('For_each')?['CreatedDate']}",
+                                                          "Delegated_by_ID": "@{items('For_each')?['S4SDelegated_By__r']?['Id']}",
+                                                          "Delegated_by_Name": "@{items('For_each')?['S4SDelegated_By__r']?['Name']}",
+                                                          "DueDate": "@{items('For_each')?['ActivityDate']}",
+                                                          "LastModifiedDate": "@{items('For_each')?['LastModifiedDate']}",
+                                                          "OpportunityId": "",
+                                                          "Priority": "@{items('For_each')?['Priority']}",
+                                                          "S4SAdditional_Information__c": "@{items('For_each')?['S4SAdditional_Information__c']}",
+                                                          "S4SBU__c": "@{items('For_each')?['S4SBU__c']}",
+                                                          "S4SCompleted_Date__c": "@{items('For_each')?['S4SCompleted_Date__c']}",
+                                                          "S4SDivision__c": "@{items('For_each')?['S4SDivision__c']}",
+                                                          "S4SDocLocation_BeLux__c": "@{items('For_each')?['S4SDocLocation_BeLux__c']}",
+                                                          "S4SOpportunity_Milestone__c": "@{items('For_each')?['S4SOpportunity_Milestone__c']}",
+                                                          "S4SOther_Topics__c": "@{items('For_each')?['S4SOther_Topics__c']}",
+                                                          "S4SReason__c": "@{items('For_each')?['S4SReason__c']}",
+                                                          "S4SStatus__c": "@{items('For_each')?['Status']}",
+                                                          "S4STASK_LegacyID__c": "@{items('For_each')?['S4STASK_LegacyID__c']}",
+                                                          "S4STrainings_Topics__c": "@{items('For_each')?['S4STraining_Topic__c']}",
+                                                          "Subject": "@{items('For_each')?['Subject']}",
+                                                          "Type": "@{items('For_each')?['Type']}"
+                                                      },
+                                                      "runAfter": {},
+                                                      "type": "Compose"
+                                                  },
+                                                  "Compose__MultiRecord": {
+                                                      "inputs": "@if(equals(variables('finalTaskResponse'),''),outputs('Compose_2'),concat(variables('finalTaskResponse'),',',outputs('Compose_2')))",
+                                                      "runAfter": {
+                                                          "Compose_2": [
+                                                              "Succeeded"
+                                                          ]
+                                                      },
+                                                      "type": "Compose"
+                                                  },
+                                                  "Set_variable": {
+                                                      "inputs": {
+                                                          "name": "finalTaskResponse",
+                                                          "value": "@{outputs('Compose__MultiRecord')}"
+                                                      },
+                                                      "runAfter": {
+                                                          "Compose__MultiRecord": [
+                                                              "Succeeded"
+                                                          ]
+                                                      },
+                                                      "type": "SetVariable"
+                                                  }
+                                              },
+                                              "else": {
+                                                  "actions": {
+                                                      "if_substring_is_equal_to_006": {
+                                                          "actions": {
+                                                              "Compose_3": {
+                                                                  "inputs": {
+                                                                      "AccountId": "",
+                                                                      "Activity": "Task",
+                                                                      "ActivityId": "@{items('For_each')?['Id']}",
+                                                                      "Assigned_to_ID": "@{items('For_each')?['Owner']?['Id']}",
+                                                                      "Assigned_to_Name": "@{items('For_each')?['Owner']?['Name']}",
+                                                                      "Comments": "@{items('For_each')?['Description']}",
+                                                                      "ContactId": "@{items('For_each')?['WhoId']}",
+                                                                      "CreatedDate": "@{items('For_each')?['CreatedDate']}",
+                                                                      "Delegated_by_ID": "@{items('For_each')?['S4SDelegated_By__r']?['Id']}",
+                                                                      "Delegated_by_Name": "@{items('For_each')?['S4SDelegated_By__r']?['Name']}",
+                                                                      "DueDate": "@{items('For_each')?['ActivityDate']}",
+                                                                      "LastModifiedDate": "@{items('For_each')?['LastModifiedDate']}",
+                                                                      "OpportunityId": "@{items('For_each')?['WhatId']}",
+                                                                      "Priority": "@{items('For_each')?['Priority']}",
+                                                                      "S4SAdditional_Information__c": "@{items('For_each')?['S4SAdditional_Information__c']}",
+                                                                      "S4SBU__c": "@{items('For_each')?['S4SBU__c']}",
+                                                                      "S4SCompleted_Date__c": "@{items('For_each')?['S4SCompleted_Date__c']}",
+                                                                      "S4SDivision__c": "@{items('For_each')?['S4SDivision__c']}",
+                                                                      "S4SDocLocation_BeLux__c": "@{items('For_each')?['S4SDocLocation_BeLux__c']}",
+                                                                      "S4SOpportunity_Milestone__c": "@{items('For_each')?['S4SOpportunity_Milestone__c']}",
+                                                                      "S4SOther_Topics__c": "@{items('For_each')?['S4SOther_Topics__c']}",
+                                                                      "S4SReason__c": "@{items('For_each')?['S4SReason__c']}",
+                                                                      "S4SStatus__c": "@{items('For_each')?['Status']}",
+                                                                      "S4STASK_LegacyID__c": "@{items('For_each')?['S4STASK_LegacyID__c']}",
+                                                                      "S4STrainings_Topics__c": "@{items('For_each')?['S4STraining_Topic__c']}",
+                                                                      "Subject": "@{items('For_each')?['Subject']}",
+                                                                      "Type": "@{items('For_each')?['Type']}"
+                                                                  },
+                                                                  "runAfter": {},
+                                                                  "type": "Compose"
+                                                              },
+                                                              "Compose_MultiRecord2": {
+                                                                  "inputs": "@if(equals(variables('finalTaskResponse'),''),outputs('Compose_3'),concat(variables('finalTaskResponse'),',',outputs('Compose_3')))",
+                                                                  "runAfter": {
+                                                                      "Compose_3": [
+                                                                          "Succeeded"
+                                                                      ]
+                                                                  },
+                                                                  "type": "Compose"
+                                                              },
+                                                              "Set_variable_2": {
+                                                                  "inputs": {
+                                                                      "name": "finalTaskResponse",
+                                                                      "value": "@{outputs('Compose_MultiRecord2')}"
+                                                                  },
+                                                                  "runAfter": {
+                                                                      "Compose_MultiRecord2": [
+                                                                          "Succeeded"
+                                                                      ]
+                                                                  },
+                                                                  "type": "SetVariable"
+                                                              }
+                                                          },
+                                                          "else": {
+                                                              "actions": {
+                                                                  "Compose_4": {
+                                                                      "inputs": {
+                                                                          "AccountId": "",
+                                                                          "Activity": "Task",
+                                                                          "ActivityId": "@{items('For_each')?['Id']}",
+                                                                          "Assigned_to_ID": "@{items('For_each')?['Owner']?['Id']}",
+                                                                          "Assigned_to_Name": "@{items('For_each')?['Owner']?['Name']}",
+                                                                          "Comments": "@{items('For_each')?['Description']}",
+                                                                          "ContactId": "@{items('For_each')?['WhoId']}",
+                                                                          "CreatedDate": "@{items('For_each')?['CreatedDate']}",
+                                                                          "Delegated_by_ID": "@{items('For_each')?['S4SDelegated_By__r']?['Id']}",
+                                                                          "Delegated_by_Name": "@{items('For_each')?['S4SDelegated_By__r']?['Name']}",
+                                                                          "DueDate": "@{items('For_each')?['ActivityDate']}",
+                                                                          "LastModifiedDate": "@{items('For_each')?['LastModifiedDate']}",
+                                                                          "OpportunityId": "",
+                                                                          "Priority": "@{items('For_each')?['Priority']}",
+                                                                          "S4SAdditional_Information__c": "@{items('For_each')?['S4SAdditional_Information__c']}",
+                                                                          "S4SBU__c": "@{items('For_each')?['S4SBU__c']}",
+                                                                          "S4SCompleted_Date__c": "@{items('For_each')?['S4SCompleted_Date__c']}",
+                                                                          "S4SDivision__c": "@{items('For_each')?['S4SDivision__c']}",
+                                                                          "S4SDocLocation_BeLux__c": "@{items('For_each')?['S4SDocLocation_BeLux__c']}",
+                                                                          "S4SOpportunity_Milestone__c": "@{items('For_each')?['S4SOpportunity_Milestone__c']}",
+                                                                          "S4SOther_Topics__c": "@{items('For_each')?['S4SOther_Topics__c']}",
+                                                                          "S4SReason__c": "@{items('For_each')?['S4SReason__c']}",
+                                                                          "S4SStatus__c": "@{items('For_each')?['Status']}",
+                                                                          "S4STASK_LegacyID__c": "@{items('For_each')?['S4STASK_LegacyID__c']}",
+                                                                          "S4STrainings_Topics__c": "@{items('For_each')?['S4STraining_Topic__c']}",
+                                                                          "Subject": "@{items('For_each')?['Subject']}",
+                                                                          "Type": "@{items('For_each')?['Type']}"
+                                                                      },
+                                                                      "runAfter": {},
+                                                                      "type": "Compose"
+                                                                  },
+                                                                  "Compose_MultiRecord3": {
+                                                                      "inputs": "@if(equals(variables('finalTaskResponse'),''),outputs('Compose_4'),concat(variables('finalTaskResponse'),',',outputs('Compose_4')))",
+                                                                      "runAfter": {
+                                                                          "Compose_4": [
+                                                                              "Succeeded"
+                                                                          ]
+                                                                      },
+                                                                      "type": "Compose"
+                                                                  },
+                                                                  "Set_variable_3": {
+                                                                      "inputs": {
+                                                                          "name": "finalTaskResponse",
+                                                                          "value": "@{outputs('Compose_MultiRecord3')}"
+                                                                      },
+                                                                      "runAfter": {
+                                                                          "Compose_MultiRecord3": [
+                                                                              "Succeeded"
+                                                                          ]
+                                                                      },
+                                                                      "type": "SetVariable"
+                                                                  }
+                                                              }
+                                                          },
+                                                          "expression": {
+                                                              "and": [
+                                                                  {
+                                                                      "equals": [
+                                                                          "@string(variables('WhatIdsubString'))",
+                                                                          "@string('006')"
+                                                                      ]
+                                                                  }
+                                                              ]
+                                                          },
+                                                          "runAfter": {},
+                                                          "type": "If"
+                                                      }
+                                                  }
+                                              },
+                                              "expression": {
+                                                  "and": [
+                                                      {
+                                                          "equals": [
+                                                              "@string(variables('WhatIdsubString'))",
+                                                              "@string('001')"
+                                                          ]
+                                                      }
+                                                  ]
+                                              },
+                                              "runAfter": {
+                                                  "Substring_of_WhatId": [
+                                                      "Succeeded"
+                                                  ]
+                                              },
+                                              "type": "If"
+                                          }
+                                      },
+                                      "foreach": "@body('Task')['Records']",
+                                      "runAfter": {},
+                                      "runtimeConfiguration": {
+                                          "concurrency": {
+                                              "repetitions": 1
+                                          }
+                                      },
+                                      "type": "Foreach"
+                                  }
+                              },
+                              "else": {
+                                  "actions": {
+                                      "Error_Response_in_searchTask": {
+                                          "inputs": {
+                                              "body": {
+                                                  "error": "@{body('Task')?['message']}"
+                                              },
+                                              "headers": {
+                                                  "Content-Type": "application/json"
+                                              },
+                                              "statusCode": "@outputs('Task')?['statusCode']"
+                                          },
+                                          "kind": "http",
+                                          "runAfter": {},
+                                          "type": "Response"
+                                      },
+                                      "Terminate_in_searchTask": {
+                                          "inputs": {
+                                              "runStatus": "Failed"
+                                          },
+                                          "runAfter": {
+                                              "Error_Response_in_searchTask": [
+                                                  "Succeeded"
+                                              ]
+                                          },
+                                          "type": "Terminate"
+                                      }
+                                  }
+                              },
+                              "expression": {
+                                  "and": [
+                                      {
+                                          "equals": [
+                                              "@outputs('Task')?['statusCode']",
+                                              200
+                                          ]
+                                      }
+                                  ]
+                              },
+                              "runAfter": {
+                                  "Task": [
+                                      "Succeeded",
+                                      "Failed"
+                                  ]
+                              },
+                              "type": "If"
+                          },
+                          "Replace_*_in_whereClause": {
+                              "inputs": {
+                                  "name": "finalWhereClause",
+                                  "value": "@{replace(variables('whereClause'),'*','%')}"
+                              },
+                              "runAfter": {},
+                              "type": "SetVariable"
+                          },
+                          "Response_4": {
+                              "inputs": {
+                                  "body": "@json(outputs('Compose_Response'))",
+                                  "headers": {
+                                      "Content-Type": "application/json"
+                                  },
+                                  "statusCode": 200
+                              },
+                              "kind": "Http",
+                              "runAfter": {
+                                  "Compose_Response": [
+                                      "Succeeded"
+                                  ]
+                              },
+                              "type": "Response"
+                          },
+                          "Task": {
+                              "inputs": {
+                                  "body": {
+                                      "query": "select Id ,RecordTypeId ,WhoId ,WhatId ,WhoCount ,WhatCount ,Subject ,ActivityDate ,Status ,Priority ,IsHighPriority ,OwnerId ,Description ,CurrencyIsoCode ,Type ,IsDeleted ,AccountId ,IsClosed ,CreatedDate ,CreatedById ,LastModifiedDate ,LastModifiedById ,SystemModstamp ,IsArchived ,CallDurationInSeconds ,CallType ,CallDisposition ,CallObject ,ReminderDateTime ,IsReminderSet ,RecurrenceActivityId ,IsRecurrence ,RecurrenceStartDateOnly ,RecurrenceEndDateOnly ,RecurrenceTimeZoneSidKey ,RecurrenceType ,RecurrenceInterval ,RecurrenceDayOfWeekMask ,RecurrenceDayOfMonth ,RecurrenceInstance ,RecurrenceMonthOfYear ,RecurrenceRegeneratedType ,TaskSubtype ,LID__Date_Sent__c ,LID__URL__c ,S4SActivity_Date__c ,S4SAdditional_Information__c ,S4SBU__c ,S4SCompleted_Date__c ,S4SDelegated_By__c ,S4SDivision__c ,S4SEVENT_LegacyID__c ,S4SKey_Fact_1__c ,S4SNumber_of_Participants__c ,S4SOpportunity_Milestone__c ,S4SOther_Topics__c ,S4SReason__c ,S4SStatus__c ,S4SSurvey_Interview_Details__c ,S4SSurvey_Interview_ID__c ,S4STASK_LegacyID__c ,S4STraining_Topic__c ,DB_Activity_Type__c ,S4SDocLocation_BeLux__c ,Owner.Id ,Owner.Name ,What.Id ,What.Name ,S4SDelegated_By__r.Id ,S4SDelegated_By__r.Name ,Who.Id ,Who.Name from Task where @{variables('finalWhereClause')} Limit+50"
+                                  },
+                                  "host": {
+                                  "connection": {
+                                  "referenceName": "salesforce_nonsfs_v2"
+                                  }
+                                  },
+                                  "method": "post",
+                                  "path": "/soql/executesoqlquery"
+                              },
+                              "runAfter": {
+                                  "Replace_*_in_whereClause": [
+                                      "Succeeded"
+                                  ]
+                              },
+                              "type": "ApiConnection"
+                          }
+                      },
+                      "expression": {
+                          "and": [
+                              {
+                                  "not": {
+                                      "equals": [
+                                          "@variables('whereClause')",
+                                          "@null"
+                                      ]
+                                  }
+                              },
+                              {
+                                  "not": {
+                                      "equals": [
+                                          "@variables('whereClause')",
+                                          "@''"
+                                      ]
+                                  }
+                              }
+                          ]
+                      },
+                      "runAfter": {
+                          "Activity_task_check": [
+                              "Succeeded"
+                          ]
+                      },
+                      "type": "If"
+                  }
+              },
+              "runAfter": {
+                  "Initialize_ZeroResults_variable": [
+                      "Succeeded"
+                  ],
+                  "Initialize_finalWhereClause": [
+                      "Succeeded"
+                  ],
+                  "Initialize_trimmedWildcard": [
+                      "Succeeded"
+                  ],
+                  "Initialize_value": [
+                      "Succeeded"
+                  ],
+                  "Initialize_variable_finalTaskResponse": [
+                      "Succeeded"
+                  ],
+                  "Initialize_whereClause": [
+                      "Succeeded"
+                  ],
+                  "Initialize_wildcardLength": [
+                      "Succeeded"
+                  ]
+              },
+              "trackedProperties": {
+                  "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'external')}",
+                  "citizenName": "c00031",
+                  "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                  "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}",
+                  "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                  "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'GOI')}",
+                  "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                  "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'V3')}",
+                  "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'searchTask')}",
+                  "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}"
+              },
+              "type": "Scope"
+          }
+      },
+      "contentVersion": "1.0.0.0",
+      "outputs": {},
+      "triggers": {
+          "manual": {
+              "inputs": {},
+              "kind": "Http",
+              "type": "Request"
+          }
+      }
+  },
+  "kind": "Stateful"
+}

@@ -1,0 +1,314 @@
+{
+	"$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+	"actions": {
+		"Catch_Error_Scope": {
+			"actions": {
+				"Set_Response_-_Error_Message": {
+					"inputs": {
+						"body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <out:notificationsResponse>\n         <out:Ack>true</out:Ack>\n      </out:notificationsResponse>\n   </soapenv:Body>\n</soapenv:Envelope>",
+						"headers": {
+							"Content-Type": "application/xml"
+						},
+						"statusCode": 500
+					},
+					"kind": "Http",
+					"runAfter": {},
+					"type": "Response"
+				},
+				"Terminate": {
+					"inputs": {
+						"runError": {
+							"code": "500"
+						},
+						"runStatus": "Failed"
+					},
+					"runAfter": {
+						"Set_Response_-_Error_Message": [
+							"Succeeded"
+						]
+					},
+					"type": "Terminate"
+				}
+			},
+			"runAfter": {
+				"Scope_-_Try": [
+					"TimedOut",
+					"Failed",
+					"Skipped"
+				]
+			},
+			"type": "Scope"
+		},
+		"Scope_-_Try": {
+			"actions": {
+				"For_each": {
+					"actions": {
+						"Data_Mapping_-_SieSales_to_PEGA": {
+							"inputs": {
+								"RCItemNO": "@items('For_each')?['sObject']?['S4SVendor_PO_Line__c']",
+								"RegionalRef": "@items('For_each')?['sObject']?['S4SCase_Number__c']",
+								"RequestedDate": "@items('For_each')?['sObject']?['S4SRequest_Expedite_Delivery_Date__c']",
+								"SFCaseID": "@items('For_each')?['sObject']?['S4SCase__c']",
+								"SFDiscrepancyID": "@items('For_each')?['sObject']?['Id']",
+								"SONoRegion": "@items('For_each')?['sObject']?['S4SVendor_PO__c']",
+								"SupplierORGID": "@items('For_each')?['sObject']?['S4SSupplier_Org_ID__c']",
+								"TaggedWB": "@items('For_each')?['sObject']?['S4STeam_Workbasket__c']"
+							},
+							"runAfter": {},
+							"type": "Compose"
+						},
+						"PEGA_Call": {
+							"inputs": {
+								"body": "@outputs('Data_Mapping_-_SieSales_to_PEGA')",
+								"headers": {
+									"Authorization": "Bearer @{body('Generate_Access_Token')?['access_token']}"
+								},
+								"method": "POST",
+								"retryPolicy": {
+									"type": "none"
+								},
+								"uri": "@{json(body('Get_Pega_Configuration'))?['PEGAserverURL']}/prweb/api/E2E/v01/CreateDDR"
+							},
+							"runAfter": {
+								"Data_Mapping_-_SieSales_to_PEGA": [
+									"Succeeded"
+								]
+							},
+							"type": "Http"
+						},
+						"Update_Discrepancy_Record_-_in_case_it_succeeded": {
+							"inputs": {
+								"body": {
+									"S4SNext_Action__c": "@{if(equals(body('PEGA_Call')?['Status'],'Success'), 'PEGA', 'Support')}",
+									"S4SNotes__c": "@{if(equals(body('PEGA_Call')?['Status'],'Success'), '', body('PEGA_Call')?['ErrorMessage'])}",
+									"S4SPEGA_Case__c": "@{if(equals(body('PEGA_Call')?['Status'],'Success'), body('PEGA_Call')?['Caseid'], '')}",
+									"S4SPEGA_Sync_Status__c": "@{if(equals(body('PEGA_Call')?['Status'],'Success'), 'Success', 'Failure')}"
+								},
+								"host": {
+									"connection": {
+										"name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+									}
+								},
+								"method": "patch",
+								"path": "/v3/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SDiscrepancy__c'))}/items/@{encodeURIComponent(encodeURIComponent(items('For_each')?['sObject']?['Id']))}",
+								"retryPolicy": {
+									"type": "none"
+								}
+							},
+							"runAfter": {
+								"PEGA_Call": [
+									"Succeeded"
+								]
+							},
+							"type": "ApiConnection"
+						}
+					},
+					"foreach": "@body('LiquidTransformer')?['notifications']",
+					"runAfter": {
+						"Generate_Access_Token": [
+							"Succeeded"
+						]
+					},
+					"type": "Foreach"
+				},
+				"Generate_Access_Token": {
+					"inputs": {
+						"authentication": {
+							"password": "@json(body('Get_Pega_Configuration'))?['myid-secret']",
+							"pfx": "@json(body('Get_Pega_Configuration'))?['myid-pfx']",
+							"type": "ClientCertificate"
+						},
+						"body": "@concat('client_id=',encodeUriComponent(json(body('Get_Pega_Configuration'))?['client_id']),'&grant_type=',encodeUriComponent('client_credentials'))",
+						"headers": {
+							"Content-Type": "application/x-www-form-urlencoded"
+						},
+						"method": "POST",
+						"retryPolicy": {
+							"type": "none"
+						},
+						"uri": "@{json(body('Get_Pega_Configuration'))?['myidUrl']}/@{json(body('Get_Pega_Configuration'))?['pathUrl']}"
+					},
+					"runAfter": {
+						"Get_Pega_Configuration": [
+							"Succeeded"
+						]
+					},
+					"type": "Http"
+				},
+				"Get_Pega_Configuration": {
+					"inputs": {
+						"body": {
+							"key": "pega-config"
+						},
+						"host": {
+							"triggerName": "manual",
+							"workflow": {
+								"id": "${getConfiguration_logicAppId}"
+							}
+						},
+						"retryPolicy": {
+							"type": "none"
+						}
+					},
+					"runAfter": {
+						"Parse_JSON": [
+							"Succeeded"
+						]
+					},
+					"type": "Workflow"
+				},
+				"LiquidTransformer": {
+					"inputs": {
+						"body": "@triggerBody()",
+						"authentication": {
+							"type": "Raw",
+							"value": "[parameters('functionAppKey')]"
+						},
+						"function": {
+							"id": "[concat(parameters('funcApp'), '/functions/LiquidTransformer')]"
+						},
+						"headers": {
+							"Accept": "application/json",
+							"Content-Type": "application/xml",
+							"Filename": "${liquid}"
+						},
+						"retryPolicy": {
+							"type": "none"
+						}
+					},
+					"runAfter": {},
+					"type": "Function"
+				},
+				"Parse_JSON": {
+					"inputs": {
+						"content": "@body('LiquidTransformer')",
+						"schema": {
+							"properties": {
+								"notifications": {
+									"items": {
+										"properties": {
+											"Id": {
+												"type": "string"
+											},
+											"sObject": {
+												"properties": {
+													"@@xmlns:sf": {
+														"type": "string"
+													},
+													"@@xsi:type": {
+														"type": "string"
+													},
+													"Id": {
+														"type": "string"
+													},
+													"S4SCase_Number__c": {
+														"type": "string"
+													},
+													"S4SCase__c": {
+														"type": "string"
+													},
+													"S4SPart_Ordered__c": {
+														"type": "string"
+													},
+													"S4SRequest_Expedite_Delivery_Date__c": {
+														"type": "string"
+													},
+													"S4SSupplier_Org_ID__c": {
+														"type": "string"
+													},
+													"S4STeam_Workbasket__c": {
+														"type": "string"
+													},
+													"S4SVendor_PO_Line__c": {
+														"type": "string"
+													},
+													"S4SVendor_PO__c": {
+														"type": "string"
+													}
+												},
+												"type": "object"
+											}
+										},
+										"required": [
+											"Id",
+											"sObject"
+										],
+										"type": "object"
+									},
+									"type": "array"
+								}
+							},
+							"type": "object"
+						}
+					},
+					"runAfter": {
+						"LiquidTransformer": [
+							"Succeeded"
+						]
+					},
+					"type": "ParseJson"
+				},
+				"Set_Response": {
+					"inputs": {
+						"body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <out:notificationsResponse>\n         <out:Ack>true</out:Ack>\n      </out:notificationsResponse>\n   </soapenv:Body>\n</soapenv:Envelope>",
+						"headers": {
+							"Content-Type": "application/xml"
+						},
+						"statusCode": 200
+					},
+					"kind": "Http",
+					"runAfter": {
+						"For_each": [
+							"Succeeded"
+						]
+					},
+					"type": "Response"
+				}
+			},
+			"runAfter": {},
+			"type": "Scope"
+		}
+	},
+	"contentVersion": "1.0.0.0",
+	"outputs": {},
+	"parameters": {
+		"$connections": {
+			"defaultValue": {},
+			"type": "Object"
+		}
+	},
+	"triggers": {
+		"manual": {
+			"inputs": {
+				"schema": {
+					"properties": {
+						"S4SCase_Number__c": {
+							"type": "string"
+						},
+						"S4SCase__c": {
+							"type": "string"
+						},
+						"S4SRequest_Expedite_Delivery_Date__c": {
+							"type": "string"
+						},
+						"S4SSupplier_Org_ID__c": {
+							"type": "string"
+						},
+						"S4STeam_Workbasket__c": {
+							"type": "string"
+						},
+						"S4SVendor_PO_Line__c": {
+							"type": "string"
+						},
+						"S4SVendor_PO__c": {
+							"type": "string"
+						}
+					},
+					"type": "object"
+				}
+			},
+			"kind": "Http",
+			"type": "Request"
+		}
+	}
+}

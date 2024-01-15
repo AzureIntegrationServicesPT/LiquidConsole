@@ -1,0 +1,356 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+        "Initialize_S4SReferenceId": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "RefId",
+                        "type": "string",
+                        "value": "@{xpath(xml(triggerBody()),'.//OPPORTUNITY_NUMBER/text()')?[0]}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_fetchOpp_SOQL": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "varSOQLFetchOppId",
+                        "type": "string",
+                        "value": "select \nId,IsDeleted,AccountId,RecordTypeId,IsPrivate,Name,Description,StageName,Amount,Probability,ExpectedRevenue,TotalOpportunityQuantity,CloseDate,Type,NextStep,LeadSource,IsClosed,IsWon,ForecastCategory,ForecastCategoryName,CurrencyIsoCode,CampaignId,HasOpportunityLineItem,Pricebook2Id,OwnerId,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastActivityDate,FiscalQuarter,FiscalYear,Fiscal,LastViewedDate,LastReferencedDate,SyncedQuoteId,ContractId,HasOpenActivity,HasOverdueTask,Budget_Confirmed__c,Discovery_Completed__c,ROI_Analysis_Completed__c,Loss_Reason__c,S4SAcceptance_Closure__c,S4SAccount_Industry__c,S4SAlternative_Opportunity__c,S4SAmount_Financed__c,S4SAssigned_parental_Opportunity__c,S4SB2A_Outcome__c,S4SB2A_type__c,S4SBid_approval_PM040__c,S4SBooking_Funding_Date__c,S4SBusiness_Model_ZRG__c,S4SBusiness_Unit__c,S4SCAPEX__c,S4SChance_of_Execution__c,S4SChance_of_Success__c,S4SCity__c,S4SClosing_Date__c,S4SCommission_Country_1__c,S4SCommission_Country_2__c,S4SCommission_Country_3__c,S4SCommission_Country_4__c,S4SCommission_Percentage_1__c,S4SCommission_Percentage_2__c,S4SCommission_Percentage_3__c,S4SCommission_Percentage_4__c,S4SCompetitors__c,S4SContract_Duration_Month__c,S4SCorp_Lead_Country__c,S4SCountry_of_Installation__c,S4SCreated_from_Lead__c,S4SCross_Border_International_Business__c,S4SCustomer_Agreement_for_Data_Transfer__c,S4SCustomer_Rate__c,S4SDiscussion_in_PEF_Deal_Flow_Call__c,S4SDist_Channel__c,S4SDistribution_channel__c,S4SDivision__c,S4SEUR_Exchange_Rate__c,S4SEnd_Account_Account__c,S4SEnd_Account_Industry__c,S4SEnd_Account__c,S4SExpiry_Date_Risk_Approval__c,S4SField_of_Activity__c,S4SFinance_Product_Label__c,S4SFinancing_Demand_Division__c,S4SFinancing_Need__c,S4SFinancing_Product__c,S4SFunding_limit__c,S4SGross_Margin__c,S4SHas_Children__c,S4SIBIT__c,S4SInitial_Purchase_Price__c,S4SInstallation__c,S4SInternal_Interest_Rate__c,S4SIntroducer_Sales__c,S4SInvesting_ARE__c,S4SInvolded_Siemens_Entities__c,S4SInvolved_Competence_Center__c,S4SMain_Reason__c,S4SMarked_for_Deletion__c,S4SOPEX__c,S4SOPPORTUNITY_LegacyID__c,S4SOffer_Reference_ID__c,S4SOpportunity_Industry_Search__c,S4SOpportunity_Industry__c,S4SOpportunity_Type__c,S4SOrder_Intake_EUR__c,S4SOrder_Intake_USD__c,DB_Competitor__c,S4SOverdue_Time__c,S4SOwn_Content_Own_BU_Products__c,S4SOwn_Content_Own_DIV_Products__c,S4SOwn_Content_Own_DIV_Services__c,S4SOwn_Content_Siemens_Products_Services__c,S4SPEF_Advisory_Scope__c,S4SPM040_Released_Gross_Margin__c,S4SPM040_Released_Profit_EBIT__c,S4SPM040_Released_Risk_Contigency__c,S4SPM040_Released_Volume__c,S4SPM040_Transfer_date__c,S4SPM070_Transfer_Date__c,S4SPM070_Won_lost_Gross_Margin__c,S4SPM070_Won_lost_Profit_EBIT__c,S4SPM070_Won_lost_Risk_Contigency__c,S4SPM070_Won_lost_Volume__c,S4SAccount_Name_International__c,S4SPotential_Siemens_Volume__c,S4SPrevious_Stage__c,S4SPrevious_Status__c,S4SPrevious_System_Unique_ID__c,S4SPrimary_BookingItemID__c,S4SPrimary_CompetitorID__c,S4SProposed_to_COF__c,S4SProposed_to_Debt__c,S4SProposed_to_Equity__c,S4SROE__c,S4SReason_not_won__c,S4SReference_ID__c,S4SRelevant_for_Forecast__c,S4SSFS_Account_Rating_Date__c,S4SSFS_Account_Rating_Type__c,\nS4SSFS_Account_Rating__c,S4SSFS_Confidential__c,S4SSFS_Opportunity_Rating_Date__c,S4SSFS_Opportunity_Rating_Type__c,S4SSFS_Opportunity_Rating__c,S4SSOC_Category__c,S4SSale_Country__c,S4SSales_Branch__c,S4SSales_Department__c,S4SSales_District__c,S4SSales_Office__c,S4SSales_Status__c,S4SSales_Subregion__c,S4SSales_Territory__c,S4SSales_Type__c,S4SSalesforce_ID__c,S4SSenior_Leverage__c,S4SSite__c,S4SSolution_Support_End_Date__c,\nS4SSource__c,S4SSpread__c,S4SStart_project_PM080__c,S4SStatus_since__c,S4SStrategic_Priority__c,S4STarget_IRR__c,S4STerritory_Structure__c,S4STerritory__c,S4SThereof_SPV_SFS_Inc__c,S4STimestamp_to_COF__c,S4STimestamp_to_Debt__c,S4STimestamp_to_Equity__c,S4STotal_Debt_of_Opportunity__c,\nS4STotal_Equity_incl_Shareholder_Loans__c,S4STotal_Investment__c,S4STotal_Leverage__c,S4STotal_OI_Recurring_Business__c,S4STotal_Product_Amount_EUR__c,S4STotal_Product_Amount_USD__c,S4STotal_Project_Value__c,S4SType_of_Transaction__c,S4SUSD_Exchange_Rate__c,S4SWeighted_Order_Intake_EUR__c,S4SWeighted_Order_Intake_USD__c,S4SWeighted_Order_Intake__c,S4SWinner__c,S4SZip_Code__c,S4SBooking_Line_Item_Count__c,\nS4SCompetitorCount__c,S4SOrder_Intake__c,S4SPrimaryCompetitorCount__c,S4SPrimaryLineItemCount__c,S4STotal_SFS_Amount_to_fund_at_close__c,S4STotal_of_All_Tranches__c,S4STotal_of_Allocated_Amount__c,S4STotal_of_Approved_Amount__c,S4STotal_of_Requested_Amount__c,S4SAsset_Group__c,S4SAsset_Type__c,S4SBuy_America_n__c,S4SCOF_Country__c,S4SCategorization__c,S4SConfidentiality_Status__c,S4SContract_Schedule__c,S4SContract__c,S4SContractual_Insurance_requirements__c,S4SGovernmental_Agency__c,S4SGovernmental_Entity_Government_Funded__c,S4SInsurance_Database_ID__c,S4SIntroducer_Account_Name__c,S4SLOA_ID_Number__c,S4SOpportunity_Amount_EUR__c,S4SOpportunity_Amount_USD__c,S4SOur_Role__c,S4SPlanning_Tool__c,S4SProject_Volume__c,S4SRate_Spread__c,S4SSAP_Number__c,S4SSFS_Equity_Share__c,S4SSiemens_Equity__c,S4SWeighted_Total_Product_Amount_EUR__c,S4SWeighted_Total_Product_Amount_USD__c,S4SWeighted_Total_Product_Amount__c,S4SAdvisory_Volume__c,S4S_Total_SFS_Amount_Rollup__c,S4SApproval_Check__c,\nS4SApproval_Pending__c,S4SCreate_COMPAS_Quote__c,S4SExternal_Source__c,S4SLast_Sync_with_COMPAS__c,S4SOrder_Intake_Opportunity_Amount__c,S4SOriginal_Project_Solution_Opportunity__c,S4SProject_Category__c,S4SSystem_Installation_Type__c,S4SUserId__c,S4SWeighted_Opportunity_Amount__c,\nS4SWeighted_Order_Intake_Opp_Amount__c,S4SFinance_Product_Type__c,S4SSold_To_SAP__c,Account.Id,Account.Name,Account.Type,Account.S4SIfA__c,Owner.LastName,Owner.FirstName,Owner.Division,Owner.Email,Owner.FederationIdentifier,Owner.S4SGID_Technical__c,Owner.S4SGID__c,S4SEnd_Account__r.Id,S4SEnd_Account__r.Name,S4SEnd_Account__r.Type,S4SEnd_Account__r.S4SIfA__c  from Opportunity "
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_replacedWhereClause": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "ReplacedWhereClause",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {
+                "fetchOppWhere_Clause": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "searchExpressionList",
+                        "type": "array",
+                        "value": "@null"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_S4sExternal__c": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "ExtId",
+                        "type": "string",
+                        "value": "@{xpath(xml(triggerBody()),'.//SOURCE_SYSTEM_CODE/text()')?[0]}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Initialize_variable_error_response": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "SoapErrorResponse",
+                        "type": "string",
+                        "value": "<soap-env:Envelope xmlns:soap-env=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap-env:Header/><soap-env:Body><soap-env:Fault><faultcode>soap-env:Server</faultcode><faultstring>{errormessagedetails}</faultstring><detail/></soap-env:Fault></soap-env:Body></soap-env:Envelope>"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
+        "Scope-Catch": {
+            "actions": {
+                "Failed_Response": {
+                    "inputs": {
+                        "body": "@replace(variables('SoapErrorResponse'),'{errormessagedetails}',concat('Some error occurred while connection. Please find more details using tracking id : ', workflow()['run']['name']))",
+                        "headers": {
+                            "Content-Type": "text/xml"
+                        },
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                },
+                "Terminate": {
+                    "inputs": {
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Failed_Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Scope-Try": [
+                    "Failed",
+                    "Skipped",
+                    "TimedOut"
+                ]
+            },
+            "type": "Scope"
+        },
+        "Scope-Try": {
+            "actions": {
+                "Condition_to_check_S4sReferenceId": {
+                    "actions": {
+                        "Append_to_array_variable": {
+                            "inputs": {
+                                "name": "searchExpressionList",
+                                "value": "@variables('OppWhere Clause')"
+                            },
+                            "runAfter": {
+                                "Set_where_Clause": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "AppendToArrayVariable"
+                        },
+                        "Condition_to_check_S4SExternal__c": {
+                            "actions": {
+                                "Append_to_array_searchExpressionList2": {
+                                    "inputs": {
+                                        "name": "searchExpressionList",
+                                        "value": "@concat('S4SExternal_Source__c= ',string(''''),variables('ExtId'),string(''''))"
+                                    },
+                                    "runAfter": {
+                                        "Set_External__c_where_clause": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "AppendToArrayVariable"
+                                },
+                                "Set_External__c_where_clause": {
+                                    "inputs": {
+                                        "name": "OppWhere Clause",
+                                        "value": "@{concat('S4SExternal_Source__c= ',string(''''),variables('ExtId'),string(''''))}"
+                                    },
+                                    "runAfter": {},
+                                    "type": "SetVariable"
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@variables('ExtId')",
+                                                "@string('')"
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@variables('ExtId')",
+                                                "@null"
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "runAfter": {
+                                "Append_to_array_variable": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "Set_where_Clause": {
+                            "inputs": {
+                                "name": "OppWhere Clause",
+                                "value": "@{concat('S4SReference_ID__c= ',string(''''),variables('RefId'),string(''''))}"
+                            },
+                            "runAfter": {},
+                            "type": "SetVariable"
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('RefId')",
+                                        "@string('')"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('RefId')",
+                                        "@null"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                },
+                "Condition_to_check_where_clause": {
+                    "actions": {
+                        "Execute_FetchOppId_SOQL_query": {
+                            "inputs": {
+                                "body": {
+                                    "query": "@{variables('varSOQLFetchOppId')}  where @{variables('ReplacedWhereClause')} LIMIT+1"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/soql/executesoqlquery",
+                                "retryPolicy": {
+                                    "type": "none"
+                                }
+                            },
+                            "runAfter": {},
+                            "type": "ApiConnection"
+                        }
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('ReplacedWhereClause')",
+                                        "@null"
+                                    ]
+                                }
+                            },
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@variables('ReplacedWhereClause')",
+                                        "@string('')"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "runAfter": {
+                        "Set_replacedWhere_Clause": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Response": {
+                    "inputs": {
+                        "body": "@body('Execute_FetchOppId_SOQL_query')",
+                        "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "Condition_to_check_where_clause": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
+                },
+                "Set_replacedWhere_Clause": {
+                    "inputs": {
+                        "name": "ReplacedWhereClause",
+                        "value": "@{if(greater(length(variables('searchExpressionList')),0),replace(concat(join(variables('searchExpressionList'),' and ')),'*','%'),string(''))}"
+                    },
+                    "runAfter": {
+                        "Condition_to_check_S4sReferenceId": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "SetVariable"
+                }
+            },
+            "runAfter": {
+                "Initialize_S4SReferenceId": [
+                    "Succeeded"
+                ],
+                "Initialize_fetchOpp_SOQL": [
+                    "Succeeded"
+                ],
+                "Initialize_replacedWhereClause": [
+                    "Succeeded"
+                ],
+                "Initialize_variable": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_S4sExternal__c": [
+                    "Succeeded"
+                ],
+                "Initialize_variable_error_response": [
+                    "Succeeded"
+                ]
+            },
+            "trackedProperties": {
+                "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+                "citizenName": "c00031",
+                "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'CNSF')}",
+                "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+                "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+                "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'internal_fetchOppId')}",
+                "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+                "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+                "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+            },
+            "type": "Scope"
+        },
+        "fetchOppWhere_Clause": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "OppWhere Clause",
+                        "type": "string",
+                        "value": "@{null}"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {},
+            "kind": "Http",
+            "type": "Request"
+        }
+    }
+}

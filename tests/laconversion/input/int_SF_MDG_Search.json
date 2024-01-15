@@ -1,0 +1,104 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "contentVersion": "1.0.0.0",
+  "actions": {
+    "Convert_to_SF_Account_search_response": {
+      "inputs": {
+        "body": "@body('Make_Search_call_to_MDG')",
+        "function": {
+          "id": "[concat(parameters('funcApp'),'/functions/LiquidTransformer')]"
+        },
+        "authentication": {
+          "type": "Raw",
+          "value": "[parameters('functionAppKey')]"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "Filename": "SFMDGSearchResponseTransformation"
+        }
+      },
+      "runAfter": {
+        "Make_Search_call_to_MDG": ["Succeeded"]
+      },
+      "type": "Function"
+    },
+    "Get_Certificate": {
+      "inputs": {
+        "body": {
+          "key": "SieSalesCRM-certificate"
+        },
+        "host": {
+          "triggerName": "manual",
+          "workflow": {
+            "id": "${logic_internal_getConfiguration}"
+          }
+        }
+      },
+      "runAfter": {},
+      "type": "Workflow"
+    },
+    "Get_Certificate_Password": {
+      "inputs": {
+        "body": {
+          "key": "SieSalesCRM-certificate-password"
+        },
+        "host": {
+          "triggerName": "manual",
+          "workflow": {
+            "id": "${logic_internal_getConfiguration}"
+          }
+        }
+      },
+      "runAfter": {},
+      "type": "Workflow"
+    },
+    "Make_Search_call_to_MDG": {
+      "inputs": {
+        "authentication": {
+          "password": "@body('Get_Certificate_Password')",
+          "pfx": "@body('Get_Certificate')",
+          "type": "ClientCertificate"
+        },
+        "body": "@triggerBody()?['MDGRequest']",
+        "method": "POST",
+        "uri": "@triggerBody()?['URI']"
+      },
+      "runAfter": {
+        "Get_Certificate": ["Succeeded"],
+        "Get_Certificate_Password": ["Succeeded"]
+      },
+      "type": "Http"
+    },
+    "Response": {
+      "inputs": {
+        "body": "@body('Convert_to_SF_Account_search_response')",
+        "statusCode": 200
+      },
+      "kind": "Http",
+      "runAfter": {
+        "Convert_to_SF_Account_search_response": ["Succeeded"]
+      },
+      "type": "Response"
+    }
+  },
+  "triggers": {
+    "manual": {
+      "inputs": {
+        "schema": {
+          "properties": {
+            "MDGRequest": {
+              "type": "string"
+            },
+            "URI": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "kind": "Http",
+      "type": "Request"
+    }
+  }
+}

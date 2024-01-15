@@ -1,0 +1,3 @@
+{
+  "LogLevel": {"value": "@appsetting('LogLevel')", "type": "string"},
+}
