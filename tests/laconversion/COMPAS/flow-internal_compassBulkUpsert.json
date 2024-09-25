@@ -1,61 +1,11 @@
 {
         "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
         "actions": {
-            "Initialize_Request": {
-                "inputs": {
-                    "variables": [
-                        {
-                            "name": "Request",
-                            "type": "array"
-                        }
-                    ]
-                },
-                "runAfter": {},
-                "type": "InitializeVariable"
-            },
-            "Initialize_dataStream": {
-                "inputs": {
-                    "variables": [
-                        {
-                            "name": "dataStream",
-                            "type": "string"
-                        }
-                    ]
-                },
-                "runAfter": {},
-                "type": "InitializeVariable"
-            },
-            "Initialize_variable_BulkState": {
-                "inputs": {
-                    "variables": [
-                        {
-                            "name": "BulkState",
-                            "type": "boolean",
-                            "value": false
-                        }
-                    ]
-                },
-                "runAfter": {},
-                "type": "InitializeVariable"
-            },
-            "Initialize_variable_error_response": {
-                "inputs": {
-                    "variables": [
-                        {
-                            "name": "SoapErrorResponse",
-                            "type": "string",
-                            "value": "<soap-env:Envelope xmlns:soap-env=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap-env:Header/><soap-env:Body><soap-env:Fault><faultcode>soap-env:Server</faultcode><faultstring>{errormessagedetails}</faultstring><detail/></soap-env:Fault></soap-env:Body></soap-env:Envelope>"
-                        }
-                    ]
-                },
-                "runAfter": {},
-                "type": "InitializeVariable"
-            },
-            "Scope-Catch": {
+            "Catch_Scope": {
                 "actions": {
                     "Failed_Response": {
                         "inputs": {
-                            "body": "@replace(variables('SoapErrorResponse'),'{errormessagedetails}',concat('Some error occurred while connection. Please find more details using tracking id : ', workflow()['run']['name']))",
+                            "body": "<soap-env:Envelope xmlns:soap-env=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap-env:Header/><soap-env:Body><soap-env:Fault><faultcode>soap-env:Server</faultcode><faultstring>Some error occurred while connection. Please find more details using tracking id : @{workflow()['run']['name']}</faultstring><detail/></soap-env:Fault></soap-env:Body></soap-env:Envelope>",
                             "headers": {
                                 "Content-Type": "application/xml"
                             },
@@ -78,7 +28,7 @@
                     }
                 },
                 "runAfter": {
-                    "Scope-Try": [
+                    "Try_Scope": [
                         "TimedOut",
                         "Skipped",
                         "Failed"
@@ -86,32 +36,37 @@
                 },
                 "type": "Scope"
             },
-            "Scope-Try": {
+            "Initialize_dataStream": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "dataStream",
+                            "type": "array"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_BulkState": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "BulkState",
+                            "type": "boolean",
+                            "value": false
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Try_Scope": {
                 "actions": {
                     "Condition_to_check_bookingLineOrQuoteLine": {
                         "actions": {
-                            "Close_or_abort_a_job-BL": {
-                                "inputs": {
-                                    "body": {
-                                        "state": "UploadComplete"
-                                    },
-                                    "host": {
-                                        "connection": {
-                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
-                                        }
-                                    },
-                                    "method": "patch",
-                                    "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Create_a_job_(V2)-BL')?['id'])}"
-                                },
-                                "runAfter": {
-                                    "Upload_job_data-BL": [
-                                        "Succeeded"
-                                    ]
-                                },
-                                "type": "ApiConnection"
-                            },
-                            "ComposeDataStream-BL": {
-                                "inputs": "CurrencyIsoCode;S4SOpportunity__c;S4SPrimary_Flag__c;S4SDepth_Structure__c;S4SQuantity__c;S4SSales_Price__c;S4SExternal_Source__c\n@{variables('dataStream')}",
+                            "Build_Smaller_Batches": {
+                                "inputs": "@chunk(variables('dataStream'),20)",
                                 "runAfter": {
                                     "For_each-BL": [
                                         "Succeeded"
@@ -119,100 +74,245 @@
                                 },
                                 "type": "Compose"
                             },
-                            "Create_a_job_(V2)-BL": {
-                                "inputs": {
-                                    "body": {
-                                        "columnDelimiter": "SEMICOLON",
-                                        "contentType": "CSV",
-                                        "externalIdFieldName": "Id",
-                                        "object": "S4SBooking_Line_Item__c",
-                                        "operation": "upsert"
-                                    },
-                                    "host": {
-                                        "connection": {
-                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
-                                        }
-                                    },
-                                    "method": "post",
-                                    "path": "/bulk/createjob"
-                                },
-                                "runAfter": {
-                                    "ComposeDataStream-BL": [
-                                        "Succeeded"
-                                    ]
-                                },
-                                "type": "ApiConnection"
-                            },
                             "For_each-BL": {
                                 "actions": {
-                                    "Append_to_string_variable-BL": {
+                                    "Append_to_DataStream_Array": {
                                         "inputs": {
                                             "name": "dataStream",
                                             "value": "@concat(items('For_each-BL')?['CurrencyIsoCode'],string(';'),items('For_each-BL')?['S4SOpportunity__c'],string(';'),\r\nitems('For_each-BL')?['S4SPrimary_Flag__c'],string(';'),items('For_each-BL')?['S4SDepth_Structure__c'],string(';'),items('For_each-BL')?['S4SQuantity__c'],string(';'),items('For_each-BL')?['S4SSales_Price__c'],string(';'),items('For_each-BL')?['S4SExternal_Source__c']\r\n,decodeUriComponent('%0A') )"
                                         },
                                         "runAfter": {},
-                                        "type": "AppendToStringVariable"
+                                        "type": "AppendToArrayVariable"
                                     }
                                 },
-                                "foreach": "@variables('Request')",
-                                "runAfter": {
-                                    "Set_BookingLineRequest": [
-                                        "Succeeded"
-                                    ]
-                                },
+                                "foreach": "@triggerBody()?['requestBody']",
+                                "runAfter": {},
                                 "type": "Foreach"
                             },
-                            "Set_BookingLineRequest": {
-                                "inputs": {
-                                    "name": "Request",
-                                    "value": "@triggerBody()?['requestBody']"
-                                },
-                                "runAfter": {},
-                                "type": "SetVariable"
-                            },
-                            "Upload_job_data-BL": {
-                                "inputs": {
-                                    "body": "@outputs('ComposeDataStream-BL')",
-                                    "host": {
-                                        "connection": {
-                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
-                                        }
+                            "For_each_batch": {
+                                "actions": {
+                                    "Close_or_abort_a_job-BL": {
+                                        "inputs": {
+                                            "body": {
+                                                "state": "UploadComplete"
+                                            },
+                                            "host": {
+                                                "connection": {
+                                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                }
+                                            },
+                                            "method": "patch",
+                                            "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Create_a_job-BL')?['id'])}"
+                                        },
+                                        "runAfter": {
+                                            "Upload_job_data-BL": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "ApiConnection"
                                     },
-                                    "method": "put",
-                                    "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Create_a_job_(V2)-BL')?['id'])}/batches"
+                                    "Compose_Bulk_Job_Payload-BL": {
+                                        "inputs": "CurrencyIsoCode;S4SOpportunity__c;S4SPrimary_Flag__c;S4SDepth_Structure__c;S4SQuantity__c;S4SSales_Price__c;S4SExternal_Source__c\n@{join(items('For_each_batch'),'')}",
+                                        "runAfter": {},
+                                        "type": "Compose"
+                                    },
+                                    "Create_a_job-BL": {
+                                        "inputs": {
+                                            "body": {
+                                                "columnDelimiter": "SEMICOLON",
+                                                "contentType": "CSV",
+                                                "externalIdFieldName": "Id",
+                                                "object": "S4SBooking_Line_Item__c",
+                                                "operation": "upsert"
+                                            },
+                                            "host": {
+                                                "connection": {
+                                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                }
+                                            },
+                                            "method": "post",
+                                            "path": "/bulk/createjob"
+                                        },
+                                        "runAfter": {
+                                            "Compose_Bulk_Job_Payload-BL": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "ApiConnection"
+                                    },
+                                    "Get_Failed_Results": {
+                                        "inputs": {
+                                            "host": {
+                                                "connection": {
+                                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                }
+                                            },
+                                            "method": "get",
+                                            "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Get_Job_Info')?['id'])}/results",
+                                            "queries": {
+                                                "resultType": "Failed"
+                                            }
+                                        },
+                                        "runAfter": {
+                                            "Until": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "ApiConnection"
+                                    },
+                                    "Get_Succesful_Results": {
+                                        "inputs": {
+                                            "host": {
+                                                "connection": {
+                                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                }
+                                            },
+                                            "method": "get",
+                                            "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Get_Job_Info')?['id'])}/results",
+                                            "queries": {
+                                                "resultType": "Successful"
+                                            }
+                                        },
+                                        "runAfter": {
+                                            "Until": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "ApiConnection"
+                                    },
+                                    "Get_Unprocessed_Results": {
+                                        "inputs": {
+                                            "host": {
+                                                "connection": {
+                                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                }
+                                            },
+                                            "method": "get",
+                                            "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Get_Job_Info')?['id'])}/results",
+                                            "queries": {
+                                                "resultType": "Unprocessed"
+                                            }
+                                        },
+                                        "runAfter": {
+                                            "Until": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "ApiConnection"
+                                    },
+                                    "Until": {
+                                        "actions": {
+                                            "Condition": {
+                                                "actions": {
+                                                    "Set_BulkState_to_true": {
+                                                        "inputs": {
+                                                            "name": "BulkState",
+                                                            "value": true
+                                                        },
+                                                        "runAfter": {},
+                                                        "type": "SetVariable"
+                                                    }
+                                                },
+                                                "else": {
+                                                    "actions": {
+                                                        "Delay": {
+                                                            "inputs": {
+                                                                "interval": {
+                                                                    "count": 45,
+                                                                    "unit": "Second"
+                                                                }
+                                                            },
+                                                            "runAfter": {},
+                                                            "type": "Wait"
+                                                        }
+                                                    }
+                                                },
+                                                "expression": {
+                                                    "or": [
+                                                        {
+                                                            "equals": [
+                                                                "@body('Get_Job_Info')?['state']",
+                                                                "Failed"
+                                                            ]
+                                                        },
+                                                        {
+                                                            "equals": [
+                                                                "@body('Get_Job_Info')?['state']",
+                                                                "JobComplete"
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                "runAfter": {
+                                                    "Get_Job_Info": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "If"
+                                            },
+                                            "Get_Job_Info": {
+                                                "inputs": {
+                                                    "host": {
+                                                        "connection": {
+                                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                        }
+                                                    },
+                                                    "method": "get",
+                                                    "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Close_or_abort_a_job-BL')?['id'])}"
+                                                },
+                                                "runAfter": {},
+                                                "type": "ApiConnection"
+                                            }
+                                        },
+                                        "expression": "@equals(variables('BulkState'), true)",
+                                        "limit": {
+                                            "count":100,
+                                            "timeout": "PT1H"
+                                        },
+                                        "runAfter": {
+                                            "Close_or_abort_a_job-BL": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "Until"
+                                    },
+                                    "Upload_job_data-BL": {
+                                        "inputs": {
+                                            "body": "@outputs('Compose_Bulk_Job_Payload-BL')",
+                                            "host": {
+                                                "connection": {
+                                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                }
+                                            },
+                                            "method": "put",
+                                            "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Create_a_job-BL')?['id'])}/batches"
+                                        },
+                                        "runAfter": {
+                                            "Create_a_job-BL": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "ApiConnection"
+                                    }
                                 },
+                                "foreach": "@outputs('Build_Smaller_Batches')",
                                 "runAfter": {
-                                    "Create_a_job_(V2)-BL": [
+                                    "Build_Smaller_Batches": [
                                         "Succeeded"
                                     ]
                                 },
-                                "type": "ApiConnection"
+                                "runtimeConfiguration": {
+                                    "concurrency": {
+                                        "repetitions": 1
+                                    }
+                                },
+                                "type": "Foreach"
                             }
                         },
                         "else": {
                             "actions": {
-                                "Close_or_abort_a_job-QL": {
-                                    "inputs": {
-                                        "body": {
-                                            "state": "UploadComplete"
-                                        },
-                                        "host": {
-                                            "connection": {
-                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
-                                            }
-                                        },
-                                        "method": "patch",
-                                        "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Create_a_job_(V2)-QL')?['id'])}"
-                                    },
-                                    "runAfter": {
-                                        "Upload_job_data-QL": [
-                                            "Succeeded"
-                                        ]
-                                    },
-                                    "type": "ApiConnection"
-                                },
-                                "ComposeDataStream-QL": {
-                                    "inputs": "PricebookEntryId;Product2Id;Quantity;QuoteId;S4SExternal_Source__c;UnitPrice\n@{variables('dataStream')}",
+                                "Build_Smaller_Batches_2": {
+                                    "inputs": "@chunk(variables('dataStream'),99)",
                                     "runAfter": {
                                         "For_each-QL": [
                                             "Succeeded"
@@ -220,74 +320,239 @@
                                     },
                                     "type": "Compose"
                                 },
-                                "Create_a_job_(V2)-QL": {
-                                    "inputs": {
-                                        "body": {
-                                            "columnDelimiter": "SEMICOLON",
-                                            "contentType": "CSV",
-                                            "externalIdFieldName": "Id",
-                                            "object": "QuoteLineItem",
-                                            "operation": "upsert"
-                                        },
-                                        "host": {
-                                            "connection": {
-                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
-                                            }
-                                        },
-                                        "method": "post",
-                                        "path": "/bulk/createjob"
-                                    },
-                                    "runAfter": {
-                                        "ComposeDataStream-QL": [
-                                            "Succeeded"
-                                        ]
-                                    },
-                                    "type": "ApiConnection"
-                                },
                                 "For_each-QL": {
                                     "actions": {
-                                        "Append_to_string_variable-QL": {
+                                        "Append_to_DataStream_Array_2": {
                                             "inputs": {
                                                 "name": "dataStream",
                                                 "value": "@concat(items('For_each-QL')?['PricebookEntryId'],string(';'),items('For_each-QL')?['Product2Id'],string(';'),\r\nitems('For_each-QL')?['Quantity'],string(';'),items('For_each-QL')?['QuoteId'],string(';'),items('For_each-QL')?['S4SExternal_Source__c'],string(';'),items('For_each-QL')?['UnitPrice'],decodeUriComponent('%0A') )"
                                             },
                                             "runAfter": {},
-                                            "type": "AppendToStringVariable"
+                                            "type": "AppendToArrayVariable"
                                         }
                                     },
-                                    "foreach": "@variables('Request')",
-                                    "runAfter": {
-                                        "Set_QuoteLineRequest": [
-                                            "Succeeded"
-                                        ]
-                                    },
+                                    "foreach": "@triggerBody()?['requestBody']",
+                                    "runAfter": {},
                                     "type": "Foreach"
                                 },
-                                "Set_QuoteLineRequest": {
-                                    "inputs": {
-                                        "name": "Request",
-                                        "value": "@triggerBody()?['requestBody']"
-                                    },
-                                    "runAfter": {},
-                                    "type": "SetVariable"
-                                },
-                                "Upload_job_data-QL": {
-                                    "inputs": {
-                                        "body": "@outputs('ComposeDataStream-QL')",
-                                        "host": {
-                                            "connection": {
-                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
-                                            }
+                                "For_each_batch-QL": {
+                                    "actions": {
+                                        "Close_or_abort_a_job-QL": {
+                                            "inputs": {
+                                                "body": {
+                                                    "state": "UploadComplete"
+                                                },
+                                                "host": {
+                                                    "connection": {
+                                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                    }
+                                                },
+                                                "method": "patch",
+                                                "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Create_a_job-QL')?['id'])}"
+                                            },
+                                            "runAfter": {
+                                                "Upload_job_data-QL": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "ApiConnection"
                                         },
-                                        "method": "put",
-                                        "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Create_a_job_(V2)-QL')?['id'])}/batches"
+                                        "Compose_Bulk_Job_Payload_-_QL": {
+                                            "inputs": "PricebookEntryId;Product2Id;Quantity;QuoteId;S4SExternal_Source__c;UnitPrice\n@{join(items('For_each_batch-QL'),'')}",
+                                            "runAfter": {},
+                                            "type": "Compose"
+                                        },
+                                        "Create_a_job-QL": {
+                                            "inputs": {
+                                                "body": {
+                                                    "columnDelimiter": "SEMICOLON",
+                                                    "contentType": "CSV",
+                                                    "externalIdFieldName": "Id",
+                                                    "object": "QuoteLineItem",
+                                                    "operation": "upsert"
+                                                },
+                                                "host": {
+                                                    "connection": {
+                                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                    }
+                                                },
+                                                "method": "post",
+                                                "path": "/bulk/createjob"
+                                            },
+                                            "runAfter": {
+                                                "Compose_Bulk_Job_Payload_-_QL": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "ApiConnection"
+                                        },
+                                        "Get_Failed_Results_2": {
+                                            "inputs": {
+                                                "host": {
+                                                    "connection": {
+                                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                    }
+                                                },
+                                                "method": "get",
+                                                "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Get_Job_Info_2')?['id'])}/results",
+                                                "queries": {
+                                                    "resultType": "Failed"
+                                                }
+                                            },
+                                            "runAfter": {
+                                                "Until_2": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "ApiConnection"
+                                        },
+                                        "Get_Succesful_Results_2": {
+                                            "inputs": {
+                                                "host": {
+                                                    "connection": {
+                                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                    }
+                                                },
+                                                "method": "get",
+                                                "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Get_Job_Info_2')?['id'])}/results",
+                                                "queries": {
+                                                    "resultType": "Successful"
+                                                }
+                                            },
+                                            "runAfter": {
+                                                "Until_2": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "ApiConnection"
+                                        },
+                                        "Get_Unprocessed_Results_2": {
+                                            "inputs": {
+                                                "host": {
+                                                    "connection": {
+                                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                    }
+                                                },
+                                                "method": "get",
+                                                "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Get_Job_Info_2')?['id'])}/results",
+                                                "queries": {
+                                                    "resultType": "Unprocessed"
+                                                }
+                                            },
+                                            "runAfter": {
+                                                "Until_2": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "ApiConnection"
+                                        },
+                                        "Until_2": {
+                                            "actions": {
+                                                "Condition_2": {
+                                                    "actions": {
+                                                        "Set_BulkState_to_true_2": {
+                                                            "inputs": {
+                                                                "name": "BulkState",
+                                                                "value": true
+                                                            },
+                                                            "runAfter": {},
+                                                            "type": "SetVariable"
+                                                        }
+                                                    },
+                                                    "else": {
+                                                        "actions": {
+                                                            "Delay_2": {
+                                                                "inputs": {
+                                                                    "interval": {
+                                                                        "count": 40,
+                                                                        "unit": "Second"
+                                                                    }
+                                                                },
+                                                                "runAfter": {},
+                                                                "type": "Wait"
+                                                            }
+                                                        }
+                                                    },
+                                                    "expression": {
+                                                        "or": [
+                                                            {
+                                                                "equals": [
+                                                                    "@body('Get_Job_Info_2')?['state']",
+                                                                    "Failed"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "equals": [
+                                                                    "@body('Get_Job_Info_2')?['state']",
+                                                                    "JobComplete"
+                                                                ]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "runAfter": {
+                                                        "Get_Job_Info_2": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "If"
+                                                },
+                                                "Get_Job_Info_2": {
+                                                    "inputs": {
+                                                        "host": {
+                                                            "connection": {
+                                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                            }
+                                                        },
+                                                        "method": "get",
+                                                        "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Close_or_abort_a_job-QL')?['id'])}"
+                                                    },
+                                                    "runAfter": {},
+                                                    "type": "ApiConnection"
+                                                }
+                                            },
+                                            "expression": "@equals(variables('BulkState'), true)",
+                                            "limit": {
+                                                "count": 100,
+                                                "timeout": "PT1H"
+                                            },
+                                            "runAfter": {
+                                                "Close_or_abort_a_job-QL": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "Until"
+                                        },
+                                        "Upload_job_data-QL": {
+                                            "inputs": {
+                                                "body": "@outputs('Compose_Bulk_Job_Payload_-_QL')",
+                                                "host": {
+                                                    "connection": {
+                                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                    }
+                                                },
+                                                "method": "put",
+                                                "path": "/codeless/jobs/ingest/@{encodeURIComponent(body('Create_a_job-QL')?['id'])}/batches"
+                                            },
+                                            "runAfter": {
+                                                "Create_a_job-QL": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "ApiConnection"
+                                        }
                                     },
+                                    "foreach": "@outputs('Build_Smaller_Batches_2')",
                                     "runAfter": {
-                                        "Create_a_job_(V2)-QL": [
+                                        "Build_Smaller_Batches_2": [
                                             "Succeeded"
                                         ]
                                     },
-                                    "type": "ApiConnection"
+                                    "runtimeConfiguration": {
+                                        "concurrency": {
+                                            "repetitions": 1
+                                        }
+                                    },
+                                    "type": "Foreach"
                                 }
                             }
                         },
@@ -318,16 +583,10 @@
                     }
                 },
                 "runAfter": {
-                    "Initialize_Request": [
-                        "Succeeded"
-                    ],
                     "Initialize_dataStream": [
                         "Succeeded"
                     ],
                     "Initialize_variable_BulkState": [
-                        "Succeeded"
-                    ],
-                    "Initialize_variable_error_response": [
                         "Succeeded"
                     ]
                 },

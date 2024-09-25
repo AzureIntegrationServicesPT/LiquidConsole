@@ -1,0 +1,849 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Initialize_variable-SalesforceID": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "SalesforceID",
+              "type": "string",
+              "value": "@{triggerBody()?['Opportunity']?['Id']}"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable-configSeverity": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "configSeverity",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable-getSession": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "getSession",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable-index": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "index",
+              "type": "integer"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable-message": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "message",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable-object": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "object",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable-severity": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "severity",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable-userName": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "userName",
+              "type": "string",
+              "value": "@{coalesce(triggerOutputs()?['headers']?['username'], triggerOutputs()?['queries']?['username'])}"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Scope-catch-main": {
+        "actions": {
+          "Response_Catch_": {
+            "inputs": {
+              "statusCode": 500
+            },
+            "kind": "Http",
+            "runAfter": {},
+            "type": "Response"
+          },
+          "Terminate": {
+            "inputs": {
+              "runStatus": "Failed"
+            },
+            "runAfter": {
+              "Response_Catch_": [
+                "Succeeded"
+              ]
+            },
+            "type": "Terminate"
+          }
+        },
+        "runAfter": {
+          "Scope-try-main": [
+            "Failed",
+            "Skipped",
+            "TimedOut"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Scope-try-main": {
+        "actions": {
+          "Condition_username": {
+            "actions": {
+              "Check_-Opportunity": {
+                "actions": {
+                  "Compose_payload": {
+                    "inputs": "@if(or(equals(triggerBody()?['Opportunity']?['Id'], null), equals(triggerBody()?['Opportunity']?['Id'], '')), addProperty(removeproperty(triggerBody()?['Opportunity'],'Id'), 'Id', variables('SalesforceID')), triggerBody()?['Opportunity'])",
+                    "runAfter": {
+                      "Condition_SalesforceID": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Compose"
+                  },
+                  "Condition_SalesforceID": {
+                    "actions": {
+                      "Condition_Salesforce_Opportunity_from_ID": {
+                        "actions": {
+                          "Log_Opportunity_Id": {
+                            "inputs": {
+                              "host": {
+                                "workflow": {
+                                  "id": "int_sf4sLog"
+                                }
+                              },
+                              "body": {
+                                "message": "Opportunity is @{variables('SalesforceID')} for Logic App SFS_upsertOpportunity",
+                                "severity": "INFO"
+                              },
+                              "headers": null
+                            },
+                            "runAfter": {},
+                            "type": "Workflow"
+                          }
+                        },
+                        "else": {
+                          "actions": {
+                            "Response_4": {
+                              "inputs": {
+                                "body": "No Opportunity found in SieSales for the provided ID",
+                                "statusCode": 200
+                              },
+                              "kind": "http",
+                              "runAfter": {},
+                              "runtimeConfiguration": {
+                                "secureData": {
+                                  "properties": [
+                                    "inputs"
+                                  ]
+                                }
+                              },
+                              "type": "Response"
+                            },
+                            "Verification_Sucessfull": {
+                              "inputs": {
+                                "runStatus": "Succeeded"
+                              },
+                              "runAfter": {
+                                "Response_4": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "Terminate"
+                            }
+                          }
+                        },
+                        "expression": {
+                          "and": [
+                            {
+                              "greater": [
+                                "@length(body('Get_Opportunity_from_SalesforceID')?['records'])",
+                                0
+                              ]
+                            }
+                          ]
+                        },
+                        "runAfter": {
+                          "Get_Opportunity_from_SalesforceID": [
+                            "Succeeded"
+                          ]
+                        },
+                        "type": "If"
+                      },
+                      "Get_Opportunity_from_SalesforceID": {
+                        "inputs": {
+                          "body": {
+                            "query": "select Id from Opportunity where Id = '@{variables('SalesforceID')}'"
+                          },
+                          "path": "/soql/executesoqlquery",
+                          "host": {
+                            "connection": {
+                              "referenceName": "salesForceConnection"
+                            }
+                          },
+                          "method": "post"
+                        },
+                        "runAfter": {},
+                        "type": "ApiConnection"
+                      }
+                    },
+                    "else": {
+                      "actions": {
+                        "Condition_S4SOffer_Reference_ID__c": {
+                          "actions": {
+                            "Condition_Check_Opportunity": {
+                              "actions": {
+                                "Set_variable_SalesforceID": {
+                                  "inputs": {
+                                    "name": "SalesforceID",
+                                    "value": "@{body('Get_Opportunity_From_Offer_Reference_ID,_Owner_Role,_External_Source')?['records']?[0]?['Id']}"
+                                  },
+                                  "runAfter": {},
+                                  "type": "SetVariable"
+                                },
+                                "Log_Opportunity_Id_2": {
+                                  "inputs": {
+                                    "host": {
+                                      "workflow": {
+                                        "id": "int_sf4sLog"
+                                      }
+                                    },
+                                    "body": {
+                                      "message": "Opportunity is @{variables('SalesforceID')} for Logic App SFS_upsertOpportunity",
+                                      "severity": "INFO"
+                                    },
+                                    "headers": null
+                                  },
+                                  "runAfter": {
+                                    "Set_variable_SalesforceID": [
+                                      "Succeeded"
+                                    ]
+                                  },
+                                  "type": "Workflow"
+                                }
+                              },
+                              "else": {
+                                "actions": {}
+                              },
+                              "expression": {
+                                "and": [
+                                  {
+                                    "greater": [
+                                      "@length(body('Get_Opportunity_From_Offer_Reference_ID,_Owner_Role,_External_Source')?['records'])",
+                                      0
+                                    ]
+                                  }
+                                ]
+                              },
+                              "runAfter": {
+                                "Get_Opportunity_From_Offer_Reference_ID,_Owner_Role,_External_Source": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "If"
+                            },
+                            "Get_Opportunity_From_Offer_Reference_ID,_Owner_Role,_External_Source": {
+                              "inputs": {
+                                "body": {
+                                  "query": "select Id from Opportunity where S4SOffer_Reference_ID__c = '@{triggerBody()?['Opportunity']?['S4SOffer_Reference_ID__c']}' and S4SOpportunity_Owner_Role__c = '@{body('Get_Owner_Role_From_Owner_ID')?['records']?[0]?['UserRole']?['Name']}' and S4SExternal_Source__c = '@{triggerBody()?['Opportunity']?['S4SExternal_Source__c']}'"
+                                },
+                                "path": "/soql/executesoqlquery",
+                                "host": {
+                                  "connection": {
+                                    "referenceName": "salesForceConnection"
+                                  }
+                                },
+                                "method": "post"
+                              },
+                              "runAfter": {
+                                "Get_Owner_Role_From_Owner_ID": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "ApiConnection"
+                            },
+                            "Get_Owner_Role_From_Owner_ID": {
+                              "inputs": {
+                                "body": {
+                                  "query": "Select UserRole.Name from User where @{if(greater(length(triggerBody()?['Opportunity']?['OwnerId']), 12), string('Id'), string('S4SGID_Technical__c'))}='@{triggerBody()?['Opportunity']?['OwnerId']}'"
+                                },
+                                "path": "/soql/executesoqlquery",
+                                "host": {
+                                  "connection": {
+                                    "referenceName": "salesForceConnection"
+                                  }
+                                },
+                                "method": "post"
+                              },
+                              "runAfter": {},
+                              "type": "ApiConnection"
+                            }
+                          },
+                          "else": {
+                            "actions": {}
+                          },
+                          "expression": {
+                            "and": [
+                              {
+                                "not": {
+                                  "equals": [
+                                    "@triggerBody()?['Opportunity']?['S4SOffer_Reference_ID__c']",
+                                    "@string('')"
+                                  ]
+                                }
+                              },
+                              {
+                                "not": {
+                                  "equals": [
+                                    "@triggerBody()?['Opportunity']?['S4SOffer_Reference_ID__c']",
+                                    "@null"
+                                  ]
+                                }
+                              },
+                              {
+                                "equals": [
+                                  "@or(equals(triggerBody()?['Opportunity']?['S4SExternal_Source__c'], string('LOS')), equals(triggerBody()?['Opportunity']?['S4SExternal_Source__c'], string('WILL')),equals(triggerBody()?['Opportunity']?['S4SExternal_Source__c'], string('Webcon')))",
+                                  "@true"
+                                ]
+                              }
+                            ]
+                          },
+                          "runAfter": {},
+                          "type": "If"
+                        }
+                      }
+                    },
+                    "expression": {
+                      "and": [
+                        {
+                          "not": {
+                            "equals": [
+                              "@variables('SalesforceID')",
+                              "@null"
+                            ]
+                          }
+                        },
+                        {
+                          "not": {
+                            "equals": [
+                              "@variables('SalesforceID')",
+                              "@string('')"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                  },
+                  "Failure_Response_Log": {
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "int_sf4sLog"
+                        }
+                      },
+                      "body": {
+                        "message": "@{body('logic-c00031-SFS_int_userBasedLogic')}",
+                        "severity": "INFO"
+                      },
+                      "headers": {
+                        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                        "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                        "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                      }
+                    },
+                    "runAfter": {
+                      "Response_3": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Workflow"
+                  },
+                  "JsonRemoveNullOrEmptyFunc": {
+                    "inputs": {
+                      "body": {
+                        "CorrelationId": "@{triggerOutputs()['headers']?['correlationid']}",
+                        "InputRequestBase64": "@{base64(body('logic-c00031-SFS_int_userBasedLogic')?['Opportunity'])}",
+                        "InterfaceName": "internal_insert_update_opportunity",
+                        "Username": "@{coalesce(triggerOutputs()?['headers']?['username'], triggerOutputs()?['queries']?['username'])}",
+                        "operation": "JsonRemoveNullOrEmpty"
+                      },
+                      "function": {
+                        "connectionName": "Liquid"
+                      },
+                      "headers": null,
+                      "method": "POST"
+                    },
+                    "runAfter": {
+                      "logic-c00031-SFS_int_userBasedLogic": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Function"
+                  },
+                  "Response": {
+                    "inputs": {
+                      "body": {
+                        "SIE_SF4S_upsertOppObjectsRes": "@body('logic-c00031-SFS_internal_upsertOppObjects')?['SIE_SF4S_upsertOppObjectsRes']"
+                      },
+                      "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                      "logic-c00031-SFS_internal_upsertOppObjects": [
+                        "Succeeded",
+                        "Failed"
+                      ]
+                    },
+                    "runtimeConfiguration": {
+                      "secureData": {
+                        "properties": [
+                          "inputs"
+                        ]
+                      }
+                    },
+                    "type": "Response"
+                  },
+                  "Response_3": {
+                    "inputs": {
+                      "body": "@body('logic-c00031-SFS_int_userBasedLogic')",
+                      "statusCode": "@outputs('logic-c00031-SFS_int_userBasedLogic')?['statusCode']"
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                      "logic-c00031-SFS_int_userBasedLogic": [
+                        "Failed"
+                      ]
+                    },
+                    "runtimeConfiguration": {
+                      "secureData": {
+                        "properties": [
+                          "inputs"
+                        ]
+                      }
+                    },
+                    "type": "Response"
+                  },
+                  "SubLogic-sf4sLog": {
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "int_sf4sLog"
+                        }
+                      },
+                      "body": {
+                        "message": "Request:@{base64(triggerBody())}",
+                        "severity": "DEBUG"
+                      },
+                      "headers": {
+                        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'UpsertOpportunity')}",
+                        "username": "@{coalesce(triggerOutputs()?['headers']?['username'], triggerOutputs()?['queries']?['username'])}",
+                        "workflowRunId": "@{workflow()?['run']?['name']}"
+                      }
+                    },
+                    "runAfter": {},
+                    "type": "Workflow"
+                  },
+                  "SubLogic-sf4sLog2": {
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "int_sf4sLog"
+                        }
+                      },
+                      "body": {
+                        "message": "@{concat('Map Upsert Opportunity for ',variables('userName'),'with External Source:',triggerBody()?['Opportunity']?['S4SExternal_Source__c'])}",
+                        "severity": "INFO"
+                      },
+                      "headers": {
+                        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'UpsertOpportunity')}",
+                        "username": "@{coalesce(triggerOutputs()?['headers']?['username'], triggerOutputs()?['queries']?['username'])}",
+                        "workflowRunId": "@{workflow()?['run']?['name']}"
+                      }
+                    },
+                    "runAfter": {
+                      "SubLogic-sf4sLog": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Workflow"
+                  },
+                  "logic-c00031-SFS_internal_upsertOppObjects": {
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "int_SFS_upsertOppObjects"
+                        }
+                      },
+                      "body": "@outputs('_Compose_Opp_request')",
+                      "headers": {
+                        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'UpsertOpportunity')}",
+                        "username": "@{coalesce(triggerOutputs()?['headers']?['username'], triggerOutputs()?['queries']?['username'])}",
+                        "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], workflow()?['run']?['name'])}"
+                      }
+                    },
+                    "runAfter": {
+                      "_Compose_Opp_request": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Workflow"
+                  },
+                  "logic-c00031-SFS_int_userBasedLogic": {
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "int_SFS_userBasedLogic"
+                        }
+                      },
+                      "body": {
+                        "interface": "@{triggerBody()?['Opportunity']?['S4SExternal_Source__c']}",
+                        "opportunity": "@{outputs('Compose_payload')}",
+                        "userName": "@variables('userName')"
+                      },
+                      "headers": {
+                        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'UpsertOpportunity')}",
+                        "username": "@{coalesce(triggerOutputs()?['headers']?['username'], triggerOutputs()?['queries']?['username'])}",
+                        "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], workflow()?['run']?['name'])}",
+                        "defaultOwner": "@{coalesce(if(equals(variables('UserName'),string('SF4S_LOS_API_USER_IC')),triggerOutputs()?['headers']?['defaultOwner'],triggerBody()?['defaultOwner']),string(''))}"
+                      }
+                    },
+                    "runAfter": {
+                      "Compose_payload": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Workflow"
+                  },
+                  "Success_Response_Log_": {
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "int_sf4sLog"
+                        }
+                      },
+                      "body": {
+                        "message": "Final Response:@{base64(body('logic-c00031-SFS_internal_upsertOppObjects')?['SIE_SF4S_upsertOppObjectsRes'])}",
+                        "severity": "INFO"
+                      },
+                      "headers": {
+                        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                        "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                        "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                      }
+                    },
+                    "runAfter": {
+                      "Response": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Workflow"
+                  },
+                  "Terminate_Failed": {
+                    "inputs": {
+                      "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                      "Failure_Response_Log": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Terminate"
+                  },
+                  "_Compose_Opp_request": {
+                    "inputs": {
+                      "Opportunity": "@json(body('JsonRemoveNullOrEmptyFunc')?['result']?['restructuredJson'])"
+                    },
+                    "runAfter": {
+                      "JsonRemoveNullOrEmptyFunc": [
+                        "Succeeded"
+                      ]
+                    },
+                    "runtimeConfiguration": {
+                      "secureData": {
+                        "properties": [
+                          "inputs"
+                        ]
+                      }
+                    },
+                    "type": "Compose"
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Response_Log_Empty": {
+                      "inputs": {
+                        "host": {
+                          "workflow": {
+                            "id": "int_sf4sLog"
+                          }
+                        },
+                        "body": {
+                          "message": "Empty input",
+                          "severity": "INFO"
+                        },
+                        "headers": {
+                          "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                          "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                          "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                        }
+                      },
+                      "runAfter": {
+                        "Response_emptyInput": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "Workflow"
+                    },
+                    "Response_emptyInput": {
+                      "inputs": {
+                        "body": "Empty input",
+                        "statusCode": 400
+                      },
+                      "kind": "Http",
+                      "runAfter": {},
+                      "runtimeConfiguration": {
+                        "secureData": {
+                          "properties": [
+                            "inputs"
+                          ]
+                        }
+                      },
+                      "type": "Response"
+                    },
+                    "Terminate_empty_failed": {
+                      "inputs": {
+                        "runStatus": "Failed"
+                      },
+                      "runAfter": {
+                        "Response_Log_Empty": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "Terminate"
+                    }
+                  }
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "not": {
+                        "equals": [
+                          "@triggerBody()?['Opportunity']",
+                          "@null"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "runAfter": {},
+                "type": "If"
+              }
+            },
+            "else": {
+              "actions": {
+                "Response_2": {
+                  "inputs": {
+                    "body": "Please set username value in header",
+                    "statusCode": 400
+                  },
+                  "kind": "Http",
+                  "runAfter": {},
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs"
+                      ]
+                    }
+                  },
+                  "type": "Response"
+                },
+                "Response_Log_UserName": {
+                  "inputs": {
+                    "host": {
+                      "workflow": {
+                        "id": "int_sf4sLog"
+                      }
+                    },
+                    "body": {
+                      "message": "Please set username value in header",
+                      "severity": "INFO"
+                    },
+                    "headers": {
+                      "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                      "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                      "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                    }
+                  },
+                  "runAfter": {
+                    "Response_2": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Workflow"
+                },
+                "Terminate_Failed_Log_Username": {
+                  "inputs": {
+                    "runStatus": "Failed"
+                  },
+                  "runAfter": {
+                    "Response_Log_UserName": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Terminate"
+                }
+              }
+            },
+            "expression": {
+              "and": [
+                {
+                  "not": {
+                    "equals": [
+                      "@ triggerOutputs()?['headers']?['username']",
+                      "@string('')"
+                    ]
+                  }
+                },
+                {
+                  "not": {
+                    "equals": [
+                      "@ triggerOutputs()?['headers']?['username']",
+                      "@null"
+                    ]
+                  }
+                }
+              ]
+            },
+            "runAfter": {},
+            "type": "If"
+          }
+        },
+        "runAfter": {
+          "Initialize_variable-SalesforceID": [
+            "Succeeded"
+          ],
+          "Initialize_variable-configSeverity": [
+            "Succeeded"
+          ],
+          "Initialize_variable-getSession": [
+            "Succeeded"
+          ],
+          "Initialize_variable-index": [
+            "Succeeded"
+          ],
+          "Initialize_variable-message": [
+            "Succeeded"
+          ],
+          "Initialize_variable-object": [
+            "Succeeded"
+          ],
+          "Initialize_variable-severity": [
+            "Succeeded"
+          ],
+          "Initialize_variable-userName": [
+            "Succeeded"
+          ],
+          "logic-c00031-SFS_internal_sf4sLog-weu-dev": [
+            "Succeeded"
+          ]
+        },
+        "trackedProperties": {
+          "apimRouting": "not-defined",
+          "citizenName": "c00031",
+          "correlationId": "not-defined",
+          "interfaceName": "SFS",
+          "interfacePartner": "not-defined",
+          "interfaceVersion": "not-defined",
+          "operationName": "upsertOpportunity",
+          "parentWorkflow": "not-defined"
+        },
+        "type": "Scope"
+      },
+      "logic-c00031-SFS_internal_sf4sLog-weu-dev": {
+        "inputs": {
+          "host": {
+            "workflow": {
+              "id": "int_sf4sLog"
+            }
+          },
+          "body": {
+            "message": "Logic app name is 'Logic-c00031-SFS_UpsertOpportunity'",
+            "severity": "INFO"
+          },
+          "headers": {
+            "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'UpsertOpportunity')}",
+            "username": "@{coalesce(triggerOutputs()?['headers']?['username'], triggerOutputs()?['queries']?['username'])}",
+            "workflowRunId": "@{workflow()?['run']?['name']}"
+          }
+        },
+        "runAfter": {},
+        "type": "Workflow"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {},
+        "kind": "Http",
+        "runtimeConfiguration": {
+          "secureData": {
+            "properties": [
+              "inputs",
+              "outputs"
+            ]
+          }
+        },
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

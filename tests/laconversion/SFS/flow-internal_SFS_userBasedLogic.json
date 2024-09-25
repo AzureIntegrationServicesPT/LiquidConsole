@@ -1,0 +1,2191 @@
+{
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Compose-userNameobjectInterface": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "userNameobjectInterface",
+                            "type": "string",
+                            "value": "@{triggerBody()?['userName']}-Opportunity-@{triggerBody()?['interface']}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "HTTP-Get_Config_userBasedLogic": {
+                "inputs": {
+                    "body": {
+                        "key": "sfs-user-config"
+                    },
+                    "host": {
+                        "triggerName": "manual",
+                        "workflow": {
+                           "id": "${getConfiguration_logicAppId}"
+                        }
+                    },
+                    "retryPolicy": {
+                        "type": "none"
+                    }
+                },
+                "runAfter": {},
+                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                "type": "Workflow"
+            },
+            "Initialize_variable-Opportunity": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "Opportunity",
+                            "type": "object",
+                            "value": "@json(triggerBody()?['opportunity'])"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable-SoapErrorResponse": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "SoapErrorResponse",
+                            "type": "string",
+                            "value": "<soap-env:Envelope xmlns:soap-env=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap-env:Header/><soap-env:Body><soap-env:Fault><faultcode>soap-env:Server</faultcode><faultstring>{errormessagedetails}</faultstring><detail/></soap-env:Fault></soap-env:Body></soap-env:Envelope>"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable-message": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "message",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable-severity": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "severity",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable-status": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "status",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_Confidential": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "confidential",
+                            "type": "boolean"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_OpportunityId": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "OpportunityId",
+                            "type": "string",
+                            "value": "@{json(triggerBody()?['Opportunity'])?['Id']}"
+                            
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_Response": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "Response",
+                            "type": "string",
+                            "value": " @{json(triggerBody()?['Opportunity'])}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_accetCodeIAC": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "accetCodeIAC",
+                            "type": "string",
+                            "value": "@{json(triggerBody()?['Opportunity'])?['S4SAsset_Code_IAC__c']}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_offerRefId": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "offerRefId",
+                            "type": "boolean"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_ownerId": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "ownerId",
+                            "type": "string",
+                            "value": "@{json(triggerBody()?['Opportunity'])?['OwnerId']}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_ownerRoleId": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "ownerRoleId",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_recordTypeId": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "recordTypeId",
+                            "type": "string",
+                            "value": "@{json(triggerBody()?['Opportunity'])?['recordTypeId']}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_whereClause": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "S4SROE__c",
+                            "type": "string",
+                            "value": "@{json(triggerBody()?['Opportunity'])?['S4SROE__c']}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Scope-Catch": {
+                "actions": {
+                    "Response-Failed": {
+                        "inputs": {
+                            "body": "@concat('Some error occurred while connection. Please find more details using tracking id : ', workflow()['run']['name'])",
+                            "statusCode": 500
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                        "type": "Response"
+                    },
+                    "Terminate_Failed": {
+                        "inputs": {
+                            "runStatus": "Failed"
+                        },
+                        "runAfter": {
+                            "Response-Failed": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Terminate"
+                    }
+                },
+                "runAfter": {
+                    "Scope-Try": [
+                        "Failed",
+                        "Skipped",
+                        "TimedOut"
+                    ]
+                },
+                "type": "Scope"
+            },
+            "Scope-Try": {
+                "actions": {
+                    "Check_-Opportunity-Logging": {
+                        "actions": {
+                            "SubLogic-sf4sLogOpportunity": {
+                                "inputs": {
+                                    "body": {
+                                        "message": "SieSales Object being Used for user based logic is 'Opportunity' with @{triggerBody()?['userName']},@{triggerBody()?['interface']}",
+                                        "severity": "DEBUG"
+                                    },
+                                    "headers": {
+                                        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                        "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                        "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                    },
+                                    "host": {
+                                        "triggerName": "manual",
+                                        "workflow": {
+                                            "id": "[parameters('sf4sLog_logicApp_id')]"
+                                        }
+                                    },
+                                    "retryPolicy": {
+                                        "type": "none"
+                                    }
+                                },
+                                "runAfter": {},
+                                "type": "Workflow"
+                            }
+                        },
+                        "else": {
+                            "actions": {
+                                "Set_variable-message": {
+                                    "inputs": {
+                                        "name": "message",
+                                        "value": "No Data received for SFS_userBasedLogic"
+                                    },
+                                    "runAfter": {
+                                        "Set_variable-status": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "SetVariable"
+                                },
+                                "Set_variable-status": {
+                                    "inputs": {
+                                        "name": "status",
+                                        "value": "Failure"
+                                    },
+                                    "runAfter": {},
+                                    "type": "SetVariable"
+                                },
+                                "SubLogic-sf4sLogDefault": {
+                                    "inputs": {
+                                        "body": {
+                                            "message": "Empty Document received",
+                                            "severity": "DEBUG"
+                                        },
+                                        "headers": {
+                                            "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                            "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                            "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                        },
+                                        "host": {
+                                            "triggerName": "manual",
+                                            "workflow": {
+                                                "id": "[parameters('sf4sLog_logicApp_id')]"
+                                            }
+                                        },
+                                        "retryPolicy": {
+                                            "type": "none"
+                                        }
+                                    },
+                                    "runAfter": {},
+                                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                    "type": "Workflow"
+                                }
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('Opportunity')",
+                                            "@null"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "not": {
+                                        "equals": [
+                                            "@variables('Opportunity')",
+                                            ""
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "runAfter": {},
+                        "type": "If"
+                    },
+                    "Compose_response": {
+                        "inputs": {
+                            "Opportunity": "@variables('Response')",
+                            "Status": "@{variables('status')}",
+                            "message": "@{variables('message')}"
+                        },
+                        "runAfter": {
+                            "Switch_2": [
+                                "Succeeded"
+                            ]
+                        },
+                          "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                        "type": "Compose"
+                    },
+                    "Response": {
+                        "inputs": {
+                            "body": "@outputs('Compose_response')",
+                            "statusCode": 200
+                        },
+                        "kind": "Http",
+                        "runAfter": {
+                            "Compose_response": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Response"
+                    },
+                    "Switch": {
+                        "cases": {
+                            "Case_-_SieSmart": {
+                                "actions": {
+                                    "Condition-Check_OppId": {
+                                        "actions": {
+                                            "Execute_SOQL_query_fetchOpportunity1": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "query": "SELECT Id,IsDeleted,AccountId,RecordTypeId,IsPrivate,Name,Description,StageName,Amount,Probability,ExpectedRevenue,TotalOpportunityQuantity,CloseDate,Type,NextStep,LeadSource,IsClosed FROM Opportunity WHERE Id = '@{variables('Opportunity')['Id']}'"
+                                                    },
+                                                    "host": {
+                                                        "connection": {
+                                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                        }
+                                                    },
+                                                    "method": "post",
+                                                    "path": "/soql/executesoqlquery",
+                                                    "retryPolicy": {
+                                                        "type": "none"
+                                                    }
+                                                },
+                                                "runAfter": {},
+                                                  "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                "type": "ApiConnection"
+                                            },
+                                            "Set_variable_res_Confidential": {
+                                                "inputs": {
+                                                    "name": "confidential",
+                                                    "value": "@bool(true)"
+                                                },
+                                                "runAfter": {
+                                                    "Execute_SOQL_query_fetchOpportunity1": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "SetVariable"
+                                            }
+                                        },
+                                        "expression": {
+                                            "and": [
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@variables('Opportunity')?['Id']",
+                                                            "@null"
+                                                        ]
+                                                    }
+                                                },
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@variables('Opportunity')?['Id']",
+                                                            ""
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "runAfter": {},
+                                        "type": "If"
+                                    },
+                                    "Condition_Asset_Code_IAC": {
+                                        "actions": {
+                                            "catch": {
+                                                "actions": {},
+                                                "runAfter": {
+                                                    "try": [
+                                                        "Failed",
+                                                        "Skipped"
+                                                    ]
+                                                },
+                                                "type": "Scope"
+                                            },
+                                            "try": {
+                                                "actions": {
+                                                    "Condition": {
+                                                        "actions": {
+                                                            "Set_variable_accetCodeIAC": {
+                                                                "inputs": {
+                                                                    "name": "accetCodeIAC",
+                                                                    "value": "@{body('Execute_SOQL_query_accetCodeIAC')?['records']?[0]?['Id']}"
+                                                                },
+                                                                "runAfter": {},
+                                                                "type": "SetVariable"
+                                                            },
+                                                            "SubLogic-sf4sLog_3": {
+                                                                "inputs": {
+                                                                    "body": {
+                                                                        "message": "found one IAC object  @{body('Execute_SOQL_query_accetCodeIAC')?['Id']}",
+                                                                        "severity": "INFO"
+                                                                    },
+                                                                    "headers": {
+                                                                        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                                                        "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                                                        "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                                                    },
+                                                                    "host": {
+                                                                        "triggerName": "manual",
+                                                                        "workflow": {
+                                                                            "id": "[parameters('sf4sLog_logicApp_id')]"
+                                                                        }
+                                                                    },
+                                                                    "retryPolicy": {
+                                                                        "type": "none"
+                                                                    }
+                                                                },
+                                                                "runAfter": {},
+                                                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                                "type": "Workflow"
+                                                            }
+                                                        },
+                                                        "else": {
+                                                            "actions": {
+                                                                "SubLogic-sf4sLog_4": {
+                                                                    "inputs": {
+                                                                        "body": {
+                                                                            "message": "detected more than one  IAC object with@{variables('Opportunity')?['S4SAsset_Code_IAC__c']}",
+                                                                            "severity": "INFO"
+                                                                        },
+                                                                        "headers": {
+                                                                            "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                                                            "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                                                            "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                                                        },
+                                                                        "host": {
+                                                                            "triggerName": "manual",
+                                                                            "workflow": {
+                                                                                "id": "[parameters('sf4sLog_logicApp_id')]"
+                                                                            }
+                                                                        },
+                                                                        "retryPolicy": {
+                                                                            "type": "none"
+                                                                        }
+                                                                    },
+                                                                    "runAfter": {},
+                                                                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                                    "type": "Workflow"
+                                                                }
+                                                            }
+                                                        },
+                                                        "expression": {
+                                                            "and": [
+                                                                {
+                                                                    "equals": [
+                                                                        "@string(body('Execute_SOQL_query_accetCodeIAC')?['totalSize'])",
+                                                                        "@string('1')"
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        },
+                                                        "runAfter": {
+                                                            "Execute_SOQL_query_accetCodeIAC": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "If"
+                                                    },
+                                                    "Execute_SOQL_query_accetCodeIAC": {
+                                                        "inputs": {
+                                                            "body": {
+                                                                "query": "SELECT Id FROM S4SIAC__c WHERE Name='@{variables('Opportunity')['S4SAsset_Code_IAC__c']}'"
+                                                            },
+                                                            "host": {
+                                                                "connection": {
+                                                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                }
+                                                            },
+                                                            "method": "post",
+                                                            "path": "/soql/executesoqlquery",
+                                                            "retryPolicy": {
+                                                                "type": "none"
+                                                            }
+                                                        },
+                                                        "runAfter": {},
+                                                          "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                        "type": "ApiConnection"
+                                                    }
+                                                },
+                                                "runAfter": {},
+                                                "type": "Scope"
+                                            }
+                                        },
+                                        "expression": {
+                                            "and": [
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@variables('Opportunity')?['S4SAsset_Code_IAC__c']",
+                                                            ""
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "runAfter": {},
+                                        "type": "If"
+                                    },
+                                    "Condition_OwnerId": {
+                                        "actions": {
+                                            "Condition_to_Check_totalSize": {
+                                                "actions": {
+                                                    "Set_variable_ownerId": {
+                                                        "inputs": {
+                                                            "name": "ownerId",
+                                                            "value": "@{body('Execute_SOQL_query_ownerId')?['records']?[0]?['Id']}"
+                                                        },
+                                                        "runAfter": {},
+                                                        "type": "SetVariable"
+                                                    }
+                                                },
+                                                "else": {
+                                                    "actions": {
+                                                        "Condition_to_Check_defaultOwner": {
+                                                            "actions": {
+                                                                "Get_defaultOwner_Id": {
+                                                                    "inputs": {
+                                                                        "body": {
+                                                                            "query": "select id from User where S4SGID_Technical__c = '@{triggerOutputs()['headers']?['defaultOwner']}'"
+                                                                        },
+                                                                        "host": {
+                                                                            "connection": {
+                                                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                            }
+                                                                        },
+                                                                        "method": "post",
+                                                                        "path": "/soql/executesoqlquery"
+                                                                    },
+                                                                    "runAfter": {},
+                                                                    "type": "ApiConnection"
+                                                                },
+                                                                "Set_variable_defaultOwnerId": {
+                                                                    "inputs": {
+                                                                        "name": "ownerId",
+                                                                        "value": "@{body('Get_defaultOwner_Id')?['records']?[0]?['Id']}"
+                                                                    },
+                                                                    "runAfter": {
+                                                                        "Get_defaultOwner_Id": [
+                                                                            "Succeeded"
+                                                                        ]
+                                                                    },
+                                                                    "type": "SetVariable"
+                                                                }
+                                                            },
+                                                            "else": {
+                                                                "actions": {
+                                                                    "Failure_Response": {
+                                                                        "inputs": {
+                                                                            "statusCode": 400
+                                                                        },
+                                                                        "kind": "Http",
+                                                                        "runAfter": {},
+                                                                        
+                                                                        "type": "Response"
+                                                                    },
+                                                                    "Terminate_owner_information_is_not_unique": {
+                                                                        "inputs": {
+                                                                            "runStatus": "Succeeded"
+                                                                        },
+                                                                        "runAfter": {
+                                                                            "Failure_Response": [
+                                                                                "Succeeded"
+                                                                            ]
+                                                                        },
+                                                                        "type": "Terminate"
+                                                                    }
+                                                                }
+                                                            },
+                                                            "expression": {
+                                                                "and": [
+                                                                        {
+                                                                            "not": {
+                                                                                "equals": [
+                                                                                    "@triggerOutputs()?['headers']?['defaultOwner']",
+                                                                                    "@null"
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "not": {
+                                                                                "equals": [
+                                                                                    "@triggerOutputs()['headers']?['defaultOwner']",
+                                                                                    "@string('')"
+                                                                                ]
+                                                                            }
+                                                                        }
+                                                                    ]
+                                                            },
+                                                            "runAfter": {},
+                                                            "type": "If"
+                                                        }
+                                                    }
+                                                },
+                                                "expression": {
+                                                    "and": [
+                                                        {
+                                                            "equals": [
+                                                                "@body('Execute_SOQL_query_ownerId')?['totalSize']",
+                                                                1
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                "runAfter": {
+                                                    "log-fetchOwner_totalSize": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "If"
+                                            },
+                                            "Execute_SOQL_query_ownerId": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "query": "SELECT Id from User WHERE S4SGID_Technical__c = '@{variables('Opportunity')['OwnerId']}'"
+                                                    },
+                                                    "host": {
+                                                        "connection": {
+                                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                        }
+                                                    },
+                                                    "method": "post",
+                                                    "path": "/soql/executesoqlquery",
+                                                    "retryPolicy": {
+                                                        "type": "none"
+                                                    }
+                                                },
+                                                "runAfter": {},
+                                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                "type": "ApiConnection"
+                                            },
+                                            "Response_Invalid_Opportunity_Id_fetch_Owner": {
+                                                "inputs": {
+                                                    "body": "Invalid Opportunity Id",
+                                                    "statusCode": 200
+                                                },
+                                                "kind": "Http",
+                                                "runAfter": {
+                                                    "Execute_SOQL_query_ownerId": [
+                                                        "Failed"
+                                                    ]
+                                                },
+                                                "type": "Response"
+                                            },
+                                            "Terminate_Invalid_Opportunity_Id_Fetch_Owner": {
+                                                "inputs": {
+                                                    "runStatus": "Failed"
+                                                },
+                                                "runAfter": {
+                                                    "Response_Invalid_Opportunity_Id_fetch_Owner": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "Terminate"
+                                            },
+                                            "log-fetchOwner_totalSize": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "message": "There are  @{body('Execute_SOQL_query_ownerId')?['totalSize']} user(s) in SieSales with the GID technical sent in request",
+                                                        "severity": "INFO"
+                                                    },
+                                                    "headers": {
+                                                        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                                        "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                                        "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                                    },
+                                                    "host": {
+                                                        "triggerName": "manual",
+                                                        "workflow": {
+                                                            "id": "[parameters('sf4sLog_logicApp_id')]"
+                                                        }
+                                                    },
+                                                    "retryPolicy": {
+                                                        "type": "none"
+                                                    }
+                                                },
+                                                "runAfter": {
+                                                    "Execute_SOQL_query_ownerId": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                "type": "Workflow"
+                                            }
+                                        },
+                                        "expression": {
+                                            "and": [
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@variables('Opportunity')?['OwnerId']",
+                                                            ""
+                                                        ]
+                                                    }
+                                                },
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@variables('Opportunity')?['OwnerId']",
+                                                            "@null"
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "runAfter": {},
+                                        "type": "If"
+                                    },
+                                    "Condition_RecordTypeId_": {
+                                        "actions": {
+                                            "Execute_SOQL_query_recordTypeId": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "parameters": {
+                                                            "Limit": "1"
+                                                        },
+                                                        "query": "SELECT Id,Name,Description,IsActive,LastModifiedDate FROM RecordType WHERE Name='@{variables('Opportunity')?['RecordTypeId']}'"
+                                                    },
+                                                    "host": {
+                                                        "connection": {
+                                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                        }
+                                                    },
+                                                    "method": "post",
+                                                    "path": "/soql/executesoqlquery",
+                                                    "retryPolicy": {
+                                                        "type": "none"
+                                                    }
+                                                },
+                                                "runAfter": {},
+                                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                "type": "ApiConnection"
+                                            },
+                                            "Set_variable_recordTypeId": {
+                                                "inputs": {
+                                                    "name": "recordTypeId",
+                                                    "value": "@{body('Execute_SOQL_query_recordTypeId')?['records']?[0]?['Id']}"
+                                                },
+                                                "runAfter": {
+                                                    "Execute_SOQL_query_recordTypeId": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "SetVariable"
+                                            },
+                                            "SubLogic-sf4sLog_5": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "message": "mapped RecordTypeId to @{variables('Opportunity')?['RecordTypeId']}",
+                                                        "severity": "INFO"
+                                                    },
+                                                    "headers": {
+                                                        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                                        "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                                        "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                                    },
+                                                    "host": {
+                                                        "triggerName": "manual",
+                                                        "workflow": {
+                                                            "id": "[parameters('sf4sLog_logicApp_id')]"
+                                                        }
+                                                    },
+                                                    "retryPolicy": {
+                                                        "type": "none"
+                                                    }
+                                                },
+                                                "runAfter": {},
+                                                   "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                "type": "Workflow"
+                                            }
+                                        },
+                                        "expression": {
+                                            "and": [
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@variables('Opportunity')?['RecordTypeId']",
+                                                            ""
+                                                        ]
+                                                    }
+                                                },
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@variables('Opportunity')?['RecordTypeId']",
+                                                            "@null"
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "runAfter": {},
+                                        "type": "If"
+                                    },
+                                    "SubLogic-sf4sLogUpsertOpp": {
+                                        "inputs": {
+                                            "body": {
+                                                "message": "Start mapping for SieSmart - upsert opportunity input",
+                                                "severity": "INFO"
+                                            },
+                                            "headers": {
+                                                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                                "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                                "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                            },
+                                            "host": {
+                                                "triggerName": "manual",
+                                                "workflow": {
+                                                    "id": "[parameters('sf4sLog_logicApp_id')]"
+                                                }
+                                            },
+                                            "retryPolicy": {
+                                                "type": "none"
+                                            }
+                                        },
+                                        "runAfter": {},
+                                         "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                        "type": "Workflow"
+                                    }
+                                },
+                                "case": "mapUpsertOppForSSmart"
+                            },
+                            "Case_LOS": {
+                                "actions": {
+                                    "Condition_Asset_Code_IAC1": {
+                                        "actions": {
+                                            "Condition_accetCodeIAC": {
+                                                "actions": {
+                                                    "Set_variable_accetCodeIACId": {
+                                                        "inputs": {
+                                                            "name": "accetCodeIAC",
+                                                            "value": "@{body('Execute_SOQL_query_accetCodeIACId')?['records']?[0]?['Id']}"
+                                                        },
+                                                        "runAfter": {},
+                                                        "type": "SetVariable"
+                                                    },
+                                                    "SubLogic-sf4sLog1_3": {
+                                                        "inputs": {
+                                                            "body": {
+                                                                "message": "found one IAC object  @{body('Execute_SOQL_query_accetCodeIACId')?['Id']}",
+                                                                "severity": "INFO"
+                                                            },
+                                                            "headers": {
+                                                                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                                                "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                                                "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                                            },
+                                                            "host": {
+                                                                "triggerName": "manual",
+                                                                "workflow": {
+                                                                    "id": "[parameters('sf4sLog_logicApp_id')]"
+                                                                }
+                                                            },
+                                                            "retryPolicy": {
+                                                                "type": "none"
+                                                            }
+                                                        },
+                                                        "runAfter": {},
+                                                          "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                        "type": "Workflow"
+                                                    }
+                                                },
+                                                "else": {
+                                                    "actions": {
+                                                        "SubLogic-sf4sLog1_4": {
+                                                            "inputs": {
+                                                                "body": {
+                                                                    "message": "IAC object with name @{variables('Opportunity')?['S4SAsset_Code_IAC__c']}not found or is not unique",
+                                                                    "severity": "INFO"
+                                                                },
+                                                                "headers": {
+                                                                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                                                    "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                                                    "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                                                },
+                                                                "host": {
+                                                                    "triggerName": "manual",
+                                                                    "workflow": {
+                                                                        "id": "[parameters('sf4sLog_logicApp_id')]"
+                                                                    }
+                                                                }
+                                                            },
+                                                            "runAfter": {},
+                                                             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                            "type": "Workflow"
+                                                        }
+                                                    }
+                                                },
+                                                "expression": {
+                                                    "and": [
+                                                        {
+                                                            "equals": [
+                                                                "@string(body('Execute_SOQL_query_accetCodeIACId')?['totalSize'])",
+                                                                "@string('1')"
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                "runAfter": {
+                                                    "Execute_SOQL_query_accetCodeIACId": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "If"
+                                            },
+                                            "Execute_SOQL_query_accetCodeIACId": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "query": "SELECT Id FROM S4SIAC__c WHERE Name='@{variables('Opportunity')?['S4SAsset_Code_IAC__c']}'"
+                                                    },
+                                                    "host": {
+                                                        "connection": {
+                                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                        }
+                                                    },
+                                                    "method": "post",
+                                                    "path": "/soql/executesoqlquery",
+                                                    "retryPolicy": {
+                                                        "type": "none"
+                                                    }
+                                                },
+                                                "runAfter": {},
+                                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                "type": "ApiConnection"
+                                            }
+                                        },
+                                        "expression": {
+                                            "and": [
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@variables('Opportunity')?['S4SAsset_Code_IAC__c']",
+                                                            ""
+                                                        ]
+                                                    }
+                                                },
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@variables('Opportunity')?['S4SAsset_Code_IAC__c']",
+                                                            "@null"
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "runAfter": {},
+                                        "type": "If"
+                                    },
+                                    "Condition_OwnerId1": {
+                                        "actions": {
+                                            "Condition_to_Check_totalSize1": {
+                                                "actions": {
+                                                    "Set_variable_ownerId1": {
+                                                        "inputs": {
+                                                            "name": "ownerId",
+                                                            "value": "@{body('Execute_SOQL_query_ownerId1')?['records']?[0]?['Id']}"
+                                                        },
+                                                        "runAfter": {},
+                                                        "type": "SetVariable"
+                                                    }
+                                                },
+                                                "else": {
+                                                    "actions": {
+                                                        "Condition_to_Check_defaultOwner1": {
+                                                            "actions": {
+                                                                "Get_defaultOwner_Id1": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "query": "select id from User where S4SGID_Technical__c = '@{triggerOutputs()['headers']?['defaultOwner']}'"
+                                                    },
+                                                    "host": {
+                                                        "connection": {
+                                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                        }
+                                                    },
+                                                    "method": "post",
+                                                    "path": "/soql/executesoqlquery",
+                                                    "retryPolicy": {
+                                                        "type": "none"
+                                                    }
+                                                },
+                                                "runAfter": {},
+                                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                "type": "ApiConnection"
+                                            },
+                                            "Set_variable_defaultOwnerId1": {
+                                                "inputs": {
+                                                    "name": "ownerId",
+                                                    "value": "@{body('Get_defaultOwner_Id1')?['records']?[0]?['Id']}"
+                                                },
+                                                "runAfter": {
+                                                    "Get_defaultOwner_Id1": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "SetVariable"
+                                                }
+                                            },
+                                            "else": {
+                                                "actions": {
+                                                    "Failure_Response1": {
+                                                        "inputs": {
+                                                            "statusCode": 400
+                                                        },
+                                                        "kind": "Http",
+                                                        "runAfter": {},
+                                                        "type": "Response"
+                                                    },
+                                                    "Terminate_owner_information_is_not_unique1": {
+                                                        "inputs": {
+                                                            "runStatus": "Succeeded"
+                                                        },
+                                                        "runAfter": {
+                                                            "Failure_Response1": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "Terminate"
+                                                    }
+                                                }
+                                            },
+                                            "expression": {
+                                                "and": [
+                                                    {
+                                                        "not": {
+                                                            "equals": [
+                                                                "@triggerOutputs()?['headers']?['defaultOwner']",
+                                                                "@null"
+                                                            ]
+                                                        }
+                                                    },
+                                                    {
+                                                        "not": {
+                                                            "equals": [
+                                                                "@triggerOutputs()['headers']?['defaultOwner']",
+                                                                "@string('')"
+                                                            ]
+                                                        }
+                                                    }
+                                                ]
+                                            },
+                                            "runAfter": {},
+                                            "type": "If"
+                                        }
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "equals": [
+                                                        "@body('Execute_SOQL_query_ownerId1')?['totalSize']",
+                                                        1
+                                                    ]
+                                                        }
+                                                    ]
+                                                },
+                                                "runAfter": {
+                                                    "log-fetchOwner_totalSize1": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "If"
+                                            },
+                                            "Execute_SOQL_query_ownerId1": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "query": "SELECT Id from User WHERE S4SGID_Technical__c = '@{variables('Opportunity')['OwnerId']}'"
+                                                    },
+                                                    "host": {
+                                                        "connection": {
+                                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                        }
+                                                    },
+                                                    "method": "post",
+                                                    "path": "/soql/executesoqlquery",
+                                                    "retryPolicy": {
+                                                        "type": "none"
+                                                    }
+                                                },
+                                                "runAfter": {},
+                                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                "type": "ApiConnection"
+                                            },
+                                            "Response_Invalid_Opportunity_Id_fetch_Owner1": {
+                                                "inputs": {
+                                                    "body": "Invalid Opportunity Id",
+                                                    "statusCode": 200
+                                                },
+                                                "kind": "Http",
+                                                "runAfter": {
+                                                    "Execute_SOQL_query_ownerId1": [
+                                                        "Failed"
+                                                    ]
+                                                },
+                                                "type": "Response"
+                                            },
+                                            "Terminate_Invalid_Opportunity_Id_Fetch_Owner1": {
+                                                "inputs": {
+                                                    "runStatus": "Failed"
+                                                },
+                                                "runAfter": {
+                                                    "Response_Invalid_Opportunity_Id_fetch_Owner1": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "Terminate"
+                                            },
+                                            "log-fetchOwner_totalSize1": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "message": "There are  @{body('Execute_SOQL_query_ownerId1')?['totalSize']} user(s) in SieSales with the GID technical sent in request",
+                                                        "severity": "INFO"
+                                                    },
+                                                    "headers": {
+                                                        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                                        "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')\r\n}",
+                                                        "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                                    },
+                                                    "host": {
+                                                        "triggerName": "manual",
+                                                        "workflow": {
+                                                            "id": "[parameters('sf4sLog_logicApp_id')]"
+                                                        }
+                                                    }
+                                                },
+                                                "runAfter": {
+                                                    "Execute_SOQL_query_ownerId1": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                "type": "Workflow"
+                                            }
+                                        },
+                                        "expression": {
+                                            "and": [
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@variables('Opportunity')?['OwnerId']",
+                                                            ""
+                                                        ]
+                                                    }
+                                                },
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@variables('Opportunity')?['OwnerId']",
+                                                            "@null"
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "runAfter": {},
+                                        "type": "If"
+                                    },
+                                    "Condition_RecordTypeId1": {
+                                        "actions": {
+                                            "Execute_SOQL_query_recordTypeId1": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "parameters": {
+                                                            "Limit": "1"
+                                                        },
+                                                        "query": "SELECT Id FROM RecordType WHERE Name= '@{variables('Opportunity')?['RecordTypeId']}'"
+                                                    },
+                                                    "host": {
+                                                        "connection": {
+                                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                        }
+                                                    },
+                                                    "method": "post",
+                                                    "path": "/soql/executesoqlquery",
+                                                    "retryPolicy": {
+                                                        "type": "none"
+                                                    }
+                                                },
+                                                "runAfter": {},
+                                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                "type": "ApiConnection"
+                                            },
+                                            "Set_variable_recordTypeId1": {
+                                                "inputs": {
+                                                    "name": "recordTypeId",
+                                                    "value": "@{body('Execute_SOQL_query_recordTypeId1')?['records']?[0]?['Id']}"
+                                                },
+                                                "runAfter": {
+                                                    "Execute_SOQL_query_recordTypeId1": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "SetVariable"
+                                            },
+                                            "SubLogic-sf4sLog1_5": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "message": "mapped RecordTypeId to @{variables('Opportunity')?['RecordTypeId']}",
+                                                        "severity": "INFO"
+                                                    },
+                                                    "headers": {
+                                                        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                                        "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                                        "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                                    },
+                                                    "host": {
+                                                        "triggerName": "manual",
+                                                        "workflow": {
+                                                            "id": "[parameters('sf4sLog_logicApp_id')]"
+                                                        }
+                                                    }
+                                                },
+                                                "runAfter": {},
+                                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                "type": "Workflow"
+                                            }
+                                        },
+                                        "expression": {
+                                            "and": [
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@variables('Opportunity')?['RecordTypeId']",
+                                                            ""
+                                                        ]
+                                                    }
+                                                },
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@variables('Opportunity')?['RecordTypeId']",
+                                                            "@null"
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "runAfter": {},
+                                        "type": "If"
+                                    },
+                                    "Condition_userRole": {
+                                        "actions": {
+                                            "Compose_sfsAccountRole_by_name": {
+                                                "inputs": "@json(body('HTTP_get_sfsAccountRoles')['value'])?[triggerBody()?['userName']]",
+                                                "runAfter": {
+                                                    "HTTP_get_sfsAccountRoles": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                                                "type": "Compose"
+                                            },
+                                            "Condition_result_fetchUserRole": {
+                                                "actions": {
+                                                    "Condition_fetchOppforOwnerRoleId": {
+                                                        "actions": {
+                                                            "Set_variable_oppid": {
+                                                                "inputs": {
+                                                                    "name": "OpportunityId",
+                                                                    "value": "@{body('Execute_SOQL_query_fetchOppforOwnerRoleId')?['records']?[0]?['Id']}"
+                                                                },
+                                                                "runAfter": {},
+                                                                "type": "SetVariable"
+                                                            }
+                                                        },
+                                                        "else": {
+                                                            "actions": {
+                                                                "Terminate_userRole": {
+                                                                    "inputs": {
+                                                                        "runError": {
+                                                                            "message": "Configured LOS User Roles are missing in Salesforce."
+                                                                        },
+                                                                        "runStatus": "Failed"
+                                                                    },
+                                                                    "runAfter": {},
+                                                                    "type": "Terminate"
+                                                                }
+                                                            }
+                                                        },
+                                                        "expression": {
+                                                            "and": [
+                                                                {
+                                                                    "greater": [
+                                                                        "@string(body('Execute_SOQL_query_fetchOppforOwnerRoleId')?['totalSize'])",
+                                                                        "@string('0')"
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        },
+                                                        "runAfter": {
+                                                            "Execute_SOQL_query_fetchOppforOwnerRoleId": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "If"
+                                                    },
+                                                    "Execute_SOQL_query_fetchOppforOwnerRoleId": {
+                                                        "inputs": {
+                                                            "body": {
+                                                                "query": "SELECT Id  FROM Opportunity WHERE S4SOffer_Reference_ID__c= '@{variables('Opportunity')['S4SOffer_Reference_ID__c']}' AND Owner.UserRoleId IN @{variables('ownerRoleId')}"
+                                                            },
+                                                            "host": {
+                                                                "connection": {
+                                                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                }
+                                                            },
+                                                            "method": "post",
+                                                            "path": "/soql/executesoqlquery",
+                                                            "retryPolicy": {
+                                                                "type": "none"
+                                                            }
+                                                        },
+                                                        "runAfter": {
+                                                            "For_each_userRole": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                          "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                        "type": "ApiConnection"
+                                                    },
+                                                    "For_each_userRole": {
+                                                        "actions": {
+                                                            "Condition_ownerRoleId": {
+                                                                "actions": {
+                                                                    "Compose_ownerRoleId": {
+                                                                        "inputs": "@variables('ownerRoleId')",
+                                                                        "runAfter": {},
+                                                                         "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                                                                        "type": "Compose"
+                                                                    },
+                                                                    "Set_variable_ownerRoleId": {
+                                                                        "inputs": {
+                                                                            "name": "ownerRoleId",
+                                                                            "value": "@{outputs('Compose_ownerRoleId')},'@{items('For_each_userRole')?['Id']}'"
+                                                                        },
+                                                                        "runAfter": {
+                                                                            "Compose_ownerRoleId": [
+                                                                                "Succeeded"
+                                                                            ]
+                                                                        },
+                                                                        "type": "SetVariable"
+                                                                    }
+                                                                },
+                                                                "else": {
+                                                                    "actions": {
+                                                                        "Set_variable_ownerRoleId1": {
+                                                                            "inputs": {
+                                                                                "name": "ownerRoleId",
+                                                                                "value": "@{items('For_each_userRole')?['Id']}"
+                                                                            },
+                                                                            "runAfter": {},
+                                                                            "type": "SetVariable"
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "expression": {
+                                                                    "and": [
+                                                                        {
+                                                                            "not": {
+                                                                                "equals": [
+                                                                                    "@variables('ownerRoleId')",
+                                                                                    ""
+                                                                                ]
+                                                                            }
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "runAfter": {},
+                                                                "type": "If"
+                                                            }
+                                                        },
+                                                        "foreach": "@body('Execute_SOQL_query_fetchUserRole')",
+                                                        "runAfter": {},
+                                                        "type": "Foreach"
+                                                    },
+                                                    "SubLogic-sf4sLog1": {
+                                                        "inputs": {
+                                                            "body": {
+                                                                "message": "found  @{body('Execute_SOQL_query_fetchUserRole')?['totalSize']} roles for configured roles for LOS: @{outputs('Compose_sfsAccountRole_by_name')}",
+                                                                "severity": "INFO"
+                                                            },
+                                                            "headers": {
+                                                                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                                                "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                                                "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                                            },
+                                                            "host": {
+                                                                "triggerName": "manual",
+                                                                "workflow": {
+                                                                    "id": "[parameters('sf4sLog_logicApp_id')]"
+                                                                }
+                                                            }
+                                                        },
+                                                        "runAfter": {},
+                                                           "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                        "type": "Workflow"
+                                                    }
+                                                },
+                                                "else": {
+                                                    "actions": {
+                                                        "SubLogic-sf4sLog1_2": {
+                                                            "inputs": {
+                                                                "body": {
+                                                                    "message": "Configured LOS User Roles are missing in Salesforce.",
+                                                                    "severity": "INFO"
+                                                                },
+                                                                "headers": {
+                                                                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                                                    "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                                                    "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                                                },
+                                                                "host": {
+                                                                    "triggerName": "manual",
+                                                                    "workflow": {
+                                                                        "id": "[parameters('sf4sLog_logicApp_id')]"
+                                                                    }
+                                                                }
+                                                            },
+                                                            "runAfter": {},
+                                                              "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                            "type": "Workflow"
+                                                        }
+                                                    }
+                                                },
+                                                "expression": {
+                                                    "and": [
+                                                        {
+                                                            "greater": [
+                                                                "@string(body('Execute_SOQL_query_fetchUserRole')?['totalSize'])",
+                                                                "@string('0')"
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                "runAfter": {
+                                                    "Execute_SOQL_query_fetchUserRole": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "If"
+                                            },
+                                            "Execute_SOQL_query_fetchUserRole": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "query": "select Id,Name from UserRole where  Name in @{outputs('Compose_sfsAccountRole_by_name')}"
+                                                    },
+                                                    "host": {
+                                                        "connection": {
+                                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                        }
+                                                    },
+                                                    "method": "post",
+                                                    "path": "/soql/executesoqlquery",
+                                                    "retryPolicy": {
+                                                        "type": "none"
+                                                    }
+                                                },
+                                                "runAfter": {
+                                                    "Compose_sfsAccountRole_by_name": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                "type": "ApiConnection"
+                                            },
+                                            "HTTP_get_sfsAccountRoles": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "key": "sfs-accountRoles-config"
+                                                    },
+                                                    "headers": {
+                                                        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                                        "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                                        "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                                    },
+                                                    "host": {
+                                                        "triggerName": "manual",
+                                                        "workflow": {
+                                                            "id": "${getConfiguration_logicAppId}"
+                                                        }
+                                                    },
+                                                    "retryPolicy": {
+                                                        "type": "none"
+                                                    }
+                                                },
+                                                "runAfter": {},
+                                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                "type": "Workflow"
+                                            },
+                                            "logic-c00031-internal_sf4sLog": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "message": "Opportunity with Offer Reference ID @{variables('Opportunity')?['S4SOffer_Reference_ID__c']}",
+                                                        "severity": "INFO"
+                                                    },
+                                                    "headers": {
+                                                        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                                        "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                                        "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                                    },
+                                                    "host": {
+                                                        "triggerName": "manual",
+                                                        "workflow": {
+                                                            "id": "[parameters('sf4sLog_logicApp_id')]"
+                                                        }
+                                                    }
+                                                },
+                                                "runAfter": {},
+                                                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                "type": "Workflow"
+                                            }
+                                        },
+                                        "expression": {
+                                            "and": [
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@variables('Opportunity')?['S4SOffer_Reference_ID__c']",
+                                                            ""
+                                                        ]
+                                                    }
+                                                },
+                                                {
+                                                    "equals": [
+                                                        "@variables('Opportunity')?['Id']",
+                                                        ""
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        "runAfter": {},
+                                        "type": "If"
+                                    },
+                                    "Set_variable_confidential": {
+                                        "inputs": {
+                                            "name": "confidential",
+                                            "value": "@bool(true)"
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    },
+                                    "SubLogic-sf4sLogUpsertOpp1": {
+                                        "inputs": {
+                                            "body": {
+                                                "message": "Start mapping for LOS- upsert opportunity input",
+                                                "severity": "INFO"
+                                            },
+                                            "headers": {
+                                                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                                "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                                "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                            },
+                                            "host": {
+                                                "triggerName": "manual",
+                                                "workflow": {
+                                                    "id": "[parameters('sf4sLog_logicApp_id')]"
+                                                }
+                                            }
+                                        },
+                                        "runAfter": {},
+                                          "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                                        "type": "Workflow"
+                                    }
+                                },
+                                "case": "mapUpsertOppForLOS"
+                            },
+                            "Case_default_mapping": {
+                                "actions": {
+                                    "Condition_to_check_recordtypeId": {
+                                        "actions": {
+                                            "Execute_SOQL_query_recordTypeId_default": {
+                                                "inputs": {
+                                                    "body": {
+                                                        "parameters": {
+                                                            "Limit": "1"
+                                                        },
+                                                        "query": "SELECT Id,Name,Description,IsActive,LastModifiedDate FROM RecordType WHERE Name='@{variables('Opportunity')?['Type']}'"
+                                                    },
+                                                    "host": {
+                                                        "connection": {
+                                                            "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                        }
+                                                    },
+                                                    "method": "post",
+                                                    "path": "/soql/executesoqlquery",
+                                                    "retryPolicy": {
+                                                        "type": "none"
+                                                    }
+                                                },
+                                                "runAfter": {},
+                                                  "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                                                "type": "ApiConnection"
+                                            },
+                                            "Set_variable_recordTypeId_default": {
+                                                "inputs": {
+                                                    "name": "recordTypeId",
+                                                    "value": "@{body('Execute_SOQL_query_recordTypeId_default')?['records']?[0]?['Id']}"
+                                                },
+                                                "runAfter": {
+                                                    "Execute_SOQL_query_recordTypeId_default": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "type": "SetVariable"
+                                            }
+                                        },
+                                        "expression": {
+                                            "and": [
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@variables('Opportunity')?['RecordTypeId']",
+                                                            ""
+                                                        ]
+                                                    }
+                                                },
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@variables('Opportunity')?['RecordTypeId']",
+                                                            "@null"
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "runAfter": {},
+                                        "type": "If"
+                                    }
+                                },
+                                "case": "defaultmapping"
+                            }
+                        },
+                        "default": {
+                            "actions": {
+                                "Response-default_Message": {
+                                    "inputs": {
+                                        "body": "@variables('message')",
+                                        "statusCode": 400
+                                    },
+                                    "kind": "Http",
+                                    "runAfter": {
+                                        "Set_variable-defaultMessage": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                     "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                                    "type": "Response"
+                                },
+                                "Response_Log_Default": {
+                                    "inputs": {
+                                        "body": {
+                                            "message": "@variables('message')",
+                                            "severity": "INFO"
+                                        },
+                                        "headers": {
+                                            "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                            "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                            "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                        },
+                                        "host": {
+                                            "triggerName": "manual",
+                                            "workflow": {
+                                                "id": "[parameters('sf4sLog_logicApp_id')]"
+                                            }
+                                        }
+                                    },
+                                    "runAfter": {
+                                        "Response-default_Message": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Workflow"
+                                },
+                                "Set_variable-defaultMessage": {
+                                    "inputs": {
+                                        "name": "message",
+                                        "value": "User with Config '@{variables('userNameobjectInterface')}' NOT allowed to run SFS interfaces"
+                                    },
+                                    "runAfter": {},
+                                    "type": "SetVariable"
+                                },
+                                "Terminate-Success": {
+                                    "inputs": {
+                                        "runStatus": "Succeeded"
+                                    },
+                                    "runAfter": {
+                                        "Response_Log_Default": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Terminate"
+                                }
+                            }
+                        },
+                        "expression": "@json(body('HTTP-Get_Config_userBasedLogic'))?['SIE_SFS_userBasedLogic']?[variables('userNameobjectInterface')]",
+                        "runAfter": {},
+                        "type": "Switch"
+                    },
+                    "Switch_2": {
+                        "cases": {
+                            "Case-Los": {
+                                "actions": {
+                                    "Compose-resp": {
+                                        "inputs": "@setProperty(setProperty(json(replace(replace(string(setProperty(setProperty(setProperty(setProperty(setProperty(json(triggerBody()?['Opportunity']),'RecordTypeId',variables('recordTypeId')),'OwnerId',variables('ownerId')),'S4SAsset_Code_IAC__c',variables('accetCodeIAC')),'S4SSFS_Confidential__c',variables('confidential')),'S4SInterface_Trigger__c','Disabled')),':\"0\"',':false'),':\"1\"',':true')),'S4SSFS_Account_Rating__c',json(triggerBody()?['Opportunity'])?['S4SSFS_Account_Rating__c']),'S4SSFS_Opportunity_Rating__c',json(triggerBody()?['Opportunity'])?['S4SSFS_Opportunity_Rating__c'])",
+                                        "runAfter": {},
+                                           "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs"
+         ]      
+      }
+  },
+                                        "type": "Compose"
+                                    },
+                                    "Condition_-Roe": {
+                                        "actions": {
+                                            "Set_variable-Roe": {
+                                                "inputs": {
+                                                    "name": "Response",
+                                                    "value": "@{setProperty(outputs('Compose-resp'),'S4SROE__c',concat(split(string(outputs('Compose-resp')?['S4SROE__c']),'.')[0],'.',substring(split(string(outputs('Compose-resp')?['S4SROE__c']),'.')[1],0,2)))}"
+                                                },
+                                                "runAfter": {},
+                                                "type": "SetVariable"
+                                            }
+                                        },
+                                        "else": {
+                                            "actions": {
+                                                "Set_variable-Roe_false": {
+                                                    "inputs": {
+                                                        "name": "Response",
+                                                        "value": "@{outputs('Compose-resp')}"
+                                                    },
+                                                    "runAfter": {},
+                                                    "type": "SetVariable"
+                                                }
+                                            }
+                                        },
+                                        "expression": {
+                                            "and": [
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@json(triggerBody()?['Opportunity'])?['S4SROE__c']",
+                                                            "@null"
+                                                        ]
+                                                    }
+                                                },
+                                                {
+                                                    "not": {
+                                                        "equals": [
+                                                            "@json(triggerBody()?['Opportunity'])?['S4SROE__c']",
+                                                            ""
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "runAfter": {
+                                            "Compose-resp": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "If"
+                                    }                                    
+                                },
+                                "case": "mapUpsertOppForLOS"
+                            },
+                            "Case-Siesmart": {
+                                "actions": {
+                                    "Set_variable_res_for_Siesmart": {
+                                        "inputs": {
+                                            "name": "Response",
+                                            "value": "@{setProperty(setProperty(setProperty(setProperty(setProperty(setProperty(json(triggerBody()?['Opportunity']),'RecordTypeId',variables('recordTypeId')),'OwnerId',variables('ownerId')),'S4SAsset_Code_IAC__c',variables('accetCodeIAC')),'S4SSFS_Confidential__c',variables('confidential')),'S4SInterface_Trigger__c','Disabled'),'Id',variables('OpportunityId'))}"
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    }
+                                },
+                                "case": "mapUpsertOppForSSmart"
+                            }
+                        },
+                        "default": {
+                            "actions": {
+                                "Set_variable-default": {
+                                    "inputs": {
+                                        "name": "Response",
+                                        "value": "@{setProperty(json(triggerBody()?['Opportunity']),'RecordTypeId',variables('recordTypeId'))}"
+                                    },
+                                    "runAfter": {},
+                                    "type": "SetVariable"
+                                }
+                            }
+                        },
+                        "expression": "@json(body('HTTP-Get_Config_userBasedLogic'))?['SIE_SFS_userBasedLogic']?[variables('userNameobjectInterface')]",
+                        "runAfter": {
+                            "Switch": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Switch"
+                    }
+                },
+                "runAfter": {
+                    "Compose-userNameobjectInterface": [
+                        "Succeeded"
+                    ],
+                    "HTTP-Get_Config_userBasedLogic": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable-Opportunity": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable-SoapErrorResponse": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable-message": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable-severity": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable-status": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_Confidential": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_OpportunityId": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_Response": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_accetCodeIAC": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_offerRefId": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_ownerId": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_ownerRoleId": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_recordTypeId": [
+                        "Succeeded"
+                    ],
+                    "Initialize_variable_whereClause": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Scope"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "manual": {
+                "inputs": {
+                    "schema": {
+                        "properties": {
+                            "account": {
+                                "description": "The Account used in the Interface",
+                                "required": "true",
+                                "type": "string"
+                            },
+                            "interface": {
+                                "description": "The message for the source system",
+                                "required": "true",
+                                "type": "string"
+                            },
+                            "opportunity": {
+                                "description": "The Opportunity used in the Interface",
+                                "required": "true",
+                                "type": "string"
+                            },
+                            "userName": {
+                                "description": "The userName for the source system",
+                                "required": "true",
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "kind": "Http",
+                 "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                "type": "Request"
+            }
+        }
+    
+}

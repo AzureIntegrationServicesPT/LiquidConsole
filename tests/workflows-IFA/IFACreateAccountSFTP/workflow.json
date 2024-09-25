@@ -1,0 +1,499 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Catch-Scope": {
+        "actions": {
+          "Copy_file_to_error": {
+            "inputs": {
+              "parameters": {
+                "destinationBlobUri": "@{parameters('InterfaceRoothPath')}/error/@{body('Create_file_in_working_directory')?['Name']?['properties']?['blobName']}",
+                "sourceBlobUri": "@{parameters('InterfaceRoothPath')}/working/@{body('Create_new_file_in_working_directory')?['properties']?['blobName']}",
+                "overrideIfExists": false
+              },
+              "serviceProviderConfiguration": {
+                "connectionName": "AzureStorageSFTP",
+                "operationId": "copyBlobFromUri",
+                "serviceProviderId": "/serviceProviders/AzureBlob"
+              }
+            },
+            "type": "ServiceProvider"
+          },
+          "Delete_file_from_working": {
+            "inputs": {
+              "parameters": {
+                  "blobName": "@body('Create_file_in_working_directory')?['properties']?['blobName']",
+                  "containerName": "@{parameters('InterfaceRoothPath')}/working"
+              },
+              "serviceProviderConfiguration": {
+                  "connectionName": "AzureStorageSFTP",
+                  "operationId": "deleteBlob",
+                  "serviceProviderId": "/serviceProviders/AzureBlob"
+              }
+            },
+            "runAfter": {
+              "Copy_file_to_error": [
+                "Succeeded"
+              ]
+            },
+            "type": "ServiceProvider"
+          }
+        },
+        "runAfter": {
+          "Try-Scope": [
+            "TimedOut",
+            "Failed",
+            "Skipped"
+          ]
+        },
+        "type": "Scope"
+      },
+      "work-Scope": {
+        "actions": {
+          "BlobToZipConverterFunction": {
+            "inputs": {
+              "body": {
+                "blobContainerName": "@{parameters('blobContainerName')}",
+                "incomingBlobPath": "@{workflow()['run']['name']}/incoming",
+                "incominigBlobName": "@{triggerBody()?['Name']}",
+                "outcomingBlobPath": "@{workflow()['run']['name']}/zip"
+              },
+              "function": {
+                "connectionName": "BlobToZipConverterFunction"
+              },
+              "headers": null,
+              "method": "POST"
+            },
+            "runAfter": {
+              "Create_blob_(V2)": [
+                "Succeeded"
+              ]
+            },
+            "type": "Function"
+          },
+          "Create_blob_(V2)": {
+            "inputs": {
+              "parameters": {
+                  "blobUri": "@{parameters('blobContainerName')}/@{workflow()['run']['name']}/incoming/@{triggerBody()?['properties']?['blobName']}",
+                  "content": "@triggerBody()?['content']"
+              },
+              "serviceProviderConfiguration": {
+                  "connectionName": "AzureStorageUploadFile",
+                  "operationId": "uploadBlobFromUri",
+                  "serviceProviderId": "/serviceProviders/AzureBlob"
+              }
+            },
+            "type": "ServiceProvider"
+          },
+          "Create_file_in_working_directory": {
+            "inputs": {
+              "parameters": {
+                  "blobUri": "@{parameters('InterfaceRoothPath')}/working/@{substring(triggerBody()?['properties']?['blobName'], 0, sub(length(triggerBody()?['properties']?['blobName']), 4))}(@{convertTimeZone(utcNow(), 'UTC', 'Central Europe Standard Time')}).zip",
+                  "content": "@body('Get_zip_blob_content_(V2)')?['content']"
+              },
+              "serviceProviderConfiguration": {
+                  "connectionName": "AzureStorageSFTP",
+                  "operationId": "uploadBlobFromUri",
+                  "serviceProviderId": "/serviceProviders/AzureBlob"
+              }
+            },
+            "runAfter": {
+              "Get_zip_blob_content_(V2)": [
+                "Succeeded"
+              ]
+            },
+            "type": "ServiceProvider"
+          },
+          "Delete_file_from_incoming_dir": {
+            "inputs": {
+              "parameters": {
+                  "blobName": "@triggerBody()?['properties']?['blobName']",
+                  "containerName": "@{parameters('InterfaceRoothPath')}/incoming"
+              },
+              "serviceProviderConfiguration": {
+                  "connectionName": "AzureStorageSFTP",
+                  "operationId": "deleteBlob",
+                  "serviceProviderId": "/serviceProviders/AzureBlob"
+              }
+            },
+            "runAfter": {
+              "Create_file_in_working_directory": [
+                "Succeeded"
+              ]
+            },
+            "type": "ServiceProvider"
+          },
+          "Get_zip_blob_content_(V2)": {
+            "inputs": {
+              "parameters": {
+                  "blobUri": "@{parameters('blobContainerName')}/@{body('BlobToZipConverterFunction')?['Value']}"
+              },
+              "serviceProviderConfiguration": {
+                  "connectionName": "AzureStorageUploadFile",
+                  "operationId": "readBlobFromUri",
+                  "serviceProviderId": "/serviceProviders/AzureBlob"
+              }
+            },
+            "runAfter": {
+              "BlobToZipConverterFunction": [
+                "Succeeded"
+              ]
+            },
+            "type": "ServiceProvider"
+          }
+        },
+        "runAfter": {
+          "Initialize_variable_Logs": [
+            "Succeeded"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Initialize_variable_Logs": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "Logs",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Try-Scope": {
+        "actions": {
+          "CSVToJSONParser": {
+            "inputs": {
+              "body": {
+                "fieldSeperator": ";",
+                "fileContent": "@{triggerBody()?['content'}",
+                "fileHeaders": "IfA;Ownership;GID;Fix Value;Currency ",
+                "linesSkip": 1
+              },
+              "function": {
+                "connectionName": "CSVToJSONParser"
+              },
+              "headers": null,
+              "method": "POST"
+            },
+            "runAfter": {},
+            "type": "Function"
+          },
+          "Condition_on_function_result_status_code": {
+            "actions": {
+              "Parse_JSON": {
+                "inputs": {
+                  "content": "@body('CSVToJSONParser')['Value']",
+                  "schema": {
+                    "items": {
+                      "properties": {
+                        "Currency ": {
+                          "type": "string"
+                        },
+                        "Fix Value": {
+                          "type": "string"
+                        },
+                        "GID": {
+                          "type": "string"
+                        },
+                        "IfA": {
+                          "type": "string"
+                        },
+                        "Ownership": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "IfA",
+                        "Ownership",
+                        "GID",
+                        "Fix Value",
+                        "Currency "
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "runAfter": {},
+                "type": "ParseJson"
+              }
+            },
+            "else": {
+              "actions": {
+                "Move_file_to_error_dir": {
+                  "actions": {
+                    "Create_file": {
+                      "inputs": {
+                        "parameters": {
+                            "blobUri": "@{parameters('InterfaceRoothPath')}/error/@body('Create_file_in_working_directory')'['properties']?['blobName']",
+                            "content": "@body('Get_Zip_from_OES_Container')?['content']"
+                        },
+                        "serviceProviderConfiguration": {
+                            "connectionName": "AzureStorageSFTP",
+                            "operationId": "uploadBlobFromUri",
+                            "serviceProviderId": "/serviceProviders/AzureBlob"
+                        }
+                      },
+                      "type": "ServiceProvider"
+                    },
+                    "Delete_file": {
+                      "inputs": {
+                        "parameters": {
+                            "blobName": "@triggerBody()?['properties']?['blobName']",
+                            "containerName": "@{parameters('InterfaceRoothPath')}/working"
+                        },
+                        "serviceProviderConfiguration": {
+                            "connectionName": "AzureStorageSFTP",
+                            "operationId": "deleteBlob",
+                            "serviceProviderId": "/serviceProviders/AzureBlob"
+                        }
+                      },
+                      "runAfter": {
+                        "Create_file": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "ServiceProvider"
+                    }
+                  },
+                  "runAfter": {},
+                  "type": "Scope"
+                }
+              }
+            },
+            "expression": {
+              "and": [
+                {
+                  "equals": [
+                    "@outputs('CSVToJSONParser')['statusCode']",
+                    200
+                  ]
+                }
+              ]
+            },
+            "runAfter": {
+              "CSVToJSONParser": [
+                "Succeeded"
+              ]
+            },
+            "type": "If"
+          },
+          "For_each_record": {
+            "actions": {
+              "Append_to_Logs_variable": {
+                "inputs": {
+                  "name": "Logs",
+                  "value": "@body('IFACreateAccount')"
+                },
+                "runAfter": {
+                  "Log": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "AppendToArrayVariable"
+              },
+              "IFACreateAccount": {
+                "inputs": {
+                  "host": {
+                    "workflow": {
+                      "id": "IFACreateAccount"
+                    }
+                  },
+                  "body": [
+                    {
+                      "CreatedByGID": "@items('For_each_record')?['GID']",
+                      "Currency": "@items('For_each_record')?['Currency ']",
+                      "Ownership": "@items('For_each_record')?['Ownership']",
+                      "S4SIfA__c": "@items('For_each_record')?['IfA']",
+                      "SourceSystemCode": "@items('For_each_record')?['Fix Value']"
+                    }
+                  ],
+                  "headers": null
+                },
+                "runAfter": {},
+                "type": "Workflow"
+              },
+              "Log": {
+                "inputs": {
+                  "host": {
+                    "workflow": {
+                      "id": "log"
+                    }
+                  },
+                  "body": {
+                    "message": "@{body('IFACreateAccount')} ",
+                    "severity": "INFO"
+                  },
+                  "headers": {
+                    "interfaceName": "CreateAccountSFTP",
+                    "runId": "@{workflow()['run']['name']}"
+                  }
+                },
+                "runAfter": {
+                  "IFACreateAccount": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Workflow"
+              }
+            },
+            "foreach": "@body('Parse_JSON')",
+            "runAfter": {
+              "Condition_on_function_result_status_code": [
+                "Succeeded"
+              ]
+            },
+            "type": "Foreach"
+          },
+          "Move_files_to_archive": {
+            "actions": {
+              "BlobToZipConverterFunction_2": {
+                "inputs": {
+                  "body": {
+                    "blobContainerName": "@{parameters('blobContainerName')}",
+                    "incomingBlobPath": "@{workflow()['run']['name']}/incoming",
+                    "incominigBlobName": "@{body('Create_log_blob_(V2)_2')?['DisplayName']}",
+                    "outcomingBlobPath": "@{workflow()['run']['name']}/logZip"
+                  },
+                  "function": {
+                    "connectionName": "BlobToZipConverterFunction"
+                  },
+                  "headers": null,
+                  "method": "POST"
+                },
+                "runAfter": {
+                  "Create_log_blob_(V2)_2": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Function"
+              },
+              "Create_Log": {
+                "inputs": {
+                  "parameters": {
+                      "blobUri": "@{parameters('InterfaceRoothPath')}/Logs/Log@{formatDateTime(utcNow(), 'yyyyMMddHHmmss')}.zip",
+                      "content": "@body('Get_blob_content_(V2)')?['content']"
+                  },
+                  "serviceProviderConfiguration": {
+                      "connectionName": "AzureStorageSFTP",
+                      "operationId": "uploadBlobFromUri",
+                      "serviceProviderId": "/serviceProviders/AzureBlob"
+                  }
+                },
+                "runAfter": {
+                  "Get_blob_content_(V2)": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "ServiceProvider"
+              },
+              "Create_file_Archive": {
+                "inputs": {
+                  "parameters": {
+                      "blobUri": "@{parameters('InterfaceRoothPath')}/archive/@body('Create_file_in_working_directory')?['properties']?['blobName']",
+                      "content": "@body('Get_zip_blob_content_(V2)')?['content']"
+                  },
+                  "serviceProviderConfiguration": {
+                      "connectionName": "AzureStorageSFTP",
+                      "operationId": "uploadBlobFromUri",
+                      "serviceProviderId": "/serviceProviders/AzureBlob"
+                  }
+                },
+                "runAfter": {
+                  "Create_Log": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "ServiceProvider"
+              },
+              "Create_log_blob_(V2)_2": {
+                "inputs": {
+                  "parameters": {
+                      "blobUri": "@{parameters('blobContainerName')}/@{workflow()['run']['name']}/incoming",
+                      "content": "@variables('Logs')"
+                  },
+                  "serviceProviderConfiguration": {
+                      "connectionName": "AzureStorageUploadFile",
+                      "operationId": "uploadBlobFromUri",
+                      "serviceProviderId": "/serviceProviders/AzureBlob"
+                  }
+                },
+                "runAfter": {},
+                "type": "ServiceProvider"
+              },
+              "Delete_file_Incoming": {
+                "inputs": {
+                  "parameters": {
+                      "blobName": "body('Create_file_in_working_directory')?['properties']?['blobName']",
+                      "containerName": "@{parameters('InterfaceRoothPath')}/working"
+                  },
+                  "serviceProviderConfiguration": {
+                      "connectionName": "AzureStorageSFTP",
+                      "operationId": "deleteBlob",
+                      "serviceProviderId": "/serviceProviders/AzureBlob"
+                  }
+                },
+                "runAfter": {
+                  "Create_file_Archive": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "ServiceProvider"
+              },
+              "Get_blob_content_(V2)": {
+                "inputs": {
+                  "parameters": {
+                      "blobUri": "@{parameters('blobContainerName')}/@{body('BlobToZipConverterFunction_2')?['Value']}"
+                  },
+                  "serviceProviderConfiguration": {
+                      "connectionName": "AzureStorageUploadFile",
+                      "operationId": "readBlobFromUri",
+                      "serviceProviderId": "/serviceProviders/AzureBlob"
+                  }
+                },
+                "runAfter": {
+                  "BlobToZipConverterFunction_2": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "ServiceProvider"
+              }
+            },
+            "runAfter": {
+              "For_each_record": [
+                "Succeeded"
+              ]
+            },
+            "type": "Scope"
+          }
+        },
+        "runAfter": {
+          "work-scope": [
+            "Succeeded"
+          ]
+        },
+        "type": "Scope"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "When_a_Blob_is_Added_or_Updated": {
+        "inputs": {
+            "parameters": {
+                "path": "@{parameters('InterfaceRoothPath')}/incoming/{name}.csv"
+            },
+            "serviceProviderConfiguration": {
+                "connectionName": "AzureStorageSFTP",
+                "operationId": "whenABlobIsAddedOrModified",
+                "serviceProviderId": "/serviceProviders/AzureBlob"
+            }
+        },
+        "type": "ServiceProvider"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

@@ -34,7 +34,7 @@
                     {
                         "name": "switchCondition",
                         "type": "string",
-                        "value": "@{if(equals(variables('AccountOwnerRole'), string('FS COF RG AM')),string('US'), if(or(equals(variables('AccountOwnerRole'), string('FS COF Nordics')),equals(variables('AccountOwnerRole'), string('FS COF UK')),equals(variables('AccountOwnerRole'), string('FS COF ES')),equals(variables('AccountOwnerRole'), string('FS COF IN'))),string('EU'),if(equals(variables('AccountOwnerRole'), string('FS COF FR')),string('FR'),string(''))))}"
+                        "value": "@{if(equals(variables('AccountOwnerRole'), string('FS COF RG AM')), string('US'), if(equals(variables('AccountOwnerRole'), string('FS COF UK')), string('UK'), if(or(equals(variables('AccountOwnerRole'), string('FS COF Nordics')), equals(variables('AccountOwnerRole'), string('FS COF ES')), equals(variables('AccountOwnerRole'), string('FS COF IN'))), string('EU'), if(equals(variables('AccountOwnerRole'), string('FS COF FR')), string('FR'), string('')))))}"
                     }
                 ]
             },
@@ -250,6 +250,71 @@
                         }
                     },
                     "case": "FR"
+                },"UK_endpoint": {
+                    "actions": {
+                        "Failed_Response_SieSmart_UK": {
+                            "inputs": {
+                                "body": "@replace(variables('varAckResponse'),'##RESULT##','0')",
+                                "headers": {
+                                    "Content-Type": "application/xml"
+                                },
+                                "statusCode": 500
+                            },
+                            "kind": "Http",
+                            "runAfter": {
+                                "HTTP-Call_OBM-SieSmart_UK_endpoint": [
+                                    "TimedOut",
+                                    "Failed"
+                                ]
+                            },
+                            "type": "Response"
+                        },
+                        "HTTP-Call_OBM-SieSmart_UK_endpoint": {
+                            "inputs": {
+                                "authentication": {
+                                    "password": "@json(body('GetConfiguration'))?['SieSmart']?['password']",
+                                    "type": "Basic",
+                                    "username": "@json(body('GetConfiguration'))?['SieSmart']?['username']"
+                                },
+                                "body": "@json(variables('varInputRequestEndpoint'))",
+                                "headers": {
+                                    "Content-Type": "application/json"
+                                },
+                                "method": "POST",
+                                "uri": "@{json(body('GetConfiguration'))?['SieSmart']?['url12']}"
+                            },
+                            "runAfter": {},
+                            "type": "Http"
+                        },
+                        "Success_Response_SieSmart_UK": {
+                            "inputs": {
+                                "body": "@replace(variables('varAckResponse'),'##RESULT##','1')",
+                                "headers": {
+                                    "Content-Type": "application/xml"
+                                },
+                                "statusCode": 200
+                            },
+                            "kind": "Http",
+                            "runAfter": {
+                                "HTTP-Call_OBM-SieSmart_UK_endpoint": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Response"
+                        },
+                        "Terminate-Failed_Response_SieSmart_UK": {
+                            "inputs": {
+                                "runStatus": "Failed"
+                            },
+                            "runAfter": {
+                                "Failed_Response_SieSmart_UK": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Terminate"
+                        }
+                    },
+                    "case": "UK"
                 },
                 "US_endpoint": {
                     "actions": {

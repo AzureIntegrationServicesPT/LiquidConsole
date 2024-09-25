@@ -1,0 +1,7 @@
+{
+  "soap_service_uri": {"value": "@appsetting('soap_service_uri')", "type": "string"},
+  "sftpssh_dbupload_path": {"value": "@appsetting('sftpssh_dbupload_path')", "type": "string"},
+  "keyVaultSecretBaseUri": {"value": "@appsetting('keyVaultSecretBaseUri')", "type": "string"},
+  "keyVaultSecretKeyPassword": {"value": "@appsetting('keyVaultSecretKeyPassword')", "type": "string"},
+  "liquidRequest": {"value": "@appsetting('liquidRequest')", "type": "string"}
+}

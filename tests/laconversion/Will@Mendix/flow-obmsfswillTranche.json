@@ -17,14 +17,7 @@
                     }
                 },
                 "runAfter": {},
-                 "runtimeConfiguration": {
-       "secureData": {
-          "properties": [
-              "inputs",
-              "outputs"
-         ]      
-      }
-  },
+                ${secureDataIPOP}
                 "type": "Workflow"
             },
             "Initialize_variable_'WillRequest'": {
@@ -89,13 +82,7 @@
                         },
                         "kind": "Http",
                         "runAfter": {},
-                         "runtimeConfiguration": {
-       "secureData": {
-          "properties": [
-              "inputs"
-         ]      
-      }
-  },
+                        ${secureDataIP}
                         "type": "Response"
                     },
                     "Terminate-Catch-Response": {
@@ -145,13 +132,7 @@
                                                 "Succeeded"
                                             ]
                                         },
-                                         "runtimeConfiguration": {
-       "secureData": {
-          "properties": [
-              "inputs"
-         ]      
-      }
-  },
+                                        ${secureDataIP}
                                         "type": "Response"
                                     }
                                 },
@@ -179,13 +160,7 @@
                                                     "Succeeded"
                                                 ]
                                             },
-                                             "runtimeConfiguration": {
-       "secureData": {
-          "properties": [
-              "inputs"
-         ]      
-      }
-  },
+                                            ${secureDataIP}
                                             "type": "Response"
                                         },
                                         "Terminate-FailedResponse": {
@@ -242,14 +217,7 @@
                                         "Succeeded"
                                     ]
                                 },
-                                 "runtimeConfiguration": {
-       "secureData": {
-          "properties": [
-              "inputs",
-              "outputs"
-         ]      
-      }
-  },
+                                ${secureDataIPOP}
                                 "type": "Http"
                             },
                             "Set_variable_WillRequest": {
@@ -270,13 +238,7 @@
                                     },
                                     "kind": "Http",
                                     "runAfter": {},
-                                     "runtimeConfiguration": {
-       "secureData": {
-          "properties": [
-              "inputs"
-         ]      
-      }
-  },
+                                    ${secureDataIP}
                                     "type": "Response"
                                 },
                                 "Terminate-Failed-Response": {
@@ -362,14 +324,7 @@
                         }
                     },
                     "runAfter": {},
-                     "runtimeConfiguration": {
-       "secureData": {
-          "properties": [
-              "inputs",
-              "outputs"
-         ]      
-      }
-  },
+                    ${secureDataIPOP}
                     "type": "Workflow"
             }
         },
@@ -382,14 +337,7 @@
                     "schema": {}
                 },
                 "kind": "Http",
-                 "runtimeConfiguration": {
-       "secureData": {
-          "properties": [
-              "inputs",
-              "outputs"
-         ]      
-      }
-  },
+                ${secureDataIPOP}
                 "type": "Request"
             }
         }    

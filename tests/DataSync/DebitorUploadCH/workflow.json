@@ -1,0 +1,214 @@
+{
+  "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "actions": {
+          "Catch-Scope": {
+              "actions": {
+                  "Create_Error_File": {
+                      "inputs": {
+                          "parameters": {
+                              "blobUri": "@{parameters('InterfaceRoothPath_CH')}/error/@{substring(triggerBody()?['properties']?['blobName'], 0, sub(length(triggerBody()?['properties']?['blobName']), 4))}(@{convertTimeZone(utcNow(), 'UTC', 'Central Europe Standard Time')}).zip",
+                              "content": "@body('Get_Zip_from_OES_Container')?['content']"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageSFTP",
+                              "operationId": "uploadBlobFromUri",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "type": "ServiceProvider"
+                  },
+                  "Delete_Blob_from_Incoming_Folder_2": {
+                      "inputs": {
+                          "parameters": {
+                              "blobName": "@triggerBody()?['properties']?['blobName']",
+                              "containerName": "@{parameters('InterfaceRoothPath_CH')}/incoming"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageSFTP",
+                              "operationId": "deleteBlob",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "type": "ServiceProvider"
+                  },
+                  "Run failed": {
+                      "inputs": {
+                          "runError": {
+                              "message": "Error while processing file"
+                          },
+                          "runStatus": "Failed"
+                      },
+                      "runAfter": {
+                          "Create_Error_File": [
+                              "SUCCEEDED"
+                          ],
+                          "Delete_Blob_from_Incoming_Folder_2": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "Terminate"
+                  }
+              },
+              "runAfter": {
+                  "Try-Scope": [
+                      "FAILED",
+                      "TIMEDOUT"
+                  ]
+              },
+              "type": "Scope"
+          },
+          "Try-Scope": {
+              "actions": {
+                  "Convert_Blob_to_Zip": {
+                      "inputs": {
+                          "body": {
+                              "blobContainerName": "@{parameters('BlobContainerName')}",
+                              "incomingBlobPath": "@{workflow()['run']['name']}/incoming",
+                              "incominigBlobName": "@{triggerBody()?['properties']?['blobName']}",
+                              "outcomingBlobPath": "@{workflow()['run']['name']}/zip"
+                          },
+                          "function": {
+                              "connectionName": "BlobToZipConverterFunction"
+                          },
+                          "method": "POST"
+                      },
+                      "runAfter": {
+                          "Create_Blob_in_OES_Container": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "Function"
+                  },
+                  "Create_Blob_in_OES_Container": {
+                      "inputs": {
+                          "parameters": {
+                              "blobUri": "@{parameters('BlobContainerName')}/@{workflow()['run']['name']}/incoming/@{triggerBody()?['properties']?['blobName']}",
+                              "content": "@triggerBody()?['content']"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageUploadFile",
+                              "operationId": "uploadBlobFromUri",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "type": "ServiceProvider"
+                  },
+                  "Create_Blob_in_Working_Folder": {
+                      "inputs": {
+                          "parameters": {
+                              "blobUri": "@{parameters('InterfaceRoothPath_CH')}/working/@{substring(triggerBody()?['properties']?['blobName'], 0, sub(length(triggerBody()?['properties']?['blobName']), 4))}(@{convertTimeZone(utcNow(), 'UTC', 'Central Europe Standard Time')}).zip",
+                              "content": "@body('Get_Zip_from_OES_Container')?['content']"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageSFTP",
+                              "operationId": "uploadBlobFromUri",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Get_Zip_from_OES_Container": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "ServiceProvider"
+                  },
+                  "Delete_Blob_from_Incoming_Folder": {
+                      "inputs": {
+                          "parameters": {
+                              "blobName": "@triggerBody()?['properties']?['blobName']",
+                              "containerName": "@{parameters('InterfaceRoothPath_CH')}/incoming"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageSFTP",
+                              "operationId": "deleteBlob",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Create_Blob_in_Working_Folder": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "ServiceProvider"
+                  },
+                  "Delete_Zip_in_OES_container": {
+                      "inputs": {
+                          "parameters": {
+                              "blobName": "@body('Convert_Blob_to_Zip')?['Value']",
+                              "containerName": "@parameters('BlobContainerName')"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageUploadFile",
+                              "operationId": "deleteBlob",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Create_Blob_in_Working_Folder": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "ServiceProvider"
+                  },
+                  "Get_Zip_from_OES_Container": {
+                      "inputs": {
+                          "parameters": {
+                              "blobUri": "@{parameters('BlobContainerName')}/@{body('Convert_Blob_to_Zip')?['Value']}"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageUploadFile",
+                              "operationId": "readBlobFromUri",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Convert_Blob_to_Zip": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "ServiceProvider"
+                  },
+                  "Queue_File_for_Splitting": {
+                      "inputs": {
+                          "body": "{\n\"interafaceName\" : \"OESUpload\",\n\"runID\" : \"@{workflow()['run']['name']}\",\n\"blobContainerName\" : \"@{parameters('BlobContainerName')}\",\n\"blobName\" :\"@{body('Create_Blob_in_OES_Container')?['properties']?['blobName']}\",\n\"fileName\": \"@{body('Create_Blob_in_Working_Folder')?['properties']?['blobName']}\",\n\"fileID\" : \"@{body('Create_Blob_in_Working_Folder')?['properties']?['blobName']}\",\n\"maxRows\" : 3000,\n  \"fileSeperator\": \";\",\n  \"fileHeaders\": \"SourceSystem;Type;Subtype;IdentificationNumber;Primary;IFA;OrderBlock;MarkedForDeletion;CreatorGID;CreatorLName;CreatorFName;CreatorEMail;CompanyID;SalesOrgList;SAPAccountGroup;LocalSourceSystem\"\n}\n",
+                          "host": {
+                              "connection": {
+                                  "referenceName": "azurequeue"
+                              }
+                          },
+                          "method": "post",
+                          "path": "/v2/storageAccounts/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/queues/@{encodeURIComponent('debitoroesqueue')}/messages"
+                      },
+                      "runAfter": {
+                          "Create_Blob_in_Working_Folder": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "ApiConnection"
+                  }
+              },
+              "runAfter": {},
+              "type": "Scope"
+          }
+      },
+      "contentVersion": "1.0.0.0",
+      "outputs": {},
+      "triggers": {
+          "When_a_Blob_is_Added_or_Updated": {
+              "inputs": {
+                  "parameters": {
+                      "path": "@{parameters('InterfaceRoothPath_CH')}/incoming/{name}.csv"
+                  },
+                  "serviceProviderConfiguration": {
+                      "connectionName": "AzureStorageSFTP",
+                      "operationId": "whenABlobIsAddedOrModified",
+                      "serviceProviderId": "/serviceProviders/AzureBlob"
+                  }
+              },
+              "type": "ServiceProvider"
+          }
+      }
+  },
+  "kind": "Stateful"
+}

@@ -1,0 +1,399 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Catch_Scope": {
+        "actions": {
+          "Response_2": {
+            "inputs": {
+              "statusCode": 500
+            },
+            "kind": "Http",
+            "runAfter": {},
+            "runtimeConfiguration": {
+              "secureData": {
+                "properties": [
+                  "inputs"
+                ]
+              }
+            },
+            "type": "Response"
+          },
+          "Terminate": {
+            "inputs": {
+              "runStatus": "Failed"
+            },
+            "runAfter": {
+              "Response_2": [
+                "Succeeded"
+              ]
+            },
+            "type": "Terminate"
+          }
+        },
+        "runAfter": {
+          "Try_Scope": [
+            "Skipped",
+            "Failed",
+            "TimedOut"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Initialize_variable-responsemap": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "responseMap",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_QuoteFinalResponse": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "UpsertQuoteFinalResponse",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_UpsertQuoteLine_response": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "UpsertQuoteLine_response",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_UpsertQuote_response": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "UpsertQuote_response",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_response_Obj": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "SIE_SF4S_upsertOppObjectsRes",
+              "type": "string",
+              "value": "{\n  \"SIE_SF4S_upsertOppObjectsRes\": {\n    \"Opportunity\": \"OppVar\",\n    \"bookingLine\": \"BookingLineVarArray\",\n    \"involvedAccounts\": \"involvedAccountsVarArray\",\n    \"quote\": \"QuoteArray\",\n    \"oppLine\":\"oppLineArray\",\n    \"tranche\": \"trancheArray\" ,\n    \"opportunityTeamMember\": \"opportunityTeamMemberVarArray\",\n    \"ProximityOpportunity\": \"ProximityOpportunityVarArray\"\n  }\n}\n"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Try_Scope": {
+        "actions": {
+          "For_each_Quote": {
+            "actions": {
+              "Append_to_array_QuoteFinal_response": {
+                "inputs": {
+                  "name": "UpsertQuoteFinalResponse",
+                  "value": "@json(concat('{\"quote\":',variables('UpsertQuote_response'),',\"quoteLine\":',variables('UpsertQuoteLine_response')))"
+                },
+                "runAfter": {
+                  "Check_-_Opportunity_quote_quoteLine": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "AppendToArrayVariable"
+              },
+              "Check_-_Opportunity_quote_quoteLine": {
+                "actions": {
+                  "For_each_quoteLine": {
+                    "actions": {
+                      "Append_to_array_QuoteLine_response": {
+                        "inputs": {
+                          "name": "UpsertQuoteLine_response",
+                          "value": "@json(variables('responseMap'))"
+                        },
+                        "runAfter": {
+                          "Condition_check_UpsertQuoteLine_status": [
+                            "Succeeded"
+                          ]
+                        },
+                        "type": "AppendToArrayVariable"
+                      },
+                      "Condition_check_UpsertQuoteLine_status": {
+                        "actions": {
+                          "Set_variable_ResponseMapp_UpsertQuoteLine_success": {
+                            "inputs": {
+                              "name": "responseMap",
+                              "value": "{\n            \"SIE_SF4S_upsertResponse\": {\n              \"Id\": \"@{body('Insert_or_Update-SIE_SF4S_upsertQuoteLine')?['Id']}\",\n              \"created\": \"@{if(equals(item()?['Id'],null),'true','false')}\",\n                \"Status\": \"True\",\n              \"Message\":\"\"   \n            }\n          }"
+                            },
+                            "runAfter": {},
+                            "type": "SetVariable"
+                          }
+                        },
+                        "else": {
+                          "actions": {
+                            "Set_variable_ResponseMapp_UpsertQuoteLine_failure": {
+                              "inputs": {
+                                "name": "responseMap",
+                                "value": "{\n            \"SIE_SF4S_upsertResponse\": {     \n \"Id\": \"\",          \n  \"created\": \"\",\n              \"Status\": \"Failure\",\n              \"Message\": \"@{body('Insert_or_Update-SIE_SF4S_upsertQuoteLine')?['message']}\"\n     }    }"
+                              },
+                              "runAfter": {},
+                              "type": "SetVariable"
+                            }
+                          }
+                        },
+                        "expression": {
+                          "or": [
+                            {
+                              "equals": [
+                                "@outputs('Insert_or_Update-SIE_SF4S_upsertQuoteLine')['statusCode']",
+                                200
+                              ]
+                            },
+                            {
+                              "equals": [
+                                "@outputs('Insert_or_Update-SIE_SF4S_upsertQuoteLine')['statusCode']",
+                                201
+                              ]
+                            }
+                          ]
+                        },
+                        "runAfter": {
+                          "Insert_or_Update-SIE_SF4S_upsertQuoteLine": [
+                            "Succeeded",
+                            "Failed"
+                          ]
+                        },
+                        "type": "If"
+                      },
+                      "Insert_or_Update-SIE_SF4S_upsertQuoteLine": {
+                        "inputs": {
+                          "host": {
+                            "workflow": {
+                              "id": "int_SFS_insert_update_quoteline"
+                            }
+                          },
+                          "body": "@item()",
+                          "headers": {
+                            "QuoteId": "@{body('Insert_or_Update-SIE_SF4S_upsertQuoteOutput')?['Id']}"
+                          }
+                        },
+                        "runAfter": {},
+                        "type": "Workflow"
+                      }
+                    },
+                    "foreach": "@items('For_each_Quote')?['quoteline']",
+                    "runAfter": {},
+                    "type": "Foreach"
+                  }
+                },
+                "else": {
+                  "actions": {}
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "not": {
+                        "equals": [
+                          "@items('For_each_Quote')?['quoteline']",
+                          "@null"
+                        ]
+                      }
+                    },
+                    {
+                      "not": {
+                        "equals": [
+                          "@items('For_each_Quote')?['quoteline']",
+                          ""
+                        ]
+                      }
+                    },
+                    {
+                      "or": [
+                        {
+                          "equals": [
+                            "@outputs('Insert_or_Update-SIE_SF4S_upsertQuoteOutput')['statusCode']",
+                            200
+                          ]
+                        },
+                        {
+                          "equals": [
+                            "@outputs('Insert_or_Update-SIE_SF4S_upsertQuoteOutput')['statusCode']",
+                            201
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "runAfter": {
+                  "Set_variable_upsertQuote_sub_response_": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "If"
+              },
+              "Condition_Upsert_Quote_status": {
+                "actions": {
+                  "Set_variable_responseMap_Quote_succes": {
+                    "inputs": {
+                      "name": "responseMap",
+                      "value": "{\n            \"SIE_SF4S_upsertResponse\": {\n              \"Id\": \"@{body('Insert_or_Update-SIE_SF4S_upsertQuoteOutput')?['Id']}\",\n  ,            \"created\": \"@{if(equals(items('For_each_Quote')?['quote']?['Quote']?['Id'],null),'true','false')}\",\n              \"Status\": \"True\",\n              \"Message\":\"\"       \n            }\n          }"
+                    },
+                    "runAfter": {},
+                    "type": "SetVariable"
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Set_variable_responseMap_Quote_Failure": {
+                      "inputs": {
+                        "name": "responseMap",
+                        "value": "{\n            \"SIE_SF4S_upsertResponse\": {\n \"Id\": \"\", \n  \"created\": \"\",\n              \"Status\": \"Failure\",\n              \"Message\": \"@{body('Insert_or_Update-SIE_SF4S_upsertQuoteOutput')?['message']}\"\n          }\n}"
+                      },
+                      "runAfter": {},
+                      "type": "SetVariable"
+                    }
+                  }
+                },
+                "expression": {
+                  "or": [
+                    {
+                      "equals": [
+                        "@outputs('Insert_or_Update-SIE_SF4S_upsertQuoteOutput')['statusCode']",
+                        200
+                      ]
+                    },
+                    {
+                      "equals": [
+                        "@outputs('Insert_or_Update-SIE_SF4S_upsertQuoteOutput')['statusCode']",
+                        201
+                      ]
+                    }
+                  ]
+                },
+                "runAfter": {
+                  "Insert_or_Update-SIE_SF4S_upsertQuoteOutput": [
+                    "Succeeded",
+                    "Failed"
+                  ]
+                },
+                "type": "If"
+              },
+              "Insert_or_Update-SIE_SF4S_upsertQuoteOutput": {
+                "inputs": {
+                  "host": {
+                    "workflow": {
+                      "id": "int_SFS_upsert_quote"
+                    }
+                  },
+                  "body": "@items('For_each_Quote')?['quote']?['Quote']",
+                  "headers": {
+                    "OppId": "@{triggerOutputs()['headers']?['OppId']}"
+                  }
+                },
+                "runAfter": {},
+                "type": "Workflow"
+              },
+              "Set_variable_upsertQuote_sub_response_": {
+                "inputs": {
+                  "name": "UpsertQuote_response",
+                  "value": "@{json(variables('responseMap'))}"
+                },
+                "runAfter": {
+                  "Condition_Upsert_Quote_status": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "SetVariable"
+              }
+            },
+            "foreach": "@triggerBody()?['Opportunity']?['quote']",
+            "runAfter": {},
+            "type": "Foreach"
+          },
+          "Response": {
+            "inputs": {
+              "body": "@variables('UpsertQuoteFinalResponse')",
+              "statusCode": 200
+            },
+            "kind": "Http",
+            "runAfter": {
+              "For_each_Quote": [
+                "Succeeded"
+              ]
+            },
+            "runtimeConfiguration": {
+              "secureData": {
+                "properties": [
+                  "inputs"
+                ]
+              }
+            },
+            "type": "Response"
+          }
+        },
+        "runAfter": {
+          "Initialize_variable-responsemap": [
+            "Succeeded"
+          ],
+          "Initialize_variable_QuoteFinalResponse": [
+            "Succeeded"
+          ],
+          "Initialize_variable_UpsertQuoteLine_response": [
+            "Succeeded"
+          ],
+          "Initialize_variable_UpsertQuote_response": [
+            "Succeeded"
+          ],
+          "Initialize_variable_response_Obj": [
+            "Succeeded"
+          ]
+        },
+        "trackedProperties": {
+          "apimRouting": "external",
+          "citizenName": "c00031",
+          "correlationId": "not-defined",
+          "interfaceName": "SFS",
+          "interfacePartner": "not-defined",
+          "interfaceVersion": "not-defined",
+          "operationName": "upsertOppObject",
+          "parentWorkflow": "not-defined"
+        },
+        "type": "Scope"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {},
+        "kind": "Http",
+        "runtimeConfiguration": {
+          "secureData": {
+            "properties": [
+              "inputs",
+              "outputs"
+            ]
+          }
+        },
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

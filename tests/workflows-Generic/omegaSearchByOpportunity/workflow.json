@@ -1,0 +1,329 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Scope-Catch": {
+        "actions": {
+          "Send_Error_Response": {
+            "inputs": {
+              "body": {
+                "Error": "Unexpected error occured. Please find more details using tracking id : @{workflow()['run']['name']}"
+              },
+              "statusCode": 500
+            },
+            "kind": "Http",
+            "runAfter": {},
+            "type": "Response"
+          },
+          "Terminate": {
+            "inputs": {
+              "runStatus": "Failed"
+            },
+            "runAfter": {
+              "Send_Error_Response": [
+                "Succeeded"
+              ]
+            },
+            "type": "Terminate"
+          }
+        },
+        "runAfter": {
+          "Scope-Try": [
+            "Failed",
+            "Skipped",
+            "TimedOut"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Scope-Try": {
+        "actions": {
+          "Condition": {
+            "actions": {
+              "For_each": {
+                "actions": {
+                  "Check_If_RowId_exists": {
+                    "actions": {
+                      "Fetch_Compitetor": {
+                        "inputs": {
+                          "body": {
+                            "query": "Select Id, S4SPrimary__c,S4SCompetitor__r.Name From S4SOpportunity_Competitor__c  Where s4sopportunity__c ='@{triggerOutputs()['relativePathParameters']['OpportunityId']}'"
+                          },
+                          "path": "/soql/executesoqlquery",
+                          "host": {
+                            "connection": {
+                              "referenceName": "salesForceConnection"
+                            }
+                          },
+                          "method": "post"
+                        },
+                        "runAfter": {},
+                        "type": "ApiConnection"
+                      },
+                      "For_each_compitetor": {
+                        "actions": {
+                          "Append_to_competitor_array": {
+                            "inputs": {
+                              "name": "varCompetitors",
+                              "value": "@body('Select')[0]"
+                            },
+                            "runAfter": {
+                              "Select": [
+                                "Succeeded"
+                              ]
+                            },
+                            "type": "AppendToArrayVariable"
+                          },
+                          "Select": {
+                            "inputs": {
+                              "from": "@body('Fetch_Compitetor')['records']",
+                              "select": {
+                                "COMPETITOR_SHORT_NAME": "@items('For_each_compitetor')?['S4SCompetitor__r']?['Name']",
+                                "IS_PRIMARY": "@items('For_each_compitetor')?['S4SPrimary__c']"
+                              }
+                            },
+                            "runAfter": {},
+                            "type": "Select"
+                          }
+                        },
+                        "foreach": "@body('Fetch_Compitetor')['records']",
+                        "runAfter": {
+                          "if_compitetors_are_not_empty": [
+                            "Succeeded"
+                          ]
+                        },
+                        "runtimeConfiguration": {
+                          "concurrency": {
+                            "repetitions": 1
+                          }
+                        },
+                        "type": "Foreach"
+                      },
+                      "Set_variable": {
+                        "inputs": {
+                          "name": "formattedOutput",
+                          "value": "{\n  \"Opportunity\": {\n     \"COMPANY_ACCOUNT_ID\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['AccountId'],'')}\",\n\t \"OPTY_NAME\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['Name'],'')}\",\n     \"END_CUSTOMER\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SEnd_Account__r']?['Name'],'')}\",\n\t \"INDUSTRY\": {\n      \"INDUSTRY\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SOpportunity_Industry__c'],'')}\",\n      \"INDUSTRY_KEY\": \"\"\n    },\n\t\"EST_OI_DATE\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['CloseDate'],'')}\",\n\t\"ESTIMATED_SALES_VOLUME\" :\"@{string(float(formatNumber(float(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SORDER_INTAKE__C']), 'F2')))}\",\n\t\"ROW_ID\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['Id'],'')}\",\n\t\"CHANCE_OF_EXEC_PC\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SChance_of_Execution__c'],'')}\",\n    \"CHANCE_OF_SUC_PC\": \"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['Account']?['Name'],'')}\",\n    \"CREATED_DATE\":\" @{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['CreatedDate'],'')}\",\n    \"FISCAL_YEAR\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['FiscalYear'],'')}\",\n\t\"MARKED_FOR_DELETION\":\"false\",\n    \"OPPORTUNITY_DESCRIPTION\":\"@{coalesce(replace(coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['Description'],''),'\"','\\\"'),'')}\",\n\t\"OWNER_ID\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['OwnerId'],'')}\",\n\t\"PRIORITY\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SStrategic_Priority__c'],'')}\",\n    \"REASON\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SMain_Reason__c'],'')}\",\n\t\"RELEVANT_FOR_FORECAST\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SRelevant_for_Forecast__c'],'')}\",\n\t\"SALES_TYPE\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SSales_Type__c'],'')}\",\n\t\"BID_APPROVAL\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SBid_approval_PM040__c'],'')}\",\n\t\"STATUS_OPTY\": {\n      \"STATUS\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SSales_Status__c'],'')}\"\n    },\n\t\"SALES_PHASE\": {\n      \"SALES_PHASE\":\" @{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['StageName'],'')}\"\n    },\n\t \"CURRENCY\": {\n      \"CURRENCY_CODE\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['CurrencyIsoCode'],'')}\",\n      \"CURRENCY_NAME\": \"\",\n\t  \"CURRENCY_ISSUING_COUNTRY\": \"\",\n      \"CURRENCY_SYMBOL\": \"\"\n    },\n\t\"OPTY_TYPE\": {\n      \"OPTY_TYPE\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['Type'],'')}\"\n    },\n\t\"DEPTH_STRUCTURE\": {\n\t  \"BUSINESS_UNIT_CODE\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SSite__r']?['S4SBusiness_Unit__c'],'')}\",\n\t  \"DIVISION\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SSite__r']?['S4SDivision__c'],'')}\",\n\t  \"BUSINESS_SEGMENT_CODE\": \"\",\n\t  \"BUSINESS_SEGMENT_TEXT\": \"\",\n\t  \"BUSINESS_SEGMENT_CODE\": \"\",\n      \"BUSINESS_SEGMENT_TEXT\": \"\",\n      \"BUSINESS_SUBSEGMENT_CODE\": \"\",\n      \"BUSINESS_SUBSEGMENT_TEXT\": \"\",\n\t  \"BUSINESS_UNIT_TEXT\": \"\",\n\t  \"GCK\": \"\",\n\t  \"SECTOR\": \"\"\n\t},\n\t\n\t \"TERRITORY\": {\n\t  \"SUB_REGION\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SSales_Subregion__c'],'')}\",\n\t  \"SALES_BRANCH\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SSales_Branch__c'],'')}\",\n\t  \"SALES_OFFICE\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SSales_Office__c'],'')}\",\n\t  \"SALES_DEPARTMENT\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['Type'],'')}\",\n      \"SALES_DISTRICT\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SSales_District__c'],'')}\",\n\t  \"TERRITORY_KEY\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4STerritory__c'],'')}\",\n\t  \"TERRITORY_CLUSTER\": \"\",\n\t  \"REGION\": \"\",\n\t  \"TERRITORY_SECTOR\": \"\"\t\n    },\n\t \"REFERENCE_NUMBER\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SReference_ID__c'],'')}\",\n\t \"SALES_MARGIN\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SGross_Margin__c'],'')}\",\n\t \"RespSalesRep\": {\n      \"LAST_NAME\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['Owner']?['LastName'],'')}\",\n\t  \"FIRST_NAME\": \"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['Owner']?['FirstName'],'')}\",\n\t  \"DEPARTMENT\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['Owner']?['Department'],'')}\",\n\t  \"EMAIL\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['Type'],'')}\",\n\t  \"CELLULAR_PHONE_NO\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['Owner']?['MobilePhone'],'')}\",\n\t  \"WORK_PHONE_NO\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['Owner']?['Phone'],'')}\",\n\t  \"EXTERNAL_UNIQUE_ID\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['Type'],'')}\",\n\t  \"ROW_ID\": \"\", \n\t  \"USER_CLUSTER\": \"\",\n      \"USER_REGION\": \"\",\n\t  \"JOB_TITLE\": \"\"\t     \n    },\n\t\"CUSTOMER\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['Account']?['Name'],'')}\",\n\t\"RESP_SALES_REP\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['Owner']?['Name'],'')}\",\n\t\"OPPORTUNITY_NUMBER\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SReference_ID__c'],'')}\",\n\t\"EST_PROJECT_CLUSORE\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SAcceptance_Closure__c'],'')}\",\n\t\"Site\": \n      {\n\t    \"ROWID\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4STerritory__c'],'')}\",\n\t\t\"SITE_NAME\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SSite__r']?['Name'],'')}\",\n\t\t\"SITE_DESCRIPTION\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SSite__r']?['S4SSite_Description__c'],'')}\",\n\t\t\"STREET\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SSite__r']?['S4SStreet__c'],'')}\",\n\t\t\"POSTAL_CODE\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SSite__r']?['S4SPostal_Code__c'],'')}\",\n\t\t\"STATE_PROVINCE\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SSite__r']?['S4SState__c'],'')}\",\n\t\t\"CITY\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SSite__r']?['S4SCity__c'],'')}\",\n\t\t\"COUNTRY\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SSite__r']?['S4SCountry__c'],'')}\",\n\t\t\"SAP_FL_NUMBER\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4STerritory__c'],'')}\",\n\t\t\"BUILDING\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SSite__r']?['S4SBuilding__c'],'')}\",\n\t\t\"FLOOR\":\"@{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4STerritory__c'],'')}\",\n\t\t\"ROOM\":\" @{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SSite__r']?['S4SRoom__c'],'')}\",\n        \"BUILDING_TYPE\":\" @{coalesce(body('Fetch_Opportunity_Details')?['records']?[0]?['S4SSite__r']?['S4SFacility_Type__c'],'')}\",\n\t\t\"EQUIPMENT_NR\": \"\",\n\t    \"STREET_2\": \"\",\n\t\t\"SITE_ID\": \"\"       \n      },\n\t  \"INDUSTRY_SEGMENT\": {\n\t        \"INDUSTRY_SEGMENT\": \"\",\n            \"INDUSTRY_ID\": \"\",\n\t\t\t\"INDUSTRY_SEGMENT_KEY\": \"\"\t\n\t  },\n\t  \"SISIC\": {\n      \"INDUSTRY_SEGMENT_ID\": \"\"      \n    },\n\t \"EndCustomer\": {\n\t\t\"LEGAL_ADDRESS_ADDRESS_2\" :\"\",\n\t\t\"LEGAL_ADDRESS_ADDRESS_3\" : \"\",\n\t\t\"LEGAL_ADDRESS_PROVINCE\": \"\",\n\t    \"LEGAL_ADDRESS_COUNTY\": \"\",\n\t    \"COMPANY_LANGUAGE\": \"\"\n\t   },\n\t \"Competitor\": @{coalesce(variables('varCompetitors'),'')}     \n    }\t\n  }\n"
+                        },
+                        "runAfter": {
+                          "For_each_compitetor": [
+                            "Succeeded"
+                          ]
+                        },
+                        "type": "SetVariable"
+                      },
+                      "if_compitetors_are_not_empty": {
+                        "actions": {
+                          "Set_competitors": {
+                            "inputs": {
+                              "name": "varCompetitors",
+                              "value": "@null"
+                            },
+                            "runAfter": {},
+                            "type": "SetVariable"
+                          }
+                        },
+                        "else": {
+                          "actions": {}
+                        },
+                        "expression": {
+                          "or": [
+                            {
+                              "greater": [
+                                "@body('Fetch_Compitetor')?['totalSize']",
+                                0
+                              ]
+                            }
+                          ]
+                        },
+                        "runAfter": {
+                          "Fetch_Compitetor": [
+                            "Succeeded"
+                          ]
+                        },
+                        "type": "If"
+                      }
+                    },
+                    "else": {
+                      "actions": {
+                        "Set_Null_response": {
+                          "inputs": {
+                            "name": "formattedOutput",
+                            "value": "{\n  \"Opportunity\": {\n     \"COMPANY_ACCOUNT_ID\":\"\",\n\t \"OPTY_NAME\":\"\",\n     \"END_CUSTOMER\":\"\",\n\t \"INDUSTRY\": {\n      \"INDUSTRY\":\"\",\n      \"INDUSTRY_KEY\": \"\"\n    },\n\t\"EST_OI_DATE\":\"\",\n\t\"ESTIMATED_SALES_VOLUME\" :,\n\t\"ROW_ID\":\"\",\n\t\"CHANCE_OF_EXEC_PC\":\"\",\n    \"CHANCE_OF_SUC_PC\": \"\",\n    \"CREATED_DATE\":\" \",\n    \"FISCAL_YEAR\":\"\",\n\t\"MARKED_FOR_DELETION\":\"false\",\n    \"OPPORTUNITY_DESCRIPTION\":\"\",\n\t\"OWNER_ID\":\"\",\n\t\"PRIORITY\":\"\",\n    \"REASON\":\"\",\n\t\"RELEVANT_FOR_FORECAST\":\"\",\n\t\"SALES_TYPE\":\"\",\n\t\"BID_APPROVAL\":\"\",\n\t\"STATUS_OPTY\": {\n      \"STATUS\":\"\"\n    },\n\t\"SALES_PHASE\": {\n      \"SALES_PHASE\":\" \"\n    },\n\t \"CURRENCY\": {\n      \"CURRENCY_CODE\":\"\",\n      \"CURRENCY_NAME\": \"\",\n\t  \"CURRENCY_ISSUING_COUNTRY\": \"\",\n      \"CURRENCY_SYMBOL\": \"\"\n    },\n\t\"OPTY_TYPE\": {\n      \"OPTY_TYPE\":\"\"\n    },\n\t\"DEPTH_STRUCTURE\": {\n\t  \"BUSINESS_UNIT_CODE\":\"\",\n\t  \"DIVISION\":\"\",\n\t  \"BUSINESS_SEGMENT_CODE\": \"\",\n\t  \"BUSINESS_SEGMENT_TEXT\": \"\",\n\t  \"BUSINESS_SEGMENT_CODE\": \"\",\n      \"BUSINESS_SEGMENT_TEXT\": \"\",\n      \"BUSINESS_SUBSEGMENT_CODE\": \"\",\n      \"BUSINESS_SUBSEGMENT_TEXT\": \"\",\n\t  \"BUSINESS_UNIT_TEXT\": \"\",\n\t  \"GCK\": \"\",\n\t  \"SECTOR\": \"\"\n\t},\n\t\n\t \"TERRITORY\": {\n\t  \"SUB_REGION\":\"\",\n\t  \"SALES_BRANCH\":\"\",\n\t  \"SALES_OFFICE\":\"\",\n\t  \"SALES_DEPARTMENT\":\"\",\n      \"SALES_DISTRICT\":\"\",\n\t  \"TERRITORY_KEY\":\"\",\n\t  \"TERRITORY_CLUSTER\": \"\",\n\t  \"REGION\": \"\",\n\t  \"TERRITORY_SECTOR\": \"\"\t\n    },\n\t \"REFERENCE_NUMBER\":\"\",\n\t \"SALES_MARGIN\":\"\",\n\t \"RespSalesRep\": {\n      \"LAST_NAME\":\"\",\n\t  \"FIRST_NAME\": \"\",\n\t  \"DEPARTMENT\":\"\",\n\t  \"EMAIL\":\"\",\n\t  \"CELLULAR_PHONE_NO\":\"\",\n\t  \"WORK_PHONE_NO\":\"\",\n\t  \"EXTERNAL_UNIQUE_ID\":\"\",\n\t  \"ROW_ID\": \"\", \n\t  \"USER_CLUSTER\": \"\",\n      \"USER_REGION\": \"\",\n\t  \"JOB_TITLE\": \"\"\t     \n    },\n\t\"CUSTOMER\":\"\",\n\t\"RESP_SALES_REP\":\"\",\n\t\"OPPORTUNITY_NUMBER\":\"\",\n\t\"EST_PROJECT_CLUSORE\":\"\",\n\t\"Site\": \n      {\n\t    \"ROWID\":\"\",\n\t\t\"SITE_NAME\":\"\",\n\t\t\"SITE_DESCRIPTION\":\"\",\n\t\t\"STREET\":\"\",\n\t\t\"POSTAL_CODE\":\"\",\n\t\t\"STATE_PROVINCE\":\"\",\n\t\t\"CITY\":\"\",\n\t\t\"COUNTRY\":\"\",\n\t\t\"SAP_FL_NUMBER\":\"\",\n\t\t\"BUILDING\":\"\",\n\t\t\"FLOOR\":\"\",\n\t\t\"ROOM\":\" \",\n        \"BUILDING_TYPE\":\" \",\n\t\t\"EQUIPMENT_NR\": \"\",\n\t    \"STREET_2\": \"\",\n\t\t\"SITE_ID\": \"\"       \n      },\n\t  \"INDUSTRY_SEGMENT\": {\n\t        \"INDUSTRY_SEGMENT\": \"\",\n            \"INDUSTRY_ID\": \"\",\n\t\t\t\"INDUSTRY_SEGMENT_KEY\": \"\"\t\n\t  },\n\t  \"SISIC\": {\n      \"INDUSTRY_SEGMENT_ID\": \"\"      \n    },\n\t \"EndCustomer\": {\n\t\t\"LEGAL_ADDRESS_ADDRESS_2\" :\"\",\n\t\t\"LEGAL_ADDRESS_ADDRESS_3\" : \"\",\n\t\t\"LEGAL_ADDRESS_PROVINCE\": \"\",\n\t    \"LEGAL_ADDRESS_COUNTY\": \"\",\n\t    \"COMPANY_LANGUAGE\": \"\"\n\t   },\n\t \"Competitor\":  @{variables('varCompetitors')}\n    }\t\n  }\n"
+                          },
+                          "runAfter": {},
+                          "type": "SetVariable"
+                        }
+                      }
+                    },
+                    "expression": {
+                      "or": [
+                        {
+                          "not": {
+                            "equals": [
+                              "@items('For_each')?['id']",
+                              "@string('')"
+                            ]
+                          }
+                        },
+                        {
+                          "not": {
+                            "equals": [
+                              "@items('For_each')?['id']",
+                              "@null"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                  }
+                },
+                "foreach": "@body('Fetch_Opportunity_Details')['records']",
+                "runAfter": {},
+                "type": "Foreach"
+              }
+            },
+            "else": {
+              "actions": {
+                "Set_Empty_Response": {
+                  "inputs": {
+                    "name": "formattedOutput",
+                    "value": "{\n  \"Opportunity\": {\n     \"COMPANY_ACCOUNT_ID\":\"\",\n\t \"OPTY_NAME\":\"\",\n     \"END_CUSTOMER\":\"\",\n\t \"INDUSTRY\": {\n      \"INDUSTRY\":\"\",\n      \"INDUSTRY_KEY\": \"\"\n    },\n\t\"EST_OI_DATE\":\"\",\n\t\"ESTIMATED_SALES_VOLUME\" :,\n\t\"ROW_ID\":\"\",\n\t\"CHANCE_OF_EXEC_PC\":\"\",\n    \"CHANCE_OF_SUC_PC\": \"\",\n    \"CREATED_DATE\":\" \",\n    \"FISCAL_YEAR\":\"\",\n\t\"MARKED_FOR_DELETION\":\"false\",\n    \"OPPORTUNITY_DESCRIPTION\":\"\",\n\t\"OWNER_ID\":\"\",\n\t\"PRIORITY\":\"\",\n    \"REASON\":\"\",\n\t\"RELEVANT_FOR_FORECAST\":\"\",\n\t\"SALES_TYPE\":\"\",\n\t\"BID_APPROVAL\":\"\",\n\t\"STATUS_OPTY\": {\n      \"STATUS\":\"\"\n    },\n\t\"SALES_PHASE\": {\n      \"SALES_PHASE\":\" \"\n    },\n\t \"CURRENCY\": {\n      \"CURRENCY_CODE\":\"\",\n      \"CURRENCY_NAME\": \"\",\n\t  \"CURRENCY_ISSUING_COUNTRY\": \"\",\n      \"CURRENCY_SYMBOL\": \"\"\n    },\n\t\"OPTY_TYPE\": {\n      \"OPTY_TYPE\":\"\"\n    },\n\t\"DEPTH_STRUCTURE\": {\n\t  \"BUSINESS_UNIT_CODE\":\"\",\n\t  \"DIVISION\":\"\",\n\t  \"BUSINESS_SEGMENT_CODE\": \"\",\n\t  \"BUSINESS_SEGMENT_TEXT\": \"\",\n\t  \"BUSINESS_SEGMENT_CODE\": \"\",\n      \"BUSINESS_SEGMENT_TEXT\": \"\",\n      \"BUSINESS_SUBSEGMENT_CODE\": \"\",\n      \"BUSINESS_SUBSEGMENT_TEXT\": \"\",\n\t  \"BUSINESS_UNIT_TEXT\": \"\",\n\t  \"GCK\": \"\",\n\t  \"SECTOR\": \"\"\n\t},\n\t\n\t \"TERRITORY\": {\n\t  \"SUB_REGION\":\"\",\n\t  \"SALES_BRANCH\":\"\",\n\t  \"SALES_OFFICE\":\"\",\n\t  \"SALES_DEPARTMENT\":\"\",\n      \"SALES_DISTRICT\":\"\",\n\t  \"TERRITORY_KEY\":\"\",\n\t  \"TERRITORY_CLUSTER\": \"\",\n\t  \"REGION\": \"\",\n\t  \"TERRITORY_SECTOR\": \"\"\t\n    },\n\t \"REFERENCE_NUMBER\":\"\",\n\t \"SALES_MARGIN\":\"\",\n\t \"RespSalesRep\": {\n      \"LAST_NAME\":\"\",\n\t  \"FIRST_NAME\": \"\",\n\t  \"DEPARTMENT\":\"\",\n\t  \"EMAIL\":\"\",\n\t  \"CELLULAR_PHONE_NO\":\"\",\n\t  \"WORK_PHONE_NO\":\"\",\n\t  \"EXTERNAL_UNIQUE_ID\":\"\",\n\t  \"ROW_ID\": \"\", \n\t  \"USER_CLUSTER\": \"\",\n      \"USER_REGION\": \"\",\n\t  \"JOB_TITLE\": \"\"\t     \n    },\n\t\"CUSTOMER\":\"\",\n\t\"RESP_SALES_REP\":\"\",\n\t\"OPPORTUNITY_NUMBER\":\"\",\n\t\"EST_PROJECT_CLUSORE\":\"\",\n\t\"Site\": \n      {\n\t    \"ROWID\":\"\",\n\t\t\"SITE_NAME\":\"\",\n\t\t\"SITE_DESCRIPTION\":\"\",\n\t\t\"STREET\":\"\",\n\t\t\"POSTAL_CODE\":\"\",\n\t\t\"STATE_PROVINCE\":\"\",\n\t\t\"CITY\":\"\",\n\t\t\"COUNTRY\":\"\",\n\t\t\"SAP_FL_NUMBER\":\"\",\n\t\t\"BUILDING\":\"\",\n\t\t\"FLOOR\":\"\",\n\t\t\"ROOM\":\" \",\n        \"BUILDING_TYPE\":\" \",\n\t\t\"EQUIPMENT_NR\": \"\",\n\t    \"STREET_2\": \"\",\n\t\t\"SITE_ID\": \"\"       \n      },\n\t  \"INDUSTRY_SEGMENT\": {\n\t        \"INDUSTRY_SEGMENT\": \"\",\n            \"INDUSTRY_ID\": \"\",\n\t\t\t\"INDUSTRY_SEGMENT_KEY\": \"\"\t\n\t  },\n\t  \"SISIC\": {\n      \"INDUSTRY_SEGMENT_ID\": \"\"      \n    },\n\t \"EndCustomer\": {\n\t\t\"LEGAL_ADDRESS_ADDRESS_2\" :\"\",\n\t\t\"LEGAL_ADDRESS_ADDRESS_3\" : \"\",\n\t\t\"LEGAL_ADDRESS_PROVINCE\": \"\",\n\t    \"LEGAL_ADDRESS_COUNTY\": \"\",\n\t    \"COMPANY_LANGUAGE\": \"\"\n\t   },\n\t \"Competitor\": @{variables('varCompetitors')}\n    }\t\n  }\n"
+                  },
+                  "runAfter": {},
+                  "type": "SetVariable"
+                }
+              }
+            },
+            "expression": {
+              "and": [
+                {
+                  "greater": [
+                    "@length(body('Fetch_Opportunity_Details')['records'])",
+                    0
+                  ]
+                }
+              ]
+            },
+            "runAfter": {
+              "Fetch_Opportunity_Details": [
+                "Succeeded"
+              ]
+            },
+            "type": "If"
+          },
+          "Fetch_Opportunity_Details": {
+            "inputs": {
+              "body": {
+                "query": "SELECT Id,IsDeleted,AccountId,Name,Description,StageName,CloseDate,Type,CurrencyIsoCode,OwnerId,CreatedDate,FiscalYear,S4SAcceptance_Closure__c,S4SBid_approval_PM040__c,S4SBusiness_Unit__c,S4SChance_of_Execution__c,S4SChance_of_Success__c,S4SDivision__c,S4SEnd_Account__c,S4SGross_Margin__c,S4SMain_Reason__c,S4SOffer_Reference_ID__c,S4SOpportunity_Industry_Search__c,S4SOpportunity_Industry__c,S4SPotential_Siemens_Volume__c,S4SReference_ID__c,S4SRelevant_for_Forecast__c,S4SSFS_Confidential__c,S4SSales_Branch__c,S4SSales_Department__c,S4SSales_District__c,S4SSales_Office__c,S4SSales_Status__c,S4SSales_Subregion__c,S4SSales_Type__c,S4SStrategic_Priority__c,S4STerritory__c,S4SOrder_Intake__c,S4SSAP_Number__c,Account.Id,Account.Name,Account.S4SIfA__c,Owner.LastName,Owner.FirstName,Owner.Name,Owner.Department,Owner.Email,Owner.Phone,Owner.MobilePhone,Owner.S4SGID_Technical__c,S4SSite__r.Id,S4SSite__r.Name,S4SSite__r.S4SAccount__c,S4SSite__r.S4SArea_in_m2__c,S4SSite__r.S4SBuilding__c,S4SSite__r.S4SBusiness_Unit__c,S4SSite__r.S4SCity__c,S4SSite__r.S4SCountry__c,S4SSite__r.S4SDivision__c,S4SSite__r.S4SExternal_ID__c,S4SSite__r.S4SFacility_Type__c,S4SSite__r.S4SFloor__c,S4SSite__r.S4SInactivation_Reason__c,S4SSite__r.S4SParent_Site__c,S4SSite__r.S4SPostal_Code__c,S4SSite__r.S4SPublic_Database_Number__c,S4SSite__r.S4SRoom__c,S4SSite__r.S4SSAP_FL_Number__c,S4SSite__r.S4SSite_Description__c,S4SSite__r.S4SState__c,S4SSite__r.S4SStreet__c,S4SSite__r.S4STerritory_Structure__c,S4SSite__r.S4STypes_of_Site__c,S4SSite__r.S4SSite_Legacy_ID__c,S4SEnd_Account__r.Id,S4SEnd_Account__r.Name,S4SEnd_Account__r.BillingStreet,S4SEnd_Account__r.BillingCity,S4SEnd_Account__r.BillingState,S4SEnd_Account__r.BillingPostalCode,S4SEnd_Account__r.BillingCountry,S4SEnd_Account__r.S4SAccount_Name_International__c,S4SEnd_Account__r.S4SCMD_NAME1__c,S4SEnd_Account__r.S4SCMD_NAME2__c,S4SEnd_Account__r.S4SCMD_NAME3__c,S4SEnd_Account__r.S4SCity_PO_Box_International__c,S4SEnd_Account__r.S4SCity_PO_Box__c,S4SEnd_Account__r.S4SIfA__c,S4SEnd_Account__r.S4SPO_Box_Postcode__c,S4SEnd_Account__r.S4SPO_box__c FROM Opportunity where id='@{triggerOutputs()['relativePathParameters']?['OpportunityId']}' "
+              },
+              "path": "/soql/executesoqlquery",
+              "host": {
+                "connection": {
+                  "referenceName": "salesForceConnection"
+                }
+              },
+              "method": "post"
+            },
+            "runAfter": {},
+            "type": "ApiConnection"
+          },
+          "Response": {
+            "inputs": {
+              "body": "@json(variables('formattedOutput'))",
+              "statusCode": 200
+            },
+            "kind": "Http",
+            "runAfter": {
+              "Condition": [
+                "Succeeded"
+              ]
+            },
+            "type": "Response"
+          }
+        },
+        "runAfter": {
+          "formattedOutput": [
+            "Succeeded"
+          ],
+          "varCompetitors": [
+            "Succeeded"
+          ],
+          "varOutput": [
+            "Succeeded"
+          ]
+        },
+        "trackedProperties": {
+          "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+          "citizenName": "c00031",
+          "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+          "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'Omega')}",
+          "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+          "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+          "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'searchOpportunity')}",
+          "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+          "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+          "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+        },
+        "type": "Scope"
+      },
+      "formattedOutput": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "formattedOutput",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "varCompetitors": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "varCompetitors",
+              "type": "array",
+              "value": [
+                {
+                  "COMPETITOR_SHORT_NAME": "",
+                  "IS_PRIMARY": ""
+                }
+              ]
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "varOutput": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "varOutput",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {
+          "method": "POST",
+          "relativePath": "Opportunity/{OpportunityId}",
+          "schema": {}
+        },
+        "kind": "Http",
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

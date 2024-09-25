@@ -1,0 +1,562 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Initialize_variable_-_response": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "response",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Scope-Catch": {
+        "actions": {
+          "Response-BadRequest": {
+            "inputs": {
+              "body": {
+                "message": "error",
+                "runID": "@{workflow()['run']['name']}"
+              },
+              "statusCode": 400
+            },
+            "kind": "Http",
+            "runAfter": {},
+            "type": "Response"
+          },
+          "Terminate": {
+            "inputs": {
+              "runError": {
+                "code": "400",
+                "message": "Catch scope"
+              },
+              "runStatus": "Failed"
+            },
+            "runAfter": {
+              "Response-BadRequest": [
+                "Succeeded"
+              ]
+            },
+            "type": "Terminate"
+          }
+        },
+        "runAfter": {
+          "Scope-Try": [
+            "Failed",
+            "TimedOut",
+            "Skipped"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Scope-Try": {
+        "actions": {
+          "Response-Sucessfull": {
+            "inputs": {
+              "body": {
+                "response": "@variables('response')"
+              },
+              "statusCode": 200
+            },
+            "kind": "Http",
+            "runAfter": {
+              "Update_each_Task": [
+                "Succeeded"
+              ]
+            },
+            "type": "Response"
+          },
+          "Update_each_Task": {
+            "actions": {
+              "Check_mandatory_not_null_or_empty": {
+                "actions": {
+                  "Append_to_array_variable": {
+                    "inputs": {
+                      "name": "response",
+                      "value": "@body('Create_validation_response_error')"
+                    },
+                    "runAfter": {
+                      "Create_validation_response_error": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "AppendToArrayVariable"
+                  },
+                  "Create_validation_response_error": {
+                    "inputs": {
+                      "content": {
+                        "created": "false",
+                        "errors": [
+                          {
+                            "message": "Mandatory fields are not provided",
+                            "statusCode": "Exception"
+                          }
+                        ],
+                        "id": "@{items('Update_each_Task')?['WhatId']}",
+                        "success": "false"
+                      },
+                      "schema": {
+                        "properties": {
+                          "created": {
+                            "type": "string"
+                          },
+                          "errors": {
+                            "items": {
+                              "properties": {
+                                "error": {
+                                  "type": "string"
+                                },
+                                "fields": {
+                                  "items": {
+                                    "type": "string"
+                                  },
+                                  "type": "array"
+                                },
+                                "message": {
+                                  "type": "string"
+                                },
+                                "statusCode": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "fields",
+                                "message",
+                                "statusCode",
+                                "error"
+                              ],
+                              "type": "object"
+                            },
+                            "type": "array"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "success": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      }
+                    },
+                    "runAfter": {},
+                    "type": "ParseJson"
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Check_status_code": {
+                      "actions": {
+                        "Append_to_response_array_": {
+                          "inputs": {
+                            "name": "response",
+                            "value": "@body('Create_Success_Response')"
+                          },
+                          "runAfter": {
+                            "Create_Success_Response": [
+                              "Succeeded"
+                            ]
+                          },
+                          "type": "AppendToArrayVariable"
+                        },
+                        "Create_Success_Response": {
+                          "inputs": {
+                            "content": {
+                              "created": "true",
+                              "errors": [],
+                              "id": "@{body('Create_record')?['Id']}",
+                              "success": "true"
+                            },
+                            "schema": {
+                              "properties": {
+                                "created": {
+                                  "type": "string"
+                                },
+                                "errors": {
+                                  "items": {
+                                    "properties": {
+                                      "error": {
+                                        "type": "string"
+                                      },
+                                      "fields": {
+                                        "items": {
+                                          "type": "string"
+                                        },
+                                        "type": "array"
+                                      },
+                                      "message": {
+                                        "type": "string"
+                                      },
+                                      "statusCode": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "fields",
+                                      "message",
+                                      "statusCode",
+                                      "error"
+                                    ],
+                                    "type": "object"
+                                  },
+                                  "type": "array"
+                                },
+                                "id": {
+                                  "type": "string"
+                                },
+                                "success": {
+                                  "type": "string"
+                                }
+                              },
+                              "type": "object"
+                            }
+                          },
+                          "runAfter": {},
+                          "type": "ParseJson"
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Append_to_response_array_(error)": {
+                            "inputs": {
+                              "name": "response",
+                              "value": "@body('Create_error_response')"
+                            },
+                            "runAfter": {
+                              "Create_error_response": [
+                                "Succeeded"
+                              ]
+                            },
+                            "type": "AppendToArrayVariable"
+                          },
+                          "Create_error_response": {
+                            "inputs": {
+                              "content": {
+                                "created": false,
+                                "errors": [
+                                  {
+                                    "message": "@{variables('response')}",
+                                    "statusCode": "Exception"
+                                  }
+                                ],
+                                "id": "@{body('Create_record')?['Id']}",
+                                "success": "false"
+                              },
+                              "schema": {
+                                "properties": {
+                                  "created": {
+                                    "type": "string"
+                                  },
+                                  "errors": {
+                                    "items": {
+                                      "properties": {
+                                        "error": {
+                                          "type": "string"
+                                        },
+                                        "fields": {
+                                          "items": {
+                                            "type": "string"
+                                          },
+                                          "type": "array"
+                                        },
+                                        "message": {
+                                          "type": "string"
+                                        },
+                                        "statusCode": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "fields",
+                                        "message",
+                                        "statusCode",
+                                        "error"
+                                      ],
+                                      "type": "object"
+                                    },
+                                    "type": "array"
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "success": {
+                                    "type": "string"
+                                  }
+                                },
+                                "type": "object"
+                              }
+                            },
+                            "runAfter": {},
+                            "type": "ParseJson"
+                          }
+                        }
+                      },
+                      "expression": {
+                        "and": [
+                          {
+                            "equals": [
+                              "@int(actions('Create_record').outputs.statusCode)",
+                              201
+                            ]
+                          }
+                        ]
+                      },
+                      "runAfter": {
+                        "Create_record": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "If"
+                    },
+                    "Create_record": {
+                      "inputs": {
+                        "body": "@items('Update_each_Task')",
+                        "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Task'))}/items",
+                        "host": {
+                          "connection": {
+                            "referenceName": "salesForceConnection"
+                          }
+                        },
+                        "method": "post"
+                      },
+                      "runAfter": {},
+                      "type": "ApiConnection"
+                    }
+                  }
+                },
+                "expression": {
+                  "or": [
+                    {
+                      "equals": [
+                        "@items('Update_each_Task')?['OwnerId']",
+                        "@string('')"
+                      ]
+                    },
+                    {
+                      "equals": [
+                        "@items('Update_each_Task')?['Status']",
+                        "@null"
+                      ]
+                    },
+                    {
+                      "equals": [
+                        "@items('Update_each_Task')?['Status']",
+                        ""
+                      ]
+                    },
+                    {
+                      "equals": [
+                        "@items('Update_each_Task')?['IsReminderSet']",
+                        "@null"
+                      ]
+                    },
+                    {
+                      "equals": [
+                        "@items('Update_each_Task')?['IsReminderSet']",
+                        ""
+                      ]
+                    },
+                    {
+                      "equals": [
+                        "@items('Update_each_Task')?['ActivityDate']",
+                        "@null"
+                      ]
+                    },
+                    {
+                      "equals": [
+                        "@items('Update_each_Task')?['ActivityDate']",
+                        ""
+                      ]
+                    },
+                    {
+                      "equals": [
+                        "@items('Update_each_Task')?['Description']",
+                        "@null"
+                      ]
+                    },
+                    {
+                      "equals": [
+                        "@items('Update_each_Task')?['Description']",
+                        ""
+                      ]
+                    },
+                    {
+                      "equals": [
+                        "@items('Update_each_Task')?['OwnerId']",
+                        "@null"
+                      ]
+                    }
+                  ]
+                },
+                "runAfter": {},
+                "type": "If"
+              }
+            },
+            "foreach": "@triggerBody()?['Task']",
+            "runAfter": {},
+            "type": "Foreach"
+          }
+        },
+        "runAfter": {
+          "Scope-Validation": [
+            "Succeeded"
+          ]
+        },
+        "trackedProperties": {
+          "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+          "citizenName": "c00031",
+          "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+          "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'Pulse')}",
+          "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+          "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'non-defined')}",
+          "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'pulseCreateTask')}",
+          "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+          "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+          "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+        },
+        "type": "Scope"
+      },
+      "Scope-Validation": {
+        "actions": {
+          "Check_if_body_is_not_null": {
+            "actions": {
+              "Response": {
+                "inputs": {
+                  "body": {
+                    "message": "Task list is null."
+                  },
+                  "statusCode": 400
+                },
+                "kind": "Http",
+                "runAfter": {},
+                "type": "Response"
+              },
+              "Terminate_Validation": {
+                "inputs": {
+                  "runStatus": "Failed"
+                },
+                "runAfter": {
+                  "Response": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Terminate"
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "expression": {
+              "and": [
+                {
+                  "equals": [
+                    "@triggerBody()",
+                    "@null"
+                  ]
+                }
+              ]
+            },
+            "runAfter": {},
+            "type": "If"
+          }
+        },
+        "runAfter": {
+          "Initialize_variable_-_response": [
+            "Succeeded"
+          ]
+        },
+        "type": "Scope"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {
+          "schema": {
+            "properties": {
+              "Task": {
+                "items": {
+                  "properties": {
+                    "ActivityDate": {
+                      "type": "string"
+                    },
+                    "Description": {
+                      "type": "string"
+                    },
+                    "IsReminderSet": {
+                      "type": "boolean"
+                    },
+                    "OwnerId": {
+                      "type": "string"
+                    },
+                    "Priority": {
+                      "type": "string"
+                    },
+                    "ReminderDateTime": {
+                      "type": "string"
+                    },
+                    "S4SAdditional_Information__c": {
+                      "type": "string"
+                    },
+                    "S4SBU__c": {
+                      "type": "string"
+                    },
+                    "S4SCompleted_Date__c": {
+                      "type": "string"
+                    },
+                    "S4SDivision__c": {
+                      "type": "string"
+                    },
+                    "S4SExternal_Source__c": {
+                      "type": "string"
+                    },
+                    "S4SSurvey_Interview_Details__c": {
+                      "type": "string"
+                    },
+                    "S4SSurvey_Interview_ID__c": {
+                      "type": "string"
+                    },
+                    "Status": {
+                      "type": "string"
+                    },
+                    "Subject": {
+                      "type": "string"
+                    },
+                    "Type": {
+                      "type": "string"
+                    },
+                    "WhatId": {
+                      "type": "string"
+                    },
+                    "WhoId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "IsReminderSet",
+                    "OwnerId",
+                    "Priority",
+                    "Description",
+                    "Subject"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "kind": "Http",
+        "operationOptions": "EnableSchemaValidation",
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

@@ -1,0 +1,1364 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Final_Response": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "FinalOutput",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "ListofDefaultUsers": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "ListofDefaultUsers",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "ListofUsers": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "ListofUsers",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "RecordNumber": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "recordCount",
+              "type": "integer",
+              "value": 1
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Scope_-_Catch": {
+        "actions": {
+          "Send_Error_Response": {
+            "inputs": {
+              "body": "@variables('varErrorList')",
+              "headers": {
+                "Content-Type": "application/xml"
+              },
+              "statusCode": 500
+            },
+            "kind": "Http",
+            "runAfter": {},
+            "type": "Response"
+          },
+          "Terminate": {
+            "inputs": {
+              "runStatus": "Failed"
+            },
+            "runAfter": {
+              "Send_Error_Response": [
+                "Succeeded"
+              ]
+            },
+            "type": "Terminate"
+          }
+        },
+        "runAfter": {
+          "Scope_-_Try": [
+            "Failed",
+            "Skipped",
+            "TimedOut"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Scope_-_Try": {
+        "actions": {
+          "Check_UID_exist_in_request_or_not": {
+            "actions": {
+              "Update_record": {
+                "inputs": {
+                  "body": {
+                    "LastName": "@{body('Get_Contact_Record')['records']?[0]?['LastName']}",
+                    "S4SWebSSO_Login__c": "@{if(equals(triggerBody()?['sObject']?['sf:S4SPartner_Extranet_Access__c'],'true'),json(variables('output'))?['login'],null)}",
+                    "S4SWebSSO_U_ID__c": "@{if(equals(triggerBody()?['sObject']?['sf:S4SPartner_Extranet_Access__c'],'true'),json(variables('output'))?['uid'],'')}"
+                  },
+                  "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Contact'))}/items/@{encodeURIComponent(encodeURIComponent(triggerBody()?['sObject']?['sf:Id']))}",
+                  "host": {
+                    "connection": {
+                      "referenceName": "salesForceConnection"
+                    }
+                  },
+                  "method": "patch"
+                },
+                "runAfter": {},
+                "type": "ApiConnection"
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "expression": {
+              "or": [
+                {
+                  "equals": [
+                    "@triggerBody()?['sObject']?['sf:S4SWebSSO_U_ID__c']",
+                    "@string('')"
+                  ]
+                },
+                {
+                  "equals": [
+                    "@triggerBody()?['sObject']?['sf:S4SWebSSO_U_ID__c']\r\n",
+                    "@null"
+                  ]
+                }
+              ]
+            },
+            "runAfter": {
+              "Fetch_Contact_Details": [
+                "Succeeded"
+              ]
+            },
+            "type": "If"
+          },
+          "Check_if_UID_is_null": {
+            "actions": {
+              "Scope_-_Check_Number_of_Users": {
+                "actions": {
+                  "Switch": {
+                    "cases": {
+                      "Case_When_1_user_found": {
+                        "actions": {
+                          "Add_to_error_list": {
+                            "inputs": {
+                              "name": "varErrorList",
+                              "value": {
+                                "Message": "Exactly one matching record found in WebSSO with UID: @{json(string(variables('uidList')[0]))?['uid']}"
+                              }
+                            },
+                            "runAfter": {},
+                            "type": "AppendToArrayVariable"
+                          },
+                          "Set_Output": {
+                            "inputs": {
+                              "name": "output",
+                              "value": "{\n  \"id\": \"@{triggerBody()?['Id']}\",\n  @{replace(replace(variables('loginUser'),'{',''),'}','')},\n  \"newRecordFlag\": 0,\n  \"uid\": \"@{json(string(variables('uidList')[0]))?['uid']}\",\n\"ErrorMessage\": @{variables('varErrorList')},\n\"tns:notificationsResponse\":  {\n\"tns:Ack\" : 1\n}\n}"
+                            },
+                            "runAfter": {
+                              "Add_to_error_list": [
+                                "Succeeded"
+                              ]
+                            },
+                            "type": "SetVariable"
+                          }
+                        },
+                        "case": 1
+                      },
+                      "Case_When_no_users_found": {
+                        "actions": {
+                          "Scope_-_Write": {
+                            "actions": {
+                              "Append_to_existing_error_list": {
+                                "inputs": {
+                                  "name": "varErrorList",
+                                  "value": {
+                                    "Message": "@{json(xml(body('Call_Write_Service')))?['soap:Envelope']?['soap:Body']?['WriteResponse']?['WriteResult']?['ErrorCode']\r\n}",
+                                    "Step": "no account found in WebSSO, create new"
+                                  }
+                                },
+                                "runAfter": {
+                                  "Call_Write_Service": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "type": "AppendToArrayVariable"
+                              },
+                              "Call_Write_Service": {
+                                "inputs": {
+                                  "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:pt5=\"http://www.ad.siemens.de/webservices/pt5\">\n   <soapenv:Header/>\n   <soapenv:Body>\n <pt5:Write>\n         <pt5:p_CallContext>\n              <pt5:ClientKey>@{json(body('GetConfiguration'))?['clientKey']}</pt5:ClientKey>\n            <pt5:ServiceClientKey>@{json(body('GetConfiguration'))?['serviceClientKey']}</pt5:ServiceClientKey>\n            <pt5:SecurityToken>@{json(body('GetConfiguration'))?['securityToken']}</pt5:SecurityToken>\n            <pt5:ServerName>@{json(body('GetConfiguration'))?['serverName']}</pt5:ServerName>\n            <pt5:TimeStampTicks>@{json(body('GetConfiguration'))?['timeStampTicks']}</pt5:TimeStampTicks>\n        </pt5:p_CallContext>\n        <pt5:p_WriteRequest>\n            <pt5:IsDemand>false</pt5:IsDemand>\n            <pt5:IsPrior>false</pt5:IsPrior>\n            <!--Optional:-->\n            <pt5:SSOUser>\n               <!--Optional:-->\n               <pt5:Items>\n                  <!--Zero or more repetitions:-->\n                \n\t\t\t\t   \n\n   <pt5:SSOUserProperty>\n                     <!--Optional:-->\n                     <pt5:Attribute>login</pt5:Attribute>\n                     <!--Optional:-->\n                     <pt5:Value>@{triggerBody()?['sObject']?['sf:Email']}</pt5:Value>\n                  </pt5:SSOUserProperty>\n<pt5:SSOUserProperty>\n                     <!--Optional:-->\n                     <pt5:Attribute>mail</pt5:Attribute>\n                     <!--Optional:-->\n                     <pt5:Value>@{triggerBody()?['sObject']?['sf:Email']}</pt5:Value>\n                  </pt5:SSOUserProperty>\n<pt5:SSOUserProperty>\n                     <!--Optional:-->\n                     <pt5:Attribute>givenName</pt5:Attribute>\n                     <!--Optional:-->\n                     <pt5:Value>@{triggerBody()?['sObject']?['sf:FirstName']}</pt5:Value>\n                  </pt5:SSOUserProperty>\n<pt5:SSOUserProperty>\n                     <!--Optional:-->\n                     <pt5:Attribute>sn</pt5:Attribute>\n                     <!--Optional:-->\n                     <pt5:Value>@{triggerBody()?['sObject']?['sf:LastName']}</pt5:Value>\n                  </pt5:SSOUserProperty>\n               </pt5:Items>\n            </pt5:SSOUser>\n            <!--Optional:-->\n                 </pt5:p_WriteRequest>\n</pt5:Write>\n   </soapenv:Body>\n</soapenv:Envelope>",
+                                  "headers": {
+                                    "Content-Type": "text/xml; charset=UTF-8",
+                                    "Host": "@{json(body('GetConfiguration'))?['host']}",
+                                    "SOAPAction": "http://www.ad.siemens.de/webservices/pt5/Write"
+                                  },
+                                  "method": "POST",
+                                  "uri": "@{json(body('GetConfiguration'))?['baseUrl']}/@{json(body('GetConfiguration'))?['writePath']}"
+                                },
+                                "runAfter": {},
+                                "type": "Http"
+                              }
+                            },
+                            "runAfter": {},
+                            "type": "Scope"
+                          },
+                          "Scope_Search": {
+                            "actions": {
+                              "Append_to_userlist": {
+                                "inputs": {
+                                  "name": "uidList",
+                                  "value": "@json(xml(body('Search_Call')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][11]?['Value']"
+                                },
+                                "runAfter": {
+                                  "Search_Call": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "type": "AppendToArrayVariable"
+                              },
+                              "Search_Call": {
+                                "inputs": {
+                                  "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:pt5=\"http://www.ad.siemens.de/webservices/pt5\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <pt5:Search>\n         <pt5:p_CallContext>\n            <pt5:ClientKey>@{json(body('GetConfiguration'))?['clientKey']}</pt5:ClientKey>\n            <pt5:ServiceClientKey>@{json(body('GetConfiguration'))?['serviceClientKey']}</pt5:ServiceClientKey>\n            <pt5:SecurityToken>@{json(body('GetConfiguration'))?['securityToken']}</pt5:SecurityToken>\n            <pt5:ServerName>@{json(body('GetConfiguration'))?['serverName']}</pt5:ServerName>\n            <pt5:TimeStampTicks>@{json(body('GetConfiguration'))?['timeStampTicks']}</pt5:TimeStampTicks>\n        </pt5:p_CallContext>\n            <pt5:p_SearchRequest>\n            <pt5:Login>@{triggerBody()?['sObject']?['sf:Email']}</pt5:Login>\n            <pt5:Email>@{triggerBody()?['sObject']?['sf:Email']}</pt5:Email>\n            <pt5:DefaultAccount>0</pt5:DefaultAccount>\n            <pt5:IsECCDownloadEnabled>@{json(body('GetConfiguration'))?['isECCDownloadEnabled']}</pt5:IsECCDownloadEnabled>\n            </pt5:p_SearchRequest>\n      </pt5:Search>\n   </soapenv:Body>\n</soapenv:Envelope>",
+                                  "headers": {
+                                    "Content-Type": "text/xml; charset=UTF-8",
+                                    "Host": "@{json(body('GetConfiguration'))?['host']}",
+                                    "SOAPAction": "http://www.ad.siemens.de/webservices/pt5/Search"
+                                  },
+                                  "method": "POST",
+                                  "uri": "@{json(body('GetConfiguration'))?['baseUrl']}/@{json(body('GetConfiguration'))?['searchPath']}"
+                                },
+                                "runAfter": {},
+                                "type": "Http"
+                              },
+                              "Set_Login": {
+                                "inputs": {
+                                  "name": "loginUser",
+                                  "value": "@{json(xml(body('Search_Call')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][5]?['Value']}"
+                                },
+                                "runAfter": {
+                                  "Search_Call": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "type": "SetVariable"
+                              }
+                            },
+                            "runAfter": {
+                              "Scope_-_Write": [
+                                "Succeeded"
+                              ]
+                            },
+                            "type": "Scope"
+                          },
+                          "Set_Output_with_new_record_flag": {
+                            "inputs": {
+                              "name": "output",
+                              "value": "{\n  \"id\": \"@{triggerBody()?['Id']}\",\n  \"login\": \"@{variables('loginUser')}\",\n  \"newRecordFlag\": 1,\n  \"uid\":\"@{variables('uidList')[0]}\",\n\"ErrorMessage\" : @{variables('varErrorList')}\n}"
+                            },
+                            "runAfter": {
+                              "Scope_Search": [
+                                "Succeeded"
+                              ]
+                            },
+                            "type": "SetVariable"
+                          }
+                        },
+                        "case": 0
+                      }
+                    },
+                    "default": {
+                      "actions": {
+                        "For_each_userlist": {
+                          "actions": {
+                            "Increment_variable": {
+                              "inputs": {
+                                "name": "recordCount",
+                                "value": 1
+                              },
+                              "runAfter": {
+                                "Prepare_User_Summary": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "IncrementVariable"
+                            },
+                            "Parse_Users": {
+                              "inputs": {
+                                "content": "@concat('{',items('For_each_userlist'),'}')",
+                                "schema": {
+                                  "properties": {
+                                    "Response": {
+                                      "items": {
+                                        "properties": {
+                                          "defaultUser": {
+                                            "type": "string"
+                                          },
+                                          "login": {
+                                            "type": "string"
+                                          },
+                                          "mail": {
+                                            "type": "string"
+                                          },
+                                          "uid": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [],
+                                        "type": "object"
+                                      },
+                                      "type": "array"
+                                    }
+                                  },
+                                  "type": "object"
+                                }
+                              },
+                              "runAfter": {},
+                              "type": "ParseJson"
+                            },
+                            "Prepare_User_Summary": {
+                              "inputs": {
+                                "name": "userSummary",
+                                "value": "@concat('<br>','WebSSO Record(',variables('recordCount'),'):','<br>',outputs('temp_summary'),'<br>')"
+                              },
+                              "runAfter": {
+                                "temp_summary": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "AppendToStringVariable"
+                            },
+                            "temp_summary": {
+                              "inputs": "@replace(replace(replace(replace(replace(replace(string(body('Parse_Users')?['Response']),'[{\"',''),'\"}]',''),'\"',''),'}','<br>'),'{',''),',','')",
+                              "runAfter": {
+                                "Parse_Users": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "Compose"
+                            }
+                          },
+                          "foreach": "@union(variables('ListofUsers'),variables('ListofUsers'))",
+                          "runAfter": {},
+                          "runtimeConfiguration": {
+                            "concurrency": {
+                              "repetitions": 1
+                            }
+                          },
+                          "type": "Foreach"
+                        },
+                        "Scope_-_send_email": {
+                          "actions": {
+                            "Send_Email": {
+                              "inputs": {
+                                "host": {
+                                  "workflow": {
+                                    "id": "sendEmail"
+                                  }
+                                },
+                                "body": {
+                                  "Body": "<html><body>Hi,<br> \nMultiple records were found for emailID: <b>@{triggerBody()?['sObject']?['sf:Email']}</b> in WebSSO. The default account could not be determined. <br><br>\nFollowing are the matching UIDs:<br>\n------------------<br>\n@{variables('userSummary')} <br>\n------------------<br>\n<b>Next Step:</b><br>\n1. Please select the appropriate WebSSO U-ID for this SieSales contact record: @{triggerBody()?['Id']} <br>\n2. Open an AMC-Request by using  @{json(body('GetConfiguration'))?['amcNumber']} as reference.<br><br> Replies to this email are not monitored.<br><br> For any queries or concerns, Please contact AMC team.<br>\n<br>\nThanks,\n</body>\n</html>",
+                                  "From": "@{json(body('GetConfiguration'))?['fromEmail']}",
+                                  "Subject": "@{json(body('GetConfiguration'))?['subject']}",
+                                  "To": "@{json(body('GetConfiguration'))?['toEmail']}"
+                                },
+                                "headers": null
+                              },
+                              "runAfter": {},
+                              "type": "Workflow"
+                            }
+                          },
+                          "runAfter": {
+                            "For_each_userlist": [
+                              "Succeeded"
+                            ]
+                          },
+                          "type": "Scope"
+                        }
+                      }
+                    },
+                    "runAfter": {},
+                    "expression": "@length(union(variables('uidList'),variables('uidList')))",
+                    "type": "Switch"
+                  }
+                },
+                "runAfter": {
+                  "Scope_-_Search": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Scope"
+              },
+              "Scope_-_Search": {
+                "actions": {
+                  "Append_to_ErrorList": {
+                    "inputs": {
+                      "name": "varErrorList",
+                      "value": {
+                        "Message": " @{json(xml(body('Call_Search_with_email_nondefault_account')))?['soap:Body']?['SearchResponse']?['SearchResult']?['ErrorCode']}",
+                        "Step": "searching non default account based on Email"
+                      }
+                    },
+                    "runAfter": {
+                      "Call_Search_with_email_nondefault_account": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "AppendToArrayVariable"
+                  },
+                  "Append_to_Error_List": {
+                    "inputs": {
+                      "name": "varErrorList",
+                      "value": {
+                        "Message": "@{json(xml(body('Call_Search_Login_with_non_default_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['ErrorCode']}",
+                        "Step": "searching non default account based on login"
+                      }
+                    },
+                    "runAfter": {
+                      "Call_Search_Login_with_non_default_account": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "AppendToArrayVariable"
+                  },
+                  "Append_to_ErrorsList": {
+                    "inputs": {
+                      "name": "varErrorList",
+                      "value": {
+                        "Message": "@{json(xml(body('Call_Search')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['ErrorCode']}",
+                        "Step": "searching default account based on email"
+                      }
+                    },
+                    "runAfter": {
+                      "Call_Search": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "AppendToArrayVariable"
+                  },
+                  "Append_to_errors_list": {
+                    "inputs": {
+                      "name": "varErrorList",
+                      "value": {
+                        "Message": "@{json(xml(body('Call_Search_with_login_default_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['ErrorCode']}",
+                        "Step": "searching default account based on login"
+                      }
+                    },
+                    "runAfter": {
+                      "Call_Search_with_login_default_account": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "AppendToArrayVariable"
+                  },
+                  "Call_Search": {
+                    "inputs": {
+                      "body": "@outputs('Create_Search_email_Soap_Request_with_default_account_')",
+                      "headers": {
+                        "Content-Type": "text/xml; charset=UTF-8",
+                        "Host": "@{json(body('GetConfiguration'))?['host']}",
+                        "SOAPAction": "http://www.ad.siemens.de/webservices/pt5/Search"
+                      },
+                      "method": "POST",
+                      "uri": "@{json(body('GetConfiguration'))?['baseUrl']}/@{json(body('GetConfiguration'))?['searchPath']}"
+                    },
+                    "runAfter": {
+                      "Create_Search_email_Soap_Request_with_default_account_": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Http"
+                  },
+                  "Call_Search_Login_with_non_default_account": {
+                    "inputs": {
+                      "body": "@outputs('Create_Search_Login_with_non_default_account')",
+                      "headers": {
+                        "Content-Type": "text/xml; charset=UTF-8",
+                        "Host": "@{json(body('GetConfiguration'))?['host']}",
+                        "SOAPAction": "http://www.ad.siemens.de/webservices/pt5/Search"
+                      },
+                      "method": "POST",
+                      "uri": "@{json(body('GetConfiguration'))?['baseUrl']}/@{json(body('GetConfiguration'))?['searchPath']}"
+                    },
+                    "runAfter": {
+                      "Create_Search_Login_with_non_default_account": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Http"
+                  },
+                  "Call_Search_with_email_nondefault_account": {
+                    "inputs": {
+                      "body": "@outputs('Create_Search_Email_with_non_default_account')",
+                      "headers": {
+                        "Content-Type": "text/xml; charset=UTF-8",
+                        "Host": "@{json(body('GetConfiguration'))?['host']}",
+                        "SOAPAction": "http://www.ad.siemens.de/webservices/pt5/Search"
+                      },
+                      "method": "POST",
+                      "uri": "@{json(body('GetConfiguration'))?['baseUrl']}/@{json(body('GetConfiguration'))?['searchPath']}"
+                    },
+                    "runAfter": {
+                      "Create_Search_Email_with_non_default_account": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Http"
+                  },
+                  "Call_Search_with_login_default_account": {
+                    "inputs": {
+                      "body": "@outputs('Create_Search_login_soap_request_with_default_account')",
+                      "headers": {
+                        "Content-Type": "text/xml; charset=UTF-8",
+                        "Host": "@{json(body('GetConfiguration'))?['host']}",
+                        "SOAPAction": "http://www.ad.siemens.de/webservices/pt5/Search"
+                      },
+                      "method": "POST",
+                      "uri": "@{json(body('GetConfiguration'))?['baseUrl']}/@{json(body('GetConfiguration'))?['searchPath']}"
+                    },
+                    "runAfter": {
+                      "Create_Search_login_soap_request_with_default_account": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Http"
+                  },
+                  "Condition": {
+                    "actions": {
+                      "Check_number_of_items": {
+                        "actions": {
+                          "For_each_userSSo": {
+                            "actions": {
+                              "Append_to_array_variable": {
+                                "inputs": {
+                                  "name": "ListofUsers",
+                                  "value": "\"Response\" : [\n{\n    \"defaultUser\" :  \"@{items('For_each_userSSo')?['Items']?['SSOUserProperty']?[1]?['Value']}\"\n},\n{\n     \"login\" :\"@{items('For_each_userSSo')?['Items']?['SSOUserProperty']?[5]?['Value']}\"\n},\n{\n     \"mail\" : \"@{items('For_each_userSSo')?['Items']?['SSOUserProperty']?[6]?['Value']}\"\n},\n{\n    \"uid\" :\"@{items('For_each_userSSo')?['Items']?['SSOUserProperty']?[11]?['Value']}\"\n}\n]"
+                                },
+                                "runAfter": {},
+                                "type": "AppendToArrayVariable"
+                              }
+                            },
+                            "foreach": "@json(xml(body('Call_Search_with_email_nondefault_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']",
+                            "runAfter": {},
+                            "runtimeConfiguration": {
+                              "concurrency": {
+                                "repetitions": 1
+                              }
+                            },
+                            "type": "Foreach"
+                          }
+                        },
+                        "else": {
+                          "actions": {
+                            "Append_to_User_list": {
+                              "inputs": {
+                                "name": "ListofUsers",
+                                "value": "\"Response\" : [\n{\n    \"defaultUser\" :  \"@{json(xml(body('Call_Search_with_email_nondefault_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][1]?['Value']}\"\n},\n{\n     \"login\" :\"@{json(xml(body('Call_Search_with_email_nondefault_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][5]?['Value']}\"\n},\n{\n     \"mail\" : \"@{json(xml(body('Call_Search_with_email_nondefault_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][6]?['Value']}\"\n},\n{\n    \"uid\" :\"@{json(xml(body('Call_Search_with_email_nondefault_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][11]?['Value']}\"\n}\n]"
+                              },
+                              "runAfter": {},
+                              "type": "AppendToArrayVariable"
+                            }
+                          }
+                        },
+                        "expression": {
+                          "and": [
+                            {
+                              "greater": [
+                                "@int(xpath(xml(replace(string(replace(string(body('Call_Search_with_email_nondefault_account')) , 'soap:Body' , 'Body')),'soap:Envelope' , 'Envelope')), \r\n'count(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"SearchResponse\"]/*[local-name()=\"SearchResult\"]/*[local-name()=\"SSOUsers\"]/*[local-name()=\"SSOUser\"])'))",
+                                1
+                              ]
+                            }
+                          ]
+                        },
+                        "runAfter": {},
+                        "type": "If"
+                      }
+                    },
+                    "else": {
+                      "actions": {}
+                    },
+                    "expression": {
+                      "or": [
+                        {
+                          "not": {
+                            "equals": [
+                              "@json(xml(body('Call_Search_with_email_nondefault_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']",
+                              "@null"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "runAfter": {
+                      "Call_Search_with_email_nondefault_account": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "If"
+                  },
+                  "Condition_2": {
+                    "actions": {
+                      "Check_number_of_ssouser_in_response2": {
+                        "actions": {
+                          "For_each_userSSo2": {
+                            "actions": {
+                              "Append_to_array_list2": {
+                                "inputs": {
+                                  "name": "ListofUsers",
+                                  "value": "\"Response\" : [\n{\n    \"defaultUser\" :  \"@{items('For_each_userSSo2')?['Items']?['SSOUserProperty']?[1]?['Value']}\"\n},\n{\n     \"login\" :\"@{items('For_each_userSSo2')?['Items']?['SSOUserProperty']?[5]?['Value']}\"\n},\n{\n     \"mail\" : \"@{items('For_each_userSSo2')?['Items']?['SSOUserProperty']?[6]?['Value']}\"\n},\n{\n    \"uid\" :\"@{items('For_each_userSSo2')?['Items']?['SSOUserProperty']?[11]?['Value']}\"\n}\n]"
+                                },
+                                "runAfter": {},
+                                "type": "AppendToArrayVariable"
+                              }
+                            },
+                            "foreach": "@json(xml(body('Call_Search_Login_with_non_default_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']",
+                            "runAfter": {},
+                            "runtimeConfiguration": {
+                              "concurrency": {
+                                "repetitions": 1
+                              }
+                            },
+                            "type": "Foreach"
+                          }
+                        },
+                        "else": {
+                          "actions": {
+                            "Append_to_Users": {
+                              "inputs": {
+                                "name": "ListofUsers",
+                                "value": "\"Response\" : [\n{\n    \"defaultUser\" :  \"@{json(xml(body('Call_Search_Login_with_non_default_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][1]?['Value']}\"\n},\n{\n     \"login\" :\"@{json(xml(body('Call_Search_Login_with_non_default_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][5]?['Value']}\"\n},\n{\n     \"mail\" : \"@{json(xml(body('Call_Search_Login_with_non_default_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][6]?['Value']}\"\n},\n{\n    \"uid\" :\"@{json(xml(body('Call_Search_Login_with_non_default_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][11]?['Value']}\"\n}\n]"
+                              },
+                              "runAfter": {},
+                              "type": "AppendToArrayVariable"
+                            }
+                          }
+                        },
+                        "expression": {
+                          "and": [
+                            {
+                              "greater": [
+                                "@int(xpath(xml(replace(string(replace(string(body('Call_Search_Login_with_non_default_account')) , 'soap:Body' , 'Body')),'soap:Envelope' , 'Envelope')), \r\n'count(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"SearchResponse\"]/*[local-name()=\"SearchResult\"]/*[local-name()=\"SSOUsers\"]/*[local-name()=\"SSOUser\"])'))",
+                                1
+                              ]
+                            }
+                          ]
+                        },
+                        "runAfter": {},
+                        "type": "If"
+                      }
+                    },
+                    "else": {
+                      "actions": {}
+                    },
+                    "expression": {
+                      "or": [
+                        {
+                          "not": {
+                            "equals": [
+                              "@json(xml(body('Call_Search_Login_with_non_default_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']",
+                              "@null"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "runAfter": {
+                      "Call_Search_Login_with_non_default_account": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "If"
+                  },
+                  "Condition_3": {
+                    "actions": {
+                      "Check_number_of_users_in_response3": {
+                        "actions": {
+                          "For_each_userSSo3": {
+                            "actions": {
+                              "Append_to_array_variable_3": {
+                                "inputs": {
+                                  "name": "ListofDefaultUsers",
+                                  "value": "\"Response\" : [\n{\n    \"defaultUser\" :  \"@{items('For_each_userSSo3')?['Items']?['SSOUserProperty']?[1]?['Value']}\"\n},\n{\n     \"login\" :\"@{items('For_each_userSSo3')?['Items']?['SSOUserProperty']?[5]?['Value']}\"\n},\n{\n     \"mail\" : \"@{items('For_each_userSSo3')?['Items']?['SSOUserProperty']?[6]?['Value']}\"\n},\n{\n    \"uid\" :\"@{json(xml(body('Call_Search')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][11]?['Value']}\"\n}\n]"
+                                },
+                                "runAfter": {},
+                                "type": "AppendToArrayVariable"
+                              }
+                            },
+                            "foreach": "@json(xml(body('Call_Search')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']",
+                            "runAfter": {},
+                            "runtimeConfiguration": {
+                              "concurrency": {
+                                "repetitions": 1
+                              }
+                            },
+                            "type": "Foreach"
+                          }
+                        },
+                        "else": {
+                          "actions": {
+                            "Append_to_user-list": {
+                              "inputs": {
+                                "name": "ListofUsers",
+                                "value": "\"Response\" : [\n{\n    \"defaultUser\" :  \"@{json(xml(body('Call_Search')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][1]?['Value']\r\n}\"\n},\n{\n     \"login\" :\"@{json(xml(body('Call_Search')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][5]?['Value']\r\n}\"\n},\n{\n     \"mail\" : \"@{json(xml(body('Call_Search')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][6]?['Value']\r\n}\"\n},\n{\n    \"uid\" :\"@{json(xml(body('Call_Search')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][11]?['Value']\r\n}\"\n}\n]"
+                              },
+                              "runAfter": {},
+                              "type": "AppendToArrayVariable"
+                            }
+                          }
+                        },
+                        "expression": {
+                          "and": [
+                            {
+                              "greater": [
+                                "@int(xpath(xml(replace(string(replace(string(body('Call_Search')) , 'soap:Body' , 'Body')),'soap:Envelope' , 'Envelope')), \r\n'count(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"SearchResponse\"]/*[local-name()=\"SearchResult\"]/*[local-name()=\"SSOUsers\"]/*[local-name()=\"SSOUser\"])'))",
+                                1
+                              ]
+                            }
+                          ]
+                        },
+                        "runAfter": {},
+                        "type": "If"
+                      }
+                    },
+                    "else": {
+                      "actions": {}
+                    },
+                    "expression": {
+                      "or": [
+                        {
+                          "not": {
+                            "equals": [
+                              "@json(xml(body('Call_Search')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']",
+                              "@null"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "runAfter": {
+                      "Call_Search": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "If"
+                  },
+                  "Condition_4": {
+                    "actions": {
+                      "Check_number_of_users_in_response4": {
+                        "actions": {
+                          "For_each_userSSo4": {
+                            "actions": {
+                              "Append_to_array_variable_4": {
+                                "inputs": {
+                                  "name": "ListofUsers",
+                                  "value": "\"Response\" : [\n{\n    \"defaultUser\" :  \"@{items('For_each_userSSo4')?['Items']?['SSOUserProperty']?[1]?['Value']}\"\n},\n{\n     \"login\" :\"@{items('For_each_userSSo4')?['Items']?['SSOUserProperty']?[5]?['Value']}\"\n},\n{\n     \"mail\" : \"@{items('For_each_userSSo4')?['Items']?['SSOUserProperty']?[6]?['Value']}\"\n},\n{\n    \"uid\" :\"@{items('For_each_userSSo4')?['Items']?['SSOUserProperty']?[11]?['Value']}\"\n}\n]"
+                                },
+                                "runAfter": {},
+                                "type": "AppendToArrayVariable"
+                              }
+                            },
+                            "foreach": "@json(xml(body('Call_Search_with_login_default_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']",
+                            "runAfter": {},
+                            "runtimeConfiguration": {
+                              "concurrency": {
+                                "repetitions": 20
+                              }
+                            },
+                            "type": "Foreach"
+                          }
+                        },
+                        "else": {
+                          "actions": {
+                            "Append_to_array_userlist": {
+                              "inputs": {
+                                "name": "ListofUsers",
+                                "value": "\"Response\" : [\n{\n    \"defaultUser\" :  \"@{json(xml(body('Call_Search_with_login_default_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][1]?['Value']\r\n}\"\n},\n{\n     \"login\" :\"@{json(xml(body('Call_Search_with_login_default_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][1]?['Value']\r\n}\"\n},\n{\n     \"mail\" : \"@{json(xml(body('Call_Search_with_login_default_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][6]?['Value']\r\n}\"\n},\n{\n    \"uid\" :\"@{json(xml(body('Call_Search_with_login_default_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][11]?['Value']\r\n}\"\n}\n]"
+                              },
+                              "runAfter": {},
+                              "type": "AppendToArrayVariable"
+                            }
+                          }
+                        },
+                        "expression": {
+                          "and": [
+                            {
+                              "greater": [
+                                "@int(xpath(xml(replace(string(replace(string(body('Call_Search_with_login_default_account')) , 'soap:Body' , 'Body')),'soap:Envelope' , 'Envelope')), \r\n'count(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"SearchResponse\"]/*[local-name()=\"SearchResult\"]/*[local-name()=\"SSOUsers\"]/*[local-name()=\"SSOUser\"])'))",
+                                1
+                              ]
+                            }
+                          ]
+                        },
+                        "runAfter": {},
+                        "type": "If"
+                      }
+                    },
+                    "else": {
+                      "actions": {}
+                    },
+                    "expression": {
+                      "or": [
+                        {
+                          "not": {
+                            "equals": [
+                              "@json(xml(body('Call_Search_with_login_default_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']",
+                              "@null"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "runAfter": {
+                      "Call_Search_with_login_default_account": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "If"
+                  },
+                  "Create_Search_Email_with_non_default_account": {
+                    "inputs": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:pt5=\"http://www.ad.siemens.de/webservices/pt5\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <pt5:Search>\n         <pt5:p_CallContext>\n            <pt5:ClientKey>@{json(body('GetConfiguration'))?['clientKey']}</pt5:ClientKey>\n            <pt5:ServiceClientKey>@{json(body('GetConfiguration'))?['serviceClientKey']}</pt5:ServiceClientKey>\n            <pt5:SecurityToken>@{json(body('GetConfiguration'))?['securityToken']}</pt5:SecurityToken>\n            <pt5:ServerName>@{json(body('GetConfiguration'))?['serverName']}</pt5:ServerName>\n            <pt5:TimeStampTicks>@{json(body('GetConfiguration'))?['timeStampTicks']}</pt5:TimeStampTicks>\n        </pt5:p_CallContext>\n            <pt5:p_SearchRequest>\n            <pt5:Email>@{triggerBody()?['sObject']?['sf:Email']}</pt5:Email>\n            <pt5:DefaultAccount>0</pt5:DefaultAccount>\n            <pt5:IsECCDownloadEnabled>0</pt5:IsECCDownloadEnabled>\n            </pt5:p_SearchRequest>\n      </pt5:Search>\n   </soapenv:Body>\n</soapenv:Envelope>",
+                    "runAfter": {
+                      "Scope_-_Fetch_Configuration_": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Compose"
+                  },
+                  "Create_Search_Login_with_non_default_account": {
+                    "inputs": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:pt5=\"http://www.ad.siemens.de/webservices/pt5\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <pt5:Search>\n         <pt5:p_CallContext>\n             <pt5:ClientKey>@{json(body('GetConfiguration'))?['clientKey']}</pt5:ClientKey>\n            <pt5:ServiceClientKey>@{json(body('GetConfiguration'))?['serviceClientKey']}</pt5:ServiceClientKey>\n            <pt5:SecurityToken>@{json(body('GetConfiguration'))?['securityToken']}</pt5:SecurityToken>\n            <pt5:ServerName>@{json(body('GetConfiguration'))?['serverName']}</pt5:ServerName>\n            <pt5:TimeStampTicks>@{json(body('GetConfiguration'))?['timeStampTicks']}</pt5:TimeStampTicks>\n        </pt5:p_CallContext>\n            <pt5:p_SearchRequest>\n            <pt5:Login>@{triggerBody()?['sObject']?['sf:Email']}</pt5:Login>\n            <pt5:Email></pt5:Email>\n            <pt5:DefaultAccount>0</pt5:DefaultAccount>\n            <pt5:IsECCDownloadEnabled>@{json(body('GetConfiguration'))?['isECCDownloadEnabled']}</pt5:IsECCDownloadEnabled>\n            </pt5:p_SearchRequest>\n      </pt5:Search>\n   </soapenv:Body>\n</soapenv:Envelope>",
+                    "runAfter": {
+                      "Scope_-_Fetch_Configuration_": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Compose"
+                  },
+                  "Create_Search_email_Soap_Request_with_default_account_": {
+                    "inputs": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:pt5=\"http://www.ad.siemens.de/webservices/pt5\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <pt5:Search>\n         <pt5:p_CallContext>\n               <pt5:ClientKey>@{json(body('GetConfiguration'))?['clientKey']}</pt5:ClientKey>\n            <pt5:ServiceClientKey>@{json(body('GetConfiguration'))?['serviceClientKey']}</pt5:ServiceClientKey>\n            <pt5:SecurityToken>@{json(body('GetConfiguration'))?['securityToken']}</pt5:SecurityToken>\n            <pt5:ServerName>@{json(body('GetConfiguration'))?['serverName']}</pt5:ServerName>\n            <pt5:TimeStampTicks>@{json(body('GetConfiguration'))?['timeStampTicks']}</pt5:TimeStampTicks>\n        </pt5:p_CallContext>\n            <pt5:p_SearchRequest>\n            <pt5:Email>@{triggerBody()?['sObject']?['sf:Email']}</pt5:Email>\n            <pt5:DefaultAccount>1</pt5:DefaultAccount>\n            <pt5:IsECCDownloadEnabled>0</pt5:IsECCDownloadEnabled>\n            </pt5:p_SearchRequest>\n      </pt5:Search>\n   </soapenv:Body>\n</soapenv:Envelope>",
+                    "runAfter": {
+                      "Scope_-_Fetch_Configuration_": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Compose"
+                  },
+                  "Create_Search_login_soap_request_with_default_account": {
+                    "inputs": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:pt5=\"http://www.ad.siemens.de/webservices/pt5\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <pt5:Search>\n         <pt5:p_CallContext>\n          <pt5:ClientKey>@{json(body('GetConfiguration'))?['clientKey']}</pt5:ClientKey>\n            <pt5:ServiceClientKey>@{json(body('GetConfiguration'))?['serviceClientKey']}</pt5:ServiceClientKey>\n            <pt5:SecurityToken>@{json(body('GetConfiguration'))?['securityToken']}</pt5:SecurityToken>\n            <pt5:ServerName>@{json(body('GetConfiguration'))?['serverName']}</pt5:ServerName>\n            <pt5:TimeStampTicks>@{json(body('GetConfiguration'))?['timeStampTicks']}</pt5:TimeStampTicks>\n        </pt5:p_CallContext>\n            <pt5:p_SearchRequest>\n             <pt5:Login>@{triggerBody()?['sObject']?['sf:Email']}</pt5:Login>\r\n            <pt5:Email></pt5:Email>\n            <pt5:DefaultAccount>1</pt5:DefaultAccount>\n            <pt5:IsECCDownloadEnabled>0</pt5:IsECCDownloadEnabled>\n            </pt5:p_SearchRequest>\n      </pt5:Search>\n   </soapenv:Body>\n</soapenv:Envelope>",
+                    "runAfter": {
+                      "Scope_-_Fetch_Configuration_": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Compose"
+                  },
+                  "For_each_ssouser": {
+                    "actions": {
+                      "Check_UID_present": {
+                        "actions": {},
+                        "else": {
+                          "actions": {
+                            "Append_to_List_of_UIDs": {
+                              "inputs": {
+                                "name": "uidList",
+                                "value": "@body('Parse_user')?['Response'][3]"
+                              },
+                              "runAfter": {},
+                              "type": "AppendToArrayVariable"
+                            },
+                            "Check_if_default_user_is_1": {
+                              "actions": {
+                                "Append_to_List_of_DefaultUsers": {
+                                  "inputs": {
+                                    "name": "ListofDefaultUsers",
+                                    "value": "@body('Parse_user')?['Response'][0]"
+                                  },
+                                  "runAfter": {},
+                                  "type": "AppendToArrayVariable"
+                                }
+                              },
+                              "else": {
+                                "actions": {}
+                              },
+                              "expression": {
+                                "or": [
+                                  {
+                                    "equals": [
+                                      "@body('Parse_user')?['Response'][0]",
+                                      "@string('1')"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "runAfter": {
+                                "Set_Login_user": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "If"
+                            },
+                            "Set_Login_user": {
+                              "inputs": {
+                                "name": "loginUser",
+                                "value": "@{body('Parse_user')?['Response'][1]}"
+                              },
+                              "runAfter": {
+                                "Append_to_List_of_UIDs": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "SetVariable"
+                            }
+                          }
+                        },
+                        "expression": {
+                          "or": [
+                            {
+                              "equals": [
+                                "@body('Parse_user')?['Response'][3]",
+                                "@string('')"
+                              ]
+                            },
+                            {
+                              "equals": [
+                                "@body('Parse_user')?['Response'][3]",
+                                "@null"
+                              ]
+                            }
+                          ]
+                        },
+                        "runAfter": {
+                          "Parse_user": [
+                            "Succeeded"
+                          ]
+                        },
+                        "type": "If"
+                      },
+                      "Parse_user": {
+                        "inputs": {
+                          "content": "@concat('{',items('For_each_ssouser'),'}')",
+                          "schema": {
+                            "properties": {
+                              "Response": {
+                                "items": {
+                                  "properties": {
+                                    "defaultUser": {
+                                      "type": "string"
+                                    },
+                                    "login": {
+                                      "type": "string"
+                                    },
+                                    "mail": {
+                                      "type": "string"
+                                    },
+                                    "uid": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [],
+                                  "type": "object"
+                                },
+                                "type": "array"
+                              }
+                            },
+                            "type": "object"
+                          }
+                        },
+                        "runAfter": {},
+                        "type": "ParseJson"
+                      }
+                    },
+                    "foreach": "@body('Parse_ListofUsers')",
+                    "runAfter": {
+                      "Parse_ListofUsers": [
+                        "Succeeded"
+                      ]
+                    },
+                    "runtimeConfiguration": {
+                      "concurrency": {
+                        "repetitions": 1
+                      }
+                    },
+                    "type": "Foreach"
+                  },
+                  "Parse_ListofUsers": {
+                    "inputs": {
+                      "content": "@json(string(variables('ListofUsers')))",
+                      "schema": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "runAfter": {
+                      "Append_to_ErrorList": [
+                        "Succeeded"
+                      ],
+                      "Append_to_Error_List": [
+                        "Succeeded"
+                      ],
+                      "Append_to_ErrorsList": [
+                        "Succeeded"
+                      ],
+                      "Append_to_errors_list": [
+                        "Succeeded"
+                      ],
+                      "Condition": [
+                        "Succeeded"
+                      ],
+                      "Condition_2": [
+                        "Succeeded"
+                      ],
+                      "Condition_3": [
+                        "Succeeded"
+                      ],
+                      "Condition_4": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "ParseJson"
+                  },
+                  "Scope_-_Fetch_Configuration_": {
+                    "actions": {
+                      "GetConfiguration": {
+                        "inputs": {
+                          "host": {
+                            "workflow": {
+                              "id": "getConfiguration"
+                            }
+                          },
+                          "body": {
+                            "key": "web-sso-config"
+                          },
+                          "headers": null
+                        },
+                        "runAfter": {},
+                        "type": "Workflow"
+                      }
+                    },
+                    "runAfter": {},
+                    "type": "Scope"
+                  },
+                  "Set_UID_list": {
+                    "inputs": {
+                      "name": "FinalOutput",
+                      "value": "@{variables('uidList')}"
+                    },
+                    "runAfter": {
+                      "For_each_ssouser": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "SetVariable"
+                  }
+                },
+                "runAfter": {},
+                "type": "Scope"
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "expression": {
+              "or": [
+                {
+                  "equals": [
+                    "@triggerBody()?['sObject']?['sf:S4SWebSSO_U_ID__c']",
+                    "@null"
+                  ]
+                }
+              ]
+            },
+            "runAfter": {
+              "Fetch_Partner_Membership_Details": [
+                "Succeeded"
+              ]
+            },
+            "type": "If"
+          },
+          "Fetch_Contact_Details": {
+            "actions": {
+              "Get_Contact_Record": {
+                "inputs": {
+                  "body": {
+                    "query": "Select Id,LastName from Contact where Id = '@{triggerBody()?['sObject']?['sf:Id']}'"
+                  },
+                  "path": "/soql/executesoqlquery",
+                  "host": {
+                    "connection": {
+                      "referenceName": "salesForceConnection"
+                    }
+                  },
+                  "method": "post"
+                },
+                "runAfter": {},
+                "type": "ApiConnection"
+              }
+            },
+            "runAfter": {
+              "Scope_InitiateModuleSync": [
+                "Succeeded"
+              ]
+            },
+            "type": "Scope"
+          },
+          "Fetch_Partner_Membership_Details": {
+            "inputs": {
+              "body": {
+                "query": "select Id, Name, S4SProgram_Module_Master__c,S4SAccount__c, S4SProgram_Module_Master__r.S4SSite_Key__c,S4SProgram_Module_Master__r.S4SSite_Name__c \n from S4SPartner_Membership__c WHERE S4SAccount__c =   '@{triggerBody()?['sObject']?['sf:S4SPartner_External_Access_Account_Id__c']}' and S4SStatus_Order__c in ('Member','Off-Boarding Agreed')"
+              },
+              "path": "/soql/executesoqlquery",
+              "host": {
+                "connection": {
+                  "referenceName": "salesForceConnection"
+                }
+              },
+              "method": "post"
+            },
+            "runAfter": {},
+            "type": "ApiConnection"
+          },
+          "Response": {
+            "inputs": {
+              "body": "@variables('output')",
+              "statusCode": 200
+            },
+            "kind": "Http",
+            "runAfter": {
+              "Scope_-_Upsert_Contact": [
+                "Succeeded"
+              ]
+            },
+            "type": "Response"
+          },
+          "Scope_-_Upsert_Contact": {
+            "actions": {
+              "Check_if_new_record_flag_exist": {
+                "actions": {
+                  "Update_": {
+                    "inputs": {
+                      "body": {
+                        "LastName": "@{body('Get_Contact_Record')['records'][0]?['LastName']}",
+                        "S4SWeb_SSO_User__c": true
+                      },
+                      "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Contact'))}/items/@{encodeURIComponent(encodeURIComponent(triggerBody()?['sObject']?['sf:Id']))}",
+                      "host": {
+                        "connection": {
+                          "referenceName": "salesForceConnection"
+                        }
+                      },
+                      "method": "patch"
+                    },
+                    "runAfter": {},
+                    "type": "ApiConnection"
+                  }
+                },
+                "else": {
+                  "actions": {}
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "equals": [
+                        "@json(variables('output'))?['newRecordFlag']",
+                        1
+                      ]
+                    }
+                  ]
+                },
+                "runAfter": {},
+                "type": "If"
+              }
+            },
+            "runAfter": {
+              "Check_UID_exist_in_request_or_not": [
+                "Succeeded"
+              ]
+            },
+            "type": "Scope"
+          },
+          "Scope_InitiateModuleSync": {
+            "actions": {
+              "Add_HighspotSiteKey": {
+                "inputs": {
+                  "body": {
+                    "ContactUID": [
+                      "@if(equals(variables('output'),''),triggerBody()?['sObject']?['sf:S4SWebSSO_U_ID__c'],json(variables('output'))?['uid'])"
+                    ],
+                    "MembershipStatus": "@if(equals(triggerBody()['sObject']['sf:S4SPartner_Extranet_Access__c'],'false'),'Deleted',triggerBody()['sObject']['sf:S4SPartner_Extranet_Access__c'])",
+                    "PartnerMembership": "@body('Fetch_Partner_Membership_Details')"
+                  },
+                  "function": {
+                    "connectionName": "Liquid"
+                  },
+                  "headers": {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                    "Filename": "parameters('liquid_Highspot')"
+                  },
+                  "method": "POST"
+                },
+                "runAfter": {},
+                "type": "Function"
+              },
+              "Call_webSSO_InitiateModuleSync": {
+                "inputs": {
+                  "host": {
+                    "workflow": {
+                      "id": "webSSOInitiateModuleSync"
+                    }
+                  },
+                  "body": {
+                    "PartnerMembership": "@body('Add_HighspotSiteKey')?['PartnerMembership']"
+                  },
+                  "headers": null
+                },
+                "runAfter": {
+                  "Add_HighspotSiteKey": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Workflow"
+              }
+            },
+            "runAfter": {
+              "Check_if_UID_is_null": [
+                "Succeeded"
+              ]
+            },
+            "type": "Scope"
+          }
+        },
+        "runAfter": {
+          "Final_Response": [
+            "Succeeded"
+          ],
+          "ListofDefaultUsers": [
+            "Succeeded"
+          ],
+          "ListofUsers": [
+            "Succeeded"
+          ],
+          "RecordNumber": [
+            "Succeeded"
+          ],
+          "loginUser": [
+            "Succeeded"
+          ],
+          "uidList": [
+            "Succeeded"
+          ],
+          "userSummary": [
+            "Succeeded"
+          ],
+          "varEmailList": [
+            "Succeeded"
+          ],
+          "varErrorList": [
+            "Succeeded"
+          ],
+          "varOutput": [
+            "Succeeded"
+          ]
+        },
+        "trackedProperties": {
+          "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+          "citizenName": "c00031",
+          "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+          "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'webSSO')}",
+          "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+          "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'non-defined')}",
+          "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'webSSOInitiateOBMSync_processRecord')}",
+          "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+          "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+          "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+        },
+        "type": "Scope"
+      },
+      "loginUser": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "loginUser",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "uidList": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "uidList",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "userSummary": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "userSummary",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "varEmailList": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "varEmailList",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "varErrorList": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "varErrorList",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "varOutput": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "output",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {},
+        "kind": "Http",
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

@@ -1,0 +1,908 @@
+{
+  "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "actions": {
+          "Initialize_Bulk_State": {
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "BulkState",
+                          "type": "boolean",
+                          "value": false
+                      }
+                  ]
+              },
+              "runAfter": {},
+              "type": "InitializeVariable"
+          },
+          "Initialize_Failed_Logs": {
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "Failed",
+                          "type": "string"
+                      }
+                  ]
+              },
+              "runAfter": {},
+              "type": "InitializeVariable"
+          },
+          "Initialize_Processed_Logs": {
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "Processed",
+                          "type": "string"
+                      }
+                  ]
+              },
+              "runAfter": {},
+              "type": "InitializeVariable"
+          },
+          "Initialize_Unprocessed_Logs": {
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "Unprocessed",
+                          "type": "string"
+                      }
+                  ]
+              },
+              "runAfter": {},
+              "type": "InitializeVariable"
+          },
+          "Move_File_to_Archive": {
+              "actions": {
+                  "Convert_Blob_to_Zip": {
+                      "inputs": {
+                          "body": {
+                              "blobContainerName": "@{parameters('BlobContainerName')}",
+                              "incomingBlobPath": "@{body('Parse_JSON')?['runID']}/incoming",
+                              "incominigBlobName": "@{body('Create_Log_File')?['properties']?['blobName']}",
+                              "outcomingBlobPath": "@{body('Parse_JSON')?['runID']}/logZip"
+                          },
+                          "function": {
+                              "connectionName": "BlobToZipConverterFunction"
+                          },
+                          "method": "POST"
+                      },
+                      "runAfter": {
+                          "Create_Log_File": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "Function"
+                  },
+                  "Copy_File_to_Archive": {
+                      "inputs": {
+                          "parameters": {
+                              "destinationBlobUri": "@{parameters('ArchivePath')}/@{body('Parse_JSON')?['fileID']}",
+                              "sourceBlobUri": "@{parameters('WorkingPath')}/@{body('Parse_JSON')?['fileID']}"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageSFTP",
+                              "operationId": "copyBlobFromUri",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Get_Incoming_File_Metadata": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "ServiceProvider"
+                  },
+                  "Create_Log_File": {
+                      "inputs": {
+                          "parameters": {
+                              "blobUri": "@{parameters('BlobContainerName')}/@{body('Parse_JSON')?['runID']}/incoming/CSV_Log_@{formatDateTime(utcNow(), 'yyyyMMddHHmmss')}.csv",
+                              "content": "File name: @{body('Parse_JSON')?['fileID']}\n======FAILED RECORDS======\n@{variables('Failed')}\n======FAILED RECORDS======\n======UNPROCESSED RECORDS======\n@{variables('Unprocessed')}\n======UNPROCESSED RECORDS======\n======SUCCESSFUL RECORDS======\n@{variables('Processed')}\n======SUCCESSFUL RECORDS======"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageUploadFile",
+                              "operationId": "uploadBlobFromUri",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Delete_Incoming_File": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "ServiceProvider"
+                  },
+                  "Create_Log_File_in_SFTP_container": {
+                      "inputs": {
+                          "parameters": {
+                              "blobUri": "@{parameters('LogPath')}/Logs@{utcNow()}.zip",
+                              "content": "@body('Get_Compressed_Log_File')?['content']"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageSFTP",
+                              "operationId": "uploadBlobFromUri",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Get_Compressed_Log_File": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "ServiceProvider"
+                  },
+                  "Delete_Incoming_File": {
+                      "inputs": {
+                          "parameters": {
+                              "blobName": "@body('Get_Incoming_File_Metadata')?['name']",
+                              "containerName": "@body('Get_Incoming_File_Metadata')?['containerName']"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageSFTP",
+                              "operationId": "deleteBlob",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Copy_File_to_Archive": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "ServiceProvider"
+                  },
+                  "Delete_Log_File_from_OES_Container": {
+                      "inputs": {
+                          "parameters": {
+                              "blobName": "@body('Create_Log_File')?['properties']?['blobName']",
+                              "containerName": "@{parameters('BlobContainerName')}/@{body('Parse_JSON')?['runID']}/incoming"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageUploadFile",
+                              "operationId": "deleteBlob",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Get_Compressed_Log_File": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "ServiceProvider"
+                  },
+                  "Get_Compressed_Log_File": {
+                      "inputs": {
+                          "parameters": {
+                              "blobUri": "@{parameters('BlobContainerName')}/@{body('Convert_Blob_to_Zip')?['Value']}"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageUploadFile",
+                              "operationId": "readBlobFromUri",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Convert_Blob_to_Zip": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "ServiceProvider"
+                  },
+                  "Get_Incoming_File_Metadata": {
+                      "inputs": {
+                          "parameters": {
+                              "blobName": "@body('Parse_JSON')?['fileID']",
+                              "containerName": "@{parameters('InterfaceRootPath')}/working"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageSFTP",
+                              "operationId": "getBlobMetadata",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "type": "ServiceProvider"
+                  },
+                  "Success": {
+                      "inputs": {
+                          "runStatus": "Succeeded"
+                      },
+                      "runAfter": {
+                          "Create_Log_File_in_SFTP_container": [
+                              "SUCCEEDED"
+                          ],
+                          "Delete_Log_File_from_OES_Container": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "Terminate"
+                  }
+              },
+              "runAfter": {
+                  "Scope": [
+                      "SUCCEEDED"
+                  ]
+              },
+              "type": "Scope"
+          },
+          "Move_File_to_Error_Folder": {
+              "actions": {
+                  "Convert_Blob_to_Zip_2": {
+                      "inputs": {
+                          "body": {
+                              "blobContainerName": "@{parameters('BlobContainerName')}",
+                              "incomingBlobPath": "@{body('Parse_JSON')?['runID']}/incoming",
+                              "incominigBlobName": "@{body('Create_Log_File_2')?['properties']?['blobName']}",
+                              "outcomingBlobPath": "@{body('Parse_JSON')?['runID']}/logZip"
+                          },
+                          "function": {
+                              "connectionName": "BlobToZipConverterFunction"
+                          },
+                          "method": "POST"
+                      },
+                      "runAfter": {
+                          "Create_Log_File_2": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "Function"
+                  },
+                  "Copy_File_to_Error_Folder": {
+                      "inputs": {
+                          "parameters": {
+                              "destinationBlobUri": "@{parameters('InterfaceRootPath')}/error/@{body('Parse_JSON')?['fileID']}",
+                              "sourceBlobUri": "@{parameters('InterfaceRootPath')}/working/@{body('Parse_JSON')?['fileID']}"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageSFTP",
+                              "operationId": "copyBlobFromUri",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Get_Incoming_File_Metadata_2": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "ServiceProvider"
+                  },
+                  "Create_Log_File_2": {
+                      "inputs": {
+                          "parameters": {
+                              "blobUri": "@{parameters('BlobContainerName')}/@{body('Parse_JSON')?['runID']}/incoming/CSV_Log_@{formatDateTime(utcNow(), 'yyyyMMddHHmmss')}.csv",
+                              "content": "File name: @{body('Parse_JSON')?['fileID']}\n======FAILED RECORDS======\n@{variables('Failed')}\n======FAILED RECORDS======\n======UNPROCESSED RECORDS======\n@{variables('Unprocessed')}\n======UNPROCESSED RECORDS======\n======SUCCESSFUL RECORDS======\n@{variables('Processed')}\n======SUCCESSFUL RECORDS======"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageUploadFile",
+                              "operationId": "uploadBlobFromUri",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Delete_Incoming_File_2": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "ServiceProvider"
+                  },
+                  "Create_Log_File_in_SFTP_container_2": {
+                      "inputs": {
+                          "parameters": {
+                              "blobUri": "@{parameters('InterfaceRootPath')}/log/Logs@{utcNow()}.zip",
+                              "content": "@body('Get_Compressed_Log_File_2')?['content']"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureBlob",
+                              "operationId": "uploadBlobFromUri",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Get_Compressed_Log_File_2": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "ServiceProvider"
+                  },
+                  "Delete_Incoming_File_2": {
+                      "inputs": {
+                          "parameters": {
+                              "blobName": "@body('Get_Incoming_File_Metadata_2')?['name']",
+                              "containerName": "@body('Get_Incoming_File_Metadata_2')?['containerName']"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageSFTP",
+                              "operationId": "deleteBlob",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Copy_File_to_Error_Folder": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "ServiceProvider"
+                  },
+                  "Delete_Log_File_from_OES_Container_2": {
+                      "inputs": {
+                          "parameters": {
+                              "blobName": "@body('Create_Log_File_2')?['properties']?['blobName']",
+                              "containerName": "@{parameters('BlobContainerName')}/@{body('Parse_JSON')?['runID']}/incoming"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureBlob",
+                              "operationId": "deleteBlob",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Get_Compressed_Log_File_2": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "ServiceProvider"
+                  },
+                  "Failed": {
+                      "inputs": {
+                          "runStatus": "Failed"
+                      },
+                      "runAfter": {
+                          "Create_Log_File_in_SFTP_container_2": [
+                              "SUCCEEDED"
+                          ],
+                          "Delete_Log_File_from_OES_Container_2": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "Terminate"
+                  },
+                  "Get_Compressed_Log_File_2": {
+                      "inputs": {
+                          "parameters": {
+                              "blobUri": "@{parameters('BlobContainerName')}/@{body('Convert_Blob_to_Zip_2')?['Value']}"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureBlob",
+                              "operationId": "readBlobFromUri",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Convert_Blob_to_Zip_2": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "ServiceProvider"
+                  },
+                  "Get_Incoming_File_Metadata_2": {
+                      "inputs": {
+                          "parameters": {
+                              "blobName": "@body('Parse_JSON')?['fileID']",
+                              "containerName": "@{parameters('InterfaceRootPath')}/working"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageSFTP",
+                              "operationId": "getBlobMetadata",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "type": "ServiceProvider"
+                  }
+              },
+              "runAfter": {
+                  "Scope": [
+                      "TIMEDOUT",
+                      "FAILED"
+                  ]
+              },
+              "type": "Scope"
+          },
+          "Scope": {
+              "actions": {
+                  "For_each_File": {
+                      "actions": {
+                          "Close_or_Abort_Job": {
+                              "inputs": {
+                                  "body": {
+                                      "state": "UploadComplete"
+                                  },
+                                  "headers": {
+                                      "Accept": "application/json",
+                                      "Authorization": "Bearer @{body('getOauthToken')}",
+                                      "Content-Type": "application/json"
+                                  },
+                                  "method": "PATCH",
+                                  "uri": "@{parameters('instanceUrl_nonsfs')}/jobs/ingest/@{body('Create_Job')?['id']}"
+                              },
+                              "runAfter": {
+                                  "Upload_Job_Data": [
+                                      "SUCCEEDED"
+                                  ]
+                              },
+                              "runtimeConfiguration": {
+                                  "contentTransfer": {
+                                      "transferMode": "Chunked"
+                                  }
+                              },
+                              "type": "Http"
+                          },
+                          "Compose_Data": {
+                              "inputs": "S4SSource_System__c;S4SType__c;S4SSubtype__c;S4SIdentification_Number__c;S4SPrimary__c;S4SIfA__c;S4SOrder_Block__c;S4SMarked_for_Deletion__c;S4SCompany_Code__c;S4SSales_Org__c;S4SSAP_Account_Group__c;S4SLocal_Source_System__c;S4SAccount__r.S4SIfA__c;S4SEXTERNAL_ID__C\n@{body('Get_Each_File')?['content']}",
+                              "runAfter": {
+                                  "Get_Each_File": [
+                                      "SUCCEEDED"
+                                  ]
+                              },
+                              "type": "Compose"
+                          },
+                          "Condition_on_Failed_Records": {
+                              "actions": {
+                                  "Append_to_Failed_Logs": {
+                                      "inputs": {
+                                          "name": "Failed",
+                                          "value": "@substring(body('Get_Failed_Results'), 289)"
+                                      },
+                                      "type": "AppendToStringVariable"
+                                  }
+                              },
+                              "else": {
+                                  "actions": {}
+                              },
+                              "expression": {
+                                  "and": [
+                                      {
+                                          "not": {
+                                              "equals": [
+                                                  "@body('Get_failed_results')",
+                                                  "@string('')"
+                                              ]
+                                          }
+                                      },
+                                      {
+                                          "not": {
+                                              "equals": [
+                                                  "@body('Get_failed_results')",
+                                                  "@null"
+                                              ]
+                                          }
+                                      },
+                                      {
+                                          "greater": [
+                                              "@length(body('Get_failed_results'))",
+                                              300
+                                          ]
+                                      }
+                                  ]
+                              },
+                              "runAfter": {
+                                  "Get_Failed_Results": [
+                                      "SUCCEEDED"
+                                  ]
+                              },
+                              "type": "If"
+                          },
+                          "Condition_on_Successful_Records": {
+                              "actions": {
+                                  "Append_to_Processed_Logs": {
+                                      "inputs": {
+                                          "name": "Processed",
+                                          "value": "@substring(body('Get_Successful_Results'), 290)"
+                                      },
+                                      "type": "AppendToStringVariable"
+                                  }
+                              },
+                              "else": {
+                                  "actions": {}
+                              },
+                              "expression": {
+                                  "and": [
+                                      {
+                                          "not": {
+                                              "equals": [
+                                                  "@body('Get_successful_results')",
+                                                  "@string('')"
+                                              ]
+                                          }
+                                      },
+                                      {
+                                          "not": {
+                                              "equals": [
+                                                  "@body('Get_successful_results')",
+                                                  "@null"
+                                              ]
+                                          }
+                                      },
+                                      {
+                                          "greater": [
+                                              "@length(body('Get_successful_results'))",
+                                              300
+                                          ]
+                                      }
+                                  ]
+                              },
+                              "runAfter": {
+                                  "Get_Successful_Results": [
+                                      "SUCCEEDED"
+                                  ]
+                              },
+                              "type": "If"
+                          },
+                          "Condition_on_Unprocessed_Records": {
+                              "actions": {
+                                  "Append_to_Unprocessed_Logs": {
+                                      "inputs": {
+                                          "name": "Unprocessed",
+                                          "value": "@substring(body('Get_Unprocessed_Results'), 269)"
+                                      },
+                                      "type": "AppendToStringVariable"
+                                  }
+                              },
+                              "else": {
+                                  "actions": {}
+                              },
+                              "expression": {
+                                  "and": [
+                                      {
+                                          "not": {
+                                              "equals": [
+                                                  "@body('Get_unprocessed_results')",
+                                                  "@string('')"
+                                              ]
+                                          }
+                                      },
+                                      {
+                                          "not": {
+                                              "equals": [
+                                                  "@body('Get_unprocessed_results')",
+                                                  "@null"
+                                              ]
+                                          }
+                                      },
+                                      {
+                                          "greater": [
+                                              "@length(body('Get_unprocessed_results'))",
+                                              300
+                                          ]
+                                      }
+                                  ]
+                              },
+                              "runAfter": {
+                                  "Get_Unprocessed_Results": [
+                                      "SUCCEEDED"
+                                  ]
+                              },
+                              "type": "If"
+                          },
+                          "Create_Job": {
+                              "inputs": {
+                                  "body": {
+                                      "columnDelimiter": "SEMICOLON",
+                                      "contentType": "CSV",
+                                      "externalIdFieldName": "S4SEXTERNAL_ID__C",
+                                      "object": "S4SIdentification_Number__c",
+                                      "operation": "upsert"
+                                  },
+                                  "headers": {
+                                      "Accept": "application/json",
+                                      "Authorization": "Bearer @{body('getOauthToken')}",
+                                      "Content-Type": "application/json"
+                                  },
+                                  "method": "POST",
+                                  "uri": "@{parameters('instanceUrl_nonsfs')}/jobs/ingest/"
+                              },
+                              "runAfter": {
+                                  "Compose_Data": [
+                                      "SUCCEEDED"
+                                  ]
+                              },
+                              "runtimeConfiguration": {
+                                  "contentTransfer": {
+                                      "transferMode": "Chunked"
+                                  }
+                              },
+                              "type": "Http"
+                          },
+                          "Delete_Upserted_Files": {
+                              "inputs": {
+                                  "parameters": {
+                                      "blobName": "@items('For_each_File')?['name']",
+                                      "containerName": "@parameters('BlobContainerName')"
+                                  },
+                                  "serviceProviderConfiguration": {
+                                      "connectionName": "AzureStorageUploadFile",
+                                      "operationId": "deleteBlob",
+                                      "serviceProviderId": "/serviceProviders/AzureBlob"
+                                  }
+                              },
+                              "runAfter": {
+                                  "Condition_on_Failed_Records": [
+                                      "SUCCEEDED"
+                                  ],
+                                  "Condition_on_Successful_Records": [
+                                      "SUCCEEDED"
+                                  ],
+                                  "Condition_on_Unprocessed_Records": [
+                                      "SUCCEEDED"
+                                  ]
+                              },
+                              "type": "ServiceProvider"
+                          },
+                          "Get_Each_File": {
+                              "inputs": {
+                                  "parameters": {
+                                      "blobUri": "@{parameters('BlobContainerName')}/@{items('For_each_File')?['name']}",
+                                      "inferContentType": false
+                                  },
+                                  "serviceProviderConfiguration": {
+                                      "connectionName": "AzureStorageUploadFile",
+                                      "operationId": "readBlobFromUri",
+                                      "serviceProviderId": "/serviceProviders/AzureBlob"
+                                  }
+                              },
+                              "type": "ServiceProvider"
+                          },
+                          "Get_Failed_Results": {
+                              "inputs": {
+                                  "headers": {
+                                      "Accept": "application/json",
+                                      "Authorization": "Bearer @{body('getOauthToken')}",
+                                      "Content-Type": "application/json"
+                                  },
+                                  "method": "GET",
+                                  "uri": "@{parameters('instanceUrl_nonsfs')}/jobs/ingest/@{body('Create_Job')?['id']}/failedResults"
+                              },
+                              "runAfter": {
+                                  "Until": [
+                                      "SUCCEEDED"
+                                  ]
+                              },
+                              "runtimeConfiguration": {
+                                  "contentTransfer": {
+                                      "transferMode": "Chunked"
+                                  }
+                              },
+                              "type": "Http"
+                          },
+                          "Get_Successful_Results": {
+                              "inputs": {
+                                  "headers": {
+                                      "Accept": "application/json",
+                                      "Authorization": "Bearer @{body('getOauthToken')}",
+                                      "Content-Type": "application/json"
+                                  },
+                                  "method": "GET",
+                                  "uri": "@{parameters('instanceUrl_nonsfs')}/jobs/ingest/@{body('Create_Job')?['id']}/successfulResults"
+                              },
+                              "runAfter": {
+                                  "Until": [
+                                      "SUCCEEDED"
+                                  ]
+                              },
+                              "runtimeConfiguration": {
+                                  "contentTransfer": {
+                                      "transferMode": "Chunked"
+                                  }
+                              },
+                              "type": "Http"
+                          },
+                          "Get_Unprocessed_Results": {
+                              "inputs": {
+                                  "headers": {
+                                      "Accept": "application/json",
+                                      "Authorization": "Bearer @{body('getOauthToken')}",
+                                      "Content-Type": "application/json"
+                                  },
+                                  "method": "GET",
+                                  "uri": "@{parameters('instanceUrl_nonsfs')}/jobs/ingest/@{body('Create_Job')?['id']}/unprocessedRecords"
+                              },
+                              "runAfter": {
+                                  "Until": [
+                                      "SUCCEEDED"
+                                  ]
+                              },
+                              "runtimeConfiguration": {
+                                  "contentTransfer": {
+                                      "transferMode": "Chunked"
+                                  }
+                              },
+                              "type": "Http"
+                          },
+                          "Until": {
+                              "actions": {
+                                  "Condition": {
+                                      "actions": {
+                                          "Set_Bulk_State_to_true": {
+                                              "inputs": {
+                                                  "name": "BulkState",
+                                                  "value": true
+                                              },
+                                              "type": "SetVariable"
+                                          }
+                                      },
+                                      "else": {
+                                          "actions": {
+                                              "Delay": {
+                                                  "inputs": {
+                                                      "interval": {
+                                                          "count": 30,
+                                                          "unit": "Second"
+                                                      }
+                                                  },
+                                                  "type": "Wait"
+                                              }
+                                          }
+                                      },
+                                      "expression": {
+                                          "or": [
+                                              {
+                                                  "equals": [
+                                                      "@body('Get_job_info')?['state']",
+                                                      "Failed"
+                                                  ]
+                                              },
+                                              {
+                                                  "equals": [
+                                                      "@body('Get_job_info')?['state']",
+                                                      "JobComplete"
+                                                  ]
+                                              }
+                                          ]
+                                      },
+                                      "runAfter": {
+                                          "Get_Job_Info": [
+                                              "SUCCEEDED"
+                                          ]
+                                      },
+                                      "type": "If"
+                                  },
+                                  "Get_Job_Info": {
+                                      "inputs": {
+                                          "headers": {
+                                              "Accept": "application/json",
+                                              "Authorization": "Bearer @{body('getOauthToken')}",
+                                              "Content-Type": "application/json"
+                                          },
+                                          "method": "GET",
+                                          "uri": "@{parameters('instanceUrl_nonsfs')}/jobs/ingest/@{body('Create_Job')?['id']}"
+                                      },
+                                      "runtimeConfiguration": {
+                                          "contentTransfer": {
+                                              "transferMode": "Chunked"
+                                          }
+                                      },
+                                      "type": "Http"
+                                  }
+                              },
+                              "expression": "@equals(variables('BulkState'),true)",
+                              "limit": {
+                                  "count": 60,
+                                  "timeout": "PT1H"
+                              },
+                              "runAfter": {
+                                  "Close_or_Abort_Job": [
+                                      "SUCCEEDED"
+                                  ]
+                              },
+                              "type": "Until"
+                          },
+                          "Upload_Job_Data": {
+                              "inputs": {
+                                  "body": "@outputs('Compose_Data')",
+                                  "headers": {
+                                      "Accept": "application/json",
+                                      "Authorization": "Bearer @{body('getOauthToken')}",
+                                      "Content-Type": "text/csv"
+                                  },
+                                  "method": "PUT",
+                                  "uri": "@{parameters('instanceUrl_nonsfs')}/jobs/ingest/@{body('Create_Job')?['id']}/batches"
+                              },
+                              "runAfter": {
+                                  "Create_Job": [
+                                      "SUCCEEDED"
+                                  ]
+                              },
+                              "runtimeConfiguration": {
+                                  "contentTransfer": {
+                                      "transferMode": "Chunked"
+                                  }
+                              },
+                              "type": "Http"
+                          }
+                      },
+                      "foreach": "@body('Lists_Splitted_Files')?['blobs']",
+                      "runAfter": {
+                          "Lists_Splitted_Files": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "Foreach"
+                  },
+                  "Lists_Splitted_Files": {
+                      "inputs": {
+                          "parameters": {
+                              "blobNamePrefix": "@{body('Parse_JSON')?['runID']}/processed/",
+                              "containerName": "@parameters('BlobContainerName')"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageUploadFile",
+                              "operationId": "listBlobs",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Parse_JSON": [
+                              "SUCCEEDED"
+                          ],
+                          "getOauthToken": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "type": "ServiceProvider"
+                  },
+                  "Parse_JSON": {
+                      "inputs": {
+                          "content": "@triggerBody()?['MessageText']",
+                          "schema": {
+                              "properties": {
+                                  "fileID": {
+                                      "type": "string"
+                                  },
+                                  "runID": {
+                                      "type": "string"
+                                  }
+                              },
+                              "type": "object"
+                          }
+                      },
+                      "type": "ParseJson"
+                  },
+                  "getOauthToken": {
+                      "inputs": {
+                          "headers": {
+                              "Ocp-Apim-Subscription-Key": "@{parameters('subscriptionKey_apim')}"
+                          },
+                          "method": "POST",
+                          "uri": "@concat(parameters('baseUrl_apim'),'/c00031/token/oAuth/','nonsfs')"
+                      },
+                      "runtimeConfiguration": {
+                          "contentTransfer": {
+                              "transferMode": "Chunked"
+                          }
+                      },
+                      "type": "Http"
+                  }
+              },
+              "runAfter": {
+                  "Initialize_Bulk_State": [
+                      "SUCCEEDED"
+                  ],
+                  "Initialize_Failed_Logs": [
+                      "SUCCEEDED"
+                  ],
+                  "Initialize_Processed_Logs": [
+                      "SUCCEEDED"
+                  ],
+                  "Initialize_Unprocessed_Logs": [
+                      "SUCCEEDED"
+                  ]
+              },
+              "type": "Scope"
+          }
+      },
+      "contentVersion": "1.0.0.0",
+      "outputs": {},
+      "triggers": {
+          "When_there_are_Messages_in_oesupload_Queue": {
+              "inputs": {
+                  "parameters": {
+                      "queueName": "debitorupload"
+                  },
+                  "serviceProviderConfiguration": {
+                      "connectionName": "AzureQueues",
+                      "operationId": "receiveQueueMessages",
+                      "serviceProviderId": "/serviceProviders/azurequeues"
+                  }
+              },
+              "type": "ServiceProvider"
+          }
+      }
+  },
+  "kind": "Stateful"
+}

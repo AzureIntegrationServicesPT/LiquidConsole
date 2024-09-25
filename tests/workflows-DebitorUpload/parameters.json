@@ -1,0 +1,11 @@
+{
+  "ErrorPath": {"value": "/sftp-container-c00031/sftp-c00031/Debitors/in/Debitors/error", "type": "string"},
+  "BlobContainerName": {"value": "sftp-container-c00031-debitorupload", "type": "string"},
+  "st_name": {"value": "@appsetting('st_name')", "type": "string"},
+  "WorkingPath": {"value": "/sftp-container-c00031/sftp-c00031/Debitors/in/Debitors/working", "type": "string"},
+  "Filter": {"value": "text/csv", "type": "string"},
+  "incomingPath": {"value": "/sftp-container-c00031/sftp-c00031/Debitors/in/Debitors/incoming", "type": "string"},
+  "LogPath": {"value": "/sftp-container-c00031/sftp-c00031/Debitors/in/Debitors/log", "type": "string"},
+  "ArchivePath": {"value": "/sftp-container-c00031/sftp-c00031/Debitors/in/Debitors/archive", "type": "string"},
+  "InterfaceRootPath": {"value": "/sftp-container-c00031/sftp-c00031/Debitors/in/Debitors/", "type": "string"}
+}

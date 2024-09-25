@@ -1,0 +1,570 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Scope-Catch": {
+        "actions": {
+          "Send_Error_response": {
+            "inputs": {
+              "body": {
+                "Response": {
+                  "Error": "Unexpected error occured. Please find more details using tracking id : @{workflow()['run']['name']}"
+                }
+              },
+              "statusCode": 500
+            },
+            "kind": "Http",
+            "runAfter": {},
+            "type": "Response"
+          },
+          "Terminate": {
+            "inputs": {
+              "runStatus": "Failed"
+            },
+            "runAfter": {
+              "Send_Error_response": [
+                "Succeeded"
+              ]
+            },
+            "type": "Terminate"
+          }
+        },
+        "runAfter": {
+          "Scope-Try": [
+            "Failed",
+            "Skipped",
+            "TimedOut"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Scope-Try": {
+        "actions": {
+          "Check_If_Id_present": {
+            "actions": {
+              "Check_if_SISIC_is_present_": {
+                "actions": {
+                  "Append_to_array_output": {
+                    "inputs": {
+                      "name": "varOutput",
+                      "value": "@coalesce(body('Select')?[0],variables('varEmptyRole'))"
+                    },
+                    "runAfter": {
+                      "Select": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "AppendToArrayVariable"
+                  },
+                  "Fetch_SISIC": {
+                    "inputs": {
+                      "body": {
+                        "query": "Select  Id,OwnerId,IsDeleted,Name,CurrencyIsoCode,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastViewedDate,LastReferencedDate,S4SExternal_ID__c,S4SIndustry_Description__c,S4SIndustry_Segment__c,S4SIndustry__c,S4SNAF_ID__c from S4SSISIC__c where Id ='@{variables('varSISIC')}'"
+                      },
+                      "path": "/soql/executesoqlquery",
+                      "host": {
+                        "connection": {
+                          "referenceName": "salesForceConnection"
+                        }
+                      },
+                      "method": "post"
+                    },
+                    "runAfter": {},
+                    "type": "ApiConnection"
+                  },
+                  "Response": {
+                    "inputs": {
+                      "body": "@variables('formattedResponse')",
+                      "headers": {
+                        "Content-Type": "application/json"
+                      },
+                      "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                      "Set_variable": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Response"
+                  },
+                  "Select": {
+                    "inputs": {
+                      "from": "@body('Fetch_Roles')?['records']",
+                      "select": {
+                        "S4SRolesGP__c": "@body('Fetch_Roles')?['records']?[0]?['S4SRolesGP__c']\r\n"
+                      }
+                    },
+                    "runAfter": {
+                      "Fetch_SISIC": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Select"
+                  },
+                  "Set_variable": {
+                    "inputs": {
+                      "name": "formattedResponse",
+                      "value": "{\"Response\":{\"Account\":{\"Name\":\"@{variables('varName')}\",\"S4SIfA__c\":\"@{variables('varIfa')}\",\"S4SSISIC_Direct_Description__c\":\"@{variables('varDescription')}\",\"S4SRole\":[@{variables('varOutput')?[0]}]}}}"
+                    },
+                    "runAfter": {
+                      "Append_to_array_output": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "SetVariable"
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Send_response_as_SISIC_not_present": {
+                      "inputs": {
+                        "body": {
+                          "Response": {
+                            "Account": {
+                              "Name": "@body('Fetch_Account')?['records']?[0]?['Name']",
+                              "S4SIfA__c": "@body('Fetch_Account')['records']?[0]?['S4SIfA__c']",
+                              "S4SRole": null,
+                              "S4SSISIC_Direct_Description__c": "@body('Fetch_Account')?['records']?[0]?['S4SSISIC_Direct_Description__c']"
+                            }
+                          }
+                        },
+                        "statusCode": 200
+                      },
+                      "kind": "Http",
+                      "runAfter": {},
+                      "type": "Response"
+                    }
+                  }
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "not": {
+                        "equals": [
+                          "@variables('varSISIC')",
+                          "@string('')"
+                        ]
+                      }
+                    },
+                    {
+                      "not": {
+                        "equals": [
+                          "@variables('varSISIC')",
+                          "@null"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "runAfter": {
+                  "Fetch_Roles": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "If"
+              },
+              "Fetch_Roles": {
+                "inputs": {
+                  "body": {
+                    "query": "Select Id, Name,S4SRolesGP__c,S4SRoles__c from S4SRole__c where S4SAccount__c='@{variables('varAccountId')}'"
+                  },
+                  "path": "/soql/executesoqlquery",
+                  "host": {
+                    "connection": {
+                      "referenceName": "salesForceConnection"
+                    }
+                  },
+                  "method": "post"
+                },
+                "runAfter": {},
+                "type": "ApiConnection"
+              }
+            },
+            "else": {
+              "actions": {
+                "Send_Id_not_present": {
+                  "inputs": {
+                    "body": {
+                      "Response": {
+                        "Account": {
+                          "Name": "",
+                          "S4SIfA__c": "",
+                          "S4SRole": "",
+                          "S4SSISIC_Direct_Description__c": ""
+                        }
+                      }
+                    },
+                    "statusCode": 200
+                  },
+                  "kind": "Http",
+                  "runAfter": {},
+                  "type": "Response"
+                }
+              }
+            },
+            "expression": {
+              "and": [
+                {
+                  "not": {
+                    "equals": [
+                      "@variables('varAccountId')",
+                      "@string('')"
+                    ]
+                  }
+                },
+                {
+                  "not": {
+                    "equals": [
+                      "@variables('varAccountId')",
+                      "@null"
+                    ]
+                  }
+                }
+              ]
+            },
+            "runAfter": {
+              "Scope_-_validate_length": [
+                "Succeeded"
+              ]
+            },
+            "type": "If"
+          },
+          "Scope_-_validate_length": {
+            "actions": {
+              "Check_if_account_id_length_is_valid": {
+                "actions": {
+                  "Fetch_Account": {
+                    "inputs": {
+                      "body": {
+                        "query": "Select Name, Id,S4SSISIC_Direct__c, S4SIfA__c, S4SSISIC_Direct_Description__c FROM Account  where Id='@{triggerOutputs()['relativePathParameters']['accountId']}'"
+                      },
+                      "path": "/soql/executesoqlquery",
+                      "host": {
+                        "connection": {
+                          "referenceName": "salesForceConnection"
+                        }
+                      },
+                      "method": "post"
+                    },
+                    "runAfter": {},
+                    "type": "ApiConnection"
+                  },
+                  "Set_AccountId": {
+                    "inputs": {
+                      "name": "varAccountId",
+                      "value": "@{body('Fetch_Account')?['records']?[0]?['Id']}"
+                    },
+                    "runAfter": {
+                      "Fetch_Account": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "SetVariable"
+                  },
+                  "Set_Description": {
+                    "inputs": {
+                      "name": "varDescription",
+                      "value": "@{body('Fetch_Account')?['records']?[0]?['S4SSISIC_Direct_Description__c']}"
+                    },
+                    "runAfter": {
+                      "Fetch_Account": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "SetVariable"
+                  },
+                  "Set_IFA": {
+                    "inputs": {
+                      "name": "varIfa",
+                      "value": "@{body('Fetch_Account')?['records']?[0]?['S4SIfA__c']}"
+                    },
+                    "runAfter": {
+                      "Fetch_Account": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "SetVariable"
+                  },
+                  "Set_Name": {
+                    "inputs": {
+                      "name": "varName",
+                      "value": "@{body('Fetch_Account')?['records']?[0]?['Name']}"
+                    },
+                    "runAfter": {
+                      "Fetch_Account": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "SetVariable"
+                  },
+                  "Set_SISIC": {
+                    "inputs": {
+                      "name": "varSISIC",
+                      "value": "@{body('Fetch_Account')?['records']?[0]?['S4SSISIC_Direct__c']}"
+                    },
+                    "runAfter": {
+                      "Fetch_Account": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "SetVariable"
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Fetch_account_by_IFA": {
+                      "inputs": {
+                        "body": {
+                          "query": "Select Name, Id,S4SSISIC_Direct__c, S4SIfA__c, S4SSISIC_Direct_Description__c FROM Account  where S4SIfA__c='@{triggerOutputs()['relativePathParameters']['accountId']}'"
+                        },
+                        "path": "/soql/executesoqlquery",
+                        "host": {
+                          "connection": {
+                            "referenceName": "salesForceConnection"
+                          }
+                        },
+                        "method": "post"
+                      },
+                      "runAfter": {},
+                      "type": "ApiConnection"
+                    },
+                    "Set_AccountId_from_IFA": {
+                      "inputs": {
+                        "name": "varAccountId",
+                        "value": "@{body('Fetch_account_by_IFA')?['records']?[0]?['Id']}"
+                      },
+                      "runAfter": {
+                        "Fetch_account_by_IFA": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "SetVariable"
+                    },
+                    "Set_Description_from_IFA": {
+                      "inputs": {
+                        "name": "varDescription",
+                        "value": "@{body('Fetch_account_by_IFA')?['records']?[0]?['S4SSISIC_Direct_Description__c']}"
+                      },
+                      "runAfter": {
+                        "Fetch_account_by_IFA": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "SetVariable"
+                    },
+                    "Set_IFA_number": {
+                      "inputs": {
+                        "name": "varIfa",
+                        "value": "@{body('Fetch_account_by_IFA')?['records']?[0]?['S4SIfA__c']}"
+                      },
+                      "runAfter": {
+                        "Fetch_account_by_IFA": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "SetVariable"
+                    },
+                    "Set_Name_from_IFA": {
+                      "inputs": {
+                        "name": "varName",
+                        "value": "@{body('Fetch_account_by_IFA')?['records']?[0]?['Name']}"
+                      },
+                      "runAfter": {
+                        "Fetch_account_by_IFA": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "SetVariable"
+                    },
+                    "Set_SISIC_from_IFA": {
+                      "inputs": {
+                        "name": "varSISIC",
+                        "value": "@{body('Fetch_account_by_IFA')?['records']?[0]?['S4SSISIC_Direct__c']}"
+                      },
+                      "runAfter": {
+                        "Fetch_account_by_IFA": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "SetVariable"
+                    }
+                  }
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "lessOrEquals": [
+                        "@length(triggerOutputs()['relativePathParameters']['accountId'])",
+                        18
+                      ]
+                    },
+                    {
+                      "greaterOrEquals": [
+                        "@length(triggerOutputs()['relativePathParameters']['accountId'])",
+                        15
+                      ]
+                    }
+                  ]
+                },
+                "runAfter": {},
+                "type": "If"
+              }
+            },
+            "runAfter": {},
+            "type": "Scope"
+          }
+        },
+        "runAfter": {
+          "formattedResponse": [
+            "Succeeded"
+          ],
+          "varAccountId": [
+            "Succeeded"
+          ],
+          "varDescription": [
+            "Succeeded"
+          ],
+          "varEmptyRole": [
+            "Succeeded"
+          ],
+          "varIfa": [
+            "Succeeded"
+          ],
+          "varName": [
+            "Succeeded"
+          ],
+          "varOutput": [
+            "Succeeded"
+          ],
+          "varSISIC": [
+            "Succeeded"
+          ]
+        },
+        "trackedProperties": {
+          "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+          "citizenName": "c00031",
+          "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+          "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'Omega')}",
+          "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+          "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+          "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'searchByAccount')}",
+          "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+          "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+          "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+        },
+        "type": "Scope"
+      },
+      "formattedResponse": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "formattedResponse",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "varAccountId": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "varAccountId",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "varDescription": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "varDescription",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "varEmptyRole": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "varEmptyRole",
+              "type": "string",
+              "value": "{\"S4SRolesGP__c\": \"\"}"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "varIfa": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "varIfa",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "varName": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "varName",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "varOutput": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "varOutput",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "varSISIC": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "varSISIC",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {
+          "method": "POST",
+          "relativePath": "Account/{accountId}"
+        },
+        "kind": "Http",
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

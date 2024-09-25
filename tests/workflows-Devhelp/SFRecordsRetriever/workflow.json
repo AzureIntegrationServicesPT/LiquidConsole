@@ -1,0 +1,119 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Validation": {
+        "actions": {
+          "Failed_response": {
+            "inputs": {
+              "body": {
+                "error": true,
+                "message": "@{body('Get_record')}"
+              },
+              "statusCode": 400
+            },
+            "kind": "Http",
+            "runAfter": {
+              "Get_record": [
+                "TimedOut",
+                "Skipped",
+                "Failed"
+              ]
+            },
+            "type": "Response"
+          },
+          "Get_record": {
+            "inputs": {
+              "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent(triggerBody()?['sf_object']))}/items/@{encodeURIComponent(encodeURIComponent(triggerBody()?['sf_id']))}",
+              "host": {
+                "connection": {
+                  "referenceName": "salesForceConnection"
+                }
+              },
+              "method": "get"
+            },
+            "runAfter": {},
+            "type": "ApiConnection"
+          },
+          "Successful_response": {
+            "inputs": {
+              "body": {
+                "error": false,
+                "message": "@{body('Get_record')}"
+              },
+              "statusCode": 200
+            },
+            "kind": "Http",
+            "runAfter": {
+              "Get_record": [
+                "Succeeded"
+              ]
+            },
+            "type": "Response"
+          }
+        },
+        "else": {
+          "actions": {
+            "Response_2": {
+              "inputs": {
+                "body": {
+                  "error": true,
+                  "message": "Error: REQUIRED_FIELD_MISSING:Required fields are missing: sf_id"
+                },
+                "statusCode": 400
+              },
+              "kind": "Http",
+              "runAfter": {},
+              "type": "Response"
+            }
+          }
+        },
+        "expression": {
+          "and": [
+            {
+              "not": {
+                "equals": [
+                  "@triggerBody()?['sf_id']",
+                  "@null"
+                ]
+              }
+            },
+            {
+              "not": {
+                "equals": [
+                  "@triggerBody()?['sf_id']",
+                  "@string('')"
+                ]
+              }
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "If"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {
+          "method": "POST",
+          "schema": {
+            "properties": {
+              "sf_id": {
+                "type": "string"
+              },
+              "sf_object": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "kind": "Http",
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

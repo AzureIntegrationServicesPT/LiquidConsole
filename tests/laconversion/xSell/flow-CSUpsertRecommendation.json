@@ -66,7 +66,9 @@
 											"S4SRecommendation_ID__c": "@items('For_each')?['S4SRecommendation_ID__c']",
 											"S4SSales_Country_Picklist__c": "@items('For_each')?['S4SSales_Country_Picklist__c']",
 											"S4SLead_Country__c": "@items('For_each')?['S4SLead_Country__c']",
-											"S4SStage__c": "@items('For_each')?['S4SStage__c']"
+											"S4SStage__c": "@items('For_each')?['S4SStage__c']",
+											"S4SDivision__c": "@items('For_each')?['S4SDivision__c']",
+											"S4SBusiness_Unit__c": "@items('For_each')?['S4SBusiness_Unit__c']"
 										},
 										"host": {
 											"triggerName": "manual",
@@ -391,6 +393,12 @@
 										"type": "string"
 									},
 									"S4SStage__c": {
+										"type": "string"
+									},
+									"S4SBusiness_Unit__c": {
+										"type": "string"
+									},
+									"S4SDivision__c": {
 										"type": "string"
 									}
 								},

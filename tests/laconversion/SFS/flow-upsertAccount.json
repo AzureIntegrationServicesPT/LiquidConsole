@@ -211,7 +211,7 @@
                                         "and": [
                                             {
                                                 "equals": [
-                                                    "@if(equals(xpath(xml(string(outputs('Compose-isDeleted'))),'.//S4SExternal_Source__c/text()')?[0],'LOS'),false,if(equals(xpath(xml(string(outputs('Compose-isDeleted'))),'.//S4SExternal_Source__c/text()')?[0],'Salesforce'),false,coalesce(triggerBody()?['Account']?['keepAccountTeam'],false)))",
+                                                    "@if(or(equals(xpath(xml(string(outputs('Compose-isDeleted'))),'.//S4SExternal_Source__c/text()')?[0],'LOS'),equals(xpath(xml(string(outputs('Compose-isDeleted'))),'.//S4SExternal_Source__c/text()')?[0],'Webcon')),false,if(equals(xpath(xml(string(outputs('Compose-isDeleted'))),'.//S4SExternal_Source__c/text()')?[0],'Salesforce'),false,coalesce(triggerBody()?['Account']?['keepAccountTeam'],false)))",
                                                     "@true"
                                                 ]
                                             }
@@ -357,7 +357,7 @@
                                     "userName": "@variables('UserName')"
                                 },
                                 "headers": {
-                                    "defaultOwner": "@{coalesce(if(equals(variables('UserName'),string('SF4S_LOS_API_USER_IC')),xpath(xml(triggerBody()),'.//defaultOwner/text()')?[0],triggerBody()?['UpsertAccount']?['defaultOwner']),string(''))}",
+                                    "defaultOwner": "@{coalesce(if(or(equals(variables('UserName'), 'SF4S_LOS_API_USER_IC'),equals(variables('UserName'),'SF4S_WEBCON_API_USER_IC')),xpath(xml(triggerBody()),'.//defaultOwner/text()')?[0],triggerBody()?['UpsertAccount']?['defaultOwner']),string(''))}",
                                     "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
                                     "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
                                     "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"

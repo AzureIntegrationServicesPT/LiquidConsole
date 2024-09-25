@@ -1,6 +1,44 @@
 {
     "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
     "actions": {
+        "Catch_Scope": {
+            "actions": {
+                "Response": {
+                    "inputs": {
+                        "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n<soapenv:Header/>\n<soapenv:Body>\n<out:notificationsResponse>\n<out:Ack>0</out:Ack>\n</out:notificationsResponse>\n</soapenv:Body>\n</soapenv:Envelope>",
+                        "headers": {
+                            "Content-Type": "text/xml"
+                        },
+                        "statusCode": 500
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "type": "Response"
+                },
+                "Run_failed": {
+                    "inputs": {
+                        "runError": {
+                            "code": "500"
+                        },
+                        "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                        "Response": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                }
+            },
+            "runAfter": {
+                "Try_Scope": [
+                    "Failed",
+                    "Skipped",
+                    "TimedOut"
+                ]
+            },
+            "type": "Scope"
+        },
         "GetConfiguration": {
             "inputs": {
                 "body": {
@@ -17,203 +55,80 @@
                 }
             },
             "runAfter": {},
-             "runtimeConfiguration": {
-                    "secureData": {
-                        "properties": [
-                            "outputs"
-                        ]
-                    }
-                },
-            "type": "Workflow"
-        },
-        "Initialize_variable_'varAckResponse'": {
-            "inputs": {
-                "variables": [
-                    {
-                        "name": "varAckResponse",
-                        "type": "string",
-                        "value": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n<soapenv:Header/>\n<soapenv:Body>\n<out:notificationsResponse>\n<out:Ack>##RESULT##</out:Ack>\n</out:notificationsResponse>\n</soapenv:Body>\n</soapenv:Envelope>"
-                    }
-                ]
-            },
-            "runAfter": {},
-            "type": "InitializeVariable"
-        },
-        "Initialize_variable_'varIvOpportunityId'": {
-            "inputs": {
-                "variables": [
-                    {
-                        "name": "varIvOpportunityId",
-                        "type": "string",
-                        "value": "@{trim(xpath(xml(triggerBody()), 'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"notifications\"]/*[local-name()=\"Notification\"]/*[local-name()=\"sObject\"]/*[local-name()=\"Id\"])'))}"
-                    }
-                ]
-            },
-            "runAfter": {},
-            "type": "InitializeVariable"
-        },
-        "Scope-Catch": {
-            "actions": {
-                "Terminate-Scope-Catch": {
-                    "inputs": {
-                        "runError": {
-                            "code": "500"
-                        },
-                        "runStatus": "Failed"
-                    },
-                    "runAfter": {},
-                    "type": "Terminate"
+            "runtimeConfiguration": {
+                "secureData": {
+                    "properties": [
+                        "outputs"
+                    ]
                 }
             },
-            "runAfter": {
-                "Scope-Try": [
-                    "Failed",
-                    "Skipped",
-                    "TimedOut"
-                ]
-            },
-            "type": "Scope"
+            "type": "Workflow"
         },
-        "Scope-Try": {
+        "Try_Scope": {
             "actions": {
-                "Scope-CatchExternalElanService": {
+                "For_each_notification": {
                     "actions": {
-                        "Response": {
-                            "inputs": {
-                                "body": "@replace(variables('varAckResponse'),'##RESULT##','0')",
-                                "headers": {
-                                    "Content-Type": "text/xml"
-                                },
-                                "statusCode": 500
-                            },
-                            "kind": "Http",
-                            "runAfter": {},
-                            "type": "Response"
-                        },
-                        "Terminate-Scope-CatchExternalElanService": {
-                            "inputs": {
-                                "runStatus": "Failed"
-                            },
-                            "runAfter": {
-                                "Response": [
-                                    "Succeeded"
-                                ]
-                            },
-                            "type": "Terminate"
-                        }
-                    },
-                    "runAfter": {
-                        "Scope-TryExternalElanService": [
-                            "Failed",
-                            "Skipped",
-                            "TimedOut"
-                        ]
-                    },
-                    "type": "Scope"
-                },
-                "Scope-TryExternalElanService": {
-                    "actions": {
-                        "CheckElanServiceResponse": {
-                            "actions": {
-                                "SuccessResponse": {
-                                    "inputs": {
-                                        "body": "@replace(variables('varAckResponse'),'##RESULT##','1')",
-                                        "headers": {
-                                            "Content-Type": "text/xml"
-                                        },
-                                        "statusCode": "@outputs('HTTP-ExternalElanService')['statusCode']"
-                                    },
-                                    "kind": "Http",
-                                    "runAfter": {},
-                                    "type": "Response"
-                                }
-                            },
-                            "else": {
-                                "actions": {
-                                    "FailedResponse": {
-                                        "inputs": {
-                                            "body": "@replace(variables('varAckResponse'),'##RESULT##','0')",
-                                            "headers": {
-                                                "Content-Type": "text/xml"
-                                            },
-                                            "statusCode": "@outputs('HTTP-ExternalElanService')['statusCode']"
-                                        },
-                                        "kind": "Http",
-                                        "runAfter": {},
-                                        "type": "Response"
-                                    },
-                                    "Terminate-FailedResponse": {
-                                        "inputs": {
-                                            "runStatus": "Failed"
-                                        },
-                                        "runAfter": {
-                                            "FailedResponse": [
-                                                "Succeeded"
-                                            ]
-                                        },
-                                        "type": "Terminate"
-                                    }
-                                }
-                            },
-                            "expression": {
-                                "and": [
-                                    {
-                                        "equals": [
-                                            "@outputs('HTTP-ExternalElanService')['statusCode']",
-                                            200
-                                        ]
-                                    }
-                                ]
-                            },
-                            "runAfter": {
-                                "HTTP-ExternalElanService": [
-                                    "Succeeded"
-                                ]
-                            },
-                            "type": "If"
-                        },
-                        "Compose-ELANServiceSoapRequest": {
-                            "inputs": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:urn=\"urn:sap-com:document:sap:soap:functions:mc-style\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <urn:ZFinSieSalesInbound>\n         <IvOpportunityId>@{variables('varIvOpportunityId')}</IvOpportunityId>\n      </urn:ZFinSieSalesInbound>\n   </soapenv:Body>\n</soapenv:Envelope>",
+                        "ELAN_Service_SOAP_Request": {
+                            "inputs": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:urn=\"urn:sap-com:document:sap:soap:functions:mc-style\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <urn:ZFinSieSalesInbound>\n         <IvOpportunityId>@{xpath(xml(items('For_each_notification')), 'string(/*[local-name()=\"Notification\"]/*[local-name()=\"sObject\"]/*[local-name()=\"Id\"])')}</IvOpportunityId>\n      </urn:ZFinSieSalesInbound>\n   </soapenv:Body>\n</soapenv:Envelope>",
                             "runAfter": {},
                             "type": "Compose"
                         },
-                        "HTTP-ExternalElanService": {
+                        "Request_to_Elan_Service": {
                             "inputs": {
                                 "authentication": {
                                     "password": "@json(body('GetConfiguration'))?['ELAN']?['password']",
                                     "type": "Basic",
                                     "username": "@json(body('GetConfiguration'))?['ELAN']?['username']"
                                 },
-                                "body": "@outputs('Compose-ELANServiceSoapRequest')",
+                                "body": "@outputs('ELAN_Service_SOAP_Request')",
                                 "headers": {
                                     "Content-Type": "text/xml"
                                 },
                                 "method": "POST",
-                                "retryPolicy": {
-                                    "type": "none"
-                                },
                                 "uri": "@{json(body('GetConfiguration'))?['ELAN']?['url']}"
                             },
                             "runAfter": {
-                                "Compose-ELANServiceSoapRequest": [
+                                "ELAN_Service_SOAP_Request": [
                                     "Succeeded"
                                 ]
                             },
                             "type": "Http"
                         }
                     },
+                    "foreach": "@xpath(xml(triggerBody()), '/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"notifications\"]/*[local-name()=\"Notification\"]')",
                     "runAfter": {},
-                    "type": "Scope"
+                    "type": "Foreach"
+                },
+                "Run_successfull": {
+                    "inputs": {
+                        "runStatus": "Succeeded"
+                    },
+                    "runAfter": {
+                        "SuccessResponse": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Terminate"
+                },
+                "SuccessResponse": {
+                    "inputs": {
+                        "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n<soapenv:Header/>\n<soapenv:Body>\n<out:notificationsResponse>\n<out:Ack>1</out:Ack>\n</out:notificationsResponse>\n</soapenv:Body>\n</soapenv:Envelope>",
+                        "headers": {
+                            "Content-Type": "text/xml"
+                        },
+                        "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                        "For_each_notification": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
                 }
             },
             "runAfter": {
                 "GetConfiguration": [
-                    "Succeeded"
-                ],
-                "Initialize_variable_'varAckResponse'": [
-                    "Succeeded"
-                ],
-                "Initialize_variable_'varIvOpportunityId'": [
                     "Succeeded"
                 ]
             },

@@ -1,0 +1,1418 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Initialize_variable_error_response": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "SoapErrorResponse",
+              "type": "string",
+              "value": "<soap-env:Envelope xmlns:soap-env=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap-env:Header/><soap-env:Body><soap-env:Fault><faultcode>soap-env:Server</faultcode><faultstring>{errormessagedetails}</faultstring><detail/></soap-env:Fault></soap-env:Body></soap-env:Envelope>"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Scope-Catch": {
+        "actions": {
+          "Failed_Response": {
+            "inputs": {
+              "body": "@replace(variables('SoapErrorResponse'),'{errormessagedetails}',concat('Internal Server error.'))",
+              "headers": {
+                "Content-Type": "application/xml"
+              },
+              "statusCode": 500
+            },
+            "kind": "Http",
+            "runAfter": {},
+            "type": "Response"
+          },
+          "Terminate": {
+            "inputs": {
+              "runStatus": "Failed"
+            },
+            "runAfter": {
+              "Failed_Response": [
+                "Succeeded"
+              ]
+            },
+            "type": "Terminate"
+          }
+        },
+        "runAfter": {
+          "Scope-Fetch_OpportunityDetails": [
+            "Failed",
+            "Skipped",
+            "TimedOut"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Scope-Fetch_OpportunityDetails": {
+        "actions": {
+          "Condition_to_check_opportunity_Id": {
+            "actions": {
+              "ComposeSourceJSON": {
+                "inputs": {
+                  "Opportunity": {
+                    "BookingLineItems": [
+                      "@if(greater(length(string(body('Sub_Logic_6_-_fetchBookingLine_Item')?['records'])),2),body('Sub_Logic_6_-_fetchBookingLine_Item')?['records'],null)"
+                    ],
+                    "EndAccounts": [
+                      "@if(greater(length(string(body('Sub_Logic-fetchAccount')?['records'])),2),body('Sub_Logic-fetchAccount')?['records'],null)"
+                    ],
+                    "InvolvedAccounts": [
+                      "@if(greater(length(string(body('Sub_Logic_5-_fetchInvolvedAccounts')?['records'])),2),body('Sub_Logic_5-_fetchInvolvedAccounts')?['records'],null)"
+                    ],
+                    "Opportunities": [
+                      "@if(greater(length(string(outputs('Compose_Update_IAC')?['records'])),2),outputs('Compose_Update_IAC')?['records'],null)"
+                    ],
+                    "OpportunityLineItems": [
+                      "@if(greater(length(string(body('Execute_a_SOQL_fetchOppLineItem')?['records'])),2),body('Execute_a_SOQL_fetchOppLineItem')?['records'],null)"
+                    ],
+                    "OpportunityTeamMembers": [
+                      "@if(greater(length(string(body('Execute_a_SOQL_FetchTeamMember')?['records'])),2),body('Execute_a_SOQL_FetchTeamMember')?['records'],null)"
+                    ],
+                    "Owners": [
+                      "@if(greater(length(string(body('Sub_Logic_4_-_Fetch_User')?['records'])),2),body('Sub_Logic_4_-_Fetch_User')?['records'],null)"
+                    ],
+                    "ProximityOpportunities": [
+                      "@if(greater(length(string(body('Execute_a_SOQL_ProximityOpp')?['records'])),2),body('Execute_a_SOQL_ProximityOpp')?['records'],null)"
+                    ],
+                    "Quotes": [
+                      "@if(greater(length(string(body('Sub_Logic-fetchQuote')?['records'])),2),body('Sub_Logic-fetchQuote')?['records'],null)"
+                    ],
+                    "S4SIACs": [
+                      "@if(greater(length(string(body('Execute_a_SOQL_fetch_IAC_with_IAC__c')?['records'])),2),body('Execute_a_SOQL_fetch_IAC_with_IAC__c')?['records'],null)"
+                    ],
+                    "S4STranches": [
+                      "@if(greater(length(string(body('Execute_a_SOQL_FetchTranche')?['records'])),2),body('Execute_a_SOQL_FetchTranche')?['records'],null)"
+                    ],
+                    "SoldTos": [
+                      "@if(greater(length(string(body('Sub_Logic-fetchAccount_2')?['records'])),2),body('Sub_Logic-fetchAccount_2')?['records'],null)"
+                    ],
+                    "TerritoryStructures": [
+                      "@if(greater(length(string(body('Sub_Logic-fetchTerritory')?['records'])),2),body('Sub_Logic-fetchTerritory')?['records'],null)"
+                    ]
+                  }
+                },
+                "runAfter": {
+                  "Compose_Update_IAC": [
+                    "Succeeded"
+                  ]
+                },
+                "runtimeConfiguration": {
+                  "secureData": {
+                    "properties": [
+                      "inputs"
+                    ]
+                  }
+                },
+                "type": "Compose"
+              },
+              "Compose_Update_IAC": {
+                "inputs": {
+                  "records": [
+                    "@setproperty(json(string(outputs('Compose')?['records']?[0])),'S4SAsset_Code_IAC__c',coalesce(body('Execute_a_SOQL_fetch_IAC_with_IAC__c')?['records']?[0]?['Name'],body('Execute_a_SOQL_fetch_IAC_from_name')?['records']?[0]?['Name']))"
+                  ]
+                },
+                "runAfter": {
+                  "Condition_for_ID_SubLogic7": [
+                    "Succeeded"
+                  ],
+                  "Condition_for_SubLogic9": [
+                    "Succeeded"
+                  ],
+                  "Condition_for_Sub_logic_6": [
+                    "Succeeded"
+                  ],
+                  "Condition_to_check_Account_Id": [
+                    "Succeeded"
+                  ],
+                  "Condition_to_check_Id": [
+                    "Succeeded"
+                  ],
+                  "Condition_to_check_S4SEnd_Account__c_": [
+                    "Succeeded"
+                  ],
+                  "Condition_to_check_owner_Id": [
+                    "Succeeded"
+                  ],
+                  "Scope_IAC_account_Sub_Logic_13": [
+                    "Succeeded"
+                  ],
+                  "Sub_logic_8": [
+                    "Succeeded"
+                  ]
+                },
+                "runtimeConfiguration": {
+                  "secureData": {
+                    "properties": [
+                      "inputs"
+                    ]
+                  }
+                },
+                "type": "Compose"
+              },
+              "Condition_for_ID_SubLogic7": {
+                "actions": {
+                  "Sub_Logic-fetchQuote": {
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "int_SFS_fetchQuote"
+                        }
+                      },
+                      "body": "@outputs('Compose')",
+                      "headers": null
+                    },
+                    "runAfter": {},
+                    "type": "Workflow"
+                  }
+                },
+                "else": {
+                  "actions": {}
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "not": {
+                        "equals": [
+                          "@outputs('Compose')?['records']?[0]?['id']",
+                          "@string('')"
+                        ]
+                      }
+                    },
+                    {
+                      "not": {
+                        "equals": [
+                          "@outputs('Compose')?['records']?[0]?['id']",
+                          "@null"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "runAfter": {
+                  "Scope-_Sub_logic_1_fetchOpportunity_V2_": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "If"
+              },
+              "Condition_for_SubLogic9": {
+                "actions": {
+                  "Sub_Logic-fetchTerritory": {
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "int_SFS_fetchTerritory"
+                        }
+                      },
+                      "body": "@outputs('Compose')",
+                      "headers": null
+                    },
+                    "runAfter": {},
+                    "type": "Workflow"
+                  }
+                },
+                "else": {
+                  "actions": {}
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "not": {
+                        "equals": [
+                          "@outputs('Compose')?['records']?[0]?['S4STerritory_Structure__c']",
+                          "@string('')"
+                        ]
+                      }
+                    },
+                    {
+                      "not": {
+                        "equals": [
+                          "@outputs('Compose')?['records']?[0]?['S4STerritory_Structure__c']",
+                          "@null"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "runAfter": {
+                  "Scope-_Sub_logic_1_fetchOpportunity_V2_": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "If"
+              },
+              "Condition_for_Sub_logic_6": {
+                "actions": {
+                  "Sub_Logic_6_-_fetchBookingLine_Item": {
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "int_SFS_fetchBookingLineItem"
+                        }
+                      },
+                      "body": "@outputs('Compose')",
+                      "headers": null
+                    },
+                    "runAfter": {},
+                    "type": "Workflow"
+                  }
+                },
+                "else": {
+                  "actions": {}
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "not": {
+                        "equals": [
+                          "@outputs('Compose')?['records']?[0]?['Id']",
+                          "@null"
+                        ]
+                      }
+                    },
+                    {
+                      "not": {
+                        "equals": [
+                          "@outputs('Compose')?['records']?[0]?['Id']",
+                          "@string('')"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "runAfter": {
+                  "Scope-_Sub_logic_1_fetchOpportunity_V2_": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "If"
+              },
+              "Condition_to_check_Account_Id": {
+                "actions": {
+                  "Sub_Logic-fetchAccount_2": {
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "int_SFS_fetchAccount"
+                        }
+                      },
+                      "body": {
+                        "IsInputvalueAccId": true,
+                        "requestBody": "@{outputs('Compose')}"
+                      },
+                      "headers": null
+                    },
+                    "runAfter": {},
+                    "type": "Workflow"
+                  }
+                },
+                "else": {
+                  "actions": {}
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "not": {
+                        "equals": [
+                          "@outputs('Compose')?['records']?[0]?['AccountId']",
+                          "@string('')"
+                        ]
+                      }
+                    },
+                    {
+                      "not": {
+                        "equals": [
+                          "@outputs('Compose')?['records']?[0]?['AccountId']",
+                          "@null"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "runAfter": {
+                  "Scope-_Sub_logic_1_fetchOpportunity_V2_": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "If"
+              },
+              "Condition_to_check_Id": {
+                "actions": {
+                  "Sub_Logic_5-_fetchInvolvedAccounts": {
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "int_SFS_fetchInvolvedAccounts"
+                        }
+                      },
+                      "body": "@outputs('Compose')",
+                      "headers": null
+                    },
+                    "runAfter": {},
+                    "type": "Workflow"
+                  }
+                },
+                "else": {
+                  "actions": {}
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "not": {
+                        "equals": [
+                          "@outputs('Compose')?['records']?[0]?['Id']",
+                          "@string('')"
+                        ]
+                      }
+                    },
+                    {
+                      "not": {
+                        "equals": [
+                          "@outputs('Compose')?['records']?[0]?['Id']",
+                          "@null"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "runAfter": {
+                  "Scope-_Sub_logic_1_fetchOpportunity_V2_": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "If"
+              },
+              "Condition_to_check_S4SEnd_Account__c_": {
+                "actions": {
+                  "Sub_Logic-fetchAccount": {
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "int_SFS_fetchAccount"
+                        }
+                      },
+                      "body": {
+                        "IsInputvalueAccId": false,
+                        "requestBody": "@{outputs('Compose')}"
+                      },
+                      "headers": null
+                    },
+                    "runAfter": {},
+                    "type": "Workflow"
+                  }
+                },
+                "else": {
+                  "actions": {}
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "not": {
+                        "equals": [
+                          "@outputs('Compose')?['records']?[0]?['S4SEnd_Account__c']",
+                          "@string('')"
+                        ]
+                      }
+                    },
+                    {
+                      "not": {
+                        "equals": [
+                          "@outputs('Compose')?['records']?[0]?['S4SEnd_Account__c']",
+                          "@null"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "runAfter": {
+                  "Scope-_Sub_logic_1_fetchOpportunity_V2_": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "If"
+              },
+              "Condition_to_check_owner_Id": {
+                "actions": {
+                  "Sub_Logic_4_-_Fetch_User": {
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "int_SFS_fetchUser"
+                        }
+                      },
+                      "body": "@outputs('Compose')",
+                      "headers": null
+                    },
+                    "runAfter": {},
+                    "type": "Workflow"
+                  }
+                },
+                "else": {
+                  "actions": {}
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "not": {
+                        "equals": [
+                          "@outputs('Compose')?['records']?[0]?['OwnerId']",
+                          "@string('')"
+                        ]
+                      }
+                    },
+                    {
+                      "not": {
+                        "equals": [
+                          "@outputs('Compose')?['records']?[0]?['OwnerId']",
+                          "@null"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "runAfter": {
+                  "Scope-_Sub_logic_1_fetchOpportunity_V2_": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "If"
+              },
+              "Scope-_Sub_logic_1_fetchOpportunity_V2_": {
+                "actions": {
+                  "Scope_-_Catch": {
+                    "actions": {
+                      "Response": {
+                        "inputs": {
+                          "body": "@outputs('Get_record_sfs')?['body']?['error']?['message']",
+                          "statusCode": "@outputs('Get_record_sfs')?['statuscode']"
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                        "runtimeConfiguration": {
+                          "secureData": {
+                            "properties": [
+                              "inputs"
+                            ]
+                          }
+                        },
+                        "type": "Response"
+                      },
+                      "Terminate_2": {
+                        "inputs": {
+                          "runStatus": "Failed"
+                        },
+                        "runAfter": {
+                          "Response": [
+                            "Succeeded"
+                          ]
+                        },
+                        "type": "Terminate"
+                      }
+                    },
+                    "runAfter": {
+                      "Scope_-_Try": [
+                        "Failed"
+                      ]
+                    },
+                    "type": "Scope"
+                  },
+                  "Scope_-_Try": {
+                    "actions": {
+                      "Compose": {
+                        "inputs": {
+                          "records": [
+                            {
+                              "AccountId": "@{body('Get_record_sfs')?['AccountId']}",
+                              "Amount": "@{body('Get_record_sfs')?['Amount']}",
+                              "Budget_Confirmed__c": "@{body('Get_record_sfs')?['Budget_Confirmed__c']}",
+                              "CampaignId": "@{body('Get_record_sfs')?['CampaignId']}",
+                              "CloseDate": "@{body('Get_record_sfs')?['CloseDate']}",
+                              "ContactId": "@{body('Get_record_sfs')?['ContactId']}",
+                              "ContractId": "@{body('Get_record_sfs')?['ContractId']}",
+                              "CreatedById": "@{body('Get_record_sfs')?['CreatedById']}",
+                              "CreatedDate": "@{body('Get_record_sfs')?['CreatedDate']}",
+                              "CurrencyIsoCode": "@{body('Get_record_sfs')?['CurrencyIsoCode']}",
+                              "DB_Competitor__c": "@{body('Get_record_sfs')?['DB_Competitor__c']}",
+                              "Description": "@{body('Get_record_sfs')?['Description']}",
+                              "Discovery_Completed__c": "@{body('Get_record_sfs')?['Discovery_Completed__c']}",
+                              "ExpectedRevenue": "@{body('Get_record_sfs')?['ExpectedRevenue']}",
+                              "Fiscal": "@{body('Get_record_sfs')?['Fiscal']}",
+                              "FiscalQuarter": "@{body('Get_record_sfs')?['FiscalQuarter']}",
+                              "FiscalYear": "@{body('Get_record_sfs')?['FiscalYear']}",
+                              "ForecastCategory": "@{body('Get_record_sfs')?['ForecastCategory']}",
+                              "ForecastCategoryName": "@{body('Get_record_sfs')?['ForecastCategoryName']}",
+                              "HasOpenActivity": "@{body('Get_record_sfs')?['HasOpenActivity']}",
+                              "HasOpportunityLineItem": "@{body('Get_record_sfs')?['HasOpportunityLineItem']}",
+                              "HasOverdueTask": "@{body('Get_record_sfs')?['HasOverdueTask']}",
+                              "Id": "@{body('Get_record_sfs')?['Id']}",
+                              "IsClosed": "@{body('Get_record_sfs')?['IsClosed']}",
+                              "IsDeleted": "@{body('Get_record_sfs')?['IsDeleted']}",
+                              "IsPrivate": "@{body('Get_record_sfs')?['IsPrivate']}",
+                              "IsWon": "@{body('Get_record_sfs')?['IsWon']}",
+                              "ItemInternalId": "@{body('Get_record_sfs')?['ItemInternalId']}",
+                              "LID__Is_Influenced__c": "@{body('Get_record_sfs')?['LID__Is_Influenced__c']}",
+                              "LID__LinkedIn_Company_Id__c": "@{body('Get_record_sfs')?['LID__LinkedIn_Company_Id__c']}",
+                              "LastActivityDate": "@{body('Get_record_sfs')?['LastActivityDate']}",
+                              "LastModifiedById": "@{body('Get_record_sfs')?['LastModifiedById']}",
+                              "LastModifiedDate": "@{body('Get_record_sfs')?['LastModifiedDate']}",
+                              "LastReferencedDate": "@{body('Get_record_sfs')?['LastReferencedDate']}",
+                              "LastViewedDate": "@{body('Get_record_sfs')?['LastViewedDate']}",
+                              "LeadSource": "@{body('Get_record_sfs')?['LeadSource']}",
+                              "Loss_Reason__c": "@{body('Get_record_sfs')?['Loss_Reason__c']}",
+                              "Name": "@{body('Get_record_sfs')?['Name']}",
+                              "NextStep": "@{body('Get_record_sfs')?['NextStep']}",
+                              "OwnerId": "@{body('Get_record_sfs')?['OwnerId']}",
+                              "PartnerAccountId": "@{body('Get_record_sfs')?['PartnerAccountId']}",
+                              "Pricebook2Id": "@{body('Get_record_sfs')?['Pricebook2Id']}",
+                              "Probability": "@{body('Get_record_sfs')?['Probability']}",
+                              "ROI_Analysis_Completed__c": "@{body('Get_record_sfs')?['ROI_Analysis_Completed__c']}",
+                              "RecordTypeId": "@{body('Get_record_sfs')?['RecordTypeId']}",
+                              "S4SAcceptance_Closure__c": "@{body('Get_record_sfs')?['S4SAcceptance_Closure__c']}",
+                              "S4SAccount_Industry_Description__c": "@{body('Get_record_sfs')?['S4SAccount_Industry_Description__c']}",
+                              "S4SAccount_Industry_SISIC__c": "@{body('Get_record_sfs')?['S4SAccount_Industry_SISIC__c']}",
+                              "S4SAccount_Industry__c": "@{body('Get_record_sfs')?['S4SAccount_Industry__c']}",
+                              "S4SAccount_Name_International__c": "@{body('Get_record_sfs')?['S4SAccount_Name_International__c']}",
+                              "S4SAdvisory_Volume__c": "@{body('Get_record_sfs')?['S4SAdvisory_Volume__c']}",
+                              "S4SAlternative_Opportunity__c": "@{body('Get_record_sfs')?['S4SAlternative_Opportunity__c']}",
+                              "S4SAmount_Financed__c": "@{body('Get_record_sfs')?['S4SAmount_Financed__c']}",
+                              "S4SAnnual_Sales_relev_for_Factoring__c": "@{body('Get_record_sfs')?['S4SAnnual_Sales_relev_for_Factoring__c']}",
+                              "S4SAnnual_Turnover_relev_for_EPT__c": "@{body('Get_record_sfs')?['S4SAnnual_Turnover_relev_for_EPT__c']}",
+                              "S4SApproval_Check__c": "@{body('Get_record_sfs')?['S4SApproval_Check__c']}",
+                              "S4SApproval_Pending__c": "@{body('Get_record_sfs')?['S4SApproval_Pending__c']}",
+                              "S4SAsset_Code_IAC__c": "@{body('Get_record_sfs')?['S4SAsset_Code_IAC__c']}",
+                              "S4SAsset_Group__c": "@{body('Get_record_sfs')?['S4SAsset_Group__c']}",
+                              "S4SAsset_Type__c": "@{body('Get_record_sfs')?['S4SAsset_Type__c']}",
+                              "S4SAssigned_parental_Opportunity__c": "@{body('Get_record_sfs')?['S4SAssigned_parental_Opportunity__c']}",
+                              "S4SB2A_Outcome__c": "@{body('Get_record_sfs')?['S4SB2A_Outcome__c']}",
+                              "S4SB2A_type__c": "@{body('Get_record_sfs')?['S4SB2A_type__c']}",
+                              "S4SBid_approval_PM040__c": "@{body('Get_record_sfs')?['S4SBid_approval_PM040__c']}",
+                              "S4SBooking_Funding_Date__c": "@{body('Get_record_sfs')?['S4SBooking_Funding_Date__c']}",
+                              "S4SBooking_Line_Item_Count__c": "@{body('Get_record_sfs')?['S4SBooking_Line_Item_Count__c']}",
+                              "S4SBranch__c": "@{body('Get_record_sfs')?['S4SBranch__c']}",
+                              "S4SBusiness_Model_ZRG__c": "@{body('Get_record_sfs')?['S4SBusiness_Model_ZRG__c']}",
+                              "S4SBusiness_Unit_Long__c": "@{body('Get_record_sfs')?['S4SBusiness_Unit_Long__c']}",
+                              "S4SBusiness_Unit__c": "@{body('Get_record_sfs')?['S4SBusiness_Unit__c']}",
+                              "S4SBuy_America_n__c": "@{body('Get_record_sfs')?['S4SBuy_America_n__c']}",
+                              "S4SByPassValidation__c": "@{body('Get_record_sfs')?['S4SByPassValidation__c']}",
+                              "S4SCAPEX__c": "@{body('Get_record_sfs')?['S4SCAPEX__c']}",
+                              "S4SCOF_Country__c": "@{body('Get_record_sfs')?['S4SCOF_Country__c']}",
+                              "S4SCategorization__c": "@{body('Get_record_sfs')?['S4SCategorization__c']}",
+                              "S4SSieSmart_status__c": "@{body('Get_record_sfs')?['S4SSieSmart_status__c']}",
+                              "S4SChance_of_Execution__c": "@{body('Get_record_sfs')?['S4SChance_of_Execution__c']}",
+                              "S4SChance_of_Success__c": "@{body('Get_record_sfs')?['S4SChance_of_Success__c']}",
+                              "S4SChannel__c": "@{body('Get_record_sfs')?['S4SChannel__c']}",
+                              "S4SCity__c": "@{body('Get_record_sfs')?['S4SCity__c']}",
+                              "S4SClosing_Date__c": "@{body('Get_record_sfs')?['S4SClosing_Date__c']}",
+                              "S4SCommission_Country_1__c": "@{body('Get_record_sfs')?['S4SCommission_Country_1__c']}",
+                              "S4SCommission_Country_2__c": "@{body('Get_record_sfs')?['S4SCommission_Country_2__c']}",
+                              "S4SCommission_Country_3__c": "@{body('Get_record_sfs')?['S4SCommission_Country_3__c']}",
+                              "S4SCommission_Country_4__c": "@{body('Get_record_sfs')?['S4SCommission_Country_4__c']}",
+                              "S4SCommission_Percentage_1__c": "@{body('Get_record_sfs')?['S4SCommission_Percentage_1__c']}",
+                              "S4SCommission_Percentage_2__c": "@{body('Get_record_sfs')?['S4SCommission_Percentage_2__c']}",
+                              "S4SCommission_Percentage_3__c": "@{body('Get_record_sfs')?['S4SCommission_Percentage_3__c']}",
+                              "S4SCommission_Percentage_4__c": "@{body('Get_record_sfs')?['S4SCommission_Percentage_4__c']}",
+                              "S4SCompetitorCount__c": "@{body('Get_record_sfs')?['S4SCompetitorCount__c']}",
+                              "S4SCompetitors__c": "@{body('Get_record_sfs')?['S4SCompetitors__c']}",
+                              "S4SConfidentiality_Status__c": "<img src=\"/resource/S4SSFSConfidentialImageIcon\" alt=\"Confidential\" style=\"height:30px; width:65px;\" border=\"0\"/>",
+                              "S4SContactIDFormulaELAN__c": "@{body('Get_record_sfs')?['S4SContactIDFormulaELAN__c']}",
+                              "S4SContact_Name__c": "@{body('Get_record_sfs')?['S4SContact_Name__c']}",
+                              "S4SContract_Duration_Month__c": "@{body('Get_record_sfs')?['S4SContract_Duration_Month__c']}",
+                              "S4SContract_Management__c": "@{body('Get_record_sfs')?['S4SContract_Management__c']}",
+                              "S4SContract_Schedule__c": "@{body('Get_record_sfs')?['S4SContract_Schedule__c']}",
+                              "S4SContract__c": "@{body('Get_record_sfs')?['S4SContract__c']}",
+                              "S4SContractual_Insurance_requirements__c": "@{body('Get_record_sfs')?['S4SContractual_Insurance_requirements__c']}",
+                              "S4SCorp_Lead_Country__c": "@{body('Get_record_sfs')?['S4SCorp_Lead_Country__c']}",
+                              "S4SCountry_of_Installation__c": "@{body('Get_record_sfs')?['S4SCountry_of_Installation__c']}",
+                              "S4SCreate_COMPAS_Quote__c": "@{body('Get_record_sfs')?['S4SCreate_COMPAS_Quote__c']}",
+                              "S4SCreated_from_Lead__c": "@{body('Get_record_sfs')?['S4SCreated_from_Lead__c']}",
+                              "S4SCross_Border_International_Business__c": "@{body('Get_record_sfs')?['S4SCross_Border_International_Business__c']}",
+                              "S4SCurrent_User_Federation_ID__c": "@{body('Get_record_sfs')?['S4SCurrent_User_Federation_ID__c']}",
+                              "S4SCustomer_Agreement_for_Data_Transfer__c": "@{body('Get_record_sfs')?['S4SCustomer_Agreement_for_Data_Transfer__c']}",
+                              "S4SCustomer_Interest_Focus__c": "@{body('Get_record_sfs')?['S4SCustomer_Interest_Focus__c']}",
+                              "S4SCustomer_Rate__c": "@{body('Get_record_sfs')?['S4SCustomer_Rate__c']}",
+                              "S4SData_Visibility__c": "@{body('Get_record_sfs')?['S4SData_Visibility__c']}",
+                              "S4SDays_of_Delayed_Payments_EPT__c": "@{body('Get_record_sfs')?['S4SDays_of_Delayed_Payments_EPT__c']}",
+                              "S4SDiscussion_in_PEF_Deal_Flow_Call__c": "@{body('Get_record_sfs')?['S4SDiscussion_in_PEF_Deal_Flow_Call__c']}",
+                              "S4SDist_Channel__c": "@{body('Get_record_sfs')?['S4SDist_Channel__c']}",
+                              "S4SDistribution_channel__c": "@{body('Get_record_sfs')?['S4SDistribution_channel__c']}",
+                              "S4SDivision_Long__c": "@{body('Get_record_sfs')?['S4SDivision_Long__c']}",
+                              "S4SDivision__c": "@{body('Get_record_sfs')?['S4SDivision__c']}",
+                              "S4SEUR_Exchange_Rate__c": "@{body('Get_record_sfs')?['S4SEUR_Exchange_Rate__c']}",
+                              "S4SEarning_Contribution__c": "@{body('Get_record_sfs')?['S4SEarning_Contribution__c']}",
+                              "S4SEmail__c": "@{body('Get_record_sfs')?['S4SEmail__c']}",
+                              "S4SEnd_Account_Account__c": "@{body('Get_record_sfs')?['S4SEnd_Account_Account__c']}",
+                              "S4SEnd_Account_Industry_Description__c": "@{body('Get_record_sfs')?['S4SEnd_Account_Industry_Description__c']}",
+                              "S4SEnd_Account_Industry_SISIC__c": "@{body('Get_record_sfs')?['S4SEnd_Account_Industry_SISIC__c']}",
+                              "S4SEnd_Account_Industry__c": "@{body('Get_record_sfs')?['S4SEnd_Account_Industry__c']}",
+                              "S4SEnd_Account_Name_International__c": "@{body('Get_record_sfs')?['S4SEnd_Account_Name_International__c']}",
+                              "S4SEnd_Account__c": "@{body('Get_record_sfs')?['S4SEnd_Account__c']}",
+                              "S4SExpiry_Date_Risk_Approval__c": "@{body('Get_record_sfs')?['S4SExpiry_Date_Risk_Approval__c']}",
+                              "S4SExternal_Source__c": "@{body('Get_record_sfs')?['S4SExternal_Source__c']}",
+                              "S4SFactoring_Fee__c": "@{body('Get_record_sfs')?['S4SFactoring_Fee__c']}",
+                              "S4SField_of_Activity__c": "@{body('Get_record_sfs')?['S4SField_of_Activity__c']}",
+                              "S4SFinance_Product_Label__c": "@{body('Get_record_sfs')?['S4SFinance_Product_Label__c']}",
+                              "S4SFinance_Product_Type__c": "@{body('Get_record_sfs')?['S4SFinance_Product_Type__c']}",
+                              "S4SFinancial_Request_Id__c": "@{body('Get_record_sfs')?['S4SFinancial_Request_Id__c']}",
+                              "S4SFinancial_Request__c": "@{body('Get_record_sfs')?['S4SFinancial_Request__c']}",
+                              "S4SFinancial_Request_link__c": "<a href=\"/lightning/r/S4SFinance_Request__c//view\" target=\"_blank\"> </a>",
+                              "S4SFinancing_Demand_Division__c": "@{body('Get_record_sfs')?['S4SFinancing_Demand_Division__c']}",
+                              "S4SFinancing_Need__c": "@{body('Get_record_sfs')?['S4SFinancing_Need__c']}",
+                              "S4SFinancing_Product__c": "@{body('Get_record_sfs')?['S4SFinancing_Product__c']}",
+                              "S4SFunding_limit__c": "@{body('Get_record_sfs')?['S4SFunding_limit__c']}",
+                              "S4SGovernmental_Agency__c": "@{body('Get_record_sfs')?['S4SGovernmental_Agency__c']}",
+                              "S4SGovernmental_Entity_Government_Funded__c": "@{body('Get_record_sfs')?['S4SGovernmental_Entity_Government_Funded__c']}",
+                              "S4SGross_Margin__c": "@{body('Get_record_sfs')?['S4SGross_Margin__c']}",
+                              "S4SHas_Children__c": "@{body('Get_record_sfs')?['S4SHas_Children__c']}",
+                              "S4SIBIT__c": "@{body('Get_record_sfs')?['S4SIBIT__c']}",
+                              "S4SInitial_Order_Intake__c": "@{body('Get_record_sfs')?['S4SInitial_Order_Intake__c']}",
+                              "S4SInitial_Purchase_Price__c": "@{body('Get_record_sfs')?['S4SInitial_Purchase_Price__c']}",
+                              "S4SInstallation__c": "@{body('Get_record_sfs')?['S4SInstallation__c']}",
+                              "S4SInsurance_Database_ID__c": "@{body('Get_record_sfs')?['S4SInsurance_Database_ID__c']}",
+                              "S4SInterface_Trigger__c": "@{body('Get_record_sfs')?['S4SInterface_Trigger__c']}",
+                              "S4SInternal_Interest_Rate__c": "@{body('Get_record_sfs')?['S4SInternal_Interest_Rate__c']}",
+                              "S4SInternational_City__c": "@{body('Get_record_sfs')?['S4SInternational_City__c']}",
+                              "S4SInternational_Country_Region__c": "@{body('Get_record_sfs')?['S4SInternational_Country_Region__c']}",
+                              "S4SInternational_Postal_Code__c": "@{body('Get_record_sfs')?['S4SInternational_Postal_Code__c']}",
+                              "S4SInternational_Region__c": "@{body('Get_record_sfs')?['S4SInternational_Region__c']}",
+                              "S4SInternational_Street_Name_1__c": "@{body('Get_record_sfs')?['S4SInternational_Street_Name_1__c']}",
+                              "S4SInternational_Street_Name_2__c": "@{body('Get_record_sfs')?['S4SInternational_Street_Name_2__c']}",
+                              "S4SInternational_country_regionGP__c": "@{body('Get_record_sfs')?['S4SInternational_country_regionGP__c']}",
+                              "S4SIntroducer_Account_Name__c": "@{body('Get_record_sfs')?['S4SIntroducer_Account_Name__c']}",
+                              "S4SIntroducer_Branch_Office__c": "@{body('Get_record_sfs')?['S4SIntroducer_Branch_Office__c']}",
+                              "S4SIntroducer_Contact__c": "@{body('Get_record_sfs')?['S4SIntroducer_Contact__c']}",
+                              "S4SIntroducer_Program__c": "@{body('Get_record_sfs')?['S4SIntroducer_Program__c']}",
+                              "S4SIntroducer_Sales__c": "@{body('Get_record_sfs')?['S4SIntroducer_Sales__c']}",
+                              "S4SInvesting_ARE__c": "@{body('Get_record_sfs')?['S4SInvesting_ARE__c']}",
+                              "S4SInvolded_Siemens_Entities__c": "@{body('Get_record_sfs')?['S4SInvolded_Siemens_Entities__c']}",
+                              "S4SInvolved_Competence_Center__c": "@{body('Get_record_sfs')?['S4SInvolved_Competence_Center__c']}",
+                              "S4SIs_Opportunity_Closed_Stage__c": "@{body('Get_record_sfs')?['S4SIs_Opportunity_Closed_Stage__c']}",
+                              "S4SLOA_ID_Number__c": "@{body('Get_record_sfs')?['S4SLOA_ID_Number__c']}",
+                              "S4SLast_Status_Change__c": "@{body('Get_record_sfs')?['S4SLast_Status_Change__c']}",
+                              "S4SLast_Sync_with_COMPAS__c": "@{body('Get_record_sfs')?['S4SLast_Sync_with_COMPAS__c']}",
+                              "S4SLead_Capture_Email__c": "@{body('Get_record_sfs')?['S4SLead_Capture_Email__c']}",
+                              "S4SLead_Source_Type__c": "@{body('Get_record_sfs')?['S4SLead_Source_Type__c']}",
+                              "S4SLoAID_Number__c": "@{body('Get_record_sfs')?['S4SLoAID_Number__c']}",
+                              "S4SMain_Reason__c": "@{body('Get_record_sfs')?['S4SMain_Reason__c']}",
+                              "S4SMarked_for_Deletion__c": "@{body('Get_record_sfs')?['S4SMarked_for_Deletion__c']}",
+                              "S4SMobile__c": "@{body('Get_record_sfs')?['S4SMobile__c']}",
+                              "S4SNet_Present_Value_Percent__c": "@{body('Get_record_sfs')?['S4SNet_Present_Value_Percent__c']}",
+                              "S4SNet_Present_Value__c": "@{body('Get_record_sfs')?['S4SNet_Present_Value__c']}",
+                              "S4SNextGen_Initiative__c": "@{body('Get_record_sfs')?['S4SNextGen_Initiative__c']}",
+                              "S4SNumber_of_Debtors__c": "@{body('Get_record_sfs')?['S4SNumber_of_Debtors__c']}",
+                              "S4SNumber_of_Invoices__c": "@{body('Get_record_sfs')?['S4SNumber_of_Invoices__c']}",
+                              "S4SOPEX__c": "@{body('Get_record_sfs')?['S4SOPEX__c']}",
+                              "S4SOPPORTUNITY_LegacyID__c": "@{body('Get_record_sfs')?['S4SOPPORTUNITY_LegacyID__c']}",
+                              "S4SOccupied_Territory_Evaluation__c": "@{join(body('Get_record_sfs')?['S4SOccupied_Territory_Evaluation__c'],';')}",
+                              "S4SOccupied_Territory_Evaluation__c@odata.type": "@{body('Get_record_sfs')?['S4SOccupied_Territory_Evaluation__c@odata.type']}",
+                              "S4SOffer_Reference_ID__c": "@{body('Get_record_sfs')?['S4SOffer_Reference_ID__c']}",
+                              "S4SOpportunity_Amount_EUR__c": "@{body('Get_record_sfs')?['S4SOpportunity_Amount_EUR__c']}",
+                              "S4SOpportunity_Amount_USD__c": "@{body('Get_record_sfs')?['S4SOpportunity_Amount_USD__c']}",
+                              "S4SOpportunity_Amount__c": "@{body('Get_record_sfs')?['S4SOpportunity_Amount__c']}",
+                              "S4SOpportunity_Industry_Description__c": "@{body('Get_record_sfs')?['S4SOpportunity_Industry_Description__c']}",
+                              "S4SOpportunity_Industry_SISIC__c": "@{body('Get_record_sfs')?['S4SOpportunity_Industry_SISIC__c']}",
+                              "S4SOpportunity_Industry_Search__c": "@{body('Get_record_sfs')?['S4SOpportunity_Industry_Search__c']}",
+                              "S4SOpportunity_Industry__c": "@{body('Get_record_sfs')?['S4SOpportunity_Industry__c']}",
+                              "S4SOpportunity_Owner_Role__c": "@{body('Get_record_sfs')?['S4SOpportunity_Owner_Role__c']}",
+                              "S4SOpportunity_Type__c": "@{body('Get_record_sfs')?['S4SOpportunity_Type__c']}",
+                              "S4SOrder_Intake_EUR__c": "@{body('Get_record_sfs')?['S4SOrder_Intake_EUR__c']}",
+                              "S4SOrder_Intake_Opportunity_Amount__c": "@{body('Get_record_sfs')?['S4SOrder_Intake_Opportunity_Amount__c']}",
+                              "S4SOrder_Intake_USD__c": "@{body('Get_record_sfs')?['S4SOrder_Intake_USD__c']}",
+                              "S4SOrder_Intake__c": "@{body('Get_record_sfs')?['S4SOrder_Intake__c']}",
+                              "S4SOriginal_Project_Solution_Opportunity__c": "@{body('Get_record_sfs')?['S4SOriginal_Project_Solution_Opportunity__c']}",
+                              "S4SOrigination_System_Response__c": "@{body('Get_record_sfs')?['S4SOrigination_System_Response__c']}",
+                              "S4SOur_Role__c": "@{join(body('Get_record_sfs')?['S4SOur_Role__c'],';')}",
+                              "S4SOur_Role__c@odata.type": "@{body('Get_record_sfs')?['S4SOur_Role__c@odata.type']}",
+                              "S4SOverall_ESG_Risk_Score__c": "@{body('Get_record_sfs')?['S4SOverall_ESG_Risk_Score__c']}",
+                              "S4SOverall_Risk_Score__c": "@{body('Get_record_sfs')?['S4SOverall_Risk_Score__c']}",
+                              "S4SOverdue_Time__c": "@{body('Get_record_sfs')?['S4SOverdue_Time__c']}",
+                              "S4SOwn_Content_Own_BU_Products__c": "@{body('Get_record_sfs')?['S4SOwn_Content_Own_BU_Products__c']}",
+                              "S4SOwn_Content_Own_DIV_Products__c": "@{body('Get_record_sfs')?['S4SOwn_Content_Own_DIV_Products__c']}",
+                              "S4SOwn_Content_Own_DIV_Services__c": "@{body('Get_record_sfs')?['S4SOwn_Content_Own_DIV_Services__c']}",
+                              "S4SOwn_Content_Siemens_Products_Services__c": "@{body('Get_record_sfs')?['S4SOwn_Content_Siemens_Products_Services__c']}",
+                              "S4SPEF_Advisory_Scope__c": "@{body('Get_record_sfs')?['S4SPEF_Advisory_Scope__c']}",
+                              "S4SPM040_Released_Gross_Margin__c": "@{body('Get_record_sfs')?['S4SPM040_Released_Gross_Margin__c']}",
+                              "S4SPM040_Released_Profit_EBIT__c": "@{body('Get_record_sfs')?['S4SPM040_Released_Profit_EBIT__c']}",
+                              "S4SPM040_Released_Risk_Contigency__c": "@{body('Get_record_sfs')?['S4SPM040_Released_Risk_Contigency__c']}",
+                              "S4SPM040_Released_Volume__c": "@{body('Get_record_sfs')?['S4SPM040_Released_Volume__c']}",
+                              "S4SPM040_Transfer_date__c": "@{body('Get_record_sfs')?['S4SPM040_Transfer_date__c']}",
+                              "S4SPM070_Transfer_Date__c": "@{body('Get_record_sfs')?['S4SPM070_Transfer_Date__c']}",
+                              "S4SPM070_Won_lost_Gross_Margin__c": "@{body('Get_record_sfs')?['S4SPM070_Won_lost_Gross_Margin__c']}",
+                              "S4SPM070_Won_lost_Profit_EBIT__c": "@{body('Get_record_sfs')?['S4SPM070_Won_lost_Profit_EBIT__c']}",
+                              "S4SPM070_Won_lost_Risk_Contigency__c": "@{body('Get_record_sfs')?['S4SPM070_Won_lost_Risk_Contigency__c']}",
+                              "S4SPM070_Won_lost_Volume__c": "@{body('Get_record_sfs')?['S4SPM070_Won_lost_Volume__c']}",
+                              "S4SPhone__c": "@{body('Get_record_sfs')?['S4SPhone__c']}",
+                              "S4SPlanning_Tool__c": "@{join(body('Get_record_sfs')?['S4SPlanning_Tool__c'],';')}",
+                              "S4SPlanning_Tool__c@odata.type": "@{body('Get_record_sfs')?['S4SPlanning_Tool__c@odata.type']}",
+                              "S4SPotential_Siemens_Volume__c": "@{body('Get_record_sfs')?['S4SPotential_Siemens_Volume__c']}",
+                              "S4SPrevious_Stage__c": "@{body('Get_record_sfs')?['S4SPrevious_Stage__c']}",
+                              "S4SPrevious_Status__c": "@{body('Get_record_sfs')?['S4SPrevious_Status__c']}",
+                              "S4SPrevious_System_Unique_ID__c": "@{body('Get_record_sfs')?['S4SPrevious_System_Unique_ID__c']}",
+                              "S4SPrimaryCompetitorCount__c": "@{body('Get_record_sfs')?['S4SPrimaryCompetitorCount__c']}",
+                              "S4SPrimaryLineItemCount__c": "@{body('Get_record_sfs')?['S4SPrimaryLineItemCount__c']}",
+                              "S4SPrimary_BookingItemID__c": "@{body('Get_record_sfs')?['S4SPrimary_BookingItemID__c']}",
+                              "S4SPrimary_CompetitorID__c": "@{body('Get_record_sfs')?['S4SPrimary_CompetitorID__c']}",
+                              "S4SProduct_Interest__c": "@{body('Get_record_sfs')?['S4SProduct_Interest__c']}",
+                              "S4SProject_Category__c": "@{body('Get_record_sfs')?['S4SProject_Category__c']}",
+                              "S4SProject_Volume__c": "@{body('Get_record_sfs')?['S4SProject_Volume__c']}",
+                              "S4SPropensity_to_Win__c": "@{body('Get_record_sfs')?['S4SPropensity_to_Win__c']}",
+                              "S4SProposed_to_COF__c": "@{body('Get_record_sfs')?['S4SProposed_to_COF__c']}",
+                              "S4SProposed_to_Debt__c": "@{body('Get_record_sfs')?['S4SProposed_to_Debt__c']}",
+                              "S4SProposed_to_Equity__c": "@{body('Get_record_sfs')?['S4SProposed_to_Equity__c']}",
+                              "S4SPush_Counter_PM070_change__c": "@{body('Get_record_sfs')?['S4SPush_Counter_PM070_change__c']}",
+                              "S4SROE__c": "@{body('Get_record_sfs')?['S4SROE__c']}",
+                              "S4SRate_Spread__c": "@{body('Get_record_sfs')?['S4SRate_Spread__c']}",
+                              "S4SReason_Detail__c": "@{body('Get_record_sfs')?['S4SReason_Detail__c']}",
+                              "S4SReason_not_won__c": "@{body('Get_record_sfs')?['S4SReason_not_won__c']}",
+                              "S4SReceivables_Portfolio__c": "@{body('Get_record_sfs')?['S4SReceivables_Portfolio__c']}",
+                              "S4SRecommendation__c": "@{body('Get_record_sfs')?['S4SRecommendation__c']}",
+                              "S4SReference_ID__c": "@{body('Get_record_sfs')?['S4SReference_ID__c']}",
+                              "S4SRelevant_for_Forecast__c": "@{body('Get_record_sfs')?['S4SRelevant_for_Forecast__c']}",
+                              "S4SRetention__c": "@{body('Get_record_sfs')?['S4SRetention__c']}",
+                              "S4SSAP_Number__c": "@{body('Get_record_sfs')?['S4SSAP_Number__c']}",
+                              "S4SSFS_Account_Rating_Date__c": "@{body('Get_record_sfs')?['S4SSFS_Account_Rating_Date__c']}",
+                              "S4SSFS_Account_Rating_Type__c": "@{body('Get_record_sfs')?['S4SSFS_Account_Rating_Type__c']}",
+                              "S4SSFS_Account_Rating__c": "@{body('Get_record_sfs')?['S4SSFS_Account_Rating__c']}",
+                              "S4SSFS_Confidential__c": "@{body('Get_record_sfs')?['S4SSFS_Confidential__c']}",
+                              "S4SSFS_Equity_Share__c": "@{body('Get_record_sfs')?['S4SSFS_Equity_Share__c']}",
+                              "S4SSFS_Opportunity_Rating_Date__c": "@{body('Get_record_sfs')?['S4SSFS_Opportunity_Rating_Date__c']}",
+                              "S4SSFS_Opportunity_Rating_Type__c": "@{body('Get_record_sfs')?['S4SSFS_Opportunity_Rating_Type__c']}",
+                              "S4SSFS_Opportunity_Rating__c": "@{body('Get_record_sfs')?['S4SSFS_Opportunity_Rating__c']}",
+                              "S4SSOC_Category__c": "@{body('Get_record_sfs')?['S4SSOC_Category__c']}",
+                              "S4SSOC_Shadow_Categorization__c": "@{body('Get_record_sfs')?['S4SSOC_Shadow_Categorization__c']}",
+                              "S4SSale_Country__c": "@{body('Get_record_sfs')?['S4SSale_Country__c']}",
+                              "S4SSales_Branch__c": "@{body('Get_record_sfs')?['S4SSales_Branch__c']}",
+                              "S4SSales_Department__c": "@{body('Get_record_sfs')?['S4SSales_Department__c']}",
+                              "S4SSales_District__c": "@{body('Get_record_sfs')?['S4SSales_District__c']}",
+                              "S4SSales_Office__c": "@{body('Get_record_sfs')?['S4SSales_Office__c']}",
+                              "S4SSales_Status__c": "@{body('Get_record_sfs')?['S4SSales_Status__c']}",
+                              "S4SSales_Subregion__c": "@{body('Get_record_sfs')?['S4SSales_Subregion__c']}",
+                              "S4SSales_Territory__c": "@{body('Get_record_sfs')?['S4SSales_Territory__c']}",
+                              "S4SSales_Type__c": "@{body('Get_record_sfs')?['S4SSales_Type__c']}",
+                              "S4SSalesforce_ID__c": "@{body('Get_record_sfs')?['S4SSalesforce_ID__c']}",
+                              "S4SSectors_of_Concern__c": "@{join(body('Get_record_sfs')?['S4SSectors_of_Concern__c'],';')}",
+                              "S4SSectors_of_Concern__c@odata.type": "@{body('Get_record_sfs')?['S4SSectors_of_Concern__c@odata.type']}",
+                              "S4SSenior_Leverage__c": "@{body('Get_record_sfs')?['S4SSenior_Leverage__c']}",
+                              "S4SShowDisplay__c": "@{body('Get_record_sfs')?['S4SShowDisplay__c']}",
+                              "S4SSiemens_Company__c": " @{body('Get_record_sfs')?['S4SSiemens_Company__c']}",
+                              "S4SSiemens_Equity__c": "@{body('Get_record_sfs')?['S4SSiemens_Equity__c']}",
+                              "S4SSite__c": "@{body('Get_record_sfs')?['S4SSite__c']}",
+                              "S4SSocial_Impacts__c": "@{join(body('Get_record_sfs')?['S4SSocial_Impacts__c'],';')}",
+                              "S4SSocial_Impacts__c@odata.type": "@{body('Get_record_sfs')?['S4SSocial_Impacts__c@odata.type']}",
+                              "S4SSold_To_AI__c": "@{body('Get_record_sfs')?['S4SSold_To_AI__c']}",
+                              "S4SSold_To_SAP__c": "@{body('Get_record_sfs')?['S4SSold_To_SAP__c']}",
+                              "S4SSolution_Support_End_Date__c": "@{body('Get_record_sfs')?['S4SSolution_Support_End_Date__c']}",
+                              "S4SSource_System_URL__c": "@{body('Get_record_sfs')?['S4SSource_System_URL__c']}",
+                              "S4SSource_System__c": "@{body('Get_record_sfs')?['S4SSource_System__c']}",
+                              "S4SSource__c": "@{body('Get_record_sfs')?['S4SSource__c']}",
+                              "S4SSpread_Factoring__c": "@{body('Get_record_sfs')?['S4SSpread_Factoring__c']}",
+                              "S4SSpread__c": "@{body('Get_record_sfs')?['S4SSpread__c']}",
+                              "S4SStart_project_PM080__c": "@{body('Get_record_sfs')?['S4SStart_project_PM080__c']}",
+                              "S4SStatus_since__c": "@{body('Get_record_sfs')?['S4SStatus_since__c']}",
+                              "S4SStrategic_Priority__c": "@{body('Get_record_sfs')?['S4SStrategic_Priority__c']}",
+                              "S4SSupported_Siemens_BusinessUnit__c": "@{body('Get_record_sfs')?['S4SSupported_Siemens_BusinessUnit__c']}",
+                              "S4SSupported_Siemens_Business_Unit__c": "@{body('Get_record_sfs')?['S4SSupported_Siemens_Business_Unit__c']}",
+                              "S4SSupported_Siemens_Company__c": "@{body('Get_record_sfs')?['S4SSupported_Siemens_Company__c']}",
+                              "S4SSystem_Installation_Type__c": "@{body('Get_record_sfs')?['S4SSystem_Installation_Type__c']}",
+                              "S4STarget_IRR__c": "@{body('Get_record_sfs')?['S4STarget_IRR__c']}",
+                              "S4STerritory_Structure__c": "@{body('Get_record_sfs')?['S4STerritory_Structure__c']}",
+                              "S4STerritory__c": "@{body('Get_record_sfs')?['S4STerritory__c']}",
+                              "S4SThereof_SPV_SFS_Inc__c": "@{body('Get_record_sfs')?['S4SThereof_SPV_SFS_Inc__c']}",
+                              "S4STime_to_Close__c": "@{body('Get_record_sfs')?['S4STime_to_Close__c']}",
+                              "S4STimestamp_to_COF__c": "@{body('Get_record_sfs')?['S4STimestamp_to_COF__c']}",
+                              "S4STimestamp_to_Debt__c": "@{body('Get_record_sfs')?['S4STimestamp_to_Debt__c']}",
+                              "S4STimestamp_to_Equity__c": "@{body('Get_record_sfs')?['S4STimestamp_to_Equity__c']}",
+                              "S4STotal_Debt_of_Opportunity__c": "@{body('Get_record_sfs')?['S4STotal_Debt_of_Opportunity__c']}",
+                              "S4STotal_Equity_incl_Shareholder_Loans__c": "@{body('Get_record_sfs')?['S4STotal_Equity_incl_Shareholder_Loans__c']}",
+                              "S4STotal_Investment__c": "@{body('Get_record_sfs')?['S4STotal_Investment__c']}",
+                              "S4STotal_Leverage__c": "@{body('Get_record_sfs')?['S4STotal_Leverage__c']}",
+                              "S4STotal_OI_Recurring_Business__c": "@{body('Get_record_sfs')?['S4STotal_OI_Recurring_Business__c']}",
+                              "S4STotal_Product_Amount_EUR__c": "@{body('Get_record_sfs')?['S4STotal_Product_Amount_EUR__c']}",
+                              "S4STotal_Product_Amount_USD__c": "@{body('Get_record_sfs')?['S4STotal_Product_Amount_USD__c']}",
+                              "S4STotal_Project_Value__c": "@{body('Get_record_sfs')?['S4STotal_Project_Value__c']}",
+                              "S4STotal_SFS_Amount__c": "@{body('Get_record_sfs')?['S4STotal_SFS_Amount__c']}",
+                              "S4STotal_SFS_Amount_to_fund_at_close__c": "@{body('Get_record_sfs')?['S4STotal_SFS_Amount_to_fund_at_close__c']}",
+                              "S4STotal_of_All_Tranches__c": "@{body('Get_record_sfs')?['S4STotal_of_All_Tranches__c']}",
+                              "S4STotal_of_Allocated_Amount__c": "@{body('Get_record_sfs')?['S4STotal_of_Allocated_Amount__c']}",
+                              "S4STotal_of_Approved_Amount__c": "@{body('Get_record_sfs')?['S4STotal_of_Approved_Amount__c']}",
+                              "S4STotal_of_Requested_Amount__c": "@{body('Get_record_sfs')?['S4STotal_of_Requested_Amount__c']}",
+                              "S4SType_of_Transaction__c": "@{body('Get_record_sfs')?['S4SType_of_Transaction__c']}",
+                              "S4SUSD_Exchange_Rate__c": "@{body('Get_record_sfs')?['S4SUSD_Exchange_Rate__c']}",
+                              "S4SUnit__c": "@{body('Get_record_sfs')?['S4SUnit__c']}",
+                              "S4SUserId__c": "@{body('Get_record_sfs')?['S4SUserId__c']}",
+                              "S4SWeighted_Opportunity_Amount__c": "@{body('Get_record_sfs')?['S4SWeighted_Opportunity_Amount__c']}",
+                              "S4SWeighted_Order_Intake_EUR__c": "@{body('Get_record_sfs')?['S4SWeighted_Order_Intake_EUR__c']}",
+                              "S4SWeighted_Order_Intake_Opp_Amount__c": "@{body('Get_record_sfs')?['S4SWeighted_Order_Intake_Opp_Amount__c']}",
+                              "S4SWeighted_Order_Intake_USD__c": "@{body('Get_record_sfs')?['S4SWeighted_Order_Intake_USD__c']}",
+                              "S4SWeighted_Order_Intake__c": "@{body('Get_record_sfs')?['S4SWeighted_Order_Intake__c']}",
+                              "S4SWeighted_Total_Product_Amount_EUR__c": "@{body('Get_record_sfs')?['S4SWeighted_Total_Product_Amount_EUR__c']}",
+                              "S4SWeighted_Total_Product_Amount_USD__c": "@{body('Get_record_sfs')?['S4SWeighted_Total_Product_Amount_USD__c']}",
+                              "S4SWeighted_Total_Product_Amount__c": "@{body('Get_record_sfs')?['S4SWeighted_Total_Product_Amount__c']}",
+                              "S4SWinner__c": "@{body('Get_record_sfs')?['S4SWinner__c']}",
+                              "S4SZip_Code__c": "@{body('Get_record_sfs')?['S4SZip_Code__c']}",
+                              "S4S_Building_Automation__c": "@{join(body('Get_record_sfs')?['S4S_Building_Automation__c'],';')}",
+                              "S4S_Building_Automation__c@odata.type": "@{body('Get_record_sfs')?['S4S_Building_Automation__c@odata.type']}",
+                              "S4S_Converted_from_Lead__c": "@{body('Get_record_sfs')?['S4S_Converted_from_Lead__c']}",
+                              "S4S_EPS__c": "@{join(body('Get_record_sfs')?['S4S_EPS__c'],';')}",
+                              "S4S_EPS__c@odata.type": "@{body('Get_record_sfs')?['S4S_EPS__c@odata.type']}",
+                              "S4S_Fire_Safety__c": "@{join(body('Get_record_sfs')?['S4S_Fire_Safety__c'],';')}",
+                              "S4S_Fire_Safety__c@odata.type": "@{body('Get_record_sfs')?['S4S_Fire_Safety__c@odata.type']}",
+                              "S4S_General__c": "@{join(body('Get_record_sfs')?['S4S_General__c'],';')}",
+                              "S4S_General__c@odata.type": "@{body('Get_record_sfs')?['S4S_General__c@odata.type']}",
+                              "S4S_Opportunity_Industry__c": "@{body('Get_record_sfs')?['S4S_Opportunity_Industry__c']}",
+                              "S4S_ParentPotentials_to_Pega__c": "@{body('Get_record_sfs')?['S4S_ParentPotentials_to_Pega__c']}",
+                              "S4S_Security__c": "@{join(body('Get_record_sfs')?['S4S_Security__c'],';')}",
+                              "S4S_Security__c@odata.type": "@{body('Get_record_sfs')?['S4S_Security__c@odata.type']}",
+                              "S4S_Total_SFS_Amount_Rollup__c": "@{body('Get_record_sfs')?['S4S_Total_SFS_Amount_Rollup__c']}",
+                              "StageName": "@{body('Get_record_sfs')?['StageName']}",
+                              "SyncedQuoteId": "@{body('Get_record_sfs')?['SyncedQuoteId']}",
+                              "SystemModstamp": "@{body('Get_record_sfs')?['SystemModstamp']}",
+                              "TotalOpportunityQuantity": "@{body('Get_record_sfs')?['TotalOpportunityQuantity']}",
+                              "Type": "@{body('Get_record_sfs')?['Type']}"
+                            }
+                          ]
+                        },
+                        "runAfter": {
+                          "Get_record_sfs": [
+                            "Succeeded"
+                          ]
+                        },
+                        "runtimeConfiguration": {
+                          "secureData": {
+                            "properties": [
+                              "inputs"
+                            ]
+                          }
+                        },
+                        "type": "Compose"
+                      },
+                      "Get_record_sfs": {
+                        "inputs": {
+                          "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Opportunity'))}/items/@{encodeURIComponent(encodeURIComponent(triggerOutputs()?['relativePathParameters']?['opportunityid']))}",
+                          "host": {
+                            "connection": {
+                              "referenceName": "salesForceConnection"
+                            }
+                          },
+                          "method": "get"
+                        },
+                        "runAfter": {},
+                        "runtimeConfiguration": {
+                          "secureData": {
+                            "properties": [
+                              "inputs",
+                              "outputs"
+                            ]
+                          }
+                        },
+                        "type": "ApiConnection"
+                      }
+                    },
+                    "runAfter": {},
+                    "type": "Scope"
+                  }
+                },
+                "runAfter": {},
+                "type": "Scope"
+              },
+              "Scope_IAC_account_Sub_Logic_13": {
+                "actions": {
+                  "Condition_to_check_S4SAsset_Code_IAC__c_": {
+                    "actions": {
+                      "Execute_a_SOQL_fetch_IAC_with_IAC__c": {
+                        "inputs": {
+                          "body": {
+                            "query": "select Id,OwnerId,IsDeleted,Name,CurrencyIsoCode,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastViewedDate,LastReferencedDate,S4SAsset_Group__c,S4SAsset_Type__c,Business_Unit_Text__c,S4SBusiness_Unit__c from S4SIAC__c where @{concat('Id=',string(''''),outputs('Compose')?['records']?[0]?['S4SAsset_Code_IAC__c'],string(''''))}"
+                          },
+                          "path": "/soql/executesoqlquery",
+                          "host": {
+                            "connection": {
+                              "referenceName": "salesForceConnection"
+                            }
+                          },
+                          "method": "post"
+                        },
+                        "runAfter": {},
+                        "runtimeConfiguration": {
+                          "secureData": {
+                            "properties": [
+                              "inputs",
+                              "outputs"
+                            ]
+                          }
+                        },
+                        "type": "ApiConnection"
+                      }
+                    },
+                    "else": {
+                      "actions": {}
+                    },
+                    "expression": {
+                      "and": [
+                        {
+                          "not": {
+                            "equals": [
+                              "@outputs('Compose')?['records']?[0]?['S4SAsset_Code_IAC__c']",
+                              "@string('')"
+                            ]
+                          }
+                        },
+                        {
+                          "not": {
+                            "equals": [
+                              "@outputs('Compose')?['records']?[0]?['S4SAsset_Code_IAC__c']",
+                              "@null"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                  },
+                  "Condition_to_check_S4SAsset_Type__c": {
+                    "actions": {
+                      "Execute_a_SOQL_fetch_IAC_from_name": {
+                        "inputs": {
+                          "body": {
+                            "query": "select Id,OwnerId,IsDeleted,Name,CurrencyIsoCode,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastViewedDate,LastReferencedDate,S4SAsset_Group__c,S4SAsset_Type__c,Business_Unit_Text__c,S4SBusiness_Unit__c from S4SIAC__c where @{concat('S4SAsset_Type__c=',string(''''),outputs('Compose')?['records']?[0]?['S4SAsset_Type__c'],string(''''))}"
+                          },
+                          "path": "/soql/executesoqlquery",
+                          "host": {
+                            "connection": {
+                              "referenceName": "salesForceConnection"
+                            }
+                          },
+                          "method": "post"
+                        },
+                        "runAfter": {},
+                        "type": "ApiConnection"
+                      }
+                    },
+                    "else": {
+                      "actions": {}
+                    },
+                    "expression": {
+                      "and": [
+                        {
+                          "not": {
+                            "equals": [
+                              "@outputs('Compose')?['records']?[0]?['S4SAsset_Type__c']",
+                              "@string('')"
+                            ]
+                          }
+                        },
+                        {
+                          "not": {
+                            "equals": [
+                              "@outputs('Compose')?['records']?[0]?['S4SAsset_Type__c']",
+                              "@null"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                  }
+                },
+                "runAfter": {
+                  "Scope-_Sub_logic_1_fetchOpportunity_V2_": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Scope"
+              },
+              "Sub_logic_8": {
+                "actions": {
+                  "Condition_to_check_SL8_opportunity_ID_": {
+                    "actions": {
+                      "Execute_a_SOQL_fetchOppLineItem": {
+                        "inputs": {
+                          "body": {
+                            "query": "select Id,OpportunityId,SortOrder,PricebookEntryId,Product2Id,ProductCode,Name,CurrencyIsoCode,Quantity,Discount,Subtotal,TotalPrice,UnitPrice,ListPrice,ServiceDate,Description,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,IsDeleted,S4SBU__c,S4SCategory__c,S4STotal_Price_EUR__c,S4STotal_Price_USD__c,S4SWeighted_Order_Intake_EUR__c,S4SWeighted_Order_Intake_USD__c,S4SWeighted_Order_Intake__c from OpportunityLineItem where @{concat('Opportunity.Id=',string(''''),outputs('Compose')?['records']?[0]?['Id'],string(''''))}\n"
+                          },
+                          "path": "/soql/executesoqlquery",
+                          "host": {
+                            "connection": {
+                              "referenceName": "salesForceConnection"
+                            }
+                          },
+                          "method": "post"
+                        },
+                        "runAfter": {},
+                        "runtimeConfiguration": {
+                          "secureData": {
+                            "properties": [
+                              "inputs",
+                              "outputs"
+                            ]
+                          }
+                        },
+                        "type": "ApiConnection"
+                      },
+                      "Scope_SIE_SF4S_fetchTrancheByOppId_SL10": {
+                        "actions": {
+                          "Execute_a_SOQL_FetchTranche": {
+                            "inputs": {
+                              "body": {
+                                "query": " select Id,IsDeleted,Name,CurrencyIsoCode,RecordTypeId,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastActivityDate,S4SRelated_Opportunity__c,S4SARE__c,S4SAllocated_Amount__c,S4SApplication_Date__c,S4SApplication__c,S4SApproved_Amount__c,S4SBase_Rate__c,S4SBooking_Date_1__c,S4SBooking_Date_2__c,S4SBooking_Date_3__c,S4SBorrower__c,S4SCash_Flow_Profile_Repayments__c,S4SCollateral__c,S4SCommitment_Fee_p_a__c,S4SCover_Date__c,S4SCover__c,S4SDescription__c,S4SDiscount_Up_Front_Fee__c,S4SDrawdown_Availability_Period_in_Month__c,S4SECA_PRI_Cover__c,S4SECA_PRI_Coverage_Ratio_in__c,S4SECA_PRI__c,S4SExporter_Guarantee_Issued__c,S4SExporter_Guarantee_Returned__c,S4SFinancial_Institution__c,S4SFinancing_Rate_Type__c,S4SFirst_Installment__c,S4SGross_Margin_p_a__c,S4SLoan_Amount__c,S4SManagement_Fee_Flat__c,S4SMarked_for_Deletion__c,S4SMaturity_Date__c,S4SNet_Interest_Margin__c,S4SNumber_of_Installments__c,S4SOpportunity_Closing_Date__c,S4SOther_Fees__c,S4SOwner__c,S4SPayout_1__c,S4SPayout_2__c,S4SPayout_3__c,S4SPayout_Y1_Q1__c,S4SPayout_Y1_Q2__c,S4SPayout_Y1_Q3__c,S4SPayout_Y1_Q4__c,S4SPayout_Y2_Q1__c,S4SPayout_Y2_Q2__c,S4SPayout_Y2_Q3__c,S4SPayout_Y2_Q4__c,S4SPayout_Y3ff__c,S4SPostshipment_Cover__c,S4SPreliminary_Consent__c,S4SPreshipment_Cover__c,S4SPursuing__c,S4SROE_Fixed_After_Tax__c,S4SROE_analytical_After_Tax__c,S4SRequested_Amount__c,S4SSFS_Amount__c,S4SSFS_Amount_to_fund_at_close__c,S4SStarting_Point__c,S4STax_Exempt__c,S4STerm_Months__c,S4STranche_Amount__c,S4STranche_Type__c,S4SValid_until__c,S4SLast_Installment__c,S4SMonths_per_Installment__c,S4STotal_Payout__c,S4SPayment_Interval__c from S4STranche__c where S4SRelated_Opportunity__r.Id='@{triggerOutputs()?['relativePathParameters']?['opportunityId']}' "
+                              },
+                              "path": "/soql/executesoqlquery",
+                              "host": {
+                                "connection": {
+                                  "referenceName": "salesForceConnection"
+                                }
+                              },
+                              "method": "post"
+                            },
+                            "runAfter": {},
+                            "runtimeConfiguration": {
+                              "secureData": {
+                                "properties": [
+                                  "inputs",
+                                  "outputs"
+                                ]
+                              }
+                            },
+                            "type": "ApiConnection"
+                          }
+                        },
+                        "runAfter": {},
+                        "type": "Scope"
+                      },
+                      "Scope_fetchOpportunityTeamMember_SL11": {
+                        "actions": {
+                          "Execute_a_SOQL_FetchTeamMember": {
+                            "inputs": {
+                              "body": {
+                                "query": "select Id,OpportunityId,UserId,Name,PhotoUrl,Title,TeamMemberRole,OpportunityAccessLevel,CurrencyIsoCode,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,IsDeleted, User.Username, User.LastName,User.FirstName,User.Email,User.S4SGID_Technical__c,User.S4SGID__c from OpportunityTeamMember where @{concat('OpportunityId=',string(''''),outputs('Compose')?['records']?[0]?['Id'],string(''''))}"
+                              },
+                              "path": "/soql/executesoqlquery",
+                              "host": {
+                                "connection": {
+                                  "referenceName": "salesForceConnection"
+                                }
+                              },
+                              "method": "post"
+                            },
+                            "runAfter": {},
+                            "runtimeConfiguration": {
+                              "secureData": {
+                                "properties": [
+                                  "inputs",
+                                  "outputs"
+                                ]
+                              }
+                            },
+                            "type": "ApiConnection"
+                          }
+                        },
+                        "runAfter": {},
+                        "type": "Scope"
+                      },
+                      "Scope_fetchProximityOpportunity_Sub_logic_12": {
+                        "actions": {
+                          "Condition_to_check_external_account_name_": {
+                            "actions": {
+                              "Execute_a_SOQL_query": {
+                                "inputs": {
+                                  "body": {
+                                    "query": "Select Id,IsDeleted,MasterRecordId,Name,Type,RecordTypeId,ParentId,BillingStreet,BillingCity,BillingState,BillingPostalCode,BillingCountry,BillingStateCode,BillingCountryCode,BillingLatitude,BillingLongitude,BillingGeocodeAccuracy,ShippingStreet,ShippingCity,ShippingState,ShippingPostalCode,ShippingCountry,ShippingStateCode,ShippingCountryCode,ShippingLatitude,ShippingLongitude,ShippingGeocodeAccuracy,Phone,Fax,AccountNumber,Website,PhotoUrl,Sic,Industry,AnnualRevenue,NumberOfEmployees,Ownership,TickerSymbol,Description,Rating,Site,CurrencyIsoCode,OwnerId,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastActivityDate,LastViewedDate,LastReferencedDate,IsPartner,IsCustomerPortal,ChannelProgramName,ChannelProgramLevelName,Jigsaw,JigsawCompanyId,AccountSource,SicDesc,LID__LinkedIn_Company_Id__c,Copado_Testing__c,S4SACCOUNT_LegacyID__c,S4SARE__c,S4SAccount_Assignment__c,S4SAccount_Current_Record_Link__c,S4SAccount_Group_Type__c,S4SAccount_Life_Cycle__c,S4SAccount_Name_International__c,S4SAccount_Role__c,S4SAvailable_languages__c,S4SBusiness_Availability_24h_365_days__c,S4SBusiness_Availability_24h_Mon_Fri__c,S4SBusiness_Unit__c,S4SBypass_Duplicate_rules__c,S4SCID_Number__c,S4SCMD_IfA_Update__c,S4SCMD_KUKLA__c,S4SCMD_NAME1_I__c,S4SCMD_NAME1__c,S4SCMD_NAME2_I__c,S4SCMD_NAME2__c,S4SCMD_NAME3_I__c,S4SCMD_NAME3__c,S4SCMD_REGION__c,S4SCMD_STREET2__c,S4SCMD_STREET__c,S4SCMD_Subscription_Rejected_Date__c,S4SChange_n__c,S4SChange_of_NPS__c,S4SCheck_IFAs_and_Contacts__c,S4SCity_PO_Box_International__c,S4SCity_PO_Box__c,S4SCompany_Postal_Code__c,S4SCompany_Summary__c,S4SCurrent_FY_NPS__c,S4SDUNS__c,S4SDivision__c,S4SDomestic_Ultimate_DUNS__c,S4SDuns_Information__c,S4SDuplicate_IfA_Number__c,S4SEmail__c,S4SEngineering_electrical__c,S4SEngineering_mechanical__c,S4SExternal_Account_HelpText__c,S4SFacebook__c,S4SField_Services_24_7__c,S4SFounding_Year__c,S4SFrom_Search__c,S4SGlobal_Frame_Agreement_Database__c,S4SGlobal_Ultimate_DUNS__c,S4SISIC__c,S4SIfAAutoNumber__c,S4SIfA_Siemens_Location__c,S4SIfA__c,S4SIndustry_Direct__c,S4SIndustry_Segment_Direct__c,S4SIndustry_Segment_Ship_To__c,S4SIndustry_Ship_To__c,S4SInternational_City__c,S4SInternational_CountryGP__c,S4SInternational_Country__c,S4SInternational_Postal_Code__c,S4SInternational_RegionGP__c,S4SInternational_Region__c,S4SInternational_Steet_Name_2__c,S4SInternational_Street_Name_1__c,S4SIsOwnerCMDUser__c,S4SIs_Partner__c,S4SLead_Country__c,S4SLead_Org__c,S4SLegalOwner__c,S4SLocal_Search_Term__c,S4SMD_Status__c,S4SNPS_Trend__c,S4SNat_Company_ID__c,S4SNo_Legal_Form_available__c,S4SNo_of_Active_Candidature__c,S4SNo_of_Cancelled_Candidature__c,S4SNomination_Letter__c,S4SNormal_Business_Hours__c,S4SNotification_from_CMD__c,S4SOfferings_to_the_market_SOP__c,S4SOfferings_to_the_market_VAR__c,S4SOperational_radius__c,S4SOrganization_Code__c,S4SPO_Box_Postcode__c,S4SPO_box__c,S4SParent_Account_Group__c,S4SParent_DUNS__c,S4SPartner_Main_Industries__c,S4SPartner_Type__c,S4SPartnership_Status__c,S4SPartnership_with_competing_vendors__c,S4SPrevious_FY_NPS__c,S4SPrevious_FY_n__c,S4SPrevious_IfA_Number__c,S4SPulse_Link__c,S4SRelevant_Portfolio__c,S4SResponders_current_FY_n__c,S4SSFS_Confidential__c,S4SSISIC_Direct_Description__c,S4SSISIC_Direct__c,S4SSISIC_Ship_To_Description__c,S4SSISIC_Ship_To__c,S4SSalesCountry__c,S4SSales_Branch__c,S4SSales_Country__c,S4SSales_Department__c,S4SSales_Office__c,S4SSales_Org_Type__c,S4SSales_Sub_Region__c,S4SSales_Territory__c,S4SService_electrical__c,S4SService_mechanical__c,S4SShopfloor_level_square_meters__c,S4SShort_Partner_company_description__c,S4SSiemens_Account_Type__c,S4STax_ID__c,S4STotal_Employees__c,S4SVertical_Name__c,S4S_No_Matched_Accounts_Found__c,S4SClone_Account_Number__c,S4SNumber_of_Pricing_Primary__c,Account_Assignments__c,S4SBypassValidationForProcessBuilder__c,S4SConfidentiality_Status__c,S4SDAndBCreated__c,S4SData_Visibility__c,S4SIdentification_Number__c,S4SLegal_Status__c,S4SMarked_for_Deletion__c,S4SPartner_Group__c,S4SQuip_ABP_URL__c,S4SQuip_Briefing_URL__c,S4SQuip_CSVP_URL__c,S4SSAP_Client__c,S4SSAP_System_ID__c,S4SSales_Planning_enabled__c,S4SClone_Confidential__c,S4SCounty_FIPS__c,S4SCounty__c,S4SCustomer_Classification__c,S4SExternal_Source__c,S4SGeographical_Code__c,S4SIndirect_Creation_Status__c,S4SLead_Central_Enabled_Account__c,S4SMilitary_Non_Military_Use__c,S4SNTA__c,S4SRegion__c,S4SRelated_IfA__c,S4SSkipValidationForDataVisibilty__c,S4SPartner_Group_Record_Type_Name__c,Owner.S4SSales_Manager__c from Account where @{concat('Id=',string(''''),body('Execute_a_SOQL_ProximityOpp')?['S4SSiemens_Share__c']?[0]?['S4SExternal_Account_Name__r']?['Name'],string(''''))}"
+                                  },
+                                  "path": "/soql/executesoqlquery",
+                                  "host": {
+                                    "connection": {
+                                      "referenceName": "salesForceConnection"
+                                    }
+                                  },
+                                  "method": "post"
+                                },
+                                "runAfter": {},
+                                "runtimeConfiguration": {
+                                  "secureData": {
+                                    "properties": [
+                                      "inputs",
+                                      "outputs"
+                                    ]
+                                  }
+                                },
+                                "type": "ApiConnection"
+                              }
+                            },
+                            "else": {
+                              "actions": {}
+                            },
+                            "expression": {
+                              "and": [
+                                {
+                                  "not": {
+                                    "equals": [
+                                      "@body('Execute_a_SOQL_ProximityOpp')?['S4SSiemens_Share__c']?[0]?['S4SExternal_Account_Name__r']?['Name']",
+                                      "@string('')"
+                                    ]
+                                  }
+                                },
+                                {
+                                  "not": {
+                                    "equals": [
+                                      "@body('Execute_a_SOQL_ProximityOpp')?['S4SSiemens_Share__c']?[0]?['S4SExternal_Account_Name__r']?['Name']",
+                                      "@null"
+                                    ]
+                                  }
+                                }
+                              ]
+                            },
+                            "runAfter": {
+                              "Execute_a_SOQL_ProximityOpp": [
+                                "Succeeded"
+                              ]
+                            },
+                            "type": "If"
+                          },
+                          "Execute_a_SOQL_ProximityOpp": {
+                            "inputs": {
+                              "body": {
+                                "query": "select Id,OwnerId,IsDeleted,Name,CurrencyIsoCode,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastActivityDate,S4SAccount_Name__c,S4SContact_Name__c,S4SDescription__c,S4SExternal_Account_Name__c,S4SOrder_Intake_Date_PM70__c,S4SOrder_Intake__c,S4SResponsible_Divisional_Contact__c,S4SSFS_Opportunity__c,S4SStage__c,S4SSupported_Business_Unit__c,S4SSupported_Division__c,S4SSupported_Divisional_Opportunity__c,S4SOther_Involved_Account__c,S4SExternal_Account_Name__r.Name from S4SSiemens_Share__c where @{concat('S4SSFS_Opportunity__c=',string(''''),outputs('Compose')?['records']?[0]?['Id'],string(''''))}"
+                              },
+                              "path": "/soql/executesoqlquery",
+                              "host": {
+                                "connection": {
+                                  "referenceName": "salesForceConnection"
+                                }
+                              },
+                              "method": "post"
+                            },
+                            "runAfter": {},
+                            "runtimeConfiguration": {
+                              "secureData": {
+                                "properties": [
+                                  "inputs",
+                                  "outputs"
+                                ]
+                              }
+                            },
+                            "type": "ApiConnection"
+                          }
+                        },
+                        "runAfter": {},
+                        "type": "Scope"
+                      }
+                    },
+                    "else": {
+                      "actions": {}
+                    },
+                    "expression": {
+                      "and": [
+                        {
+                          "not": {
+                            "equals": [
+                              "@outputs('Compose')?['records']?[0]?['Id']",
+                              "@null"
+                            ]
+                          }
+                        },
+                        {
+                          "not": {
+                            "equals": [
+                              "@outputs('Compose')?['records']?[0]?['Id']",
+                              "@string('')"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                  }
+                },
+                "runAfter": {
+                  "Scope-_Sub_logic_1_fetchOpportunity_V2_": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Scope"
+              },
+              "Success_Response": {
+                "inputs": {
+                  "body": "@json(xml(body('Transform_XML')))",
+                  "headers": {
+                    "Content-Type": "application/json"
+                  },
+                  "statusCode": 200
+                },
+                "kind": "Http",
+                "runAfter": {
+                  "Transform_XML": [
+                    "Succeeded"
+                  ]
+                },
+                "runtimeConfiguration": {
+                  "secureData": {
+                    "properties": [
+                      "inputs"
+                    ]
+                  }
+                },
+                "type": "Response"
+              },
+              "Transform_XML": {
+                "type": "Xslt",
+                "inputs": {
+                  "content": "@{xml(outputs('ComposeSourceJSON'))}",
+                  "map": {
+                    "source": "IntegrationAccount",
+                    "name": "map-c00031-SFS-getOpportunityDetails"
+                  }
+                },
+                "runAfter": {
+                  "ComposeSourceJSON": [
+                    "Succeeded"
+                  ]
+                }
+              },
+              "logic-c00031-SFS_internal_sf4sLog-Log_Response": {
+                "inputs": {
+                  "host": {
+                    "workflow": {
+                      "id": "int_sf4sLog"
+                    }
+                  },
+                  "body": {
+                    "message": "Salesforce response :  @{base64(outputs('ComposeSourceJSON'))}",
+                    "severity": "INFO"
+                  },
+                  "headers": null
+                },
+                "runAfter": {
+                  "ComposeSourceJSON": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Workflow"
+              }
+            },
+            "else": {
+              "actions": {
+                "Failed_response_Opp_Id_not_present": {
+                  "inputs": {
+                    "body": "@replace(variables('SoapErrorResponse'),'{errormessagedetails}',concat('opportunity id not present.'))",
+                    "headers": {
+                      "Content-Type": "application/xml"
+                    },
+                    "statusCode": 404
+                  },
+                  "kind": "Http",
+                  "runAfter": {},
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs"
+                      ]
+                    }
+                  },
+                  "type": "Response"
+                },
+                "Terminate_flow": {
+                  "inputs": {
+                    "runStatus": "Failed"
+                  },
+                  "runAfter": {
+                    "Failed_response_Opp_Id_not_present": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Terminate"
+                }
+              }
+            },
+            "expression": {
+              "and": [
+                {
+                  "not": {
+                    "equals": [
+                      "@triggerOutputs()?['relativePathParameters']?['opportunityid']",
+                      "@null"
+                    ]
+                  }
+                },
+                {
+                  "not": {
+                    "equals": [
+                      "@triggerOutputs()?['relativePathParameters']?['opportunityid']",
+                      "@string('')"
+                    ]
+                  }
+                }
+              ]
+            },
+            "runAfter": {},
+            "type": "If"
+          }
+        },
+        "runAfter": {
+          "Initialize_variable_error_response": [
+            "Succeeded"
+          ],
+          "logic-c00031-SFS_internal_sf4sLog-weu-dev": [
+            "Succeeded"
+          ]
+        },
+        "trackedProperties": {
+          "apimRouting": "not-defined",
+          "citizenName": "c00031",
+          "correlationId": "not-defined",
+          "interfaceName": "SFS",
+          "interfacePartner": "not-defined",
+          "operationName": "getOpportunityDetails",
+          "opportunityId": "not-defined",
+          "parentWorkflow": "not-defined"
+        },
+        "type": "Scope"
+      },
+      "logic-c00031-SFS_internal_sf4sLog-weu-dev": {
+        "inputs": {
+          "host": {
+            "workflow": {
+              "id": "int_sf4sLog"
+            }
+          },
+          "body": {
+            "message": "Opportunity Id is @{triggerOutputs()?['relativePathParameters']?['opportunityId']} for Logic app SFS_getOpportunityDetails",
+            "severity": "INFO"
+          },
+          "headers": null
+        },
+        "runAfter": {},
+        "type": "Workflow"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {
+          "method": "POST",
+          "relativePath": "opportunityDetails/{opportunityId}"
+        },
+        "kind": "Http",
+        "runtimeConfiguration": {
+          "secureData": {
+            "properties": [
+              "inputs",
+              "outputs"
+            ]
+          }
+        },
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

@@ -1,0 +1,290 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Catch-Scope": {
+        "actions": {
+          "Copy_file_to_error": {
+            "inputs": {
+              "queries": {
+                "destination": "@parameters('ErrorPath')",
+                "overwrite": false,
+                "queryParametersSingleEncoded": true,
+                "source": "@triggerBody()?['Path']"
+              },
+              "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/copyFile",
+              "host": {
+                "connection": {
+                  "referenceName": "azureblob_sftp"
+                }
+              },
+              "headers": {
+                "ReadFileMetadataFromServer": true
+              },
+              "method": "post"
+            },
+            "runAfter": {},
+            "type": "ApiConnection"
+          },
+          "Delete_file_from_Incoming_directory_-_Failed": {
+            "inputs": {
+              "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files/@{encodeURIComponent(encodeURIComponent(triggerBody()?['Path']))}",
+              "host": {
+                "connection": {
+                  "referenceName": "azureblob_sftp"
+                }
+              },
+              "headers": {
+                "SkipDeleteIfFileNotFoundOnServer": true
+              },
+              "method": "delete"
+            },
+            "runAfter": {
+              "logic-c00031-NonSFS_internal_sf4sLog-weu-dev_2": [
+                "Succeeded"
+              ]
+            },
+            "type": "ApiConnection"
+          },
+          "Terminate_-_Failed": {
+            "inputs": {
+              "runError": {
+                "message": "Error while proccessing a file"
+              },
+              "runStatus": "Failed"
+            },
+            "runAfter": {
+              "Delete_file_from_Incoming_directory_-_Failed": [
+                "Succeeded",
+                "TimedOut",
+                "Failed"
+              ]
+            },
+            "type": "Terminate"
+          },
+          "logic-c00031-NonSFS_internal_sf4sLog-weu-dev_2": {
+            "inputs": {
+              "host": {
+                "workflow": {
+                  "id": "sf4sLog"
+                }
+              },
+              "body": {
+                "message": "DebitorUpload interface failed",
+                "severity": "INFO"
+              },
+              "headers": {
+                "interfaceName": "DebitorUpload",
+                "runID": "@{workflow()['run']['name']}"
+              }
+            },
+            "runAfter": {
+              "Copy_file_to_error": [
+                "Succeeded"
+              ]
+            },
+            "type": "Workflow"
+          }
+        },
+        "runAfter": {
+          "Try-Scope": [
+            "TimedOut",
+            "Skipped",
+            "Failed"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Try-Scope": {
+        "actions": {
+              "BlobToZipConverterFunction": {
+                "inputs": {
+                  "body": {
+                    "BlobContainerName": "@{parameters('BlobContainerName')}",
+                    "incomingBlobPath": "@{workflow()['run']['name']}/incoming",
+                    "incominigBlobName": "@{triggerBody()?['properties']?['blobName']}",
+                    "outcomingBlobPath": "@{workflow()['run']['name']}/zip"
+                  },
+                  "function": {
+                    "connectionName": "BlobToZipConverterFunction"
+                  },
+                  "headers": null,
+                  "method": "POST"
+                },
+                "runAfter": {
+                  "Create_blob_(V2)": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Function"
+              },
+              "Create_blob_(V2)": {
+                "inputs": {
+                  "parameters": {
+                      "blobUri": "@{parameters('BlobContainerName')}/@{workflow()['run']['name']}/incoming/@{triggerBody()?['properties']?['blobName']}",
+                      "content": "@triggerBody()?['content']"
+                  },
+                  "serviceProviderConfiguration": {
+                      "connectionName": "AzureStorageUploadFile",
+                      "operationId": "uploadBlobFromUri",
+                      "serviceProviderId": "/serviceProviders/AzureBlob"
+                  }
+              },
+              "type": "ServiceProvider"
+              },
+              "Create_file_in_working_directory": {
+                "inputs": {
+                  "parameters": {
+                    "blobUri": "@{parameters('InterfaceRootPath')}/working/@{substring(triggerBody()?['properties']?['blobName'], 0, sub(length(triggerBody()?['properties']?['blobName']), 4))}(@{convertTimeZone(utcNow(), 'UTC', 'Central Europe Standard Time')}).zip",
+                    "content": "@body('Get_zip_blob_content_(V2)')?['content']"
+                  },
+                  "serviceProviderConfiguration": {
+                    "connectionName": "AzureStorageSFTP",
+                    "operationId": "uploadBlobFromUri",
+                    "serviceProviderId": "/serviceProviders/AzureBlob"
+                  }
+                },
+                "runAfter": {
+                  "Get_zip_blob_content_(V2)": [
+                    "SUCCEEDED"
+                  ]
+                },
+                "type": "ServiceProvider"
+              },
+              "Delete_file_from_Incoming_dir": {
+                "inputs": {
+                  "parameters": {
+                    "blobName": "triggerBody()?['properties']?['blobName']",
+                    "containerName": "@{parameters('InterfaceRootPath')}/incoming"
+                  },
+                  "serviceProviderConfiguration": {
+                    "connectionName": "AzureStorageUploadFile",
+                    "operationId": "deleteBlob",
+                    "serviceProviderId": "/serviceProviders/AzureBlob"
+                  }
+                },
+                "runAfter": {
+                  "logic-c00031-NonSFS_internal_sf4sLog-weu-dev": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "ServiceProvider"
+              },
+              "Delete_zip_blob_(V2)": {
+                "inputs": {
+                  "parameters": {
+                    "blobName": "@body('BlobToZipConverterFunction')?['Value']",
+                    "containerName": "@parameters('BlobContainerName')"
+                  },
+                  "serviceProviderConfiguration": {
+                    "connectionName": "AzureStorageUploadFile",
+                    "operationId": "deleteBlob",
+                    "serviceProviderId": "/serviceProviders/AzureBlob"
+                  }
+                },
+                "runAfter": {
+                  "Create_file_in_working_directory": [
+                    "SUCCEEDED"
+                  ]
+                },
+                "type": "ServiceProvider"
+              },
+              "Get_zip_blob_content_(V2)": {
+                "inputs": {
+                  "parameters": {
+                    "blobUri": "@{parameters('BlobContainerName')}/@{body('BlobToZipConverterFunction')?['Value']}"
+                  },
+                  "serviceProviderConfiguration": {
+                    "connectionName": "AzureStorageUploadFile",
+                    "operationId": "readBlobFromUri",
+                    "serviceProviderId": "/serviceProviders/AzureBlob"
+                  }
+                },
+                "runAfter": {
+                  "BlobToZipConverterFunction": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "ServiceProvider"
+              },
+              "Put_a_message_on_a_queue_(V2)": {
+                "inputs":{
+                  "parameters":{
+                    "queueName": "debitoroesqueue",
+                    "message": "{\n\"interafaceName\" : \"DebitorUpload\",\n\"runID\" : \"@{workflow()['run']['name']}\",\n\"BlobContainerName\" : \"@{parameters('BlobContainerName')}\",\n\"blobName\" :\"@{body('Create_blob_(V2)')?['properties']?['blobName']}\",\n\"fileName\": \"@{body('Create_file_in_working_directory')?['properties']?['blobName']}\",\n\"fileID\" : \"@{body('Create_file_in_working_directory')?['properties']?['blobName']}\",\n\"maxRows\" : 5000,\n  \"fileSeperator\": \";\",\n  \"fileHeaders\": \"SourceSystem;Type;Subtype;IdentificationNumber;Primary;IFA;LocalSourceSystem\"\n}\n"
+                  },
+                  "serviceProviderConfiguration": {
+                    "connectionName": "AzureQueues",
+                    "operationId": "putMessage",
+                    "serviceProviderId": "/serviceProviders/azurequeues"
+                  }
+                },
+                "runAfter": {
+                  "Delete_zip_blob_(V2)": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "ServiceProvider"
+              },
+              "logic-c00031-NonSFS_internal_sf4sLog-weu-dev": {
+                "inputs": {
+                  "host": {
+                    "workflow": {
+                      "id": "sf4sLog"
+                    }
+                  },
+                  "body": {
+                    "message": "DebitorUpload interface file trigger executed successfully and created queue message for function",
+                    "severity": "INFO"
+                  },
+                  "headers": {
+                    "interfaceName": "DebitorUpload",
+                    "runID": "@{workflow()['run']['name']}"
+                  }
+                },
+                "runAfter": {
+                  "Put_a_message_on_a_queue_(V2)": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Workflow"
+              }
+            
+        },
+        "runAfter": {},
+        "trackedProperties": {
+          "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+          "citizenName": "c00031",
+          "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+          "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'DebitorUpload')}",
+          "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+          "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+          "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'DebitorUpload')}",
+          "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+          "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+          "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+        },
+        "type": "Scope"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "When_files_are_added_or_modified_(properties_only)": {
+        "conditions": [],
+        "inputs": {
+          "parameters": {
+            "path": "@{parameters('InterfaceRootPath')}/incoming"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "AzureStorageSFTP",
+            "operationId": "whenABlobIsAddedOrModified",
+            "serviceProviderId": "/serviceProviders/AzureBlob"
+          }
+        },
+        "type": "ServiceProvider"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

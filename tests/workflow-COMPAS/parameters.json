@@ -1,0 +1,7 @@
+{
+  "SISICCodeAndMappedMarketSegmentCode": {"value": "@appsetting('SISICCodeAndMappedMarketSegmentCode')", "type": "string"},
+  "int_obm_compas_upsert_liquid": {"value": "@appsetting('int_obm_compas_upsert_liquid')", "type": "string"},
+  "instanceURL": {"value": "@appsetting('instanceURL')", "type": "string"},
+  "apimKey": {"value": "@appsetting('apimKey')", "type": "string"},
+  "apimURL": {"value": "@appsetting('apimURL')", "type": "string"},
+}

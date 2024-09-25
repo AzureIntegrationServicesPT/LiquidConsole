@@ -108,6 +108,18 @@
             "runAfter": {},
             "type": "InitializeVariable"
         },
+        "Initialize_ContactID": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "ContactID",
+                        "type": "string"
+                    }
+                ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+        },
         "Logging_Request": {
             "inputs": {
                 "body": {
@@ -158,14 +170,6 @@
                                         }
                                     },
                                     "runAfter": {},
-                                     "runtimeConfiguration": {
-       "secureData": {
-          "properties": [
-              "inputs",
-              "outputs"
-         ]      
-      }
-  },
                                     "type": "ApiConnection"
                                 }
                             },
@@ -186,14 +190,6 @@
                                             }
                                         },
                                         "runAfter": {},
-                                         "runtimeConfiguration": {
-       "secureData": {
-          "properties": [
-              "inputs",
-              "outputs"
-         ]      
-      }
-  },
                                         "type": "ApiConnection"
                                     }
                                 }
@@ -265,7 +261,7 @@
                                 "body": {
                                     "input": {
                                         "Contact": "@triggerBody()?['upsertSFSContact']?['Contact']",
-                                        "Id": "@body('HTTP_Get_Contact_Id_From_Email')?['records']?[0]?['Id']",
+                                        "Id": "@variables('ContactID')",
                                         "OwnerId": "@body('logic-c00031-int_getUserId')?['Id']",
                                         "Recordtypeid": "@body('HTTP_Get_RecordTypeId')?['records']?[0]?['Id']"
                                     }
@@ -284,7 +280,7 @@
                                 }
                             },
                             "runAfter": {
-                                "HTTP_Get_Contact_Id_From_Email": [
+                                "HTTP_Get_RecordTypeId": [
                                     "Succeeded"
                                 ]
                             },
@@ -297,6 +293,171 @@
       }
   },
                             "type": "Function"
+                        },
+                        "Deduplication_Logic": {
+                            "actions": {
+                                "Set_Contact_Id": {
+                                    "inputs": {
+                                        "name": "ContactID",
+                                        "value": "@{triggerBody()?['upsertSFSContact']?['Contact']?['Id']}"
+                                    },
+                                    "runAfter": {},
+                                    "type": "SetVariable"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "Check_Contact_Type": {
+                                        "cases": {
+                                            "Case_Contact_Type_Equals_Account": {
+                                                "actions": {
+                                                    "Get_Account_Contact_Id_From_Email": {
+                                                        "inputs": {
+                                                            "body": {
+                                                                "query": "select Id from Contact where Email = '@{triggerBody()?['upsertSFSContact']?['Contact']?['Email']}' and S4SSFS_Confidential__c = 'Confidential' and S4SOrigination_ID__c = null"
+                                                            },
+                                                            "host": {
+                                                                "connection": {
+                                                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                }
+                                                            },
+                                                            "method": "post",
+                                                            "path": "/soql/executesoqlquery"
+                                                        },
+                                                        "runAfter": {},
+                                                        "type": "ApiConnection"
+                                                    },
+                                                    "Set_Contact_ID_to_the_Query_Output": {
+                                                        "inputs": {
+                                                            "name": "ContactID",
+                                                            "value": "@{body('Get_Account_Contact_Id_From_Email')?['records']?[0]?['Id']}"
+                                                        },
+                                                        "runAfter": {
+                                                            "Get_Account_Contact_Id_From_Email": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "SetVariable"
+                                                    }
+                                                },
+                                                "case": "Account"
+                                            },
+                                            "Case_Contact_Type_Equals_Branch_Office": {
+                                                "actions": {
+                                                    "Check_for_Query_Matches": {
+                                                        "actions": {
+                                                            "Set_Contact_ID_from_the_Origination_ID_": {
+                                                                "inputs": {
+                                                                    "name": "ContactID",
+                                                                    "value": "@{body('Get_Contact_Id_From_Origination_ID')?['records']?[0]?['Id']}"
+                                                                },
+                                                                "runAfter": {},
+                                                                "type": "SetVariable"
+                                                            }
+                                                        },
+                                                        "else": {
+                                                            "actions": {
+                                                                "Get_BO_Contact_Id_From_Email": {
+                                                                    "inputs": {
+                                                                        "body": {
+                                                                            "query": "select Id from Contact where Email = '@{triggerBody()?['upsertSFSContact']?['Contact']?['Email']}' and S4SSFS_Confidential__c = 'Confidential' and S4SOrigination_ID__c = null and S4SOrigination_ID_Account_Contact__c=null"
+                                                                        },
+                                                                        "host": {
+                                                                            "connection": {
+                                                                                "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                            }
+                                                                        },
+                                                                        "method": "post",
+                                                                        "path": "/soql/executesoqlquery",
+                                                                        "retryPolicy": {
+                                                                            "type": "none"
+                                                                        }
+                                                                    },
+                                                                    "runAfter": {},
+                                                                    "type": "ApiConnection"
+                                                                },
+                                                                "Set_Contact_ID_from_the_Email": {
+                                                                    "inputs": {
+                                                                        "name": "ContactID",
+                                                                        "value": "@{body('Get_BO_Contact_Id_From_Email')?['records']?[0]?['Id']}"
+                                                                    },
+                                                                    "runAfter": {
+                                                                        "Get_BO_Contact_Id_From_Email": [
+                                                                            "Succeeded"
+                                                                        ]
+                                                                    },
+                                                                    "type": "SetVariable"
+                                                                }
+                                                            }
+                                                        },
+                                                        "expression": {
+                                                            "and": [
+                                                                {
+                                                                    "greater": [
+                                                                        "@length(body('Get_Contact_Id_From_Origination_ID')?['records'])",
+                                                                        0
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        },
+                                                        "runAfter": {
+                                                            "Get_Contact_Id_From_Origination_ID": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "If"
+                                                    },
+                                                    "Get_Contact_Id_From_Origination_ID": {
+                                                        "inputs": {
+                                                            "body": {
+                                                                "query": "select Id from Contact where S4SOrigination_ID__c = '@{triggerBody()?['upsertSFSContact']?['Contact']?['S4SOrigination_ID__c']}' and S4SSFS_Confidential__c = 'Confidential'"
+                                                            },
+                                                            "host": {
+                                                                "connection": {
+                                                                    "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
+                                                                }
+                                                            },
+                                                            "method": "post",
+                                                            "path": "/soql/executesoqlquery"
+                                                        },
+                                                        "runAfter": {},
+                                                        "type": "ApiConnection"
+                                                    }
+                                                },
+                                                "case": "BranchOffice"
+                                            }
+                                        },
+                                        "default": {
+                                            "actions": {}
+                                        },
+                                        "expression": "@if(and(not(equals(triggerBody()?['upsertSFSContact']?['Contact']?['S4SOrigination_ID__c'],string(''))),not(equals(triggerBody()?['upsertSFSContact']?['Contact']?['S4SOrigination_ID__c'],null))),'BranchOffice',if(and(not(equals(triggerBody()?['upsertSFSContact']?['Contact']?['S4SOrigination_ID_Account_Contact__c'],string(''))),not(equals(triggerBody()?['upsertSFSContact']?['Contact']?['S4SOrigination_ID_Account_Contact__c'],null))),'Account',''))",
+                                        "runAfter": {},
+                                        "type": "Switch"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@triggerBody()?['upsertSFSContact']?['Contact']?['Id']",
+                                                "@string('')"
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@triggerBody()?['upsertSFSContact']?['Contact']?['Id']",
+                                                "@null"
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "runAfter": {},
+                            "type": "If"
                         },
                         "For_Each_Account": {
                             "actions": {
@@ -347,7 +508,7 @@
                                 "Logging_AccountID": {
                                     "inputs": {
                                         "body": {
-                                            "message": "Creation of Account Contact Relationship for Branch Office Id: @{body('Create_AccountContactRelation')?['AccountId']}",
+                                            "message": "Creation of Account @{items('For_Each_Account')?['AccountId']} Contact @{items('For_Each_Account')?['ContactId']}Relationship @{if(equals(body('Create_AccountContactRelation')?['Status'],400),'Failed',concat('for Branch Office Id ',string(body('Create_AccountContactRelation')?['AccountId']),' Succeded'))}",
                                             "severity": "INFO"
                                         },
                                         "host": {
@@ -359,7 +520,9 @@
                                     },
                                     "runAfter": {
                                         "Create_AccountContactRelation": [
-                                            "Succeeded"
+                                            "Succeeded",
+                                            "Failed",
+                                            "TimedOut"
                                         ]
                                     },
                                      "runtimeConfiguration": {
@@ -381,37 +544,6 @@
                             },
                             "type": "Foreach"
                         },
-                        "HTTP_Get_Contact_Id_From_Email": {
-                            "inputs": {
-                                "body": {
-                                    "query": "select Id from Contact where Email = '@{triggerBody()?['upsertSFSContact']?['Contact']?['Email']}' and S4SSFS_Confidential__c = 'Confidential' and S4SOrigination_ID__c = null"
-                                },
-                                "host": {
-                                    "connection": {
-                                        "name": "@parameters('$connections')['salesForceConnection']['connectionId']"
-                                    }
-                                },
-                                "method": "post",
-                                "path": "/soql/executesoqlquery",
-                                "retryPolicy": {
-                                    "type": "none"
-                                }
-                            },
-                            "runAfter": {
-                                "HTTP_Get_RecordTypeId": [
-                                    "Succeeded"
-                                ]
-                            },
-                             "runtimeConfiguration": {
-       "secureData": {
-          "properties": [
-              "inputs",
-              "outputs"
-         ]      
-      }
-  },
-                            "type": "ApiConnection"
-                        },
                         "HTTP_Get_RecordTypeId": {
                             "inputs": {
                                 "body": {
@@ -428,7 +560,11 @@
                                     "type": "none"
                                 }
                             },
-                            "runAfter": {},
+                            "runAfter": {
+                                "Deduplication_Logic": [
+                                    "Succeeded"
+                                ]
+                            },
                              "runtimeConfiguration": {
        "secureData": {
           "properties": [
@@ -459,7 +595,9 @@
                             },
                             "runAfter": {
                                 "For_Each_Account": [
-                                    "Succeeded"
+                                    "Succeeded",
+                                    "Failed",
+                                    "TimedOut"
                                 ]
                             },
                              "runtimeConfiguration": {
@@ -490,16 +628,11 @@
                             "kind": "Http",
                             "runAfter": {
                                 "For_Each_Account": [
-                                    "Succeeded"
+                                    "Succeeded",
+                                    "Failed",
+                                    "TimedOut"
                                 ]
                             },
-                             "runtimeConfiguration": {
-       "secureData": {
-          "properties": [
-              "inputs"
-         ]      
-      }
-  },
                             "type": "Response"
                         }
                     },
@@ -601,14 +734,17 @@
       }
   },
                     "type": "Workflow"
-            }
-        },
-        "runAfter": {
-            "Initialize_AccountContactRelation": [
-                "Succeeded"
-            ]
-        },
-        "type": "Scope"
+                }
+            },
+            "runAfter": {
+                "Initialize_AccountContactRelation": [
+                    "Succeeded"
+                ],
+                "Initialize_ContactID": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Scope"
         }
     },
     "contentVersion": "1.0.0.0",

@@ -1,6 +1,14 @@
 {
   "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
   "actions": {
+    "Ping_SieSmart": {
+      "inputs": {
+        "method": "GET",
+        "uri": "https://v1.siesmart.sfs.siemens.com/frontend/"
+      },
+      "runAfter": {},
+      "type": "Http"
+    },
     "Scope-Non-SFS": {
       "actions": {
         "Get_accounts": {
@@ -21,7 +29,9 @@
             }
           },
           "runAfter": {
-            "Get_opportunities": ["Succeeded"]
+            "Get_opportunities": [
+              "Succeeded"
+            ]
           },
           "type": "ApiConnection"
         },
@@ -63,7 +73,9 @@
             "uri": "${instance_NonSFS_URL}/query"
           },
           "runAfter": {
-            "HTTP_Get_SF_Token_for_Non__SFS": ["Succeeded"]
+            "HTTP_Get_SF_Token_for_Non__SFS": [
+              "Succeeded"
+            ]
           },
           "type": "Http"
         },
@@ -79,7 +91,9 @@
             "uri": "${instance_NonSFS_URL}/query"
           },
           "runAfter": {
-            "HTTP_Get_SF_Token_for_Non__SFS": ["Succeeded"]
+            "HTTP_Get_SF_Token_for_Non__SFS": [
+              "Succeeded"
+            ]
           },
           "type": "Http"
         },
@@ -87,7 +101,7 @@
           "inputs": {
             "headers": {
               "Ocp-Apim-Subscription-Key": "${apimKey}",
-                                "forceRefresh": "T"
+              "forceRefresh": "T"
             },
             "method": "POST",
             "uri": "${apimURL}"
@@ -119,7 +133,9 @@
             }
           },
           "runAfter": {
-            "Get_opportunities_sfs": ["Succeeded"]
+            "Get_opportunities_sfs": [
+              "Succeeded"
+            ]
           },
           "type": "ApiConnection"
         },
@@ -153,7 +169,7 @@
           "inputs": {
             "headers": {
               "Ocp-Apim-Subscription-Key": "${apimKey}",
-                                "forceRefresh": "T"
+              "forceRefresh": "T"
             },
             "method": "POST",
             "uri": "${apimSFSURL}"
@@ -173,7 +189,9 @@
             "uri": "${instance_SFS_URL}/query"
           },
           "runAfter": {
-            "HTTP_Get_SF_Token_for_SFS": ["Succeeded"]
+            "HTTP_Get_SF_Token_for_SFS": [
+              "Succeeded"
+            ]
           },
           "type": "Http"
         },
@@ -189,7 +207,9 @@
             "uri": "${instance_SFS_URL}/query"
           },
           "runAfter": {
-            "HTTP_Get_SF_Token_for_SFS": ["Succeeded"]
+            "HTTP_Get_SF_Token_for_SFS": [
+              "Succeeded"
+            ]
           },
           "type": "Http"
         }
@@ -202,10 +222,21 @@
         "runStatus": "Succeeded"
       },
       "runAfter": {
-        "Scope-Non-SFS": ["Succeeded"],
-        "Scope-Non-SFSAPI": ["Succeeded"],
-        "Scope-SFS": ["Succeeded"],
-        "Scope-SFSAPI": ["Succeeded"]
+        "Ping_SieSmart": [
+          "Succeeded"
+        ],
+        "Scope-Non-SFS": [
+          "Succeeded"
+        ],
+        "Scope-Non-SFSAPI": [
+          "Succeeded"
+        ],
+        "Scope-SFS": [
+          "Succeeded"
+        ],
+        "Scope-SFSAPI": [
+          "Succeeded"
+        ]
       },
       "type": "Terminate"
     }

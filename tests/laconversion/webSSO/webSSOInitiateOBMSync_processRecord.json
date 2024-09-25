@@ -13,18 +13,6 @@
       "runAfter": {},
       "type": "InitializeVariable"
     },
-    "SiemensID": {
-      "inputs": {
-        "variables": [
-          {
-            "name": "SiemensID",
-            "type": "Object"
-          }
-        ]
-      },
-      "runAfter": {},
-      "type": "InitializeVariable"
-    },
     "ListofDefaultUsers": {
       "inputs": {
         "variables": [
@@ -131,7 +119,7 @@
             ]
           },
           "runAfter": {
-            "Get_Data_from_SiemensID": ["Succeeded","Failed"]
+            "Fetch_Contact_Details": ["Succeeded"]
           },
           "type": "If"
         },
@@ -593,7 +581,7 @@
                           "Append_to_Users": {
                             "inputs": {
                               "name": "ListofUsers",
-                              "value": "\"Response\" : [\r\n{\r\n    \"defaultUser\" :  \"@{json(xml(body('Call_Search_Login_with_non_default_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][1]?['Value']}\"\r\n},\r\n{\r\n     \"login\" :\"@{json(xml(body('Call_Search_Login_with_non_default_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][5]?['Value']}\"\r\n},\r\n{\r\n     \"mail\" : \"@{json(xml(body('Call_Search_Login_with_non_default_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][6]?['Value']}\"\r\n},\r\n{\r\n    \"uid\" :\"@{json(xml(body('Call_Search_Login_with_non_default_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][11]?['Value']}\"\r\n},\r\n{\r\n\"xGID\":\"@{json(xml(body('Call_Search_Login_with_non_default_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][13]?['Value']}\"\r\n}\r\n]"
+                              "value": "\"Response\" : [\n{\n    \"defaultUser\" :  \"@{json(xml(body('Call_Search_Login_with_non_default_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][1]?['Value']}\"\n},\n{\n     \"login\" :\"@{json(xml(body('Call_Search_Login_with_non_default_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][5]?['Value']}\"\n},\n{\n     \"mail\" : \"@{json(xml(body('Call_Search_Login_with_non_default_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][6]?['Value']}\"\n},\n{\n    \"uid\" :\"@{json(xml(body('Call_Search_Login_with_non_default_account')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][11]?['Value']}\"\n}\n]"
                             },
                             "runAfter": {},
                             "type": "AppendToArrayVariable"
@@ -661,7 +649,7 @@
                           "Append_to_user-list": {
                             "inputs": {
                               "name": "ListofUsers",
-                              "value": "\"Response\" : [\r\n{\r\n    \"defaultUser\" :  \"@{json(xml(body('Call_Search')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][1]?['Value']}\"\r\n},\r\n{\r\n     \"login\" :\"@{json(xml(body('Call_Search')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][5]?['Value']}\"\r\n},\r\n{\r\n     \"mail\" : \"@{json(xml(body('Call_Search')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][6]?['Value']}\"\r\n},\r\n{\r\n    \"uid\" :\"@{json(xml(body('Call_Search')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][11]?['Value']}\"\r\n},\r\n{\r\n\"xGID\":\"@{json(xml(body('Call_Search')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][13]?['Value']}\"\r\n}\r\n]"
+                              "value": "\"Response\" : [\n{\n    \"defaultUser\" :  \"@{json(xml(body('Call_Search')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][1]?['Value']\r\n}\"\n},\n{\n     \"login\" :\"@{json(xml(body('Call_Search')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][5]?['Value']\r\n}\"\n},\n{\n     \"mail\" : \"@{json(xml(body('Call_Search')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][6]?['Value']\r\n}\"\n},\n{\n    \"uid\" :\"@{json(xml(body('Call_Search')))?['soap:Envelope']?['soap:Body']?['SearchResponse']?['SearchResult']?['SSOUsers']?['SSOUser']?['Items']?['SSOUserProperty'][11]?['Value']\r\n}\"\n}\n]"
                             },
                             "runAfter": {},
                             "type": "AppendToArrayVariable"
@@ -844,19 +832,6 @@
                               "Append_to_List_of_UIDs": ["Succeeded"]
                             },
                             "type": "SetVariable"
-                          },
-                          "Set_SiemensID": {
-                            "inputs": {
-                              "name": "SiemensID",
-                              "value": {
-                                "email":"@{body('Parse_user')?['Response'][2]}",
-                                "xGID":"@{body('Parse_user')?['Response'][4]}"
-                                }
-                            },
-                            "runAfter": {
-                              "Set_Login_user": ["Succeeded"]
-                            },
-                            "type": "SetVariable"
                           }
                         }
                       },
@@ -886,33 +861,30 @@
                         "content": "@concat('{',items('For_each_ssouser'),'}')",
                         "schema": {
                           "properties": {
-                              "Response": {
-                                  "items": {
-                                      "properties": {
-                                          "defaultUser": {
-                                              "type": "string"
-                                          },
-                                          "login": {
-                                              "type": "string"
-                                          },
-                                          "mail": {
-                                              "type": "string"
-                                          },
-                                          "uid": {
-                                              "type": "string"
-                                          },
-                                          "xGID":{
-                                              "type": "string"
-                                          }
-                                      },
-                                      "required": [],
-                                      "type": "object"
+                            "Response": {
+                              "items": {
+                                "properties": {
+                                  "defaultUser": {
+                                    "type": "string"
                                   },
-                                  "type": "array"
-                              }
+                                  "login": {
+                                    "type": "string"
+                                  },
+                                  "mail": {
+                                    "type": "string"
+                                  },
+                                  "uid": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [],
+                                "type": "object"
+                              },
+                              "type": "array"
+                            }
                           },
                           "type": "object"
-                      }
+                        }
                       },
                       "runAfter": {},
                       "type": "ParseJson"
@@ -1029,39 +1001,6 @@
           },
           "type": "Scope"
         },
-        "Get_Access_to_SiemensID": {
-          "inputs": {
-              "body": {
-                  "audience": "https://api.login-qa.siemens.com",
-                  "client_id": "uQzOZLa6qNzao2OxGGG5HLBGX8dDEczP",
-                  "client_secret": "wMVpVR3zHvK6lON_QKChKq33Z968inWpB-wyIrXORHgtC0OCKFZgWKgd8NJAcKBx",
-                  "grant_type": "client_credentials"
-              },
-              "method": "POST",
-              "uri": "https://siemens-qa-api.eu.auth0.com/oauth/token"
-          },
-          "runAfter": {
-              "Fetch_Contact_Details": [
-                  "Succeeded"
-              ]
-          },
-          "type": "Http"
-      },
-      "Get_Data_from_SiemensID": {
-          "inputs": {
-              "headers": {
-                  "Authorization": "Bearer @{body('Get_Access_to_SiemensID')?['access_token']}"
-              },
-              "method": "GET",
-              "uri": "https://siemens-qa-api.eu.auth0.com/users/@{ variables('siemensID')?['xGID']}?type=gid"
-          },
-          "runAfter": {
-              "Get_Access_to_SiemensID": [
-                  "Succeeded"
-              ]
-          },
-          "type": "Http"
-      },
         "Fetch_Partner_Membership_Details": {
           "inputs": {
             "body": {
@@ -1097,9 +1036,7 @@
                   "inputs": {
                     "body": {
                       "LastName": "@{body('Get_Contact_Record')['records'][0]?['LastName']}",
-                      "S4SWeb_SSO_User__c": true,
-                      "S4SSiemensID__c":"test",
-                      "S4SxGID__c":"test"
+                      "S4SWeb_SSO_User__c": true
                     },
                     "host": {
                       "connection": {
@@ -1199,8 +1136,7 @@
         "userSummary": ["Succeeded"],
         "varEmailList": ["Succeeded"],
         "varErrorList": ["Succeeded"],
-        "varOutput": ["Succeeded"],
-        "SiemensID": ["Succeeded"]
+        "varOutput": ["Succeeded"]
       },
       "trackedProperties": {
         "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",

@@ -1,0 +1,1594 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Initialize_LenOfTrimmedLastName": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "LenOfTrimmedLastName",
+              "type": "integer"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_Response": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "Response",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_finalWhereClause": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "finalWhereClause",
+              "type": "string",
+              "value": "@null"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_flag_variable": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "flag",
+              "type": "boolean"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_variable_FirstName": [
+            "Succeeded"
+          ]
+        },
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_Email": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "Email",
+              "type": "string",
+              "value": "@{triggerOutputs()['queries']?['Email']}"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_FederationIdentifier": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "FederationIdentifier",
+              "type": "string",
+              "value": "@{triggerOutputs()['queries']?['FederationIdentifier']}"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_FirstName": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "FirstName",
+              "type": "string",
+              "value": "@{triggerOutputs()['queries']?['FirstName']}"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_LastName": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "LastName",
+              "type": "string",
+              "value": "@{triggerOutputs()['queries']?['LastName']}"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_ManagerId": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "ManagerId",
+              "type": "string",
+              "value": "@{triggerOutputs()['queries']?['ManagerId']}"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_S4SSales_Manager_Email__c": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "S4SSales_Manager_Email__c",
+              "type": "string",
+              "value": "@{triggerOutputs()['queries']?['S4SSales_Manager_Email__c']}"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_SFDC_ID": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "SFDC_ID",
+              "type": "string",
+              "value": "@{triggerOutputs()['queries']?['SFDC_ID']}"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_WhereClause": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "whereClause",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Scope_Catch": {
+        "actions": {
+          "Send_Error_Response": {
+            "inputs": {
+              "body": "Unexpected error occured. Please contact system administrator with the following tracking id:@{workflow()['run']['name']}",
+              "headers": {
+                "Content-Type": "application/json"
+              },
+              "statusCode": 500
+            },
+            "kind": "Http",
+            "runAfter": {},
+            "runtimeConfiguration": {
+              "secureData": {
+                "properties": [
+                  "inputs"
+                ]
+              }
+            },
+            "type": "Response"
+          },
+          "Terminate": {
+            "inputs": {
+              "runError": {
+                "code": "500"
+              },
+              "runStatus": "Failed"
+            },
+            "runAfter": {
+              "Send_Error_Response": [
+                "Succeeded"
+              ]
+            },
+            "type": "Terminate"
+          }
+        },
+        "runAfter": {
+          "Scope_Try": [
+            "Failed"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Scope_Try": {
+        "actions": {
+          "Condition_-_Check_for_SFDC_ID": {
+            "actions": {
+              "Set_whereClause_for_SFDC_ID": {
+                "inputs": {
+                  "name": "finalWhereClause",
+                  "value": "Id eq '@{variables('SFDC_ID')}'"
+                },
+                "runAfter": {},
+                "type": "SetVariable"
+              }
+            },
+            "else": {
+              "actions": {
+                "Condition_-_check_for_Email": {
+                  "actions": {
+                    "Set_whereClause_for_Email": {
+                      "inputs": {
+                        "name": "finalWhereClause",
+                        "value": "Email eq '@{variables('Email')}'"
+                      },
+                      "runAfter": {},
+                      "type": "SetVariable"
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Condition_-_check_for_FederationIdentifier": {
+                        "actions": {
+                          "Set_whereClause_for_FederationIdentifier": {
+                            "inputs": {
+                              "name": "finalWhereClause",
+                              "value": "FederationIdentifier eq '@{variables('FederationIdentifier')}'"
+                            },
+                            "runAfter": {},
+                            "type": "SetVariable"
+                          }
+                        },
+                        "else": {
+                          "actions": {
+                            "Condition_-_check_for_FirstName": {
+                              "actions": {
+                                "Set_whereClause_for_FirstName": {
+                                  "inputs": {
+                                    "name": "finalWhereClause",
+                                    "value": "@{concat(' ','FirstName eq ',string(''''),variables('FirstName'),string(''''))}"
+                                  },
+                                  "runAfter": {},
+                                  "type": "SetVariable"
+                                }
+                              },
+                              "else": {
+                                "actions": {}
+                              },
+                              "expression": {
+                                "and": [
+                                  {
+                                    "not": {
+                                      "equals": [
+                                        "@variables('FirstName')",
+                                        "@string('')"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              },
+                              "runAfter": {},
+                              "type": "If"
+                            },
+                            "Condition_-_check_for_LastName": {
+                              "actions": {
+                                "Find_length_of_TrimmedLastName": {
+                                  "inputs": {
+                                    "name": "LenOfTrimmedLastName",
+                                    "value": "@length(replace(variables('LastName'),'*',''))"
+                                  },
+                                  "runAfter": {},
+                                  "type": "SetVariable"
+                                },
+                                "check_if__length_of_trimmed_LastName_is_greater_than_2": {
+                                  "actions": {
+                                    "check_FinalWhereClause_if_exists_": {
+                                      "actions": {
+                                        "Append_lastName_to_finalWhereClause": {
+                                          "inputs": {
+                                            "name": "finalWhereClause",
+                                            "value": "@concat(' ','AND',' ','LastName LIKE ',string(''''),variables('LastName'),string(''''))"
+                                          },
+                                          "runAfter": {},
+                                          "type": "AppendToStringVariable"
+                                        }
+                                      },
+                                      "else": {
+                                        "actions": {
+                                          "Append_lastName_to_finalWhereClause_without_AND": {
+                                            "inputs": {
+                                              "name": "finalWhereClause",
+                                              "value": "@concat(' ','LastName LIKE ',string(''''),variables('LastName'),string(''''))"
+                                            },
+                                            "runAfter": {},
+                                            "type": "AppendToStringVariable"
+                                          }
+                                        }
+                                      },
+                                      "expression": {
+                                        "and": [
+                                          {
+                                            "not": {
+                                              "equals": [
+                                                "@variables('finalWhereClause')",
+                                                ""
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      "runAfter": {},
+                                      "type": "If"
+                                    }
+                                  },
+                                  "else": {
+                                    "actions": {
+                                      "Response": {
+                                        "inputs": {
+                                          "body": "Not Found",
+                                          "statusCode": 404
+                                        },
+                                        "kind": "Http",
+                                        "runAfter": {},
+                                        "runtimeConfiguration": {
+                                          "secureData": {
+                                            "properties": [
+                                              "inputs"
+                                            ]
+                                          }
+                                        },
+                                        "type": "Response"
+                                      },
+                                      "Terminate_2": {
+                                        "inputs": {
+                                          "runStatus": "Succeeded"
+                                        },
+                                        "runAfter": {
+                                          "Response": [
+                                            "Succeeded"
+                                          ]
+                                        },
+                                        "type": "Terminate"
+                                      }
+                                    }
+                                  },
+                                  "expression": {
+                                    "and": [
+                                      {
+                                        "greaterOrEquals": [
+                                          "@variables('LenOfTrimmedLastName')",
+                                          2
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "runAfter": {
+                                    "Find_length_of_TrimmedLastName": [
+                                      "Succeeded"
+                                    ]
+                                  },
+                                  "type": "If"
+                                }
+                              },
+                              "else": {
+                                "actions": {}
+                              },
+                              "expression": {
+                                "and": [
+                                  {
+                                    "not": {
+                                      "equals": [
+                                        "@variables('LastName')",
+                                        "@string('')"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              },
+                              "runAfter": {
+                                "Condition_-_check_for_S4SSales_Manager_Email__c": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "If"
+                            },
+                            "Condition_-_check_for_ManagerId": {
+                              "actions": {
+                                "check_if_finalWhereClause_already_exists": {
+                                  "actions": {
+                                    "Append_MangerId_to_finalWhereClause": {
+                                      "inputs": {
+                                        "name": "finalWhereClause",
+                                        "value": "@concat(' ','AND',' ','ManagerId eq ',string(''''),variables('ManagerId'),string(''''))"
+                                      },
+                                      "runAfter": {},
+                                      "type": "AppendToStringVariable"
+                                    }
+                                  },
+                                  "else": {
+                                    "actions": {
+                                      "Append_MangerId_to_finalWhereClause_without_AND": {
+                                        "inputs": {
+                                          "name": "finalWhereClause",
+                                          "value": "@concat(' ','ManagerId eq ',string(''''),variables('ManagerId'),string(''''))"
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToStringVariable"
+                                      }
+                                    }
+                                  },
+                                  "expression": {
+                                    "and": [
+                                      {
+                                        "not": {
+                                          "equals": [
+                                            "@variables('finalWhereClause')",
+                                            ""
+                                          ]
+                                        }
+                                      }
+                                    ]
+                                  },
+                                  "runAfter": {},
+                                  "type": "If"
+                                }
+                              },
+                              "else": {
+                                "actions": {}
+                              },
+                              "expression": {
+                                "and": [
+                                  {
+                                    "not": {
+                                      "equals": [
+                                        "@variables('ManagerId')",
+                                        "@string('')"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              },
+                              "runAfter": {
+                                "Condition_-_check_for_FirstName": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "If"
+                            },
+                            "Condition_-_check_for_S4SSales_Manager_Email__c": {
+                              "actions": {
+                                "check_finalWhereClause_if_exists": {
+                                  "actions": {
+                                    "Append_S4SSales_Manager_Email__c_to_finalWhereClause": {
+                                      "inputs": {
+                                        "name": "finalWhereClause",
+                                        "value": "@concat(' ','AND',' ','S4SSales_Manager_Email__c eq ',string(''''),variables('S4SSales_Manager_Email__c'),string(''''))"
+                                      },
+                                      "runAfter": {},
+                                      "type": "AppendToStringVariable"
+                                    }
+                                  },
+                                  "else": {
+                                    "actions": {
+                                      "Append_S4SSales_Manager_Email__c_to_finalWhereClause_without_AND": {
+                                        "inputs": {
+                                          "name": "finalWhereClause",
+                                          "value": "@concat(' ','S4SSales_Manager_Email__c eq ',string(''''),variables('S4SSales_Manager_Email__c'),string(''''))"
+                                        },
+                                        "runAfter": {},
+                                        "type": "AppendToStringVariable"
+                                      }
+                                    }
+                                  },
+                                  "expression": {
+                                    "and": [
+                                      {
+                                        "not": {
+                                          "equals": [
+                                            "@variables('finalWhereClause')",
+                                            ""
+                                          ]
+                                        }
+                                      }
+                                    ]
+                                  },
+                                  "runAfter": {},
+                                  "type": "If"
+                                }
+                              },
+                              "else": {
+                                "actions": {}
+                              },
+                              "expression": {
+                                "and": [
+                                  {
+                                    "not": {
+                                      "equals": [
+                                        "@variables('S4SSales_Manager_Email__c')",
+                                        "@string('')"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              },
+                              "runAfter": {
+                                "Condition_-_check_for_ManagerId": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "If"
+                            }
+                          }
+                        },
+                        "expression": {
+                          "and": [
+                            {
+                              "not": {
+                                "equals": [
+                                  "@variables('FederationIdentifier')",
+                                  "@string('')"
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        "runAfter": {},
+                        "type": "If"
+                      }
+                    }
+                  },
+                  "expression": {
+                    "and": [
+                      {
+                        "not": {
+                          "equals": [
+                            "@variables('Email')",
+                            "@string('')"
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  "runAfter": {},
+                  "type": "If"
+                }
+              }
+            },
+            "expression": {
+              "and": [
+                {
+                  "not": {
+                    "equals": [
+                      "@variables('SFDC_ID')",
+                      "@string('')"
+                    ]
+                  }
+                }
+              ]
+            },
+            "runAfter": {},
+            "type": "If"
+          },
+          "Set_flag_variable": {
+            "inputs": {
+              "name": "flag",
+              "value": "@if(contains(variables('finalWhereClause'),'LastName'),true,false)"
+            },
+            "runAfter": {
+              "Condition_-_Check_for_SFDC_ID": [
+                "Succeeded"
+              ]
+            },
+            "type": "SetVariable"
+          },
+          "check_if_LastName_exists_in_finalWhereClause": {
+            "actions": {
+              "Condition__-_check_finalWhere": {
+                "actions": {
+                  "Compose_2": {
+                    "inputs": "@if(equals(variables('Response'),''),outputs('Compose_Res'),concat(variables('Response'),',',outputs('Compose_Res')))",
+                    "runAfter": {
+                      "For_each_2": [
+                        "Succeeded"
+                      ]
+                    },
+                    "runtimeConfiguration": {
+                      "secureData": {
+                        "properties": [
+                          "inputs"
+                        ]
+                      }
+                    },
+                    "type": "Compose"
+                  },
+                  "Condition_3": {
+                    "actions": {
+                      "Final_Res": {
+                        "inputs": {
+                          "body": "@json(outputs('Replace'))",
+                          "statusCode": 200
+                        },
+                        "kind": "Http",
+                        "runAfter": {
+                          "Replace": [
+                            "Succeeded"
+                          ]
+                        },
+                        "runtimeConfiguration": {
+                          "secureData": {
+                            "properties": [
+                              "inputs"
+                            ]
+                          }
+                        },
+                        "type": "Response"
+                      },
+                      "Replace": {
+                        "inputs": "@replace(replace(replace(variables('Response'),'\"\"','null'), '\"False\"', '\"false\"'), '\"True\"', '\"true\"')",
+                        "runAfter": {},
+                        "runtimeConfiguration": {
+                          "secureData": {
+                            "properties": [
+                              "inputs"
+                            ]
+                          }
+                        },
+                        "type": "Compose"
+                      }
+                    },
+                    "else": {
+                      "actions": {
+                        "Empty_Res": {
+                          "inputs": {
+                            "body": "No Results found with given Inputs",
+                            "statusCode": 200
+                          },
+                          "kind": "Http",
+                          "runAfter": {},
+                          "runtimeConfiguration": {
+                            "secureData": {
+                              "properties": [
+                                "inputs"
+                              ]
+                            }
+                          },
+                          "type": "Response"
+                        }
+                      }
+                    },
+                    "expression": {
+                      "and": [
+                        {
+                          "not": {
+                            "equals": [
+                              "@variables('Response')",
+                              "@string('{\"User\":}')"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "runAfter": {
+                      "Set_Response1": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "If"
+                  },
+                  "Execute_a_SOQL_query": {
+                    "inputs": {
+                      "body": {
+                        "query": "select Id from User where @{variables('whereClause')}"
+                      },
+                      "path": "/soql/executesoqlquery",
+                      "host": {
+                        "connection": {
+                          "referenceName": "salesForceConnection"
+                        }
+                      },
+                      "method": "post"
+                    },
+                    "runAfter": {
+                      "Set_variable": [
+                        "Succeeded"
+                      ]
+                    },
+                    "runtimeConfiguration": {
+                      "secureData": {
+                        "properties": [
+                          "inputs",
+                          "outputs"
+                        ]
+                      }
+                    },
+                    "type": "ApiConnection"
+                  },
+                  "For_each_2": {
+                    "actions": {
+                      "Compose": {
+                        "inputs": "@items('For_each_2')['Id']",
+                        "runAfter": {},
+                        "runtimeConfiguration": {
+                          "secureData": {
+                            "properties": [
+                              "inputs"
+                            ]
+                          }
+                        },
+                        "type": "Compose"
+                      },
+                      "Compose_Res": {
+                        "inputs": {
+                          "AboutMe": "@{body('Get_record')?['AboutMe']}",
+                          "AccountId": "@{body('Get_record')?['AccountId']}",
+                          "Alias": "@{body('Get_record')?['Alias']}",
+                          "BadgeText": "@{body('Get_record')?['BadgeText']}",
+                          "BannerPhotoUrl": "@{body('Get_record')?['BannerPhotoUrl']}",
+                          "CallCenterId": "@{body('Get_record')?['CallCenterId']}",
+                          "City": "@{body('Get_record')?['City']}",
+                          "CommunityNickname": "@{body('Get_record')?['CommunityNickname']}",
+                          "CompanyName": "@{body('Get_record')?['CompanyName']}",
+                          "ContactId": "@{body('Get_record')?['ContactId']}",
+                          "Country": "@{body('Get_record')?['Country']}",
+                          "CountryCode": "@{body('Get_record')?['CountryCode']}",
+                          "CreatedById": "@{body('Get_record')?['CreatedById']}",
+                          "CreatedDate": "@{body('Get_record')?['CreatedDate']}",
+                          "CurrencyIsoCode": "@{body('Get_record')?['CurrencyIsoCode']}",
+                          "DefaultCurrencyIsoCode": "@{body('Get_record')?['DefaultCurrencyIsoCode']}",
+                          "DefaultGroupNotificationFrequency": "@{body('Get_record')?['DefaultGroupNotificationFrequency']}",
+                          "DelegatedApproverId": "@{body('Get_record')?['DelegatedApproverId']}",
+                          "Department": "@{body('Get_record')?['Department']}",
+                          "DigestFrequency": "@{body('Get_record')?['DigestFrequency']}",
+                          "Division": "@{body('Get_record')?['Division']}",
+                          "Email": "@{body('Get_record')?['Email']}",
+                          "EmailEncodingKey": "@{body('Get_record')?['EmailEncodingKey']}",
+                          "EmailPreferencesAutoBcc": "@{body('Get_record')?['EmailPreferencesAutoBcc']}",
+                          "EmailPreferencesAutoBccStayInTouch": "@{body('Get_record')?['EmailPreferencesAutoBccStayInTouch']}",
+                          "EmailPreferencesStayInTouchReminder": "@{body('Get_record')?['EmailPreferencesStayInTouchReminder']}",
+                          "EmployeeNumber": "@{body('Get_record')?['EmployeeNumber']}",
+                          "Extension": "@{body('Get_record')?['Extension']}",
+                          "Fax": "@{body('Get_record')?['Fax']}",
+                          "FederationIdentifier": "@{body('Get_record')?['FederationIdentifier']}",
+                          "FirstName": "@{body('Get_record')?['FirstName']}",
+                          "ForecastEnabled": "@{body('Get_record')?['ForecastEnabled']}",
+                          "FullPhotoUrl": "@{body('Get_record')?['FullPhotoUrl']}",
+                          "Id": "@{body('Get_record')?['Id']}",
+                          "IndividualId": "@{body('Get_record')?['IndividualId']}",
+                          "IsActive": "@{body('Get_record')?['IsActive']}",
+                          "IsExtIndicatorVisible": "@{body('Get_record')?['IsExtIndicatorVisible']}",
+                          "IsPortalEnabled": "@{body('Get_record')?['IsPortalEnabled']}",
+                          "IsProfilePhotoActive": "@{body('Get_record')?['IsProfilePhotoActive']}",
+                          "LanguageLocaleKey": "@{body('Get_record')?['LanguageLocaleKey']}",
+                          "LastLoginDate": "@{body('Get_record')?['LastLoginDate']}",
+                          "LastModifiedById": "@{body('Get_record')?['LastModifiedById']}",
+                          "LastModifiedDate": "@{body('Get_record')?['LastModifiedDate']}",
+                          "LastName": "@{body('Get_record')?['LastName']}",
+                          "LastPasswordChangeDate": "@{body('Get_record')?['LastPasswordChangeDate']}",
+                          "LastReferencedDate": "@{body('Get_record')?['LastReferencedDate']}",
+                          "LastViewedDate": "@{body('Get_record')?['LastViewedDate']}",
+                          "LocaleSidKey": "@{body('Get_record')?['LocaleSidKey']}",
+                          "Longitude": "@body('Get_record')?['Longitude']",
+                          "ManagerId": "@{body('Get_record')?['ManagerId']}",
+                          "MediumBannerPhotoUrl": "@{body('Get_record')?['MediumBannerPhotoUrl']}",
+                          "MediumPhotoUrl": "@{body('Get_record')?['MediumPhotoUrl']}",
+                          "MiddleName": "@{body('Get_record')?['MiddleName']}",
+                          "MobilePhone": "@{body('Get_record')?['MobilePhone']}",
+                          "Name": "@{body('Get_record')?['Name']}",
+                          "OfflinePdaTrialExpirationDate": "@{body('Get_record')?['OfflinePdaTrialExpirationDate']}",
+                          "OfflineTrialExpirationDate": "@{body('Get_record')?['OfflineTrialExpirationDate']}",
+                          "OutOfOfficeMessage": "@{body('Get_record')?['OutOfOfficeMessage']}",
+                          "Phone": "@{body('Get_record')?['Phone']}",
+                          "PortalRole": "@{body('Get_record')?['PortalRole']}",
+                          "PostalCode": "@{body('Get_record')?['PostalCode']}",
+                          "ProfileId": "@{body('Get_record')?['ProfileId']}",
+                          "ReceivesAdminInfoEmails": "@{body('Get_record')?['ReceivesAdminInfoEmails']}",
+                          "ReceivesInfoEmails": "@{body('Get_record')?['ReceivesInfoEmails']}",
+                          "S4SARE__c": "@{body('Get_record')?['S4SARE__c']}",
+                          "S4SBusiness_Segment__c": "@{body('Get_record')?['S4SBusiness_Segment__c']}",
+                          "S4SBusiness_SubSegment__c": "@{body('Get_record')?['S4SBusiness_SubSegment__c']}",
+                          "S4SBusiness_Unit__c": "@{body('Get_record')?['S4SBusiness_Unit__c']}",
+                          "S4SCompany__c": "@{body('Get_record')?['S4SCompany__c']}",
+                          "S4SCost_Center__c": "@{body('Get_record')?['S4SCost_Center__c']}",
+                          "S4SDepartment__c": "@{body('Get_record')?['S4SDepartment__c']}",
+                          "S4SDirX_Email__c": "@{body('Get_record')?['S4SDirX_Email__c']}",
+                          "S4SDirX_Origin__c": "@{body('Get_record')?['S4SDirX_Origin__c']}",
+                          "S4SDivision_Territory__c": "@{body('Get_record')?['S4SDivision_Territory__c']}",
+                          "S4SEmailChangedDate__c": "@{body('Get_record')?['S4SEmailChangedDate__c']}",
+                          "S4SFirst_Name_int__c": "@{body('Get_record')?['S4SFirst_Name_int__c']}",
+                          "S4SGCK__c": "@{body('Get_record')?['S4SGCK__c']}",
+                          "S4SGID_Technical__c": "@{body('Get_record')?['S4SGID_Technical__c']}",
+                          "S4SGID__c": "@{body('Get_record')?['S4SGID__c']}",
+                          "S4SIsUserUpdated__c": "@{body('Get_record')?['S4SIsUserUpdated__c']}",
+                          "S4SLast_Name_int__c": "@{body('Get_record')?['S4SLast_Name_int__c']}",
+                          "S4SLead_Country__c": "@{body('Get_record')?['S4SLead_Country__c']}",
+                          "S4SLocation__c": "@{body('Get_record')?['S4SLocation__c']}",
+                          "S4SManager_SCD_Technical__c": "@{body('Get_record')?['S4SManager_SCD_Technical__c']}",
+                          "S4SManager_SCD__c": "@{body('Get_record')?['S4SManager_SCD__c']}",
+                          "S4SOperations_Manager__c": "@{body('Get_record')?['S4SOperations_Manager__c']}",
+                          "S4SOrgUnit_SCD__c": "@{body('Get_record')?['S4SOrgUnit_SCD__c']}",
+                          "S4SOrg_ID__c": "@{body('Get_record')?['S4SOrg_ID__c']}",
+                          "S4SPrimary__c": "@{body('Get_record')?['S4SPrimary__c']}",
+                          "S4SRelated_User_DirX__c": "@{body('Get_record')?['S4SRelated_User_DirX__c']}",
+                          "S4SSCD_Status__c": "@{body('Get_record')?['S4SSCD_Status__c']}",
+                          "S4SSales_Branch__c": "@{body('Get_record')?['S4SSales_Branch__c']}",
+                          "S4SSales_Department__c": "@{body('Get_record')?['S4SSales_Department__c']}",
+                          "S4SSales_District__c": "@{body('Get_record')?['S4SSales_District__c']}",
+                          "S4SSales_Manager_Email__c": "@{body('Get_record')?['S4SSales_Manager_Email__c']}",
+                          "S4SSales_Office__c": "@{body('Get_record')?['S4SSales_Office__c']}",
+                          "S4SSales_SubRegion__c": "@{body('Get_record')?['S4SSales_SubRegion__c']}",
+                          "S4SSales_Territory__c": "@{body('Get_record')?['S4SSales_Territory__c']}",
+                          "S4SSalutation__c": "@{body('Get_record')?['S4SSalutation__c']}",
+                          "S4SSiemens_Territory_Structure_Name__c": "@{body('Get_record')?['S4SSiemens_Territory_Structure_Name__c']}",
+                          "S4SSiemens_Territory_Structure__c": "@{body('Get_record')?['S4SSiemens_Territory_Structure__c']}",
+                          "S4SSingle_Sign_On_Only__c": "@{body('Get_record')?['S4SSingle_Sign_On_Only__c']}",
+                          "S4SSponsor_SCD_Technical__c": "@{body('Get_record')?['S4SSponsor_SCD_Technical__c']}",
+                          "S4SSponsor_SCD__c": "@{body('Get_record')?['S4SSponsor_SCD__c']}",
+                          "S4SSurname__c": "@{body('Get_record')?['S4SSurname__c']}",
+                          "S4SUser_s_Country__c": "@{body('Get_record')?['S4SUser_s_Country__c']}",
+                          "S4SUser_s_Division__c": "@{body('Get_record')?['S4SUser_s_Division__c']}",
+                          "SenderEmail": "@{body('Get_record')?['SenderEmail']}",
+                          "SenderName": "@{body('Get_record')?['SenderName']}",
+                          "Signature": "@{body('Get_record')?['Signature']}",
+                          "SmallBannerPhotoUrl": "@{body('Get_record')?['SmallBannerPhotoUrl']}",
+                          "SmallPhotoUrl": "@{body('Get_record')?['SmallPhotoUrl']}",
+                          "State": "@{body('Get_record')?['State']}",
+                          "StateCode": "@{body('Get_record')?['StateCode']}",
+                          "StayInTouchNote": "@{body('Get_record')?['StayInTouchNote']}",
+                          "StayInTouchSignature": "@{body('Get_record')?['StayInTouchSignature']}",
+                          "StayInTouchSubject": "@{body('Get_record')?['StayInTouchSubject']}",
+                          "Street": "@{body('Get_record')?['Street']}",
+                          "Suffix": "@{body('Get_record')?['Suffix']}",
+                          "SystemModstamp": "@{body('Get_record')?['SystemModstamp']}",
+                          "TimeZoneSidKey": "@{body('Get_record')?['TimeZoneSidKey']}",
+                          "Title": "@{body('Get_record')?['Title']}",
+                          "UserPermissionsAvantgoUser": "@{body('Get_record')?['UserPermissionsAvantgoUser']}",
+                          "UserPermissionsCallCenterAutoLogin": "@{body('Get_record')?['UserPermissionsCallCenterAutoLogin']}",
+                          "UserPermissionsInteractionUser": "@{body('Get_record')?['UserPermissionsInteractionUser']}",
+                          "UserPermissionsKnowledgeUser": "@{body('Get_record')?['UserPermissionsKnowledgeUser']}",
+                          "UserPermissionsMarketingUser": "@{body('Get_record')?['UserPermissionsMarketingUser']}",
+                          "UserPermissionsMobileUser": "@{body('Get_record')?['UserPermissionsMobileUser']}",
+                          "UserPermissionsOfflineUser": "@{body('Get_record')?['UserPermissionsOfflineUser']}",
+                          "UserPermissionsSFContentUser": "@{body('Get_record')?['UserPermissionsSFContentUser']}",
+                          "UserPermissionsSupportUser": "@{body('Get_record')?['UserPermissionsSupportUser']}",
+                          "UserPreferencesActivityRemindersPopup": "@{body('Get_record')?['UserPreferencesActivityRemindersPopup']}",
+                          "UserPreferencesApexPagesDeveloperMode": "@{body('Get_record')?['UserPreferencesApexPagesDeveloperMode']}",
+                          "UserPreferencesCacheDiagnostics": "@{body('Get_record')?['UserPreferencesCacheDiagnostics']}",
+                          "UserPreferencesContentEmailAsAndWhen": "@{body('Get_record')?['UserPreferencesContentEmailAsAndWhen']}",
+                          "UserPreferencesContentNoEmail": "@{body('Get_record')?['UserPreferencesContentNoEmail']}",
+                          "UserPreferencesCreateLEXAppsWTShown": "@{body('Get_record')?['UserPreferencesCreateLEXAppsWTShown']}",
+                          "UserPreferencesDisCommentAfterLikeEmail": "@{body('Get_record')?['UserPreferencesDisCommentAfterLikeEmail']}",
+                          "UserPreferencesDisMentionsCommentEmail": "@{body('Get_record')?['UserPreferencesDisMentionsCommentEmail']}",
+                          "UserPreferencesDisProfPostCommentEmail": "@{body('Get_record')?['UserPreferencesDisProfPostCommentEmail']}",
+                          "UserPreferencesDisableAllFeedsEmail": "@{body('Get_record')?['UserPreferencesDisableAllFeedsEmail']}",
+                          "UserPreferencesDisableBookmarkEmail": "@{body('Get_record')?['UserPreferencesDisableBookmarkEmail']}",
+                          "UserPreferencesDisableChangeCommentEmail": "@{body('Get_record')?['UserPreferencesDisableChangeCommentEmail']}",
+                          "UserPreferencesDisableEndorsementEmail": "@{body('Get_record')?['UserPreferencesDisableEndorsementEmail']}",
+                          "UserPreferencesDisableFileShareNotificationsForApi": "@{body('Get_record')?['UserPreferencesDisableFileShareNotificationsForApi']}",
+                          "UserPreferencesDisableFollowersEmail": "@{body('Get_record')?['UserPreferencesDisableFollowersEmail']}",
+                          "UserPreferencesDisableLaterCommentEmail": "@{body('Get_record')?['UserPreferencesDisableLaterCommentEmail']}",
+                          "UserPreferencesDisableLikeEmail": "@{body('Get_record')?['UserPreferencesDisableLikeEmail']}",
+                          "UserPreferencesDisableMentionsPostEmail": "@{body('Get_record')?['UserPreferencesDisableMentionsPostEmail']}",
+                          "UserPreferencesDisableMessageEmail": "@{body('Get_record')?['UserPreferencesDisableMessageEmail']}",
+                          "UserPreferencesDisableProfilePostEmail": "@{body('Get_record')?['UserPreferencesDisableProfilePostEmail']}",
+                          "UserPreferencesDisableSharePostEmail": "@{body('Get_record')?['UserPreferencesDisableSharePostEmail']}",
+                          "UserPreferencesEnableAutoSubForFeeds": "@{body('Get_record')?['UserPreferencesEnableAutoSubForFeeds']}",
+                          "UserPreferencesEventRemindersCheckboxDefault": "@{body('Get_record')?['UserPreferencesEventRemindersCheckboxDefault']}",
+                          "UserPreferencesExcludeMailAppAttachments": "@{body('Get_record')?['UserPreferencesExcludeMailAppAttachments']}",
+                          "UserPreferencesFavoritesShowTopFavorites": "@{body('Get_record')?['UserPreferencesFavoritesShowTopFavorites']}",
+                          "UserPreferencesFavoritesWTShown": "@{body('Get_record')?['UserPreferencesFavoritesWTShown']}",
+                          "UserPreferencesGlobalNavBarWTShown": "@{body('Get_record')?['UserPreferencesGlobalNavBarWTShown']}",
+                          "UserPreferencesGlobalNavGridMenuWTShown": "@{body('Get_record')?['UserPreferencesGlobalNavGridMenuWTShown']}",
+                          "UserPreferencesHasCelebrationBadge": "@{body('Get_record')?['UserPreferencesHasCelebrationBadge']}",
+                          "UserPreferencesHideBiggerPhotoCallout": "@{body('Get_record')?['UserPreferencesHideBiggerPhotoCallout']}",
+                          "UserPreferencesHideCSNDesktopTask": "@{body('Get_record')?['UserPreferencesHideCSNDesktopTask']}",
+                          "UserPreferencesHideCSNGetChatterMobileTask": "@{body('Get_record')?['UserPreferencesHideCSNGetChatterMobileTask']}",
+                          "UserPreferencesHideChatterOnboardingSplash": "@{body('Get_record')?['UserPreferencesHideChatterOnboardingSplash']}",
+                          "UserPreferencesHideEndUserOnboardingAssistantModal": "@{body('Get_record')?['UserPreferencesHideEndUserOnboardingAssistantModal']}",
+                          "UserPreferencesHideLightningMigrationModal": "@{body('Get_record')?['UserPreferencesHideLightningMigrationModal']}",
+                          "UserPreferencesHideS1BrowserUI": "@{body('Get_record')?['UserPreferencesHideS1BrowserUI']}",
+                          "UserPreferencesHideSecondChatterOnboardingSplash": "@{body('Get_record')?['UserPreferencesHideSecondChatterOnboardingSplash']}",
+                          "UserPreferencesHideSfxWelcomeMat": "@{body('Get_record')?['UserPreferencesHideSfxWelcomeMat']}",
+                          "UserPreferencesLightningExperiencePreferred": "@{body('Get_record')?['UserPreferencesLightningExperiencePreferred']}",
+                          "UserPreferencesNewLightningReportRunPageEnabled": "@{body('Get_record')?['UserPreferencesNewLightningReportRunPageEnabled']}",
+                          "UserPreferencesPathAssistantCollapsed": "@{body('Get_record')?['UserPreferencesPathAssistantCollapsed']}",
+                          "UserPreferencesPipelineViewHideHelpPopover": "@{body('Get_record')?['UserPreferencesPipelineViewHideHelpPopover']}",
+                          "UserPreferencesPreviewCustomTheme": "@{body('Get_record')?['UserPreferencesPreviewCustomTheme']}",
+                          "UserPreferencesPreviewLightning": "@{body('Get_record')?['UserPreferencesPreviewLightning']}",
+                          "UserPreferencesRecordHomeReservedWTShown": "@{body('Get_record')?['UserPreferencesRecordHomeReservedWTShown']}",
+                          "UserPreferencesRecordHomeSectionCollapseWTShown": "@{body('Get_record')?['UserPreferencesRecordHomeSectionCollapseWTShown']}",
+                          "UserPreferencesReminderSoundOff": "@{body('Get_record')?['UserPreferencesReminderSoundOff']}",
+                          "UserPreferencesShowCityToExternalUsers": "@{body('Get_record')?['UserPreferencesShowCityToExternalUsers']}",
+                          "UserPreferencesShowCityToGuestUsers": "@{body('Get_record')?['UserPreferencesShowCityToGuestUsers']}",
+                          "UserPreferencesShowCountryToExternalUsers": "@{body('Get_record')?['UserPreferencesShowCountryToExternalUsers']}",
+                          "UserPreferencesShowCountryToGuestUsers": "@{body('Get_record')?['UserPreferencesShowCountryToGuestUsers']}",
+                          "UserPreferencesShowEmailToExternalUsers": "@{body('Get_record')?['UserPreferencesShowEmailToExternalUsers']}",
+                          "UserPreferencesShowEmailToGuestUsers": "@{body('Get_record')?['UserPreferencesShowEmailToGuestUsers']}",
+                          "UserPreferencesShowFaxToExternalUsers": "@{body('Get_record')?['UserPreferencesShowFaxToExternalUsers']}",
+                          "UserPreferencesShowFaxToGuestUsers": "@{body('Get_record')?['UserPreferencesShowFaxToGuestUsers']}",
+                          "UserPreferencesShowManagerToExternalUsers": "@{body('Get_record')?['UserPreferencesShowManagerToExternalUsers']}",
+                          "UserPreferencesShowManagerToGuestUsers": "@{body('Get_record')?['UserPreferencesShowManagerToGuestUsers']}",
+                          "UserPreferencesShowMobilePhoneToExternalUsers": "@{body('Get_record')?['UserPreferencesShowMobilePhoneToExternalUsers']}",
+                          "UserPreferencesShowMobilePhoneToGuestUsers": "@{body('Get_record')?['UserPreferencesShowMobilePhoneToGuestUsers']}",
+                          "UserPreferencesShowPostalCodeToExternalUsers": "@{body('Get_record')?['UserPreferencesShowPostalCodeToExternalUsers']}",
+                          "UserPreferencesShowPostalCodeToGuestUsers": "@{body('Get_record')?['UserPreferencesShowPostalCodeToGuestUsers']}",
+                          "UserPreferencesShowProfilePicToGuestUsers": "@{body('Get_record')?['UserPreferencesShowProfilePicToGuestUsers']}",
+                          "UserPreferencesShowStateToExternalUsers": "@{body('Get_record')?['UserPreferencesShowStateToExternalUsers']}",
+                          "UserPreferencesShowStateToGuestUsers": "@{body('Get_record')?['UserPreferencesShowStateToGuestUsers']}",
+                          "UserPreferencesShowStreetAddressToExternalUsers": "@{body('Get_record')?['UserPreferencesShowStreetAddressToExternalUsers']}",
+                          "UserPreferencesShowStreetAddressToGuestUsers": "@{body('Get_record')?['UserPreferencesShowStreetAddressToGuestUsers']}",
+                          "UserPreferencesShowTitleToExternalUsers": "@{body('Get_record')?['UserPreferencesShowTitleToExternalUsers']}",
+                          "UserPreferencesShowTitleToGuestUsers": "@{body('Get_record')?['UserPreferencesShowTitleToGuestUsers']}",
+                          "UserPreferencesShowWorkPhoneToExternalUsers": "@{body('Get_record')?['UserPreferencesShowWorkPhoneToExternalUsers']}",
+                          "UserPreferencesShowWorkPhoneToGuestUsers": "@{body('Get_record')?['UserPreferencesShowWorkPhoneToGuestUsers']}",
+                          "UserPreferencesSortFeedByComment": "@{body('Get_record')?['UserPreferencesSortFeedByComment']}",
+                          "UserPreferencesSuppressTaskSFXReminders": "@{body('Get_record')?['UserPreferencesSuppressTaskSFXReminders']}",
+                          "UserPreferencesTaskRemindersCheckboxDefault": "@{body('Get_record')?['UserPreferencesTaskRemindersCheckboxDefault']}",
+                          "UserPreferencesUserDebugModePref": "@{body('Get_record')?['UserPreferencesUserDebugModePref']}",
+                          "UserRoleId": "@{body('Get_record')?['UserRoleId']}",
+                          "UserType": "@{body('Get_record')?['UserType']}",
+                          "Username": "@{body('Get_record')?['Username']}",
+                          "copado__API_URL__c": "@{body('Get_record')?['copado__API_URL__c']}",
+                          "copado__Hide_Copado_feedback__c": "@{body('Get_record')?['copado__Hide_Copado_feedback__c']}",
+                          "copado__Show_Copado_Tips__c": "@{body('Get_record')?['copado__Show_Copado_Tips__c']}",
+                          "copado__Work_Manager_Panels__c": "@{body('Get_record')?['copado__Work_Manager_Panels__c']}"
+                        },
+                        "runAfter": {
+                          "Get_record": [
+                            "Succeeded"
+                          ]
+                        },
+                        "runtimeConfiguration": {
+                          "secureData": {
+                            "properties": [
+                              "inputs"
+                            ]
+                          }
+                        },
+                        "type": "Compose"
+                      },
+                      "Get_record": {
+                        "inputs": {
+                          "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('User'))}/items/@{encodeURIComponent(encodeURIComponent(outputs('Compose')))}",
+                          "host": {
+                            "connection": {
+                              "referenceName": "salesForceConnection"
+                            }
+                          },
+                          "method": "get"
+                        },
+                        "runAfter": {
+                          "Compose": [
+                            "Succeeded"
+                          ]
+                        },
+                        "runtimeConfiguration": {
+                          "secureData": {
+                            "properties": [
+                              "inputs",
+                              "outputs"
+                            ]
+                          }
+                        },
+                        "type": "ApiConnection"
+                      }
+                    },
+                    "foreach": "@body('Execute_a_SOQL_query')['records']",
+                    "runAfter": {
+                      "Execute_a_SOQL_query": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Foreach"
+                  },
+                  "Replace_eq_with_=": {
+                    "inputs": "@replace(variables('finalWhereClause'),' eq ','=')",
+                    "runAfter": {},
+                    "runtimeConfiguration": {
+                      "secureData": {
+                        "properties": [
+                          "inputs"
+                        ]
+                      }
+                    },
+                    "type": "Compose"
+                  },
+                  "Set_Response1": {
+                    "inputs": {
+                      "name": "Response",
+                      "value": "@{concat('{\"User\":',outputs('Compose_2'),'}')}"
+                    },
+                    "runAfter": {
+                      "Compose_2": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "SetVariable"
+                  },
+                  "Set_variable": {
+                    "inputs": {
+                      "name": "whereClause",
+                      "value": "@{replace(outputs('Replace_eq_with_='),'*','%')}"
+                    },
+                    "runAfter": {
+                      "Replace_eq_with_=": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "SetVariable"
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Response_2": {
+                      "inputs": {
+                        "body": "Not Found",
+                        "statusCode": 404
+                      },
+                      "kind": "Http",
+                      "runAfter": {},
+                      "runtimeConfiguration": {
+                        "secureData": {
+                          "properties": [
+                            "inputs"
+                          ]
+                        }
+                      },
+                      "type": "Response"
+                    }
+                  }
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "not": {
+                        "equals": [
+                          "@variables('finalWhereClause')",
+                          ""
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "runAfter": {},
+                "type": "If"
+              }
+            },
+            "else": {
+              "actions": {
+                "Condition__-_check_finalWhereClause": {
+                  "actions": {
+                    "Compose_Response1": {
+                      "inputs": "@if(equals(variables('Response'),''),outputs('Compose_Response'),concat(variables('Response'),',',outputs('Compose_Response')))",
+                      "runAfter": {
+                        "For_each": [
+                          "Succeeded"
+                        ]
+                      },
+                      "runtimeConfiguration": {
+                        "secureData": {
+                          "properties": [
+                            "inputs"
+                          ]
+                        }
+                      },
+                      "type": "Compose"
+                    },
+                    "Condition": {
+                      "actions": {
+                        "Final_Response": {
+                          "inputs": {
+                            "body": "@json(outputs('Replace1'))",
+                            "statusCode": 200
+                          },
+                          "kind": "Http",
+                          "runAfter": {
+                            "Replace1": [
+                              "Succeeded"
+                            ]
+                          },
+                          "runtimeConfiguration": {
+                            "secureData": {
+                              "properties": [
+                                "inputs"
+                              ]
+                            }
+                          },
+                          "type": "Response"
+                        },
+                        "Replace1": {
+                          "inputs": "@replace(replace(replace(variables('Response'),'\"\"','null'), '\"False\"', '\"false\"'), '\"True\"', '\"true\"')",
+                          "runAfter": {},
+                          "runtimeConfiguration": {
+                            "secureData": {
+                              "properties": [
+                                "inputs"
+                              ]
+                            }
+                          },
+                          "type": "Compose"
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Empty_Response": {
+                            "inputs": {
+                              "body": "No Results found with given inputs",
+                              "statusCode": 200
+                            },
+                            "kind": "Http",
+                            "runAfter": {},
+                            "runtimeConfiguration": {
+                              "secureData": {
+                                "properties": [
+                                  "inputs"
+                                ]
+                              }
+                            },
+                            "type": "Response"
+                          }
+                        }
+                      },
+                      "expression": {
+                        "and": [
+                          {
+                            "not": {
+                              "equals": [
+                                "@variables('Response')",
+                                "@string('{\"User\":}')"
+                              ]
+                            }
+                          }
+                        ]
+                      },
+                      "runAfter": {
+                        "Set_Response_variable": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "If"
+                    },
+                    "For_each": {
+                      "actions": {
+                        "Compose_Response": {
+                          "inputs": {
+                            "AboutMe": "@{items('For_each')['AboutMe']}",
+                            "AccountId": "@{items('For_each')['AccountId']}",
+                            "Alias": "@{items('For_each')['Alias']}",
+                            "BadgeText": "@{items('For_each')['BadgeText']}",
+                            "BannerPhotoUrl": "@{items('For_each')['BannerPhotoUrl']}",
+                            "CallCenterId": "@{items('For_each')['CallCenterId']}",
+                            "City": "@{items('For_each')['City']}",
+                            "CommunityNickname": "@{items('For_each')['CommunityNickname']}",
+                            "CompanyName": "@{items('For_each')['CompanyName']}",
+                            "ContactId": "@{items('For_each')['ContactId']}",
+                            "Country": "@{items('For_each')['Country']}",
+                            "CountryCode": "@{items('For_each')['CountryCode']}",
+                            "CreatedById": "@{items('For_each')['CreatedById']}",
+                            "CreatedDate": "@{items('For_each')['CreatedDate']}",
+                            "CurrencyIsoCode": "@{items('For_each')['CurrencyIsoCode']}",
+                            "DefaultCurrencyIsoCode": "@{items('For_each')['DefaultCurrencyIsoCode']}",
+                            "DefaultGroupNotificationFrequency": "@{items('For_each')['DefaultGroupNotificationFrequency']}",
+                            "DelegatedApproverId": "@{items('For_each')['DelegatedApproverId']}",
+                            "Department": "@{items('For_each')['Department']}",
+                            "DigestFrequency": "@{items('For_each')['DigestFrequency']}",
+                            "Division": "@{items('For_each')['Division']}",
+                            "Email": "@{items('For_each')['Email']}",
+                            "EmailEncodingKey": "@{items('For_each')['EmailEncodingKey']}",
+                            "EmailPreferencesAutoBcc": "@{items('For_each')['EmailPreferencesAutoBcc']}",
+                            "EmailPreferencesAutoBccStayInTouch": "@{items('For_each')['EmailPreferencesAutoBccStayInTouch']}",
+                            "EmailPreferencesStayInTouchReminder": "@{items('For_each')['EmailPreferencesStayInTouchReminder']}",
+                            "EmployeeNumber": "@{items('For_each')['EmployeeNumber']}",
+                            "Extension": "@{items('For_each')['Extension']}",
+                            "Fax": "@{items('For_each')['Fax']}",
+                            "FederationIdentifier": "@{items('For_each')['FederationIdentifier']}",
+                            "FirstName": "@{items('For_each')['FirstName']}",
+                            "ForecastEnabled": "@{items('For_each')['ForecastEnabled']}",
+                            "FullPhotoUrl": "@{items('For_each')['FullPhotoUrl']}",
+                            "Id": "@{items('For_each')['Id']}",
+                            "IndividualId": "@{items('For_each')['IndividualId']}",
+                            "IsActive": "@{items('For_each')['IsActive']}",
+                            "IsExtIndicatorVisible": "@{items('For_each')['IsExtIndicatorVisible']}",
+                            "IsPortalEnabled": "@{items('For_each')['IsPortalEnabled']}",
+                            "IsProfilePhotoActive": "@{items('For_each')['IsProfilePhotoActive']}",
+                            "LanguageLocaleKey": "@{items('For_each')['LanguageLocaleKey']}",
+                            "LastLoginDate": "@{items('For_each')['LastLoginDate']}",
+                            "LastModifiedById": "@{items('For_each')['LastModifiedById']}",
+                            "LastModifiedDate": "@{items('For_each')['LastModifiedDate']}",
+                            "LastName": "@{items('For_each')['LastName']}",
+                            "LastPasswordChangeDate": "@{items('For_each')['LastPasswordChangeDate']}",
+                            "LastReferencedDate": "@{items('For_each')['LastReferencedDate']}",
+                            "LastViewedDate": "@{items('For_each')['LastViewedDate']}",
+                            "LocaleSidKey": "@{items('For_each')['LocaleSidKey']}",
+                            "Longitude": "@items('For_each')['Longitude']",
+                            "ManagerId": "@{items('For_each')['ManagerId']}",
+                            "MediumBannerPhotoUrl": "@{items('For_each')['MediumBannerPhotoUrl']}",
+                            "MediumPhotoUrl": "@{items('For_each')['MediumPhotoUrl']}",
+                            "MiddleName": "@{items('For_each')['MiddleName']}",
+                            "MobilePhone": "@{items('For_each')['MobilePhone']}",
+                            "Name": "@{items('For_each')['Name']}",
+                            "OfflinePdaTrialExpirationDate": "@{items('For_each')['OfflinePdaTrialExpirationDate']}",
+                            "OfflineTrialExpirationDate": "@{items('For_each')['OfflineTrialExpirationDate']}",
+                            "OutOfOfficeMessage": "@{items('For_each')['OutOfOfficeMessage']}",
+                            "Phone": "@{items('For_each')['Phone']}",
+                            "PortalRole": "@{items('For_each')['PortalRole']}",
+                            "PostalCode": "@{items('For_each')['PostalCode']}",
+                            "ProfileId": "@{items('For_each')['ProfileId']}",
+                            "ReceivesAdminInfoEmails": "@{items('For_each')['ReceivesAdminInfoEmails']}",
+                            "ReceivesInfoEmails": "@{items('For_each')['ReceivesInfoEmails']}",
+                            "S4SARE__c": "@{items('For_each')['S4SARE__c']}",
+                            "S4SBusiness_Segment__c": "@{items('For_each')['S4SBusiness_Segment__c']}",
+                            "S4SBusiness_SubSegment__c": "@{items('For_each')['S4SBusiness_SubSegment__c']}",
+                            "S4SBusiness_Unit__c": "@{items('For_each')['S4SBusiness_Unit__c']}",
+                            "S4SCompany__c": "@{items('For_each')['S4SCompany__c']}",
+                            "S4SCost_Center__c": "@{items('For_each')['S4SCost_Center__c']}",
+                            "S4SDepartment__c": "@{items('For_each')['S4SDepartment__c']}",
+                            "S4SDirX_Email__c": "@{items('For_each')['S4SDirX_Email__c']}",
+                            "S4SDirX_Origin__c": "@{items('For_each')['S4SDirX_Origin__c']}",
+                            "S4SDivision_Territory__c": "@{items('For_each')['S4SDivision_Territory__c']}",
+                            "S4SEmailChangedDate__c": "@{items('For_each')['S4SEmailChangedDate__c']}",
+                            "S4SFirst_Name_int__c": "@{items('For_each')['S4SFirst_Name_int__c']}",
+                            "S4SGCK__c": "@{items('For_each')['S4SGCK__c']}",
+                            "S4SGID_Technical__c": "@{items('For_each')['S4SGID_Technical__c']}",
+                            "S4SGID__c": "@{items('For_each')['S4SGID__c']}",
+                            "S4SIsUserUpdated__c": "@{items('For_each')['S4SIsUserUpdated__c']}",
+                            "S4SLast_Name_int__c": "@{items('For_each')['S4SLast_Name_int__c']}",
+                            "S4SLead_Country__c": "@{items('For_each')['S4SLead_Country__c']}",
+                            "S4SLocation__c": "@{items('For_each')['S4SLocation__c']}",
+                            "S4SManager_SCD_Technical__c": "@{items('For_each')['S4SManager_SCD_Technical__c']}",
+                            "S4SManager_SCD__c": "@{items('For_each')['S4SManager_SCD__c']}",
+                            "S4SOperations_Manager__c": "@{items('For_each')['S4SOperations_Manager__c']}",
+                            "S4SOrgUnit_SCD__c": "@{items('For_each')['S4SOrgUnit_SCD__c']}",
+                            "S4SOrg_ID__c": "@{items('For_each')['S4SOrg_ID__c']}",
+                            "S4SPrimary__c": "@{items('For_each')['S4SPrimary__c']}",
+                            "S4SRelated_User_DirX__c": "@{items('For_each')['S4SRelated_User_DirX__c']}",
+                            "S4SSCD_Status__c": "@{items('For_each')['S4SSCD_Status__c']}",
+                            "S4SSales_Branch__c": "@{items('For_each')['S4SSales_Branch__c']}",
+                            "S4SSales_Department__c": "@{items('For_each')['S4SSales_Department__c']}",
+                            "S4SSales_District__c": "@{items('For_each')['S4SSales_District__c']}",
+                            "S4SSales_Manager_Email__c": "@{items('For_each')['S4SSales_Manager_Email__c']}",
+                            "S4SSales_Office__c": "@{items('For_each')['S4SSales_Office__c']}",
+                            "S4SSales_SubRegion__c": "@{items('For_each')['S4SSales_SubRegion__c']}",
+                            "S4SSales_Territory__c": "@{items('For_each')['S4SSales_Territory__c']}",
+                            "S4SSalutation__c": "@{items('For_each')['S4SSalutation__c']}",
+                            "S4SSiemens_Territory_Structure_Name__c": "@{items('For_each')['S4SSiemens_Territory_Structure_Name__c']}",
+                            "S4SSiemens_Territory_Structure__c": "@{items('For_each')['S4SSiemens_Territory_Structure__c']}",
+                            "S4SSingle_Sign_On_Only__c": "@{items('For_each')['S4SSingle_Sign_On_Only__c']}",
+                            "S4SSponsor_SCD_Technical__c": "@{items('For_each')['S4SSponsor_SCD_Technical__c']}",
+                            "S4SSponsor_SCD__c": "@{items('For_each')['S4SSponsor_SCD__c']}",
+                            "S4SSurname__c": "@{items('For_each')['S4SSurname__c']}",
+                            "S4SUser_s_Country__c": "@{items('For_each')['S4SUser_s_Country__c']}",
+                            "S4SUser_s_Division__c": "@{items('For_each')['S4SUser_s_Division__c']}",
+                            "SenderEmail": "@{items('For_each')['SenderEmail']}",
+                            "SenderName": "@{items('For_each')['SenderName']}",
+                            "Signature": "@{items('For_each')['Signature']}",
+                            "SmallBannerPhotoUrl": "@{items('For_each')['SmallBannerPhotoUrl']}",
+                            "SmallPhotoUrl": "@{items('For_each')['SmallPhotoUrl']}",
+                            "State": "@{items('For_each')['State']}",
+                            "StateCode": "@{items('For_each')['StateCode']}",
+                            "StayInTouchNote": "@{items('For_each')['StayInTouchNote']}",
+                            "StayInTouchSignature": "@{items('For_each')['StayInTouchSignature']}",
+                            "StayInTouchSubject": "@{items('For_each')['StayInTouchSubject']}",
+                            "Street": "@{items('For_each')['Street']}",
+                            "Suffix": "@{items('For_each')['Suffix']}",
+                            "SystemModstamp": "@{items('For_each')['SystemModstamp']}",
+                            "TimeZoneSidKey": "@{items('For_each')['TimeZoneSidKey']}",
+                            "Title": "@{items('For_each')['Title']}",
+                            "UserPermissionsAvantgoUser": "@{items('For_each')['UserPermissionsAvantgoUser']}",
+                            "UserPermissionsCallCenterAutoLogin": "@{items('For_each')['UserPermissionsCallCenterAutoLogin']}",
+                            "UserPermissionsInteractionUser": "@{items('For_each')['UserPermissionsInteractionUser']}",
+                            "UserPermissionsKnowledgeUser": "@{items('For_each')['UserPermissionsKnowledgeUser']}",
+                            "UserPermissionsMarketingUser": "@{items('For_each')['UserPermissionsMarketingUser']}",
+                            "UserPermissionsMobileUser": "@{items('For_each')['UserPermissionsMobileUser']}",
+                            "UserPermissionsOfflineUser": "@{items('For_each')['UserPermissionsOfflineUser']}",
+                            "UserPermissionsSFContentUser": "@{items('For_each')['UserPermissionsSFContentUser']}",
+                            "UserPermissionsSupportUser": "@{items('For_each')['UserPermissionsSupportUser']}",
+                            "UserPreferencesActivityRemindersPopup": "@{items('For_each')['UserPreferencesActivityRemindersPopup']}",
+                            "UserPreferencesApexPagesDeveloperMode": "@{items('For_each')['UserPreferencesApexPagesDeveloperMode']}",
+                            "UserPreferencesCacheDiagnostics": "@{items('For_each')['UserPreferencesCacheDiagnostics']}",
+                            "UserPreferencesContentEmailAsAndWhen": "@{items('For_each')['UserPreferencesContentEmailAsAndWhen']}",
+                            "UserPreferencesContentNoEmail": "@{items('For_each')['UserPreferencesContentNoEmail']}",
+                            "UserPreferencesCreateLEXAppsWTShown": "@{items('For_each')['UserPreferencesCreateLEXAppsWTShown']}",
+                            "UserPreferencesDisCommentAfterLikeEmail": "@{items('For_each')['UserPreferencesDisCommentAfterLikeEmail']}",
+                            "UserPreferencesDisMentionsCommentEmail": "@{items('For_each')['UserPreferencesDisMentionsCommentEmail']}",
+                            "UserPreferencesDisProfPostCommentEmail": "@{items('For_each')['UserPreferencesDisProfPostCommentEmail']}",
+                            "UserPreferencesDisableAllFeedsEmail": "@{items('For_each')['UserPreferencesDisableAllFeedsEmail']}",
+                            "UserPreferencesDisableBookmarkEmail": "@{items('For_each')['UserPreferencesDisableBookmarkEmail']}",
+                            "UserPreferencesDisableChangeCommentEmail": "@{items('For_each')['UserPreferencesDisableChangeCommentEmail']}",
+                            "UserPreferencesDisableEndorsementEmail": "@{items('For_each')['UserPreferencesDisableEndorsementEmail']}",
+                            "UserPreferencesDisableFileShareNotificationsForApi": "@{items('For_each')['UserPreferencesDisableFileShareNotificationsForApi']}",
+                            "UserPreferencesDisableFollowersEmail": "@{items('For_each')['UserPreferencesDisableFollowersEmail']}",
+                            "UserPreferencesDisableLaterCommentEmail": "@{items('For_each')['UserPreferencesDisableLaterCommentEmail']}",
+                            "UserPreferencesDisableLikeEmail": "@{items('For_each')['UserPreferencesDisableLikeEmail']}",
+                            "UserPreferencesDisableMentionsPostEmail": "@{items('For_each')['UserPreferencesDisableMentionsPostEmail']}",
+                            "UserPreferencesDisableMessageEmail": "@{items('For_each')['UserPreferencesDisableMessageEmail']}",
+                            "UserPreferencesDisableProfilePostEmail": "@{items('For_each')['UserPreferencesDisableProfilePostEmail']}",
+                            "UserPreferencesDisableSharePostEmail": "@{items('For_each')['UserPreferencesDisableSharePostEmail']}",
+                            "UserPreferencesEnableAutoSubForFeeds": "@{items('For_each')['UserPreferencesEnableAutoSubForFeeds']}",
+                            "UserPreferencesEventRemindersCheckboxDefault": "@{items('For_each')['UserPreferencesEventRemindersCheckboxDefault']}",
+                            "UserPreferencesExcludeMailAppAttachments": "@{items('For_each')['UserPreferencesExcludeMailAppAttachments']}",
+                            "UserPreferencesFavoritesShowTopFavorites": "@{items('For_each')['UserPreferencesFavoritesShowTopFavorites']}",
+                            "UserPreferencesFavoritesWTShown": "@{items('For_each')['UserPreferencesFavoritesWTShown']}",
+                            "UserPreferencesGlobalNavBarWTShown": "@{items('For_each')['UserPreferencesGlobalNavBarWTShown']}",
+                            "UserPreferencesGlobalNavGridMenuWTShown": "@{items('For_each')['UserPreferencesGlobalNavGridMenuWTShown']}",
+                            "UserPreferencesHasCelebrationBadge": "@{items('For_each')['UserPreferencesHasCelebrationBadge']}",
+                            "UserPreferencesHideBiggerPhotoCallout": "@{items('For_each')['UserPreferencesHideBiggerPhotoCallout']}",
+                            "UserPreferencesHideCSNDesktopTask": "@{items('For_each')['UserPreferencesHideCSNDesktopTask']}",
+                            "UserPreferencesHideCSNGetChatterMobileTask": "@{items('For_each')['UserPreferencesHideCSNGetChatterMobileTask']}",
+                            "UserPreferencesHideChatterOnboardingSplash": "@{items('For_each')['UserPreferencesHideChatterOnboardingSplash']}",
+                            "UserPreferencesHideEndUserOnboardingAssistantModal": "@{items('For_each')['UserPreferencesHideEndUserOnboardingAssistantModal']}",
+                            "UserPreferencesHideLightningMigrationModal": "@{items('For_each')['UserPreferencesHideLightningMigrationModal']}",
+                            "UserPreferencesHideS1BrowserUI": "@{items('For_each')['UserPreferencesHideS1BrowserUI']}",
+                            "UserPreferencesHideSecondChatterOnboardingSplash": "@{items('For_each')['UserPreferencesHideSecondChatterOnboardingSplash']}",
+                            "UserPreferencesHideSfxWelcomeMat": "@{items('For_each')['UserPreferencesHideSfxWelcomeMat']}",
+                            "UserPreferencesLightningExperiencePreferred": "@{items('For_each')['UserPreferencesLightningExperiencePreferred']}",
+                            "UserPreferencesNewLightningReportRunPageEnabled": "@{items('For_each')['UserPreferencesNewLightningReportRunPageEnabled']}",
+                            "UserPreferencesPathAssistantCollapsed": "@{items('For_each')['UserPreferencesPathAssistantCollapsed']}",
+                            "UserPreferencesPipelineViewHideHelpPopover": "@{items('For_each')['UserPreferencesPipelineViewHideHelpPopover']}",
+                            "UserPreferencesPreviewCustomTheme": "@{items('For_each')['UserPreferencesPreviewCustomTheme']}",
+                            "UserPreferencesPreviewLightning": "@{items('For_each')['UserPreferencesPreviewLightning']}",
+                            "UserPreferencesRecordHomeReservedWTShown": "@{items('For_each')['UserPreferencesRecordHomeReservedWTShown']}",
+                            "UserPreferencesRecordHomeSectionCollapseWTShown": "@{items('For_each')['UserPreferencesRecordHomeSectionCollapseWTShown']}",
+                            "UserPreferencesReminderSoundOff": "@{items('For_each')['UserPreferencesReminderSoundOff']}",
+                            "UserPreferencesShowCityToExternalUsers": "@{items('For_each')['UserPreferencesShowCityToExternalUsers']}",
+                            "UserPreferencesShowCityToGuestUsers": "@{items('For_each')['UserPreferencesShowCityToGuestUsers']}",
+                            "UserPreferencesShowCountryToExternalUsers": "@{items('For_each')['UserPreferencesShowCountryToExternalUsers']}",
+                            "UserPreferencesShowCountryToGuestUsers": "@{items('For_each')['UserPreferencesShowCountryToGuestUsers']}",
+                            "UserPreferencesShowEmailToExternalUsers": "@{items('For_each')['UserPreferencesShowEmailToExternalUsers']}",
+                            "UserPreferencesShowEmailToGuestUsers": "@{items('For_each')['UserPreferencesShowEmailToGuestUsers']}",
+                            "UserPreferencesShowFaxToExternalUsers": "@{items('For_each')['UserPreferencesShowFaxToExternalUsers']}",
+                            "UserPreferencesShowFaxToGuestUsers": "@{items('For_each')['UserPreferencesShowFaxToGuestUsers']}",
+                            "UserPreferencesShowManagerToExternalUsers": "@{items('For_each')['UserPreferencesShowManagerToExternalUsers']}",
+                            "UserPreferencesShowManagerToGuestUsers": "@{items('For_each')['UserPreferencesShowManagerToGuestUsers']}",
+                            "UserPreferencesShowMobilePhoneToExternalUsers": "@{items('For_each')['UserPreferencesShowMobilePhoneToExternalUsers']}",
+                            "UserPreferencesShowMobilePhoneToGuestUsers": "@{items('For_each')['UserPreferencesShowMobilePhoneToGuestUsers']}",
+                            "UserPreferencesShowPostalCodeToExternalUsers": "@{items('For_each')['UserPreferencesShowPostalCodeToExternalUsers']}",
+                            "UserPreferencesShowPostalCodeToGuestUsers": "@{items('For_each')['UserPreferencesShowPostalCodeToGuestUsers']}",
+                            "UserPreferencesShowProfilePicToGuestUsers": "@{items('For_each')['UserPreferencesShowProfilePicToGuestUsers']}",
+                            "UserPreferencesShowStateToExternalUsers": "@{items('For_each')['UserPreferencesShowStateToExternalUsers']}",
+                            "UserPreferencesShowStateToGuestUsers": "@{items('For_each')['UserPreferencesShowStateToGuestUsers']}",
+                            "UserPreferencesShowStreetAddressToExternalUsers": "@{items('For_each')['UserPreferencesShowStreetAddressToExternalUsers']}",
+                            "UserPreferencesShowStreetAddressToGuestUsers": "@{items('For_each')['UserPreferencesShowStreetAddressToGuestUsers']}",
+                            "UserPreferencesShowTitleToExternalUsers": "@{items('For_each')['UserPreferencesShowTitleToExternalUsers']}",
+                            "UserPreferencesShowTitleToGuestUsers": "@{items('For_each')['UserPreferencesShowTitleToGuestUsers']}",
+                            "UserPreferencesShowWorkPhoneToExternalUsers": "@{items('For_each')['UserPreferencesShowWorkPhoneToExternalUsers']}",
+                            "UserPreferencesShowWorkPhoneToGuestUsers": "@{items('For_each')['UserPreferencesShowWorkPhoneToGuestUsers']}",
+                            "UserPreferencesSortFeedByComment": "@{items('For_each')['UserPreferencesSortFeedByComment']}",
+                            "UserPreferencesSuppressTaskSFXReminders": "@{items('For_each')['UserPreferencesSuppressTaskSFXReminders']}",
+                            "UserPreferencesTaskRemindersCheckboxDefault": "@{items('For_each')['UserPreferencesTaskRemindersCheckboxDefault']}",
+                            "UserPreferencesUserDebugModePref": "@{items('For_each')['UserPreferencesUserDebugModePref']}",
+                            "UserRoleId": "@{items('For_each')['UserRoleId']}",
+                            "UserType": "@{items('For_each')['UserType']}",
+                            "Username": "@{items('For_each')['Username']}",
+                            "copado__API_URL__c": "@{items('For_each')['copado__API_URL__c']}",
+                            "copado__Hide_Copado_feedback__c": "@{items('For_each')['copado__Hide_Copado_feedback__c']}",
+                            "copado__Show_Copado_Tips__c": "@{items('For_each')['copado__Show_Copado_Tips__c']}",
+                            "copado__Work_Manager_Panels__c": "@{items('For_each')['copado__Work_Manager_Panels__c']}"
+                          },
+                          "runAfter": {},
+                          "runtimeConfiguration": {
+                            "secureData": {
+                              "properties": [
+                                "inputs"
+                              ]
+                            }
+                          },
+                          "type": "Compose"
+                        }
+                      },
+                      "foreach": "@body('User')?['value']",
+                      "runAfter": {
+                        "User": [
+                          "Succeeded"
+                        ]
+                      },
+                      "runtimeConfiguration": {
+                        "concurrency": {
+                          "repetitions": 1
+                        }
+                      },
+                      "type": "Foreach"
+                    },
+                    "Replace_in_finalWhereClause": {
+                      "inputs": {
+                        "name": "whereClause",
+                        "value": "@{replace(variables('finalWhereClause'),'*','%')}"
+                      },
+                      "runAfter": {},
+                      "type": "SetVariable"
+                    },
+                    "Set_Response_variable": {
+                      "inputs": {
+                        "name": "Response",
+                        "value": "@{concat('{\"User\":',outputs('Compose_Response1'),'}')}"
+                      },
+                      "runAfter": {
+                        "Compose_Response1": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "SetVariable"
+                    },
+                    "Terminate_3": {
+                      "inputs": {
+                        "runStatus": "Succeeded"
+                      },
+                      "runAfter": {
+                        "Condition": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "Terminate"
+                    },
+                    "User": {
+                      "inputs": {
+                        "queries": {
+                          "$filter": "@variables('whereClause')",
+                          "$top": 200
+                        },
+                        "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('User'))}/items",
+                        "host": {
+                          "connection": {
+                            "referenceName": "salesForceConnection"
+                          }
+                        },
+                        "method": "get"
+                      },
+                      "runAfter": {
+                        "Replace_in_finalWhereClause": [
+                          "Succeeded"
+                        ]
+                      },
+                      "runtimeConfiguration": {
+                        "secureData": {
+                          "properties": [
+                            "inputs",
+                            "outputs"
+                          ]
+                        }
+                      },
+                      "type": "ApiConnection"
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Error_Response": {
+                        "inputs": {
+                          "body": "Not Found",
+                          "statusCode": 404
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                        "runtimeConfiguration": {
+                          "secureData": {
+                            "properties": [
+                              "inputs"
+                            ]
+                          }
+                        },
+                        "type": "Response"
+                      }
+                    }
+                  },
+                  "expression": {
+                    "and": [
+                      {
+                        "not": {
+                          "equals": [
+                            "@variables('finalWhereClause')",
+                            "@string('')"
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  "runAfter": {},
+                  "type": "If"
+                }
+              }
+            },
+            "expression": {
+              "and": [
+                {
+                  "equals": [
+                    "@variables('flag')",
+                    true
+                  ]
+                }
+              ]
+            },
+            "runAfter": {
+              "Set_flag_variable": [
+                "Succeeded"
+              ]
+            },
+            "type": "If"
+          }
+        },
+        "runAfter": {
+          "Initialize_LenOfTrimmedLastName": [
+            "Succeeded"
+          ],
+          "Initialize_Response": [
+            "Succeeded"
+          ],
+          "Initialize_finalWhereClause": [
+            "Succeeded"
+          ],
+          "Initialize_flag_variable": [
+            "Succeeded"
+          ],
+          "Initialize_variable_Email": [
+            "Succeeded"
+          ],
+          "Initialize_variable_FederationIdentifier": [
+            "Succeeded"
+          ],
+          "Initialize_variable_LastName": [
+            "Succeeded"
+          ],
+          "Initialize_variable_ManagerId": [
+            "Succeeded"
+          ],
+          "Initialize_variable_S4SSales_Manager_Email__c": [
+            "Succeeded"
+          ],
+          "Initialize_variable_SFDC_ID": [
+            "Succeeded"
+          ],
+          "Initialize_variable_WhereClause": [
+            "Succeeded"
+          ],
+          "logic-c00031-SFS_internal_sf4sLog-weu-dev": [
+            "Succeeded"
+          ]
+        },
+        "trackedProperties": {
+          "apimRouting": "external",
+          "citizenName": "c00031",
+          "correlationId": "not-defined",
+          "interfaceName": "SFS",
+          "interfacePartner": "not-defined",
+          "interfaceVersion": "not-defined",
+          "operationName": "WILL_SearchUser",
+          "parentWorkflow": "not-defined"
+        },
+        "type": "Scope"
+      },
+      "logic-c00031-SFS_internal_sf4sLog-weu-dev": {
+        "inputs": {
+          "host": {
+            "workflow": {
+              "id": "int_sf4sLog"
+            }
+          },
+          "body": {
+            "message": " @{triggerBody()} is the request  for logic app logic-c00031-SFS_Will_searchUser",
+            "severity": "INFO"
+          },
+          "headers": null
+        },
+        "runAfter": {},
+        "type": "Workflow"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {},
+        "kind": "Http",
+        "runtimeConfiguration": {
+          "secureData": {
+            "properties": [
+              "inputs",
+              "outputs"
+            ]
+          }
+        },
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

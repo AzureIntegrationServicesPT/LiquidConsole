@@ -1,0 +1,179 @@
+{
+  "managedApiConnections": {
+    "salesForceConnection": {
+      "api": {
+        "id": "/subscriptions/@appsetting('WORKFLOWS_SUBSCRIPTION_ID')/providers/Microsoft.Web/locations/westeurope/managedApis/salesforce"
+      },
+      "connection": {
+        "id": "/subscriptions/@appsetting('WORKFLOWS_SUBSCRIPTION_ID')/resourceGroups/@appsetting('WORKFLOWS_RESOURCE_GROUP_NAME')/providers/Microsoft.Web/connections/@appsetting('connectionName_nonsfs')"
+      },
+      "connectionRuntimeUrl": "@appsetting('runtimeUrl_nonsfs')",
+      "authentication": {
+        "type": "ManagedServiceIdentity"
+      }
+    },
+    "azurequeue": {
+      "api": {
+        "id": "/subscriptions/@appsetting('WORKFLOWS_SUBSCRIPTION_ID')/providers/Microsoft.Web/locations/westeurope/managedApis/azurequeues"
+      },
+      "authentication": {
+        "type": "ManagedServiceIdentity"
+      },
+      "connection": {
+        "id": "/subscriptions/@appsetting('WORKFLOWS_SUBSCRIPTION_ID')/resourceGroups/@appsetting('WORKFLOWS_RESOURCE_GROUP_NAME')/providers/Microsoft.Web/connections/@appsetting('connectionName_azurequeue')"
+      },
+      "connectionRuntimeUrl": "@appsetting('runtimeUrl_azurequeue')"
+    },
+    "nonsfs_log_connection": {
+      "api": {
+        "id": "/subscriptions/@appsetting('WORKFLOWS_SUBSCRIPTION_ID')/providers/Microsoft.Web/locations/westeurope/managedApis/azureloganalyticsdatacollector"
+      },
+      "authentication": {
+        "type": "ManagedServiceIdentity"
+      },
+      "connection": {
+        "id": "/subscriptions/@appsetting('WORKFLOWS_SUBSCRIPTION_ID')/resourceGroups/@appsetting('WORKFLOWS_RESOURCE_GROUP_NAME')/providers/Microsoft.Web/connections/@appsetting('log_connectionName_nonsfs')"
+      },
+      "connectionRuntimeUrl": "@appsetting('log_runtimeUrl_nonsfs')"
+    },
+    "azureblob": {
+      "api": {
+        "id": "/subscriptions/@appsetting('WORKFLOWS_SUBSCRIPTION_ID')/providers/Microsoft.Web/locations/westeurope/managedApis/azureblob"
+      },
+      "connection": {
+        "id": "/subscriptions/@appsetting('WORKFLOWS_SUBSCRIPTION_ID')/resourceGroups/@appsetting('WORKFLOWS_RESOURCE_GROUP_NAME')/providers/Microsoft.Web/connections/@appsetting('azureblob_v2_name')"
+      },
+      "connectionRuntimeUrl": "@appsetting('azureblob_v2_runtimeUrl')",
+      "authentication": {
+        "type": "ManagedServiceIdentity"
+      }
+    },
+    "azureblob_sftp": {
+      "api": {
+        "id": "/subscriptions/@appsetting('WORKFLOWS_SUBSCRIPTION_ID')/providers/Microsoft.Web/locations/westeurope/managedApis/azureblob"
+      },
+      "connection": {
+        "id": "/subscriptions/@appsetting('WORKFLOWS_SUBSCRIPTION_ID')/resourceGroups/@appsetting('WORKFLOWS_RESOURCE_GROUP_NAME')/providers/Microsoft.Web/connections/@appsetting('azureblob_v2_sftp_name')"
+      },
+      "connectionRuntimeUrl": "@appsetting('azureblob_v2_sftp_runtimeUrl')",
+      "authentication": {
+        "type": "ManagedServiceIdentity"
+      }
+    }
+  },
+  "serviceProviderConnections": {
+    "AzureBlob": {
+      "displayName": "AzureStorage",
+      "parameterValues": {
+        "connectionString": "@appsetting('AzureBlob_connectionString')"
+      },
+      "serviceProvider": {
+        "id": "/serviceProviders/AzureBlob"
+      }
+    },
+    "AzureStorageSFTP": {
+      "displayName": "AzureStorageSFTP",
+      "parameterSetName": "connectionString",
+      "parameterValues": {
+        "connectionString": "@appsetting('AzureBlobSFTP_connectionString')"
+      },
+      "serviceProvider": {
+        "id": "/serviceProviders/AzureBlob"
+      }
+    },
+    "AzureStorageUploadFile": {
+      "displayName": "AzureStorageUploadFile",
+      "parameterSetName": "connectionString",
+      "parameterValues": {
+        "connectionString": "@appsetting('AzureBlobUploadFile_connectionString')"
+      },
+      "serviceProvider": {
+        "id": "/serviceProviders/AzureBlob"
+      }
+    },
+    "AzureQueues": {
+      "displayName": "AzureQueues",
+      "parameterSetName": "connectionString",
+      "parameterValues": {
+        "connectionString": "@appsetting('AzureBlobUploadFile_connectionString')"
+      },
+      "serviceProvider": {
+        "id": "/serviceProviders/azurequeues"
+      }
+    }
+  },
+  "functionConnections": {
+    "QueryBuilderFunc": {
+      "function": {
+        "id": "/subscriptions/@appsetting('WORKFLOWS_SUBSCRIPTION_ID')/resourceGroups/@appsetting('WORKFLOWS_RESOURCE_GROUP_NAME')/providers/Microsoft.Web/sites/@appsetting('functionAppName')/functions/QueryBuilder"
+      },
+      "triggerUrl": "@appsetting('functionAppUrl_queryBuilder')",
+      "authentication": {
+        "type": "QueryString",
+        "name": "Code",
+        "value": "@appsetting('functionAppKey')"
+      },
+      "displayName": "QueryBuilder"
+    },
+    "CSVToJSONParser": {
+      "authentication": {
+        "name": "Code",
+        "type": "QueryString",
+        "value": "@appsetting('functionAppKey')"
+      },
+      "displayName": "CSVToJSONParser",
+      "function": {
+        "id": "/subscriptions/@appsetting('WORKFLOWS_SUBSCRIPTION_ID')/resourceGroups/@appsetting('WORKFLOWS_RESOURCE_GROUP_NAME')/providers/Microsoft.Web/sites/@appsetting('functionAppName')/functions/CSVToJSONParser"
+      },
+      "triggerUrl": "@appsetting('functionAppUrl_csvTojsonParser')"
+    },
+    "XsltTransformFunc": {
+      "function": {
+        "id": "/subscriptions/@appsetting('WORKFLOWS_SUBSCRIPTION_ID')/resourceGroups/@appsetting('WORKFLOWS_RESOURCE_GROUP_NAME')/providers/Microsoft.Web/sites/@appsetting('functionAppName')/functions/XsltTransform"
+      },
+      "triggerUrl": "@appsetting('functionAppUrl_xsltTransform')",
+      "authentication": {
+        "type": "QueryString",
+        "name": "Code",
+        "value": "@appsetting('functionAppKey')"
+      },
+      "displayName": "XsltTransform"
+    },
+    "JsonRemoveNullOrEmptyFunc": {
+      "function": {
+        "id": "/subscriptions/@appsetting('WORKFLOWS_SUBSCRIPTION_ID')/resourceGroups/@appsetting('WORKFLOWS_RESOURCE_GROUP_NAME')/providers/Microsoft.Web/sites/@appsetting('functionAppName')/functions/JsonRemoveNullOrEmptyFunc"
+      },
+      "triggerUrl": "@appsetting('functionAppUrl_jsonRemoveNullOrEmpty')",
+      "authentication": {
+        "type": "QueryString",
+        "name": "Code",
+        "value": "@appsetting('functionAppKey')"
+      },
+      "displayName": "JsonRemoveNullOrEmpty"
+    },
+    "Liquid": {
+      "function": {
+        "id": "/subscriptions/@appsetting('WORKFLOWS_SUBSCRIPTION_ID')/resourceGroups/@appsetting('WORKFLOWS_RESOURCE_GROUP_NAME')/providers/Microsoft.Web/sites/@appsetting('frameworkAppName')/functions/LiquidTransformer"
+      },
+      "triggerUrl": "@appsetting('functionAppUrl_liquidtransformer')",
+      "authentication": {
+        "type": "QueryString",
+        "name": "Code",
+        "value": "@appsetting('frameworkAppKey')"
+      },
+      "displayName": "Liquid"
+    },
+    "BlobToZipConverterFunction": {
+      "function": {
+        "id": "/subscriptions/@appsetting('WORKFLOWS_SUBSCRIPTION_ID')/resourceGroups/@appsetting('WORKFLOWS_RESOURCE_GROUP_NAME')/providers/Microsoft.Web/sites/@appsetting('functionAppName')/functions/BlobToZipConverterFunction"
+      },
+      "triggerUrl": "@appsetting('functionAppUrl_BlobToZipConverterFunction')",
+      "authentication": {
+        "type": "QueryString",
+        "name": "Code",
+        "value": "@appsetting('functionAppKey')"
+      },
+      "displayName": "BlobToZipConverterFunction"
+    }
+  }
+}

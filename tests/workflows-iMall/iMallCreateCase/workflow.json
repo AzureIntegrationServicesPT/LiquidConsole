@@ -1,0 +1,774 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Scope-Catch": {
+        "actions": {
+          "Send_Error_Response": {
+            "inputs": {
+              "statusCode": 500
+            },
+            "kind": "Http",
+            "runAfter": {},
+            "type": "Response"
+          }
+        },
+        "runAfter": {
+          "Scope-Try": [
+            "Failed",
+            "Skipped",
+            "TimedOut"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Scope-Try": {
+        "actions": {
+          "Condition_if_case_data_exists": {
+            "actions": {
+              "Check_If_Account_present": {
+                "actions": {
+                  "Check_If_request_has_attachments": {
+                    "actions": {
+                      "For_each": {
+                        "actions": {
+                          "Create_Content_Document_Link": {
+                            "inputs": {
+                              "body": {
+                                "ContentDocumentId": "@{body('Fetch_ContentDocumentId')?['records']?[0]?['ContentDocumentId']\r\n}",
+                                "LinkedEntityId": "@{actions('Create_Case').outputs.body.id}",
+                                "ShareType": "I",
+                                "Visibility": "InternalUsers"
+                              },
+                              "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('ContentDocumentLink'))}/items",
+                              "host": {
+                                "connection": {
+                                  "referenceName": "salesForceConnection"
+                                }
+                              },
+                              "method": "post"
+                            },
+                            "runAfter": {
+                              "Fetch_ContentDocumentId": [
+                                "Succeeded"
+                              ]
+                            },
+                            "type": "ApiConnection"
+                          },
+                          "Create_Content_Version": {
+                            "inputs": {
+                              "body": {
+                                "ContentLocation": "S",
+                                "PathOnClient": "@{items('For_each')?['FileName']}",
+                                "Title": "@{items('For_each')?['FileName']}",
+                                "VersionData": "@{base64(base64ToBinary(items('For_each')?['Base64Document']))}"
+                              },
+                              "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('ContentVersion'))}/items",
+                              "host": {
+                                "connection": {
+                                  "referenceName": "salesForceConnection"
+                                }
+                              },
+                              "method": "post"
+                            },
+                            "runAfter": {},
+                            "type": "ApiConnection"
+                          },
+                          "Fetch_ContentDocumentId": {
+                            "inputs": {
+                              "body": {
+                                "query": "SELECT ContentDocumentId FROM ContentVersion Where Id='@{body('Create_Content_Version')?['id']}'"
+                              },
+                              "queries": {
+                                "q": "SELECT ContentDocumentId FROM ContentVersion Where Id='@{body('Create_Content_Version')?['id']}'"
+                              },
+                              "path": "/soql/executesoqlquery",
+                              "host": {
+                                "connection": {
+                                  "referenceName": "salesForceConnection"
+                                }
+                              },
+                              "method": "post"
+                            },
+                            "runAfter": {
+                              "Create_Content_Version": [
+                                "Succeeded"
+                              ]
+                            },
+                            "type": "ApiConnection"
+                          }
+                        },
+                        "foreach": "@triggerBody()?['Attachments']",
+                        "runAfter": {},
+                        "type": "Foreach"
+                      }
+                    },
+                    "else": {
+                      "actions": {}
+                    },
+                    "expression": {
+                      "or": [
+                        {
+                          "not": {
+                            "equals": [
+                              "@triggerBody()?['properties']?['Attachments']",
+                              "@string('')"
+                            ]
+                          }
+                        },
+                        {
+                          "not": {
+                            "equals": [
+                              "@triggerBody()?['properties']?['Attchments']",
+                              "@null"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "runAfter": {
+                      "Create_Case": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "If"
+                  },
+                  "Create_Case": {
+                    "inputs": {
+                      "body": {
+                        "AccountId": "@{body('Fetch_Account_Id')['records']?[0]?['S4SAccount__c']}",
+                        "BusinessHoursId": "@{body('Fetch_Business_Hour_Id')?['records']?[0]?['Id']}",
+                        "Comments": "@{triggerBody()?['Comments']}",
+                        "ContactId": "@{body('Fetch_Contact_Name')['records']?[0]?['Id']}",
+                        "Description": "@{triggerBody()?['AdditionalComments']}",
+                        "Origin": "@triggerBody()?['Source']",
+                        "RecordTypeId": "@{body('Fetch_RecordTypeId')?['records']?[0]?['Id']}",
+                        "S4SExternal_Source__c": "@{triggerBody()?['S4SExternal_Source__c']}",
+                        "S4SOrigin_equals_iMall__c": true,
+                        "S4SCustomer_Reference__c": "@{triggerBody()?['S4SCustomer_Reference__c']}",
+                        "S4SOriginalPO__c": "@triggerBody()?['CustomerPO']",
+                        "S4SProduct_data__c": "@triggerBody()?['SiemensPart']",
+                        "S4SSAPSalesOrder__c": "@{triggerBody()?['SalesOrder']}",
+                        "S4SSAP_RMA_PO__c": "@triggerBody()?['RMA or RGA Conf. #']",
+                        "S4SSAP__c": "@{triggerBody()?['SAPAccount']}",
+                        "S4SSubType__c": "@{triggerBody()?['SubType']}",
+                        "S4SWeb_Product__c": "@triggerBody()?['Product']",
+                        "Subject": "@{triggerBody()?['Subject']}",
+                        "SuppliedCompany": "@{triggerBody()?['SuppliedCompany']}",
+                        "SuppliedEmail": "@triggerBody()?['EmailAddress']",
+                        "SuppliedName": "@triggerBody()?['ContactName']",
+                        "SuppliedPhone": "@{triggerBody()?['Phone']}",
+                        "Type": "@{triggerBody()?['RequestType']}",
+                        "customer_email__c": "@{triggerBody()?['EmailAddress']}"
+                      },
+                      "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Case'))}/items",
+                      "host": {
+                        "connection": {
+                          "referenceName": "salesForceConnection"
+                        }
+                      },
+                      "method": "post"
+                    },
+                    "runAfter": {
+                      "Fetch_Contact_Name": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "ApiConnection"
+                  },
+                  "Fetch_Contact_Name": {
+                    "inputs": {
+                      "body": {
+                        "query": "Select Name,Id From Contact where Account.Id='@{body('Fetch_Account_Id')['records']?[0]?['S4SAccount__c']}' and Email='@{triggerBody()?['EmailAddress']}' and S4SEmail_Duplicate__c  = false"
+                      },
+                      "queries": {
+                        "['EmailAddress']}' and S4SEmail_Duplicate__c  ": false,
+                        "[0]?['S4SAccount__c']}' and Email": "'@{triggerBody()?['EmailAddress']}' and S4SEmail_Duplicate__c  = false",
+                        "q": "Select Name,Id From Contact where Account.Id='@{body('Fetch_Account_Id')['records']?[0]?['S4SAccount__c']}' and Email='@{triggerBody()?['EmailAddress']}' and S4SEmail_Duplicate__c  = false"
+                      },
+                      "path": "/soql/executesoqlquery",
+                      "host": {
+                        "connection": {
+                          "referenceName": "salesForceConnection"
+                        }
+                      },
+                      "method": "post"
+                    },
+                    "runAfter": {},
+                    "type": "ApiConnection"
+                  },
+                  "Response_createCase_failed": {
+                    "inputs": {
+                      "body": "@body('Create_Case')?['message']",
+                      "statusCode": "@body('Create_Case')?['Status']"
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                      "Create_Case": [
+                        "Failed"
+                      ]
+                    },
+                    "type": "Response"
+                  },
+                  "Terminate_createCase_failed": {
+                    "inputs": {
+                      "runError": {
+                        "code": "@body('Create_Case')?['Status']",
+                        "message": "@{body('Create_Case')?['message']}"
+                      },
+                      "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                      "Response_createCase_failed": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Terminate"
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Send_Response_as_Account_Not_Found": {
+                      "inputs": {
+                        "body": "Account not found with the given SAP number. Please check your input.",
+                        "statusCode": 400
+                      },
+                      "kind": "Http",
+                      "runAfter": {},
+                      "type": "Response"
+                    },
+                    "Terminate": {
+                      "inputs": {
+                        "runStatus": "Succeeded"
+                      },
+                      "runAfter": {
+                        "Send_Response_as_Account_Not_Found": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "Terminate"
+                    }
+                  }
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "not": {
+                        "equals": [
+                          "@length(body('Fetch_Account_Id')?['records'])",
+                          0
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "runAfter": {
+                  "Fetch_Account_Id": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "If"
+              },
+              "Fetch_Account_Id": {
+                "inputs": {
+                  "body": {
+                    "query": "Select S4SAccount__c,Id From S4SIdentification_Number__c where S4SIdentification_Number__c='@{triggerBody()?['SAPAccount']}'"
+                  },
+                  "queries": {
+                    "q": "Select S4SAccount__c,Id From S4SIdentification_Number__c where S4SIdentification_Number__c='@{triggerBody()?['SAPAccount']}'"
+                  },
+                  "path": "/soql/executesoqlquery",
+                  "host": {
+                    "connection": {
+                      "referenceName": "salesForceConnection"
+                    }
+                  },
+                  "method": "post"
+                },
+                "runAfter": {},
+                "type": "ApiConnection"
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "expression": {
+              "and": [
+                {
+                  "greater": [
+                    "@length(coalesce(triggerBody()?['Subject'],''))",
+                    0
+                  ]
+                }
+              ]
+            },
+            "runAfter": {
+              "Fetch_Business_Hour_Id": [
+                "Succeeded"
+              ],
+              "Fetch_RecordTypeId": [
+                "Succeeded"
+              ]
+            },
+            "type": "If"
+          },
+          "Fetch_Business_Hour_Id": {
+            "inputs": {
+              "body": {
+                "query": "select Id from businesshours where name='S4SCET_Berlin' and isActive=true and isDefault=true"
+              },
+              "path": "/soql/executesoqlquery",
+              "host": {
+                "connection": {
+                  "referenceName": "salesForceConnection"
+                }
+              },
+              "method": "post"
+            },
+            "runAfter": {
+              "place_holder": [
+                "Succeeded"
+              ]
+            },
+            "type": "ApiConnection"
+          },
+          "Fetch_RecordTypeId": {
+            "inputs": {
+              "body": {
+                "query": "Select Id From RecordType where SobjectType = 'Case' AND Name = 'US SII Case Record Type' LIMIT 1"
+              },
+              "path": "/soql/executesoqlquery",
+              "host": {
+                "connection": {
+                  "referenceName": "salesForceConnection"
+                }
+              },
+              "method": "post"
+            },
+            "runAfter": {
+              "place_holder": [
+                "Succeeded"
+              ]
+            },
+            "type": "ApiConnection"
+          },
+          "Scope_Discrepancies": {
+            "actions": {
+              "Condition_if_discrepancy_data_exists": {
+                "actions": {
+                  "Condition_if_Case_is_present": {
+                    "actions": {
+                      "Response_discrepancies_and_case": {
+                        "inputs": {
+                          "body": {
+                            "CaseNumber": "@body('Create_Case')?['CaseNumber']",
+                            "S4SDiscrepancy__c": "@body('logic-c00031-internal_upsertDiscrepancies')",
+                            "message": "Case @{body('Create_Case')?['CaseNumber']} was created. SF ID:@{body('Create_Case')?['Id']}"
+                          },
+                          "statusCode": 200
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                        "type": "Response"
+                      }
+                    },
+                    "else": {
+                      "actions": {
+                        "Response_Discrepancies": {
+                          "inputs": {
+                            "body": {
+                              "S4SDiscrepancy__c": "@body('logic-c00031-internal_upsertDiscrepancies')"
+                            },
+                            "statusCode": 200
+                          },
+                          "kind": "Http",
+                          "runAfter": {},
+                          "type": "Response"
+                        }
+                      }
+                    },
+                    "expression": {
+                      "and": [
+                        {
+                          "greater": [
+                            "@length(coalesce(triggerBody()?['Subject'],''))",
+                            0
+                          ]
+                        }
+                      ]
+                    },
+                    "runAfter": {
+                      "logic-c00031-internal_upsertDiscrepancies": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "If"
+                  },
+                  "logic-c00031-internal_upsertDiscrepancies": {
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "int_upsertDiscrepancies"
+                        }
+                      },
+                      "body": {
+                        "S4SDiscrepancy__c": "@triggerBody()?['S4SDiscrepancy__c']"
+                      },
+                      "headers": {
+                        "caseId": "@{coalesce(body('Create_case')?['Id'],'')}"
+                      }
+                    },
+                    "runAfter": {},
+                    "type": "Workflow"
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Response_Case": {
+                      "inputs": {
+                        "body": {
+                          "CaseNumber": "@body('Create_Case')?['CaseNumber']",
+                          "message": "Case @{body('Create_Case')?['CaseNumber']} was@{if(equals(body('Create_Case')?['CaseNumber'],null),' not','')} created. SF ID:@{body('Create_Case')?['Id']}"
+                        },
+                        "statusCode": 200
+                      },
+                      "kind": "Http",
+                      "runAfter": {},
+                      "type": "Response"
+                    }
+                  }
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "greater": [
+                        "@length(coalesce(triggerBody()?['S4SDiscrepancy__c'],''))",
+                        0
+                      ]
+                    }
+                  ]
+                },
+                "runAfter": {},
+                "type": "If"
+              }
+            },
+            "runAfter": {
+              "Condition_if_case_data_exists": [
+                "Succeeded"
+              ]
+            },
+            "type": "Scope"
+          },
+          "place_holder": {
+            "actions": {},
+            "runAfter": {},
+            "type": "Scope"
+          }
+        },
+        "runAfter": {},
+        "type": "Scope"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {
+          "schema": {
+            "properties": {
+              "AdditionalComments": {
+                "type": "string"
+              },
+              "Attachments": {
+                "items": {
+                  "properties": {
+                    "Base64Document": {
+                      "type": "string"
+                    },
+                    "FileName": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "Base64Document",
+                    "FileName"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "ContactName": {
+                "type": "string"
+              },
+              "CustomerPO": {
+                "type": "string"
+              },
+              "EmailAddress": {
+                "type": "string"
+              },
+              "Phone": {
+                "type": "string"
+              },
+              "Product": {
+                "type": "string"
+              },
+              "RMA or RGA Conf. #": {
+                "type": "string"
+              },
+              "RequestType": {
+                "type": "string"
+              },
+              "S4SDiscrepancy__c": {
+                "items": {
+                  "properties": {
+                    "CurrencyIsoCode": {
+                      "type": "string"
+                    },
+                    "ExternalId": {
+                      "type": "string"
+                    },
+                    "Id": {
+                      "type": "string"
+                    },
+                    "Name": {
+                      "type": "string"
+                    },
+                    "S4SActual_Shipment_Date__c": {
+                      "type": "string"
+                    },
+                    "S4SAutomated_Process__c": {
+                      "type": "string"
+                    },
+                    "S4SCase__c": {
+                      "type": "string"
+                    },
+                    "S4SComments__c": {
+                      "type": "string"
+                    },
+                    "S4SCompleted_Date__c": {
+                      "type": "string"
+                    },
+                    "S4SConfirmed_Date__c": {
+                      "type": "string"
+                    },
+                    "S4SDelivery_Note__c": {
+                      "type": "string"
+                    },
+                    "S4SDelivery__c": {
+                      "type": "string"
+                    },
+                    "S4SDiscrepancy_Type__c": {
+                      "type": "string"
+                    },
+                    "S4SEAD_Date__c": {
+                      "type": "string"
+                    },
+                    "S4SExit_Ramp_shipment__c": {
+                      "type": "string"
+                    },
+                    "S4SExternal_Source__c": {
+                      "type": "string"
+                    },
+                    "S4SFirst_Confirmed_Date__c": {
+                      "type": "string"
+                    },
+                    "S4SInvoiced_Price__c": {
+                      "type": "string"
+                    },
+                    "S4SMultiple_Confirmations_Exists__c": {
+                      "type": "string"
+                    },
+                    "S4SNext_Action__c": {
+                      "type": "string"
+                    },
+                    "S4SNotes__c": {
+                      "type": "string"
+                    },
+                    "S4SOriginal_Requested_Date__c": {
+                      "type": "string"
+                    },
+                    "S4SOwner__c": {
+                      "properties": {
+                        "Email": {
+                          "type": "string"
+                        },
+                        "GID": {
+                          "type": "string"
+                        },
+                        "Id": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "S4SPEGA_Case__c": {
+                      "type": "string"
+                    },
+                    "S4SPEGA_Expected_Date_of_Delivery__c": {
+                      "type": "string"
+                    },
+                    "S4SPEGA_Expedite_Status__c": {
+                      "type": "string"
+                    },
+                    "S4SPEGA_Sync_Status__c": {
+                      "type": "string"
+                    },
+                    "S4SPO_Confirmation_Date__c": {
+                      "type": "string"
+                    },
+                    "S4SPart_Ordered__c": {
+                      "type": "string"
+                    },
+                    "S4SPart_Received__c": {
+                      "type": "string"
+                    },
+                    "S4SPlant__c": {
+                      "type": "string"
+                    },
+                    "S4SPurchasing_Group__c": {
+                      "type": "string"
+                    },
+                    "S4SQuantity_Open__c": {
+                      "type": "string"
+                    },
+                    "S4SQuantity_Ordered__c": {
+                      "type": "string"
+                    },
+                    "S4SQuantity_Shipped__c": {
+                      "type": "string"
+                    },
+                    "S4SRequest_Expedite_Delivery_Date__c": {
+                      "type": "string"
+                    },
+                    "S4SRoot_Cause__c": {
+                      "type": "string"
+                    },
+                    "S4SRoute_Carrier__c": {
+                      "type": "string"
+                    },
+                    "S4SSAP_Sync_Status__c": {
+                      "type": "string"
+                    },
+                    "S4SSO_Line_Profit_Center__c": {
+                      "type": "string"
+                    },
+                    "S4SSales_Order_Line__c": {
+                      "type": "string"
+                    },
+                    "S4SStatus__c": {
+                      "type": "string"
+                    },
+                    "S4SSupplier_Org_ID__c": {
+                      "type": "string"
+                    },
+                    "S4STeam_Workbasket__c": {
+                      "type": "string"
+                    },
+                    "S4STracking_Number__c": {
+                      "type": "string"
+                    },
+                    "S4SType__c": {
+                      "type": "string"
+                    },
+                    "S4SUnit_PO_Price__c": {
+                      "type": "string"
+                    },
+                    "S4SVendor_PO_Line__c": {
+                      "type": "string"
+                    },
+                    "S4SVendor_PO__c": {
+                      "type": "string"
+                    },
+                    "S4SVendor__c": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "Id",
+                    "ExternalId",
+                    "Name",
+                    "CurrencyIsoCode",
+                    "S4SCase__c",
+                    "S4SDiscrepancy_Type__c",
+                    "S4SInvoiced_Price__c",
+                    "S4SPart_Ordered__c",
+                    "S4SPart_Received__c",
+                    "S4SQuantity_Ordered__c",
+                    "S4SQuantity_Shipped__c",
+                    "S4SRoot_Cause__c",
+                    "S4SSales_Order_Line__c",
+                    "S4SUnit_PO_Price__c",
+                    "S4SAutomated_Process__c",
+                    "S4SActual_Shipment_Date__c",
+                    "S4SComments__c",
+                    "S4SCompleted_Date__c",
+                    "S4SConfirmed_Date__c",
+                    "S4SDelivery_Note__c",
+                    "S4SDelivery__c",
+                    "S4SEAD_Date__c",
+                    "S4SExit_Ramp_shipment__c",
+                    "S4SExternal_Source__c",
+                    "S4SNext_Action__c",
+                    "S4SNotes__c",
+                    "S4SOriginal_Requested_Date__c",
+                    "S4SPEGA_Case__c",
+                    "S4SPEGA_Expected_Date_of_Delivery__c",
+                    "S4SPEGA_Expedite_Status__c",
+                    "S4SPEGA_Sync_Status__c",
+                    "S4SPO_Confirmation_Date__c",
+                    "S4SPlant__c",
+                    "S4SPurchasing_Group__c",
+                    "S4SRequest_Expedite_Delivery_Date__c",
+                    "S4SRoute_Carrier__c",
+                    "S4SSAP_Sync_Status__c",
+                    "S4SSO_Line_Profit_Center__c",
+                    "S4SStatus__c",
+                    "S4SSupplier_Org_ID__c",
+                    "S4STeam_Workbasket__c",
+                    "S4STracking_Number__c",
+                    "S4SType__c",
+                    "S4SVendor_PO_Line__c",
+                    "S4SVendor_PO__c",
+                    "S4SVendor__c",
+                    "S4SQuantity_Open__c",
+                    "S4SOwner__c"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "S4SExternal_Source__c": {
+                "type": "string"
+              },
+              "SAPAccount": {
+                "type": "string"
+              },
+              "SalesOrder": {
+                "type": "string"
+              },
+              "SiemensPart": {
+                "type": "string"
+              },
+              "Source": {
+                "type": "string"
+              },
+              "SubType": {
+                "type": "string"
+              },
+              "Subject": {
+                "type": "string"
+              },
+              "SuppliedCompany": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "kind": "Http",
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

@@ -1,0 +1,118 @@
+{
+  "baseUrl_apim": {
+    "type": "string",
+    "value": "@appsetting('baseUrl_apim')"
+  },
+  "subscriptionKey_apim": {
+    "type": "string",
+    "value": "@appsetting('subscriptionKey_apim')"
+  },
+  "instanceUrl_nonsfs": {
+    "type": "string",
+    "value": "@appsetting('instanceUrl_nonsfs')"
+  },
+  "loginUrl_nonsfs": {
+    "type": "string",
+    "value": "@appsetting('loginUrl_nonsfs')"
+  },
+  "CreateStringIdArray": {
+    "type": "string",
+    "value": "@appsetting('CreateStringIdArray')"
+  },
+  "DeleteObjectToDeleteArray": {
+    "type": "string",
+    "value": "@appsetting('DeleteObjectToDeleteArray')"
+  },
+  "st_name": {
+    "type": "string",
+    "value": "@appsetting('st_name')"
+  },
+  "baseUrl_kv": {
+    "type": "string",
+    "value": "@appsetting('baseUrl_kv')"
+  },
+  "BlobContainerName_upsert": {
+    "value": "sftp-container-c00031-ssd",
+    "type": "string"
+  },
+  "BlobContainerName_delete": {
+    "value": "sftp-container-c00031-ssddelete",
+    "type": "string"
+  },
+  "basePath": {
+    "value": "sftp-container-c00031/sftp-c00031",
+    "type": "string"
+  },
+  "fileFilter": {
+    "value": "text/csv",
+    "type": "string"
+  },
+  "ErrorPath": {
+    "value": "/sftp-container-c00031/sftp-c00031/Debitors/in/Debitors/error",
+    "type": "string"
+  },
+  "BlobContainerName": {
+    "value": "sftp-container-c00031-debitorupload",
+    "type": "string"
+  },
+  "WorkingPath": {
+    "value": "/sftp-container-c00031/sftp-c00031/Debitors/in/Debitors/working",
+    "type": "string"
+  },
+  "Filter": {
+    "value": "text/csv",
+    "type": "string"
+  },
+  "incomingPath": {
+    "value": "/sftp-container-c00031/sftp-c00031/Debitors/in/Debitors/incoming",
+    "type": "string"
+  },
+  "LogPath": {
+    "value": "/sftp-container-c00031/sftp-c00031/Debitors/in/Debitors/log",
+    "type": "string"
+  },
+  "ArchivePath": {
+    "value": "/sftp-container-c00031/sftp-c00031/Debitors/in/Debitors/archive",
+    "type": "string"
+  },
+  "InterfaceRootPath": {
+    "value": "/sftp-container-c00031/sftp-c00031/Debitors/in/Debitors/",
+    "type": "string"
+  },
+  "BlobContainerName_DebDelete": {
+    "value": "sftp-container-c00031-debitororgidsdelete",
+    "type": "string"
+  },
+  "workingPath_Delete": {
+    "value": "/sftp-container-c00031/sftp-c00031/DebitorOrgIdsDelete/working",
+    "type": "string"
+  },
+  "workingPath_CH": {
+    "value": "/sftp-container-c00031/sftp-c00031/Debitors/in/Debitors/CH/working",
+    "type": "string"
+  },
+  "errorPath_Delete": {
+    "value": "/sftp-container-c00031/sftp-c00031/DebitorOrgIdsDelete/error",
+    "type": "string"
+  },
+  "errorPath_CH": {
+    "value": "/sftp-container-c00031/sftp-c00031/Debitors/in/Debitors/CH/error",
+    "type": "string"
+  },
+  "processedPath": {
+    "value": "/sftp-container-c00031/sftp-c00031/DebitorOrgIdsDelete/archive",
+    "type": "string"
+  },
+  "logPath_Delete": {
+    "value": "/sftp-container-c00031/sftp-c00031/DebitorOrgIdsDelete/log",
+    "type": "string"
+  },
+  "incomingPath_Delete": {
+    "value": "/sftp-container-c00031/sftp-c00031/DebitorOrgIdsDelete/incoming",
+    "type": "string"
+  },
+  "incomingPath_CH": {
+    "value": "/sftp-container-c00031/sftp-c00031/Debitors/in/Debitors/CH/incoming",
+    "type": "string"
+  }
+}

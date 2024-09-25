@@ -78,7 +78,7 @@
             "Failed_Response": {
                 "inputs": {
                     "body": "The data pull was not successfull",
-                    "statusCode": 400
+                    "statusCode": 200
                 },
                 "kind": "Http",
                 "runAfter": {},

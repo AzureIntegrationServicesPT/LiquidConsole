@@ -1,0 +1,741 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Catch_Scope": {
+        "actions": {
+          "Error_Response": {
+            "inputs": {
+              "body": {
+                "upsertSFSContactResponse": {
+                  "Message": "@coalesce(body('Create_Contact')?['Message'],body('Update_Contact')?['Message'],body('HTTP_Get_RecordTypeId')?['Message'],body('Create_Account_Contact_Relation')?['Message'])",
+                  "Success": "@false",
+                  "workflowRunId": "@workflow()?['run']?['name']"
+                }
+              },
+              "statusCode": 400
+            },
+            "kind": "Http",
+            "runAfter": {
+              "Set_Error_Message": [
+                "Succeeded"
+              ]
+            },
+            "runtimeConfiguration": {
+              "secureData": {
+                "properties": [
+                  "inputs"
+                ]
+              }
+            },
+            "type": "Response"
+          },
+          "Logging_Error": {
+            "inputs": {
+              "host": {
+                "workflow": {
+                  "id": "int_sf4sLog"
+                }
+              },
+              "body": {
+                "message": "{\n  \"upsertSFSContactResponse\": {\n    \"Message\": @{coalesce(body('Create_Contact')?['Message'],body('Update_Contact')?['Message'],body('HTTP_Get_RecordTypeId')?['Message'])},\n    \"Success\": @{false},\n    \"workflowRunId\": @{workflow()?['run']?['name']}\n  }\n}",
+                "severity": "ERROR"
+              },
+              "headers": null
+            },
+            "runAfter": {
+              "Set_Error_Message": [
+                "Succeeded"
+              ]
+            },
+            "type": "Workflow"
+          },
+          "Set_Error_Message": {
+            "inputs": {
+              "body": {
+                "input": "@createArray(result('Condition_Owner_Exists'),result('Try_Scope'))"
+              },
+              "function": {
+                "connectionName": "Liquid"
+              },
+              "headers": {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "Filename": "parameters('liquid_setError')"
+              },
+              "method": "POST"
+            },
+            "runAfter": {},
+            "type": "Function"
+          }
+        },
+        "runAfter": {
+          "Try_Scope": [
+            "TimedOut",
+            "Failed"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Initialize_AccountContactRelation": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "AccountContactRelation",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_ContactID": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "ContactID",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Logging_Request": {
+        "inputs": {
+          "host": {
+            "workflow": {
+              "id": "int_sf4sLog"
+            }
+          },
+          "body": {
+            "message": "@{base64(triggerBody())}",
+            "severity": "DEBUG"
+          },
+          "headers": {
+            "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+            "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+            "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+          }
+        },
+        "runAfter": {},
+        "type": "Workflow"
+      },
+      "Try_Scope": {
+        "actions": {
+          "Condition_Owner_Exists": {
+            "actions": {
+              "Condition_Create_or_Update_Contact": {
+                "actions": {
+                  "Create_Contact": {
+                    "inputs": {
+                      "body": "@body('Create_or_Update_Contact')?['Contact']",
+                      "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Contact'))}/items",
+                      "host": {
+                        "connection": {
+                          "referenceName": "salesForceConnection"
+                        }
+                      },
+                      "method": "post"
+                    },
+                    "runAfter": {},
+                    "type": "ApiConnection"
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Update_Contact": {
+                      "inputs": {
+                        "body": "@body('Create_or_Update_Contact')?['Contact']",
+                        "path": "/v3/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Contact'))}/items/@{encodeURIComponent(encodeURIComponent(body('Create_or_Update_Contact')?['Contact']?['Id']))}",
+                        "host": {
+                          "connection": {
+                            "referenceName": "salesForceConnection"
+                          }
+                        },
+                        "method": "patch"
+                      },
+                      "runAfter": {},
+                      "type": "ApiConnection"
+                    }
+                  }
+                },
+                "expression": {
+                  "or": [
+                    {
+                      "equals": [
+                        "@body('Create_or_Update_Contact')?['Update']",
+                        "@false"
+                      ]
+                    }
+                  ]
+                },
+                "runAfter": {
+                  "Create_or_Update_Contact": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "If"
+              },
+              "Create_Account_Contact_Relation": {
+                "inputs": {
+                  "body": {
+                    "input": {
+                      "Accounts": "@body('Create_or_Update_Contact')?['Accounts']",
+                      "ContactId": "@coalesce(body('Create_Contact')?['Id'],body('Update_Contact')?['Id'])",
+                      "Currency": "@body('Create_or_Update_Contact')?['Currency']"
+                    }
+                  },
+                  "function": {
+                    "connectionName": "Liquid"
+                  },
+                  "headers": {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                    "Filename": "parameters('liquid_upsertSFSAccountContactRelationship')"
+                  },
+                  "method": "POST"
+                },
+                "runAfter": {
+                  "Condition_Create_or_Update_Contact": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Function"
+              },
+              "Create_or_Update_Contact": {
+                "inputs": {
+                  "body": {
+                    "input": {
+                      "Contact": "@triggerBody()?['upsertSFSContact']?['Contact']",
+                      "Id": "@variables('ContactID')",
+                      "OwnerId": "@body('logic-c00031-int_getUserId')?['Id']",
+                      "Recordtypeid": "@body('HTTP_Get_RecordTypeId')?['records']?[0]?['Id']"
+                    }
+                  },
+                  "function": {
+                    "connectionName": "Liquid"
+                  },
+                  "headers": {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                    "Filename": "parameters('liquid_upsertSFSContactCreateOrUpdate')"
+                  },
+                  "method": "POST"
+                },
+                "runAfter": {
+                  "HTTP_Get_RecordTypeId": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Function"
+              },
+              "Deduplication_Logic": {
+                "actions": {
+                  "Set_Contact_Id": {
+                    "inputs": {
+                      "name": "ContactID",
+                      "value": "@{triggerBody()?['upsertSFSContact']?['Contact']?['Id']}"
+                    },
+                    "runAfter": {},
+                    "type": "SetVariable"
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Check_Contact_Type": {
+                      "cases": {
+                        "Case_Contact_Type_Equals_Account": {
+                          "actions": {
+                            "Get_Account_Contact_Id_From_Email": {
+                              "inputs": {
+                                "body": {
+                                  "query": "select Id from Contact where Email = '@{triggerBody()?['upsertSFSContact']?['Contact']?['Email']}' and S4SSFS_Confidential__c = 'Confidential' and S4SOrigination_ID__c = null"
+                                },
+                                "path": "/soql/executesoqlquery",
+                                "host": {
+                                  "connection": {
+                                    "referenceName": "salesForceConnection"
+                                  }
+                                },
+                                "method": "post"
+                              },
+                              "runAfter": {},
+                              "type": "ApiConnection"
+                            },
+                            "Set_Contact_ID_to_the_Query_Output": {
+                              "inputs": {
+                                "name": "ContactID",
+                                "value": "@{body('Get_Account_Contact_Id_From_Email')?['records']?[0]?['Id']}"
+                              },
+                              "runAfter": {
+                                "Get_Account_Contact_Id_From_Email": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "SetVariable"
+                            }
+                          },
+                          "case": "Account"
+                        },
+                        "Case_Contact_Type_Equals_Branch_Office": {
+                          "actions": {
+                            "Check_for_Query_Matches": {
+                              "actions": {
+                                "Set_Contact_ID_from_the_Origination_ID_": {
+                                  "inputs": {
+                                    "name": "ContactID",
+                                    "value": "@{body('Get_Contact_Id_From_Origination_ID')?['records']?[0]?['Id']}"
+                                  },
+                                  "runAfter": {},
+                                  "type": "SetVariable"
+                                }
+                              },
+                              "else": {
+                                "actions": {
+                                  "Get_BO_Contact_Id_From_Email": {
+                                    "inputs": {
+                                      "body": {
+                                        "query": "select Id from Contact where Email = '@{triggerBody()?['upsertSFSContact']?['Contact']?['Email']}' and S4SSFS_Confidential__c = 'Confidential' and S4SOrigination_ID__c = null and S4SOrigination_ID_Account_Contact__c=null"
+                                      },
+                                      "path": "/soql/executesoqlquery",
+                                      "host": {
+                                        "connection": {
+                                          "referenceName": "salesForceConnection"
+                                        }
+                                      },
+                                      "method": "post"
+                                    },
+                                    "runAfter": {},
+                                    "type": "ApiConnection"
+                                  },
+                                  "Set_Contact_ID_from_the_Email": {
+                                    "inputs": {
+                                      "name": "ContactID",
+                                      "value": "@{body('Get_BO_Contact_Id_From_Email')?['records']?[0]?['Id']}"
+                                    },
+                                    "runAfter": {
+                                      "Get_BO_Contact_Id_From_Email": [
+                                        "Succeeded"
+                                      ]
+                                    },
+                                    "type": "SetVariable"
+                                  }
+                                }
+                              },
+                              "expression": {
+                                "and": [
+                                  {
+                                    "greater": [
+                                      "@length(body('Get_Contact_Id_From_Origination_ID')?['records'])",
+                                      0
+                                    ]
+                                  }
+                                ]
+                              },
+                              "runAfter": {
+                                "Get_Contact_Id_From_Origination_ID": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "If"
+                            },
+                            "Get_Contact_Id_From_Origination_ID": {
+                              "inputs": {
+                                "body": {
+                                  "query": "select Id from Contact where S4SOrigination_ID__c = '@{triggerBody()?['upsertSFSContact']?['Contact']?['S4SOrigination_ID__c']}' and S4SSFS_Confidential__c = 'Confidential'"
+                                },
+                                "path": "/soql/executesoqlquery",
+                                "host": {
+                                  "connection": {
+                                    "referenceName": "salesForceConnection"
+                                  }
+                                },
+                                "method": "post"
+                              },
+                              "runAfter": {},
+                              "type": "ApiConnection"
+                            }
+                          },
+                          "case": "BranchOffice"
+                        }
+                      },
+                      "default": {
+                        "actions": {}
+                      },
+                      "runAfter": {},
+                      "expression": "@if(and(not(equals(triggerBody()?['upsertSFSContact']?['Contact']?['S4SOrigination_ID__c'],string(''))),not(equals(triggerBody()?['upsertSFSContact']?['Contact']?['S4SOrigination_ID__c'],null))),'BranchOffice',if(and(not(equals(triggerBody()?['upsertSFSContact']?['Contact']?['S4SOrigination_ID_Account_Contact__c'],string(''))),not(equals(triggerBody()?['upsertSFSContact']?['Contact']?['S4SOrigination_ID_Account_Contact__c'],null))),'Account',''))",
+                      "type": "Switch"
+                    }
+                  }
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "not": {
+                        "equals": [
+                          "@triggerBody()?['upsertSFSContact']?['Contact']?['Id']",
+                          "@string('')"
+                        ]
+                      }
+                    },
+                    {
+                      "not": {
+                        "equals": [
+                          "@triggerBody()?['upsertSFSContact']?['Contact']?['Id']",
+                          "@null"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "runAfter": {},
+                "type": "If"
+              },
+              "For_Each_Account": {
+                "actions": {
+                  "Append_AccountContactRelation": {
+                    "inputs": {
+                      "name": "AccountContactRelation",
+                      "value": {
+                        "AccountId": "@body('Create_AccountContactRelation')?['AccountId']",
+                        "Created": "@if(equals(body('Create_AccountContactRelation')?['Status'],400),false,true)",
+                        "Message": "@body('Create_AccountContactRelation')?['Message']",
+                        "RelationId": "@body('Create_AccountContactRelation')?['Id']"
+                      }
+                    },
+                    "runAfter": {
+                      "Create_AccountContactRelation": [
+                        "Succeeded",
+                        "TimedOut",
+                        "Failed"
+                      ]
+                    },
+                    "type": "AppendToArrayVariable"
+                  },
+                  "Create_AccountContactRelation": {
+                    "inputs": {
+                      "body": "@items('For_Each_Account')",
+                      "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('AccountContactRelation'))}/items",
+                      "host": {
+                        "connection": {
+                          "referenceName": "salesForceConnection"
+                        }
+                      },
+                      "method": "post"
+                    },
+                    "runAfter": {},
+                    "runtimeConfiguration": {
+                      "secureData": {
+                        "properties": [
+                          "inputs",
+                          "outputs"
+                        ]
+                      }
+                    },
+                    "type": "ApiConnection"
+                  },
+                  "Logging_AccountID": {
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "int_sf4sLog"
+                        }
+                      },
+                      "body": {
+                        "message": "Creation of Account @{items('For_Each_Account')?['AccountId']} Contact @{items('For_Each_Account')?['ContactId']}Relationship @{if(equals(body('Create_AccountContactRelation')?['Status'],400),'Failed',concat('for Branch Office Id ',string(body('Create_AccountContactRelation')?['AccountId']),' Succeded'))}",
+                        "severity": "INFO"
+                      },
+                      "headers": null
+                    },
+                    "runAfter": {
+                      "Create_AccountContactRelation": [
+                        "Succeeded",
+                        "Failed",
+                        "TimedOut"
+                      ]
+                    },
+                    "type": "Workflow"
+                  }
+                },
+                "foreach": "@body('Create_Account_Contact_Relation')?['Accounts']",
+                "runAfter": {
+                  "Create_Account_Contact_Relation": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Foreach"
+              },
+              "HTTP_Get_RecordTypeId": {
+                "inputs": {
+                  "body": {
+                    "query": "SELECT id FROM recordtype WHERE Name = 'SFS Contact'"
+                  },
+                  "path": "/soql/executesoqlquery",
+                  "host": {
+                    "connection": {
+                      "referenceName": "salesForceConnection"
+                    }
+                  },
+                  "method": "post"
+                },
+                "runAfter": {
+                  "Deduplication_Logic": [
+                    "Succeeded"
+                  ]
+                },
+                "runtimeConfiguration": {
+                  "secureData": {
+                    "properties": [
+                      "inputs",
+                      "outputs"
+                    ]
+                  }
+                },
+                "type": "ApiConnection"
+              },
+              "Logging_Response": {
+                "inputs": {
+                  "host": {
+                    "workflow": {
+                      "id": "int_sf4sLog"
+                    }
+                  },
+                  "body": {
+                    "message": "{\n  \"upsertSFSContactResponse\": {\n    \"Contact\": {\n      \"AccountContactRelation\": @{variables('AccountContactRelation')},\n      \"ContactId\": @{coalesce(body('Create_Contact')?['Id'],triggerBody()?['upsertSFSContact']?['Contact']?['Id'],body('Update_Contact')?['Id'])},\n      \"Created\": @{if(equals(body('Create_or_Update_Contact')?['Update'],true),false,true)},\n      \"Success\": @{true}\n    },\n    \"workflowRunId\": @{workflow()?['run']?['name']}\n  }\n}",
+                    "severity": "INFO"
+                  },
+                  "headers": {
+                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                    "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                    "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                  }
+                },
+                "runAfter": {
+                  "For_Each_Account": [
+                    "Succeeded",
+                    "Failed",
+                    "TimedOut"
+                  ]
+                },
+                "type": "Workflow"
+              },
+              "Success_Response": {
+                "inputs": {
+                  "body": {
+                    "upsertSFSContactResponse": {
+                      "Contact": {
+                        "AccountContactRelation": "@variables('AccountContactRelation')",
+                        "ContactId": "@coalesce(body('Create_Contact')?['Id'],triggerBody()?['upsertSFSContact']?['Contact']?['Id'],body('Update_Contact')?['Id'])",
+                        "Created": "@if(equals(body('Create_or_Update_Contact')?['Update'],true),false,true)",
+                        "Success": "@true"
+                      },
+                      "workflowRunId": "@workflow()?['run']?['name']"
+                    }
+                  },
+                  "statusCode": 200
+                },
+                "kind": "Http",
+                "runAfter": {
+                  "For_Each_Account": [
+                    "Succeeded",
+                    "Failed",
+                    "TimedOut"
+                  ]
+                },
+                "type": "Response"
+              }
+            },
+            "else": {
+              "actions": {
+                "No_Owner_Found_Response": {
+                  "inputs": {
+                    "body": {
+                      "upsertSFSContactResponse": {
+                        "Message": "No Owner found with the information provided! Please do not provide only the Owner Name field.",
+                        "Success": "@false",
+                        "workflowRunId": "@workflow()?['run']?['name']"
+                      }
+                    },
+                    "statusCode": 200
+                  },
+                  "kind": "Http",
+                  "runAfter": {},
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs"
+                      ]
+                    }
+                  },
+                  "type": "Response"
+                }
+              }
+            },
+            "expression": {
+              "and": [
+                {
+                  "equals": [
+                    "@body('logic-c00031-int_getUserId')?['status']",
+                    "@string('success')"
+                  ]
+                }
+              ]
+            },
+            "runAfter": {
+              "logic-c00031-int_getUserId": [
+                "Succeeded"
+              ]
+            },
+            "type": "If"
+          },
+          "Logging_Owner": {
+            "inputs": {
+              "host": {
+                "workflow": {
+                  "id": "int_sf4sLog"
+                }
+              },
+              "body": {
+                "message": "GID: @{if(equals(triggerBody()?['upsertSFSContact']?['Contact']?['Owner']?['S4SGID_Technical__c'],null),null,triggerBody()?['upsertSFSContact']?['Contact']?['Owner']?['S4SGID_Technical__c'])},SalesforceId: @{body('logic-c00031-int_getUserId')?['Id']}",
+                "severity": "INFO"
+              },
+              "headers": null
+            },
+            "runAfter": {
+              "logic-c00031-int_getUserId": [
+                "Succeeded"
+              ]
+            },
+            "type": "Workflow"
+          },
+          "logic-c00031-int_getUserId": {
+            "inputs": {
+              "host": {
+                "workflow": {
+                  "id": "int_getUserId"
+                }
+              },
+              "body": {
+                "Email": "@{if(equals(triggerBody()?['upsertSFSContact']?['Contact']?['Owner']?['Email'],null),null,triggerBody()?['upsertSFSContact']?['Contact']?['Owner']?['Email'])}",
+                "Id": "@{if(equals(triggerBody()?['upsertSFSContact']?['Contact']?['Owner']?['Id'],null),null,triggerBody()?['upsertSFSContact']?['Contact']?['Owner']?['Id'])}",
+                "S4SGID_Technical__c": "@{if(equals(triggerBody()?['upsertSFSContact']?['Contact']?['Owner']?['S4SGID_Technical__c'],null),null,triggerBody()?['upsertSFSContact']?['Contact']?['Owner']?['S4SGID_Technical__c'])}"
+              },
+              "headers": null
+            },
+            "runAfter": {},
+            "type": "Workflow"
+          }
+        },
+        "runAfter": {
+          "Initialize_AccountContactRelation": [
+            "Succeeded"
+          ],
+          "Initialize_ContactID": [
+            "Succeeded"
+          ]
+        },
+        "type": "Scope"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {
+          "schema": {
+            "upsertSFSContact": {
+              "Contact": {
+                "Account": [
+                  {
+                    "Id": {
+                      "type": "string"
+                    }
+                  }
+                ],
+                "AccountId": {
+                  "type": "string"
+                },
+                "CurrencyIsoCode": {
+                  "type": "string"
+                },
+                "DPML__Employee_Number__c": {
+                  "type": "string"
+                },
+                "Department": {
+                  "type": "string"
+                },
+                "Email": {
+                  "type": "string"
+                },
+                "FirstName": {
+                  "type": "string"
+                },
+                "Id": {
+                  "type": "string"
+                },
+                "LastName": {
+                  "type": "string"
+                },
+                "MobilePhone": {
+                  "type": "integer"
+                },
+                "Owner": {
+                  "Email": {
+                    "type": "string"
+                  },
+                  "Id": {
+                    "type": "string"
+                  },
+                  "Name": {
+                    "type": "string"
+                  },
+                  "S4SGID_Technical__c": {
+                    "type": "string"
+                  }
+                },
+                "Phone": {
+                  "type": "integer"
+                },
+                "S4SAcademic_Title__c": {
+                  "type": "string"
+                },
+                "S4SAccountName__c": {
+                  "type": "string"
+                },
+                "S4SCONTACT_LegacyID__c": {
+                  "type": "string"
+                },
+                "S4SExternal_Source__c": {
+                  "type": "string"
+                },
+                "S4SJob_Description__c": {
+                  "type": "string"
+                },
+                "S4SOrigination_ID__c": {
+                  "type": "string"
+                },
+                "S4SStatus__c": {
+                  "type": "string"
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "kind": "Http",
+        "operationOptions": "EnableSchemaValidation",
+        "runtimeConfiguration": {
+          "secureData": {
+            "properties": [
+              "inputs",
+              "outputs"
+            ]
+          }
+        },
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

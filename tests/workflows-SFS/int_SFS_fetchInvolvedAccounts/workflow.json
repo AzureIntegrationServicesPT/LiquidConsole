@@ -1,0 +1,445 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Initialize_Append_Where_clause": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "AppendWhereClause",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {
+          "UserWhere_Clause": [
+            "Succeeded"
+          ]
+        },
+        "type": "InitializeVariable"
+      },
+      "Initialize_OpportunityId": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "OpportunityId",
+              "type": "string",
+              "value": "@{triggerBody()?['records']?[0]?['Id']}"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_involved_Account": [
+            "Succeeded"
+          ]
+        },
+        "type": "InitializeVariable"
+      },
+      "Initialize_SOQL_FetchAccount_query": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "varSOQLFetchAccount",
+              "type": "string",
+              "value": "select Id,IsDeleted,Name,CurrencyIsoCode,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastActivityDate,S4SOpportunity__c,S4SAccount_Name__c,S4SDescription__c,S4SINVOLVED_ACCOUNTS_LegacyID__c,S4SRole__c,S4SWinning_Chance__c,S4SExternal_Source__c,S4SAccount_Name__r.Name from S4SInvolved_Accounts__c\n"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_OpportunityId": [
+            "Succeeded"
+          ]
+        },
+        "type": "InitializeVariable"
+      },
+      "Initialize_involved_Account": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "involvedAccount",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_'AccountId'": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "accountId",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_'initalizeWhereClauseAppend'": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "initalizeWhereClauseAppend",
+              "type": "string",
+              "value": "@{null}"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_error_response": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "SoapErrorResponse",
+              "type": "string",
+              "value": "<soap-env:Envelope xmlns:soap-env=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap-env:Header/><soap-env:Body><soap-env:Fault><faultcode>soap-env:Server</faultcode><faultstring>{errormessagedetails}</faultstring><detail/></soap-env:Fault></soap-env:Body></soap-env:Envelope>"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Scope-Catch": {
+        "actions": {
+          "Failed_Response": {
+            "inputs": {
+              "body": "@replace(variables('SoapErrorResponse'),'{errormessagedetails}',concat('Some error occurred while connection. Please find more details using tracking id : ', workflow()['run']['name']))",
+              "headers": {
+                "Content-Type": "application/xml"
+              },
+              "statusCode": 500
+            },
+            "kind": "Http",
+            "runAfter": {},
+            "runtimeConfiguration": {
+              "secureData": {
+                "properties": [
+                  "inputs"
+                ]
+              }
+            },
+            "type": "Response"
+          },
+          "Terminate": {
+            "inputs": {
+              "runStatus": "Failed"
+            },
+            "runAfter": {
+              "Failed_Response": [
+                "Succeeded"
+              ]
+            },
+            "type": "Terminate"
+          }
+        },
+        "runAfter": {
+          "Scope-Try": [
+            "Failed",
+            "Skipped",
+            "TimedOut"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Scope-Try": {
+        "actions": {
+          "Condition_to_check_Opportunity_Id": {
+            "actions": {
+              "Append_to_string_variable": {
+                "inputs": {
+                  "name": "AppendWhereClause",
+                  "value": "@variables('initalizeWhereClauseAppend')"
+                },
+                "runAfter": {
+                  "Set_opportunityId_where_clause_append": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "AppendToStringVariable"
+              },
+              "Set_opportunityId_where_clause_append": {
+                "inputs": {
+                  "name": "initalizeWhereClauseAppend",
+                  "value": "@{concat('S4SOpportunity__c =  ',string(''''),variables('opportunityId'),string(''''))}"
+                },
+                "runAfter": {},
+                "type": "SetVariable"
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "expression": {
+              "and": [
+                {
+                  "not": {
+                    "equals": [
+                      "@variables('OpportunityId')",
+                      "@null"
+                    ]
+                  }
+                },
+                {
+                  "not": {
+                    "equals": [
+                      "@variables('OpportunityId')",
+                      "@string('')"
+                    ]
+                  }
+                }
+              ]
+            },
+            "runAfter": {
+              "empty_intialize_where_clause_append": [
+                "Succeeded"
+              ]
+            },
+            "type": "If"
+          },
+          "Condition_to_check_accountId": {
+            "actions": {
+              "Condition_to_check_Initialized_WhereClause": {
+                "actions": {
+                  "Set_InitializeWhereClause": {
+                    "inputs": {
+                      "name": "initalizeWhereClauseAppend",
+                      "value": "@{concat('and S4SAccount_Name__c =  ',string(''''),variables('accountId'),string(''''))}"
+                    },
+                    "runAfter": {},
+                    "type": "SetVariable"
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Set_initialise_whereClause": {
+                      "inputs": {
+                        "name": "initalizeWhereClauseAppend",
+                        "value": "@{concat(' S4SAccount_Name__c =  ',string(''''),variables('accountId'),string(''''))}"
+                      },
+                      "runAfter": {},
+                      "type": "SetVariable"
+                    }
+                  }
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "not": {
+                        "equals": [
+                          "@variables('initalizeWhereClauseAppend')",
+                          "@null"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "runAfter": {},
+                "type": "If"
+              },
+              "Set_final_whereclause": {
+                "inputs": {
+                  "name": "AppendWhereClause",
+                  "value": "@{concat(variables('UserWhere Clause'),variables('initalizeWhereClauseAppend'))}"
+                },
+                "runAfter": {
+                  "Condition_to_check_Initialized_WhereClause": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "SetVariable"
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "expression": {
+              "and": [
+                {
+                  "not": {
+                    "equals": [
+                      "@variables('accountId')",
+                      "@string('')"
+                    ]
+                  }
+                },
+                {
+                  "not": {
+                    "equals": [
+                      "@variables('accountId')",
+                      "@null"
+                    ]
+                  }
+                }
+              ]
+            },
+            "runAfter": {
+              "Condition_to_check_involved_Account": [
+                "Succeeded"
+              ]
+            },
+            "type": "If"
+          },
+          "Condition_to_check_involved_Account": {
+            "actions": {
+              "Set_where_Clause": {
+                "inputs": {
+                  "name": "UserWhere Clause",
+                  "value": "@{concat('Id= ',string(''''),variables('involvedAccount'),string(''''))}"
+                },
+                "runAfter": {},
+                "type": "SetVariable"
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "expression": {
+              "and": [
+                {
+                  "not": {
+                    "equals": [
+                      "@variables('involvedAccount')",
+                      "@string('')"
+                    ]
+                  }
+                },
+                {
+                  "not": {
+                    "equals": [
+                      "@variables('involvedAccount')",
+                      "@null"
+                    ]
+                  }
+                }
+              ]
+            },
+            "runAfter": {},
+            "type": "If"
+          },
+          "Execute_Fetch_Account_SOQL_query": {
+            "inputs": {
+              "body": {
+                "query": "@{variables('varSOQLFetchAccount')} where @{variables('AppendWhereClause')}"
+              },
+              "path": "/soql/executesoqlquery",
+              "host": {
+                "connection": {
+                  "referenceName": "salesForceConnection"
+                }
+              },
+              "method": "post"
+            },
+            "runAfter": {
+              "Condition_to_check_Opportunity_Id": [
+                "Succeeded"
+              ]
+            },
+            "runtimeConfiguration": {
+              "secureData": {
+                "properties": [
+                  "inputs",
+                  "outputs"
+                ]
+              }
+            },
+            "type": "ApiConnection"
+          },
+          "Response": {
+            "inputs": {
+              "body": "@body('Execute_Fetch_Account_SOQL_query')",
+              "statusCode": 200
+            },
+            "kind": "Http",
+            "runAfter": {
+              "Execute_Fetch_Account_SOQL_query": [
+                "Succeeded"
+              ]
+            },
+            "runtimeConfiguration": {
+              "secureData": {
+                "properties": [
+                  "inputs"
+                ]
+              }
+            },
+            "type": "Response"
+          },
+          "empty_intialize_where_clause_append": {
+            "inputs": {
+              "name": "initalizeWhereClauseAppend",
+              "value": "@{null}"
+            },
+            "runAfter": {
+              "Condition_to_check_accountId": [
+                "Succeeded"
+              ]
+            },
+            "type": "SetVariable"
+          }
+        },
+        "runAfter": {
+          "Initialize_Append_Where_clause": [
+            "Succeeded"
+          ],
+          "Initialize_SOQL_FetchAccount_query": [
+            "Succeeded"
+          ],
+          "Initialize_variable_'AccountId'": [
+            "Succeeded"
+          ],
+          "Initialize_variable_'initalizeWhereClauseAppend'": [
+            "Succeeded"
+          ],
+          "Initialize_variable_error_response": [
+            "Succeeded"
+          ]
+        },
+        "trackedProperties": {
+          "apimRouting": "external",
+          "citizenName": "c00031",
+          "correlationId": "not-defined",
+          "interfaceName": "SFS",
+          "interfacePartner": "not-defined",
+          "interfaceVersion": "not-defined",
+          "operationName": "internal_fetchInvolvedAccount",
+          "parentWorkflow": "not-defined"
+        },
+        "type": "Scope"
+      },
+      "UserWhere_Clause": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "UserWhere Clause",
+              "type": "string",
+              "value": "@{null}"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {},
+        "kind": "Http",
+        "runtimeConfiguration": {
+          "secureData": {
+            "properties": [
+              "inputs",
+              "outputs"
+            ]
+          }
+        },
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

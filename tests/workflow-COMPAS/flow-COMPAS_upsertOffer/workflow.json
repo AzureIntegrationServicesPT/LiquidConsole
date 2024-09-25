@@ -1,0 +1,1497 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Catch_Scope": {
+        "actions": {
+          "Response_Catch": {
+            "inputs": {
+              "statusCode": 500
+            },
+            "kind": "Http",
+            "runAfter": {},
+            "type": "Response"
+          },
+          "Terminate_Catch": {
+            "inputs": {
+              "runStatus": "Failed"
+            },
+            "runAfter": {
+              "Response_Catch": [
+                "Succeeded"
+              ]
+            },
+            "type": "Terminate"
+          }
+        },
+        "runAfter": {
+          "Try_Scope": [
+            "TimedOut",
+            "Skipped",
+            "Failed"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Initialize_variable_OppResponse": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "OppResponse",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_PhilosSISICCode": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "PhilosSISICCode",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_Quote_response": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "QuoteResponse",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_RequestBody": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "RequestBody",
+              "type": "string",
+              "value": "@{triggerBody()}"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_SIE_SF4S_upsertBookingLine": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "SIE_SF4S_upsertBookingLine",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_SIE_SF4S_upsertQuoteLineReq": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "SIE_SF4S_upsertQuoteLineReq",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Try_Scope": {
+        "actions": {
+          "Condition_quote_status": {
+            "actions": {
+              "Response_status_null": {
+                "inputs": {
+                  "body": {
+                    "SIE_SF4S_upsertOfferRes": {
+                      "Opportunity": {
+                        "SIE_SF4S_upsertResponse": {
+                          "Message": "quote status value cannot be null."
+                        }
+                      }
+                    }
+                  },
+                  "statusCode": 400
+                },
+                "kind": "Http",
+                "runAfter": {},
+                "type": "Response"
+              },
+              "Terminate-status_null": {
+                "inputs": {
+                  "runStatus": "Failed"
+                },
+                "runAfter": {
+                  "Response_status_null": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Terminate"
+              }
+            },
+            "else": {
+              "actions": {
+                "Check_Opportunity_Upsert_status": {
+                  "actions": {
+                    "Check_Quote_status": {
+                      "actions": {
+                        "Set_variable_requestbody_Quote_status_with_QuoteStatus_var": {
+                          "inputs": {
+                            "name": "RequestBody",
+                            "value": "@{outputs('Update_requestbody_Quote_status')}"
+                          },
+                          "runAfter": {
+                            "Update_requestbody_Quote_status": [
+                              "Succeeded"
+                            ]
+                          },
+                          "type": "SetVariable"
+                        },
+                        "Update_requestbody_Quote_status": {
+                          "inputs": "@setProperty(json(variables('RequestBody')), 'SIE_SF4S_upsertOfferReq', setProperty(json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq'], 'Opportunity',setProperty(json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity'],'quote',setProperty(json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['quote'], 'Status',triggerBody()?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['quote']?['Status']))))",
+                          "runAfter": {},
+                          "type": "Compose"
+                        }
+                      },
+                      "else": {
+                        "actions": {}
+                      },
+                      "expression": {
+                        "and": [
+                          {
+                            "not": {
+                              "equals": [
+                                "@triggerBody()?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['Id']",
+                                ""
+                              ]
+                            }
+                          },
+                          {
+                            "not": {
+                              "equals": [
+                                "@triggerBody()?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['Id']",
+                                "@null"
+                              ]
+                            }
+                          },
+                          {
+                            "equals": [
+                              "@triggerBody()?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['quote']?['Status']",
+                              "submitted"
+                            ]
+                          }
+                        ]
+                      },
+                      "runAfter": {
+                        "Set_requestBody_Quote_status_value_with_refrence_value_QuoteSalesStatus": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "If"
+                    },
+                    "Check_if_Quote_exist": {
+                      "actions": {
+                        "Compose_Update": {
+                          "inputs": {
+                            "Name": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['quote']?['Name']}",
+                            "Pricebook2Id": "@{outputs('Get_PriceBookEntry_from_config')}",
+                            "S4SExternal_Source__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['quote']?['S4SExternal_Source__c']}",
+                            "S4SMain_Offer__c": "true",
+                            "S4SOffer_Engineer__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['quote']?['S4SOffer_Engineer__c']}",
+                            "S4SOffer_ID__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['quote']?['S4SOffer_ID__c']}",
+                            "S4SSource_System__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['quote']?['S4SSource_System__c']}",
+                            "Status": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['quote']?['Status']}"
+                          },
+                          "runAfter": {},
+                          "type": "Compose"
+                        },
+                        "JsonRemoveNullOrEmptyFunc_Quote_Update": {
+                          "inputs": {
+                            "body": {
+                              "CorrelationId": "",
+                              "InputRequestBase64": "@{base64(outputs('Compose_Update'))}",
+                              "InterfaceName": "",
+                              "Username": "",
+                              "operation": "JsonRemoveNullOrEmpty"
+                            },
+                            "function": {
+                              "connectionName": "Liquid"
+                            },
+                            "headers": null,
+                            "method": "POST"
+                          },
+                          "runAfter": {
+                            "Compose_Update": [
+                              "Succeeded"
+                            ]
+                          },
+                          "type": "Function"
+                        },
+                        "Update_Quote": {
+                          "inputs": {
+                            "body": "@json(body('JsonRemoveNullOrEmptyFunc_Quote_Update')?['result']?['restructuredJson'])",
+                            "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Quote'))}/items/@{encodeURIComponent(encodeURIComponent(body('Get_a_Quote_by_External_ID')?['Id']))}",
+                            "host": {
+                              "connection": {
+                                "referenceName": "salesForceConnection"
+                              }
+                            },
+                            "method": "patch"
+                          },
+                          "runAfter": {
+                            "JsonRemoveNullOrEmptyFunc_Quote_Update": [
+                              "Succeeded"
+                            ]
+                          },
+                          "type": "ApiConnection"
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Condition_quote_failed": {
+                            "actions": {
+                              "Compose_create": {
+                                "inputs": {
+                                  "Name": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['quote']?['Name']}",
+                                  "OpportunityId": "@{coalesce(body('Update_Opportunity')?['Id'], body('Create_Opportunity')?['Id'])}",
+                                  "Pricebook2Id": "@{outputs('Get_PriceBookEntry_from_config')}",
+                                  "S4SExternal_Source__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['quote']?['S4SExternal_Source__c']}",
+                                  "S4SMain_Offer__c": "true",
+                                  "S4SOffer_Engineer__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['quote']?['S4SOffer_Engineer__c']}",
+                                  "S4SOffer_ID__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['quote']?['S4SOffer_ID__c']}",
+                                  "S4SSource_System__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['quote']?['S4SSource_System__c']}",
+                                  "Status": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['quote']?['Status']}"
+                                },
+                                "runAfter": {},
+                                "type": "Compose"
+                              },
+                              "Create_Quote": {
+                                "inputs": {
+                                  "body": "@json(body('JsonRemoveNullOrEmptyFunc_Quote_Create')?['result']?['restructuredJson'])",
+                                  "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Quote'))}/items",
+                                  "host": {
+                                    "connection": {
+                                      "referenceName": "salesForceConnection"
+                                    }
+                                  },
+                                  "method": "post"
+                                },
+                                "runAfter": {
+                                  "JsonRemoveNullOrEmptyFunc_Quote_Create": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "type": "ApiConnection"
+                              },
+                              "JsonRemoveNullOrEmptyFunc_Quote_Create": {
+                                "inputs": {
+                                  "body": {
+                                    "CorrelationId": "",
+                                    "InputRequestBase64": "@{base64(outputs('Compose_create'))}",
+                                    "InterfaceName": "",
+                                    "Username": "",
+                                    "operation": "JsonRemoveNullOrEmpty"
+                                  },
+                                  "function": {
+                                    "connectionName": "Liquid"
+                                  },
+                                  "headers": null,
+                                  "method": "POST"
+                                },
+                                "runAfter": {
+                                  "Compose_create": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "type": "Function"
+                              }
+                            },
+                            "else": {
+                              "actions": {
+                                "Terminate_quote_failed": {
+                                  "inputs": {
+                                    "runError": {
+                                      "code": "@{outputs('Get_a_Quote_by_External_ID')['statusCode']}",
+                                      "message": "@{outputs('Get_a_Quote_by_External_ID')?['Body']?['message']}"
+                                    },
+                                    "runStatus": "Failed"
+                                  },
+                                  "runAfter": {},
+                                  "type": "Terminate"
+                                }
+                              }
+                            },
+                            "expression": {
+                              "and": [
+                                {
+                                  "equals": [
+                                    "@outputs('Get_a_Quote_by_External_ID')['statusCode']",
+                                    404
+                                  ]
+                                }
+                              ]
+                            },
+                            "runAfter": {},
+                            "type": "If"
+                          }
+                        }
+                      },
+                      "expression": {
+                        "and": [
+                          {
+                            "equals": [
+                              "@outputs('Get_a_Quote_by_External_ID')?['statusCode']",
+                              200
+                            ]
+                          }
+                        ]
+                      },
+                      "runAfter": {
+                        "Get_a_Quote_by_External_ID": [
+                          "Succeeded",
+                          "Failed"
+                        ]
+                      },
+                      "type": "If"
+                    },
+                    "Compose_Get_OppId": {
+                      "inputs": "@json(variables('OppResponse'))?['SIE_SF4S_upsertResponse']?['Id']",
+                      "runAfter": {
+                        "Set_variable_OppResponse_success": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "Compose"
+                    },
+                    "Condition_Competitors_exist": {
+                      "actions": {
+                        "For_each_Competitor_in_req": {
+                          "actions": {
+                            "Condition_Competitor_already_present": {
+                              "actions": {
+                                "Update_OppCompetitor": {
+                                  "inputs": {
+                                    "body": {
+                                      "S4SCompetitor__c": "@{body('Get_S4SCompetitors_records')?['value']?[0]?['Id']}",
+                                      "S4SExternal_Source__c": "COMPAS",
+                                      "S4SPrimary__c": "@items('For_each_Competitor_in_req')?['S4SPrimary__c']"
+                                    },
+                                    "path": "/v3/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SOpportunity_Competitor__c'))}/items/@{encodeURIComponent(encodeURIComponent(body('Get_records:_fetchOppCompetitor')?['value'][0]?['Id']))}",
+                                    "host": {
+                                      "connection": {
+                                        "referenceName": "salesForceConnection"
+                                      }
+                                    },
+                                    "method": "patch"
+                                  },
+                                  "runAfter": {},
+                                  "type": "ApiConnection"
+                                }
+                              },
+                              "else": {
+                                "actions": {
+                                  "Create_OppCompetitor": {
+                                    "inputs": {
+                                      "body": {
+                                        "S4SCompetitor__c": "@{body('Get_S4SCompetitors_records')?['value']?[0]?['Id']}",
+                                        "S4SExternal_Source__c": "COMPAS",
+                                        "S4SOpportunity__c": "@{json(variables('OppResponse'))?['SIE_SF4S_upsertResponse']?['Id']}",
+                                        "S4SPrimary__c": "@items('For_each_Competitor_in_req')?['S4SPrimary__c']"
+                                      },
+                                      "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SOpportunity_Competitor__c'))}/items",
+                                      "host": {
+                                        "connection": {
+                                          "referenceName": "salesForceConnection"
+                                        }
+                                      },
+                                      "method": "post"
+                                    },
+                                    "runAfter": {},
+                                    "type": "ApiConnection"
+                                  }
+                                }
+                              },
+                              "expression": {
+                                "and": [
+                                  {
+                                    "greater": [
+                                      "@length(coalesce(body('Get_records:_fetchOppCompetitor')?['value'],''))",
+                                      0
+                                    ]
+                                  }
+                                ]
+                              },
+                              "runAfter": {
+                                "Get_records:_fetchOppCompetitor": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "If"
+                            },
+                            "Get_S4SCompetitors_records": {
+                              "inputs": {
+                                "queries": {
+                                  "$filter": "Name eq '@{items('For_each_Competitor_in_req')?['S4SCompetitor__Name']}' AND S4SActive__c eq true"
+                                },
+                                "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SCompetitor__c'))}/items",
+                                "host": {
+                                  "connection": {
+                                    "referenceName": "salesForceConnection"
+                                  }
+                                },
+                                "method": "get"
+                              },
+                              "runAfter": {},
+                              "type": "ApiConnection"
+                            },
+                            "Get_records:_fetchOppCompetitor": {
+                              "inputs": {
+                                "queries": {
+                                  "$filter": "S4SCompetitor__c eq '@{body('Get_S4SCompetitors_records')?['value']?[0]?['Id']}' AND S4SOpportunity__c eq '@{json(variables('OppResponse'))?['SIE_SF4S_upsertResponse']?['Id']}'"
+                                },
+                                "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SOpportunity_Competitor__c'))}/items",
+                                "host": {
+                                  "connection": {
+                                    "referenceName": "salesForceConnection"
+                                  }
+                                },
+                                "method": "get"
+                              },
+                              "runAfter": {
+                                "Get_S4SCompetitors_records": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "ApiConnection"
+                            }
+                          },
+                          "foreach": "@triggerBody()?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SOpportunity_Competitor__c']",
+                          "runAfter": {},
+                          "runtimeConfiguration": {
+                            "concurrency": {
+                              "repetitions": 1
+                            }
+                          },
+                          "type": "Foreach"
+                        }
+                      },
+                      "else": {
+                        "actions": {}
+                      },
+                      "expression": {
+                        "and": [
+                          {
+                            "greater": [
+                              "@length(coalesce(triggerBody()?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SOpportunity_Competitor__c'],''))",
+                              0
+                            ]
+                          }
+                        ]
+                      },
+                      "runAfter": {
+                        "Condition_Quotes_upsert_status": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "If"
+                    },
+                    "Condition_InvolvedAccounts_exist": {
+                      "actions": {
+                        "For_each_InvolvedAccount": {
+                          "actions": {
+                            "Condition_InvolvedAccount_already_present": {
+                              "actions": {
+                                "Update_involvedAccount": {
+                                  "inputs": {
+                                    "body": {
+                                      "S4SExternal_Source__c": "COMPAS",
+                                      "S4SPrimary_Flag__c": "@items('For_each_InvolvedAccount')?['S4SPrimary_Flag__c']",
+                                      "S4SRole__c": "@{items('For_each_InvolvedAccount')?['S4SRole__c']}"
+                                    },
+                                    "path": "/v3/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SInvolved_Accounts__c'))}/items/@{encodeURIComponent(encodeURIComponent(body('get_involvedAccounts')?['value'][0]?['Id']))}",
+                                    "host": {
+                                      "connection": {
+                                        "referenceName": "salesForceConnection"
+                                      }
+                                    },
+                                    "method": "patch"
+                                  },
+                                  "runAfter": {},
+                                  "type": "ApiConnection"
+                                }
+                              },
+                              "else": {
+                                "actions": {
+                                  "Create_involvedAccount": {
+                                    "inputs": {
+                                      "body": {
+                                        "S4SAccount_Name__c": "@{body('search_AcctId')?['records'][0]?['s4saccount__c']}",
+                                        "S4SExternal_Source__c": "COMPAS",
+                                        "S4SOpportunity__c": "@{json(variables('OppResponse'))?['SIE_SF4S_upsertResponse']?['Id']}",
+                                        "S4SPrimary_Flag__c": "@items('For_each_InvolvedAccount')?['S4SPrimary_Flag__c']",
+                                        "S4SRole__c": "@{items('For_each_InvolvedAccount')?['S4SRole__c']}"
+                                      },
+                                      "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SInvolved_Accounts__c'))}/items",
+                                      "host": {
+                                        "connection": {
+                                          "referenceName": "salesForceConnection"
+                                        }
+                                      },
+                                      "method": "post"
+                                    },
+                                    "runAfter": {},
+                                    "type": "ApiConnection"
+                                  }
+                                }
+                              },
+                              "expression": {
+                                "and": [
+                                  {
+                                    "greater": [
+                                      "@length(coalesce(body('get_involvedAccounts')?['value'],''))",
+                                      0
+                                    ]
+                                  }
+                                ]
+                              },
+                              "runAfter": {
+                                "get_involvedAccounts": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "If"
+                            },
+                            "get_involvedAccounts": {
+                              "inputs": {
+                                "queries": {
+                                  "$filter": "s4saccount_name__c eq '@{body('search_AcctId')?['records'][0]?['s4saccount__c']}' and s4sopportunity__c eq '@{json(variables('OppResponse'))?['SIE_SF4S_upsertResponse']?['Id']}'"
+                                },
+                                "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SInvolved_Accounts__c'))}/items",
+                                "host": {
+                                  "connection": {
+                                    "referenceName": "salesForceConnection"
+                                  }
+                                },
+                                "method": "get"
+                              },
+                              "runAfter": {
+                                "search_AcctId": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "ApiConnection"
+                            },
+                            "search_AcctId": {
+                              "inputs": {
+                                "body": {
+                                  "query": "select s4saccount__c from s4sidentification_number__c where s4slocal_source_system__c in ('E1P Spiridon USA','E1P Spiridon USA ICB') and s4sidentification_number__c = '@{items('For_each_InvolvedAccount')?['Account_SAP_Number']}'"
+                                },
+                                "path": "/soql/executesoqlquery",
+                                "host": {
+                                  "connection": {
+                                    "referenceName": "salesForceConnection"
+                                  }
+                                },
+                                "method": "post"
+                              },
+                              "runAfter": {},
+                              "type": "ApiConnection"
+                            }
+                          },
+                          "foreach": "@triggerBody()?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['involvedAccounts']",
+                          "runAfter": {},
+                          "runtimeConfiguration": {
+                            "concurrency": {
+                              "repetitions": 1
+                            }
+                          },
+                          "type": "Foreach"
+                        }
+                      },
+                      "else": {
+                        "actions": {}
+                      },
+                      "expression": {
+                        "and": [
+                          {
+                            "greater": [
+                              "@length(coalesce(triggerBody()?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['involvedAccounts'],''))",
+                              0
+                            ]
+                          }
+                        ]
+                      },
+                      "runAfter": {
+                        "Condition_Quotes_upsert_status": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "If"
+                    },
+                    "Condition_Quotes_upsert_status": {
+                      "actions": {
+                        "Set_variable_Quote_response_success": {
+                          "inputs": {
+                            "name": "QuoteResponse",
+                            "value": "{\n\"quote\":{\n               \"SIE_SF4S_upsertResponse\":{\n                  \"Id\":\"@{coalesce(body('Update_Quote')?['Id'], body('Create_Quote')?['Id'])}\",\n                  \"created\":\"@{if(equals(body('Update_Quote')?['Id'],null),'true', 'false')}\",\n                  \"Status\":\"true\"\n               }\n}\n            }"
+                          },
+                          "runAfter": {},
+                          "type": "SetVariable"
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Set_variable_Quote_response_failure": {
+                            "inputs": {
+                              "name": "QuoteResponse",
+                              "value": "{\n               \"SIE_SF4S_upsertResponse\":{\n                  \"Id\":\"\",\n                  \"created\":\"\",\n                  \"Status\":\"false\",\n                  \"Message\":\"@{coalesce(body('Update_Quote')?['message'], body('Create_Quote')?['message'])}\"\n               }\n            }"
+                            },
+                            "runAfter": {},
+                            "type": "SetVariable"
+                          }
+                        }
+                      },
+                      "expression": {
+                        "or": [
+                          {
+                            "equals": [
+                              "@coalesce(outputs('Update_Quote')?['statusCode'],outputs('Create_Quote')?['statusCode'])",
+                              200
+                            ]
+                          },
+                          {
+                            "equals": [
+                              "@coalesce(outputs('Update_Quote')?['statusCode'],outputs('Create_Quote')?['statusCode'])",
+                              201
+                            ]
+                          }
+                        ]
+                      },
+                      "runAfter": {
+                        "Check_if_Quote_exist": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "If"
+                    },
+                    "For_each_BookingLine_Create_QuoteLineObj": {
+                      "actions": {
+                        "Check_UpsertQuote_response": {
+                          "actions": {
+                            "Append_to_array_variable_UpsertQuoteLineReq": {
+                              "inputs": {
+                                "name": "SIE_SF4S_upsertQuoteLineReq",
+                                "value": {
+                                  "PricebookEntryId": "@{items('For_each_BookingLine_Create_QuoteLineObj')?['priceBookEntryId']}",
+                                  "Product2Id": "@{items('For_each_BookingLine_Create_QuoteLineObj')?['productId']}",
+                                  "Quantity": "@{items('For_each_BookingLine_Create_QuoteLineObj')?['S4SQuantity__c']}",
+                                  "QuoteId": "@{json(variables('QuoteResponse'))?['quote']?['SIE_SF4S_upsertResponse']?['Id']}",
+                                  "S4SExternal_Source__c": "@{items('For_each_BookingLine_Create_QuoteLineObj')?['S4SExternal_Source__c']}",
+                                  "UnitPrice": "@{items('For_each_BookingLine_Create_QuoteLineObj')?['S4SSales_Price__c']}"
+                                }
+                              },
+                              "runAfter": {},
+                              "type": "AppendToArrayVariable"
+                            }
+                          },
+                          "else": {
+                            "actions": {}
+                          },
+                          "expression": {
+                            "and": [
+                              {
+                                "equals": [
+                                  "@json(variables('QuoteResponse'))?['quote']['SIE_SF4S_upsertResponse']?['Status']",
+                                  "@string('true')"
+                                ]
+                              }
+                            ]
+                          },
+                          "runAfter": {},
+                          "type": "If"
+                        }
+                      },
+                      "foreach": "@body('logic-c00031-MandatoryFieldsCompas')?['SIE_SF4S_MandatoryFieldsResCompas']?['Products']",
+                      "runAfter": {
+                        "logic-c00031-DeleteBookingQuoteLine": [
+                          "Succeeded",
+                          "Failed"
+                        ]
+                      },
+                      "type": "Foreach"
+                    },
+                    "For_each_bookingLine": {
+                      "actions": {
+                        "Append_to_array_variable": {
+                          "inputs": {
+                            "name": "SIE_SF4S_upsertBookingLine",
+                            "value": {
+                              "CurrencyIsoCode": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['CurrencyIsoCode']}",
+                              "Name": "@{items('For_each_bookingLine')?['Name']}",
+                              "S4SDepth_Structure__c": "@{items('For_each_bookingLine')?['productId']}",
+                              "S4SExternal_Source__c": "@{items('For_each_bookingLine')?['S4SExternal_Source__c']}",
+                              "S4SOpportunity__c": "@{outputs('Compose_Get_OppId')}",
+                              "S4SPrimary_Flag__c": "@bool(items('For_each_bookingLine')?['S4SPrimary_Flag__c'])",
+                              "S4SQuantity__c": "@{items('For_each_bookingLine')?['S4SQuantity__c']}",
+                              "S4SSales_Price__c": "@{items('For_each_bookingLine')?['S4SSales_Price__c']}"
+                            }
+                          },
+                          "runAfter": {},
+                          "type": "AppendToArrayVariable"
+                        }
+                      },
+                      "foreach": "@body('logic-c00031-MandatoryFieldsCompas')?['SIE_SF4S_MandatoryFieldsResCompas']?['Products']",
+                      "runAfter": {
+                        "Sub_Logic:_QuoteLine_bulk_upsert": [
+                          "Succeeded",
+                          "Failed"
+                        ]
+                      },
+                      "type": "Foreach"
+                    },
+                    "Get_a_Quote_by_External_ID": {
+                      "inputs": {
+                        "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Quote'))}/externalIdFields/@{encodeURIComponent(encodeURIComponent('Id'))}/@{encodeURIComponent(encodeURIComponent(if(equals(triggerBody()?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['quote']?['Id'],null),null,triggerBody()?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['quote']?['Id'])))}",
+                        "host": {
+                          "connection": {
+                            "referenceName": "salesForceConnection"
+                          }
+                        },
+                        "method": "get"
+                      },
+                      "runAfter": {
+                        "Check_Quote_status": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "ApiConnection"
+                    },
+                    "Set_requestBody_Quote_status_value_with_refrence_value_QuoteSalesStatus": {
+                      "inputs": {
+                        "name": "RequestBody",
+                        "value": "@{outputs('Update_requestbody_Quote_status_field')}"
+                      },
+                      "runAfter": {
+                        "Update_requestbody_Quote_status_field": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "SetVariable"
+                    },
+                    "Set_variable_OppResponse_success": {
+                      "inputs": {
+                        "name": "OppResponse",
+                        "value": "{\n \"SIE_SF4S_upsertResponse\":{\n            \"Id\":\"@{coalesce(body('Update_Opportunity')?['Id'], body('Create_Opportunity')?['Id'])}\",\n            \"created\":\"@{if(equals(body('Update_Opportunity')?['Id'],null),'true', 'false')}\",\n            \"Status\":\"true\"\n         }\n}"
+                      },
+                      "runAfter": {},
+                      "type": "SetVariable"
+                    },
+                    "Sub_Logic:_BookingLine_bulk_upsert": {
+                      "inputs": {
+                        "host": {
+                          "workflow": {
+                            "id": "int_compassBulkUpsert"
+                          }
+                        },
+                        "body": {
+                          "IsBookingBulkUpsert": true,
+                          "requestBody": "@variables('SIE_SF4S_upsertBookingLine')"
+                        },
+                        "headers": null
+                      },
+                      "runAfter": {
+                        "For_each_bookingLine": [
+                          "Succeeded",
+                          "Skipped",
+                          "TimedOut"
+                        ]
+                      },
+                      "type": "Workflow"
+                    },
+                    "Sub_Logic:_QuoteLine_bulk_upsert": {
+                      "inputs": {
+                        "host": {
+                          "workflow": {
+                            "id": "int_compassBulkUpsert"
+                          }
+                        },
+                        "body": {
+                          "IsBookingBulkUpsert": false,
+                          "requestBody": "@variables('SIE_SF4S_upsertQuoteLineReq')"
+                        },
+                        "headers": null
+                      },
+                      "runAfter": {
+                        "For_each_BookingLine_Create_QuoteLineObj": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "Workflow"
+                    },
+                    "SuccessResponse": {
+                      "inputs": {
+                        "body": {
+                          "SIE_SF4S_upsertOfferRes": {
+                            "Opportunity": "@json(variables('OppResponse'))",
+                            "quote": [
+                              "@json(variables('QuoteResponse'))"
+                            ]
+                          }
+                        },
+                        "statusCode": 200
+                      },
+                      "kind": "Http",
+                      "runAfter": {
+                        "Condition_Competitors_exist": [
+                          "Succeeded",
+                          "TimedOut",
+                          "Skipped",
+                          "Failed"
+                        ],
+                        "Condition_InvolvedAccounts_exist": [
+                          "Succeeded",
+                          "TimedOut",
+                          "Skipped",
+                          "Failed"
+                        ],
+                        "logic-c00031-DeleteBookingQuoteLine": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "Response"
+                    },
+                    "Update_requestbody_Quote_status_field": {
+                      "inputs": "@setProperty(json(variables('RequestBody')), 'SIE_SF4S_upsertOfferReq', setProperty(json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq'], 'Opportunity',setProperty(json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity'],'quote',setProperty(json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['quote'], 'Status',triggerBody()?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['quote']?['Status']))))",
+                      "runAfter": {
+                        "Compose_Get_OppId": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "Compose"
+                    },
+                    "logic-c00031-DeleteBookingQuoteLine": {
+                      "inputs": {
+                        "host": {
+                          "workflow": {
+                            "id": "int_deleteBLQL"
+                          }
+                        },
+                        "body": null,
+                        "headers": {
+                          "S4SExternal_Source__c": "COMPAS",
+                          "opportunityId": "@{outputs('Compose_Get_OppId')}",
+                          "quoteId": "@{json(variables('QuoteResponse'))?['quote']?['SIE_SF4S_upsertResponse']?['Id']}"
+                        }
+                      },
+                      "runAfter": {
+                        "Condition_Quotes_upsert_status": [
+                          "Succeeded",
+                          "TimedOut",
+                          "Skipped"
+                        ]
+                      },
+                      "type": "Workflow"
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Response_Failed": {
+                        "inputs": {
+                          "body": {
+                            "SIE_SF4S_upsertOfferRes": {
+                              "Opportunity": "@json(variables('OppResponse'))"
+                            }
+                          },
+                          "headers": {
+                            "Content-Type": "application/json"
+                          },
+                          "statusCode": 200
+                        },
+                        "kind": "Http",
+                        "runAfter": {
+                          "Set_variable_OppResponse-_failure_case": [
+                            "Succeeded"
+                          ]
+                        },
+                        "type": "Response"
+                      },
+                      "Set_variable_OppResponse-_failure_case": {
+                        "inputs": {
+                          "name": "OppResponse",
+                          "value": "{\n \"SIE_SF4S_upsertResponse\":{\n            \"Id\":\"\",\n            \"created\":\"\",\n            \"Status\":\"false\",\n            \"Message\":\"@{coalesce(body('Update_Opportunity')?['message'], body('Create_Opportunity')?['message'])}\"\n         }\n}"
+                        },
+                        "runAfter": {},
+                        "type": "SetVariable"
+                      },
+                      "Terminate_Failed": {
+                        "inputs": {
+                          "runStatus": "Failed"
+                        },
+                        "runAfter": {
+                          "Response_Failed": [
+                            "Succeeded"
+                          ]
+                        },
+                        "type": "Terminate"
+                      }
+                    }
+                  },
+                  "expression": {
+                    "or": [
+                      {
+                        "equals": [
+                          "@coalesce(outputs('Update_Opportunity')?['statusCode'],outputs('Create_Opportunity')?['statusCode'])",
+                          201
+                        ]
+                      },
+                      {
+                        "equals": [
+                          "@coalesce(outputs('Update_Opportunity')?['statusCode'],outputs('Create_Opportunity')?['statusCode'])",
+                          200
+                        ]
+                      }
+                    ]
+                  },
+                  "runAfter": {
+                    "Check_if_Opportunity_exist": [
+                      "Succeeded",
+                      "Failed"
+                    ]
+                  },
+                  "type": "If"
+                },
+                "Check_if_Opportunity_exist": {
+                  "actions": {
+                    "Compose-Request": {
+                      "inputs": {
+                        "AccountId": "@{body('logic-c00031-MandatoryFieldsCompas')?['SIE_SF4S_MandatoryFieldsResCompas']?['AccountId']}",
+                        "CloseDate": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['CloseDate']}",
+                        "CurrencyIsoCode": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['CurrencyIsoCode']}",
+                        "Description": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['Description']}",
+                        "Name": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['Name']}",
+                        "OwnerId": "@{body('logic-c00031-MandatoryFieldsCompas')?['SIE_SF4S_MandatoryFieldsResCompas']?['OwnerId']}",
+                        "S4SBid_approval_PM040__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SBid_approval_PM040__c']}",
+                        "S4SBuy_America_n__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SBuy_America_n__c']}",
+                        "S4SChance_of_Execution__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SChance_of_Execution__c']}",
+                        "S4SChance_of_Success__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SChance_of_Success__c']}",
+                        "S4SCompetitors__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SCompetitors__c']}",
+                        "S4SContract_Schedule__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SContract_Schedule__c']}",
+                        "S4SCreate_COMPAS_Quote__c": "true",
+                        "S4SDefense_Priorities_Allocations_System__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SDefense_Priorities_Allocations_System__c']}",
+                        "S4SEnd_Account__c": "@{body('logic-c00031-MandatoryFieldsCompas')?['SIE_SF4S_MandatoryFieldsResCompas']?['S4SEndAccount__c']}",
+                        "S4SExternal_Source__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SExternal_Source__c']}",
+                        "S4SGovernmental_Agency__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SGovernmental_Agency__c']}",
+                        "S4SGovernmental_Entity_Government_Funded__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SGovernmental_Entity_Government_Funded__c']}",
+                        "S4SLast_Sync_with_COMPAS__c": "@{utcNow()}",
+                        "S4SMain_Reason__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SMain_Reason__c']}",
+                        "S4SOpportunity_Industry_Search__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SOpportunity_Industry_Search__c']}",
+                        "S4SReference_ID__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['quote']?['S4SOffer_ID__c']}",
+                        "S4SSAP_Number__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SSAP_Number__c']}",
+                        "S4SSales_Status__c": "@{body('Map_Opportunity_Stage')?['OppSalesStatus']}",
+                        "S4SSold_To_AI__c": "@{body('logic-c00031-MandatoryFieldsCompas')?['SIE_SF4S_MandatoryFieldsResCompas']?['IdentificationNumberId']}",
+                        "S4SSource_System_URL__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SSource_System_URL__c']}",
+                        "StageName": "@{body('Map_Opportunity_Stage')?['OppStage']}",
+                        "Type": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['Type']}"
+                      },
+                      "runAfter": {},
+                      "type": "Compose"
+                    },
+                    "JsonRemoveNullOrEmptyFunc_Compose": {
+                      "inputs": {
+                        "body": {
+                          "CorrelationId": "",
+                          "InputRequestBase64": "@{base64(outputs('Compose-Request'))}",
+                          "InterfaceName": "",
+                          "Username": "",
+                          "operation": "JsonRemoveNullOrEmpty"
+                        },
+                        "function": {
+                          "connectionName": "Liquid"
+                        },
+                        "headers": null,
+                        "method": "POST"
+                      },
+                      "runAfter": {
+                        "Compose-Request": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "Function"
+                    },
+                    "Update_opportunity": {
+                      "inputs": {
+                        "body": "@json(body('JsonRemoveNullOrEmptyFunc_Compose')?['result']?['restructuredJson'])",
+                        "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Opportunity'))}/externalIdFields/@{encodeURIComponent(encodeURIComponent('Id'))}/@{encodeURIComponent(encodeURIComponent(triggerBody()?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['Id']))}",
+                        "host": {
+                          "connection": {
+                            "referenceName": "salesForceConnection"
+                          }
+                        },
+                        "method": "patch"
+                      },
+                      "runAfter": {
+                        "JsonRemoveNullOrEmptyFunc_Compose": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "ApiConnection"
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Condition_failed": {
+                        "actions": {
+                          "ComposeHandleBoolean": {
+                            "inputs": {
+                              "AccountId": "@{body('logic-c00031-MandatoryFieldsCompas')?['SIE_SF4S_MandatoryFieldsResCompas']?['AccountId']}",
+                              "CloseDate": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['CloseDate']}",
+                              "CurrencyIsoCode": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['CurrencyIsoCode']}",
+                              "Description": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['Description']}",
+                              "Name": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['Name']}",
+                              "OwnerId": "@{body('logic-c00031-MandatoryFieldsCompas')?['SIE_SF4S_MandatoryFieldsResCompas']?['OwnerId']}",
+                              "S4SBid_approval_PM040__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SBid_approval_PM040__c']}",
+                              "S4SBuy_America_n__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SBuy_America_n__c']}",
+                              "S4SChance_of_Execution__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SChance_of_Execution__c']}",
+                              "S4SChance_of_Success__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SChance_of_Success__c']}",
+                              "S4SCompetitors__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SCompetitors__c']}",
+                              "S4SContract_Schedule__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SContract_Schedule__c']}",
+                              "S4SCreate_COMPAS_Quote__c": "true",
+                              "S4SDefense_Priorities_Allocations_System__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SDefense_Priorities_Allocations_System__c']}",
+                              "S4SEnd_Account__c": "@{body('logic-c00031-MandatoryFieldsCompas')?['SIE_SF4S_MandatoryFieldsResCompas']?['S4SEndAccount__c']}",
+                              "S4SExternal_Source__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SExternal_Source__c']}",
+                              "S4SGovernmental_Agency__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SGovernmental_Agency__c']}",
+                              "S4SGovernmental_Entity_Government_Funded__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SGovernmental_Entity_Government_Funded__c']}",
+                              "S4SLast_Sync_with_COMPAS__c": "@{utcNow()}",
+                              "S4SMain_Reason__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SMain_Reason__c']}",
+                              "S4SOpportunity_Industry_Search__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SOpportunity_Industry_Search__c']}",
+                              "S4SReference_ID__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['quote']?['S4SOffer_ID__c']}",
+                              "S4SSAP_Number__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SSAP_Number__c']}",
+                              "S4SSales_Status__c": "@{body('Map_Opportunity_Stage')?['OppSalesStatus']}",
+                              "S4SSold_To_AI__c": "@{body('logic-c00031-MandatoryFieldsCompas')?['SIE_SF4S_MandatoryFieldsResCompas']?['IdentificationNumberId']}",
+                              "S4SSource_System_URL__c": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SSource_System_URL__c']}",
+                              "StageName": "@{body('Map_Opportunity_Stage')?['OppStage']}",
+                              "Type": "@{json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['Type']}"
+                            },
+                            "runAfter": {},
+                            "type": "Compose"
+                          },
+                          "Create_opportunity": {
+                            "inputs": {
+                              "body": "@json(body('JsonRemoveNullOrEmptyFunc_ComposeHandleBoolean')?['result']?['restructuredJson'])",
+                              "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Opportunity'))}/items",
+                              "host": {
+                                "connection": {
+                                  "referenceName": "salesForceConnection"
+                                }
+                              },
+                              "method": "post"
+                            },
+                            "runAfter": {
+                              "JsonRemoveNullOrEmptyFunc_ComposeHandleBoolean": [
+                                "Succeeded"
+                              ]
+                            },
+                            "type": "ApiConnection"
+                          },
+                          "JsonRemoveNullOrEmptyFunc_ComposeHandleBoolean": {
+                            "inputs": {
+                              "body": {
+                                "CorrelationId": "",
+                                "InputRequestBase64": "@{base64(outputs('ComposeHandleBoolean'))}",
+                                "InterfaceName": "",
+                                "Username": "",
+                                "operation": "JsonRemoveNullOrEmpty"
+                              },
+                              "function": {
+                                "connectionName": "Liquid"
+                              },
+                              "headers": null,
+                              "method": "POST"
+                            },
+                            "runAfter": {
+                              "ComposeHandleBoolean": [
+                                "Succeeded"
+                              ]
+                            },
+                            "type": "Function"
+                          }
+                        },
+                        "else": {
+                          "actions": {
+                            "Terminate_opp_failed": {
+                              "inputs": {
+                                "runError": {
+                                  "code": "@{outputs('Get_an_Opportunity_by_External_ID')['statusCode']}",
+                                  "message": "@{outputs('Get_an_Opportunity_by_External_ID')?['Body']?['message']}"
+                                },
+                                "runStatus": "Failed"
+                              },
+                              "runAfter": {},
+                              "type": "Terminate"
+                            }
+                          }
+                        },
+                        "expression": {
+                          "and": [
+                            {
+                              "equals": [
+                                "@outputs('Get_an_Opportunity_by_External_ID')['statusCode']",
+                                404
+                              ]
+                            }
+                          ]
+                        },
+                        "runAfter": {},
+                        "type": "If"
+                      }
+                    }
+                  },
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@outputs('Get_an_Opportunity_by_External_ID')?['statusCode']",
+                          200
+                        ]
+                      }
+                    ]
+                  },
+                  "runAfter": {
+                    "Map_Opportunity_Stage": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "If"
+                },
+                "Condition_Mandatory_process_result_check": {
+                  "actions": {
+                    "Response-Mandatory_Field": {
+                      "inputs": {
+                        "body": "@setProperty(outputs('_Compose_Response_structure'), 'SIE_SF4S_upsertOfferRes',setProperty(outputs('_Compose_Response_structure')?['SIE_SF4S_upsertOfferRes'], 'Opportunity',json(variables('OppResponse'))))",
+                        "statusCode": 200
+                      },
+                      "kind": "Http",
+                      "runAfter": {
+                        "Set_variable_OppResponse": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "Response"
+                    },
+                    "Set_variable_OppResponse": {
+                      "inputs": {
+                        "name": "OppResponse",
+                        "value": "{\n \"SIE_SF4S_upsertResponse\":{\n            \"Id\":\"\",\n            \"created\":\"\",\n            \"Status\":\"false\",\n            \"Message\":\"@{body('logic-c00031-MandatoryFieldsCompas')?['SIE_SF4S_MandatoryFieldsResCompas']?['errorMessage']}\"\n         }\n}"
+                      },
+                      "runAfter": {},
+                      "type": "SetVariable"
+                    },
+                    "Terminate-Mandatory_Field": {
+                      "inputs": {
+                        "runStatus": "Succeeded"
+                      },
+                      "runAfter": {
+                        "Response-Mandatory_Field": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "Terminate"
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  },
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@body('logic-c00031-MandatoryFieldsCompas')?['SIE_SF4S_MandatoryFieldsResCompas']?['message']",
+                          "ERROR"
+                        ]
+                      }
+                    ]
+                  },
+                  "runAfter": {
+                    "logic-c00031-MandatoryFieldsCompas": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "If"
+                },
+                "Execute_a_SOQL_query(SIE_SF4S_fetchSISIC)": {
+                  "inputs": {
+                    "body": {
+                      "query": "SELECT Id,OwnerId,IsDeleted,Name,CurrencyIsoCode,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastViewedDate,LastReferencedDate,S4SExternal_ID__c,S4SIndustry_Description__c,S4SIndustry_Segment__c,S4SIndustry__c,S4SNAF_ID__c FROM S4SSISIC__c WHERE Name = '@{variables('PhilosSISICCode')}'"
+                    },
+                    "path": "/soql/executesoqlquery",
+                    "host": {
+                      "connection": {
+                        "referenceName": "salesForceConnection"
+                      }
+                    },
+                    "method": "post"
+                  },
+                  "runAfter": {
+                    "Set_variable_request_body:S4SChance_of_Success__c__append_percentage": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "ApiConnection"
+                },
+                "Filter_array:_Get_SISICCode_": {
+                  "inputs": {
+                    "from": "@json(body('GetConfiguration'))?['SISICCode']",
+                    "where": "@equals(item()?['CompasMarketSegmentCode'], triggerBody()?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SOpportunity_Industry_Search__c'])"
+                  },
+                  "runAfter": {
+                    "GetConfiguration": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Query"
+                },
+                "GetConfiguration": {
+                  "inputs": {
+                    "host": {
+                      "workflow": {
+                        "id": "getConfiguration"
+                      }
+                    },
+                    "body": {
+                      "key": "Compas-Config"
+                    },
+                    "headers": null
+                  },
+                  "runAfter": {},
+                  "type": "Workflow"
+                },
+                "Get_PriceBookEntry_from_config": {
+                  "inputs": "@json(body('GetConfiguration'))?['StandardPriceBook']",
+                  "runAfter": {
+                    "GetConfiguration": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose"
+                },
+                "Get_an_Opportunity_by_External_ID": {
+                  "inputs": {
+                    "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Opportunity'))}/externalIdFields/@{encodeURIComponent(encodeURIComponent('Id'))}/@{encodeURIComponent(encodeURIComponent(triggerBody()?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['Id']))}",
+                    "host": {
+                      "connection": {
+                        "referenceName": "salesForceConnection"
+                      }
+                    },
+                    "method": "get"
+                  },
+                  "runAfter": {
+                    "Condition_Mandatory_process_result_check": [
+                      "Succeeded",
+                      "Failed"
+                    ]
+                  },
+                  "type": "ApiConnection"
+                },
+                "Map_Opportunity_Stage": {
+                  "inputs": {
+                    "body": {
+                      "CurrentOppStage": "@body('Get_an_Opportunity_by_External_ID')?['StageName']",
+                      "QuoteStatus": "@triggerBody()?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['quote']?['Status']",
+                      "Update": "@if(or(equals(triggerBody()?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['Id'], null),equals(triggerBody()?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['Id'], string(''))),false,true)"
+                    },
+                    "function": {
+                      "connectionName": "Liquid"
+                    },
+                    "headers": {
+                      "Accept": "application/json",
+                      "Content -Type": "application/json",
+                      "Filename": "Compas-UpsertOffer_StageMap"
+                    },
+                    "method": "POST"
+                  },
+                  "runAfter": {
+                    "Get_an_Opportunity_by_External_ID": [
+                      "Succeeded",
+                      "Failed"
+                    ]
+                  },
+                  "type": "Function"
+                },
+                "Set_PhilosSISICCode_Variable": {
+                  "inputs": {
+                    "name": "PhilosSISICCode",
+                    "value": "@{body('Filter_array:_Get_SISICCode_')?[0]?['PhilosSISICCode']}"
+                  },
+                  "runAfter": {
+                    "Filter_array:_Get_SISICCode_": [
+                      "Succeeded"
+                    ],
+                    "Get_PriceBookEntry_from_config": [
+                      "Succeeded"
+                    ],
+                    "Set_variable_requestBody:_S4SChance_of_Execution__c_percentage_append": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "SetVariable"
+                },
+                "Set_S4SOpportunity_Industry_Search__c_value_in_RequestBody": {
+                  "inputs": {
+                    "name": "RequestBody",
+                    "value": "@{outputs('Update_Industry_search_field_in_request')}"
+                  },
+                  "runAfter": {
+                    "Update_Industry_search_field_in_request": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "SetVariable"
+                },
+                "Set_variable_requestBody:_S4SChance_of_Execution__c_percentage_append": {
+                  "inputs": {
+                    "name": "RequestBody",
+                    "value": "@{setProperty(triggerBody(), 'SIE_SF4S_upsertOfferReq', setProperty(triggerBody()?['SIE_SF4S_upsertOfferReq'], 'Opportunity', \r\nsetProperty(triggerBody()?['SIE_SF4S_upsertOfferReq']?['Opportunity'], 'S4SChance_of_Execution__c',concat(triggerBody()?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SChance_of_Execution__c'],'%'))))}"
+                  },
+                  "runAfter": {
+                    "GetConfiguration": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "SetVariable"
+                },
+                "Set_variable_request_body:S4SChance_of_Success__c__append_percentage": {
+                  "inputs": {
+                    "name": "RequestBody",
+                    "value": "@{outputs('Update_response_field_Chance_of_success')}"
+                  },
+                  "runAfter": {
+                    "Update_response_field_Chance_of_success": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "SetVariable"
+                },
+                "Update_Industry_search_field_in_request": {
+                  "inputs": "@setProperty(json(variables('RequestBody')), 'SIE_SF4S_upsertOfferReq', setProperty(json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq'], 'Opportunity', \r\nsetProperty(json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity'], 'S4SOpportunity_Industry_Search__c',body('Execute_a_SOQL_query(SIE_SF4S_fetchSISIC)')?['records']?[0]?['Id'])))",
+                  "runAfter": {
+                    "Execute_a_SOQL_query(SIE_SF4S_fetchSISIC)": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose"
+                },
+                "Update_response_field_Chance_of_success": {
+                  "inputs": "@setProperty(json(variables('RequestBody')), 'SIE_SF4S_upsertOfferReq', setProperty(json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq'], 'Opportunity', \r\nsetProperty(json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']?['Opportunity'], 'S4SChance_of_Success__c',concat(triggerBody()?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['S4SChance_of_Success__c'],'%'))))",
+                  "runAfter": {
+                    "Set_PhilosSISICCode_Variable": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose"
+                },
+                "logic-c00031-MandatoryFieldsCompas": {
+                  "inputs": {
+                    "host": {
+                      "workflow": {
+                        "id": "int_compassMandatoryFields"
+                      }
+                    },
+                    "body": "@json(variables('RequestBody'))?['SIE_SF4S_upsertOfferReq']",
+                    "headers": null
+                  },
+                  "runAfter": {
+                    "Set_S4SOpportunity_Industry_Search__c_value_in_RequestBody": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Workflow"
+                }
+              }
+            },
+            "expression": {
+              "and": [
+                {
+                  "equals": [
+                    "@triggerBody()?['SIE_SF4S_upsertOfferReq']?['Opportunity']?['quote']?['Status']",
+                    "@null"
+                  ]
+                }
+              ]
+            },
+            "runAfter": {},
+            "type": "If"
+          }
+        },
+        "runAfter": {
+          "Initialize_variable_OppResponse": [
+            "Succeeded"
+          ],
+          "Initialize_variable_PhilosSISICCode": [
+            "Succeeded"
+          ],
+          "Initialize_variable_Quote_response": [
+            "Succeeded"
+          ],
+          "Initialize_variable_RequestBody": [
+            "Succeeded"
+          ],
+          "Initialize_variable_SIE_SF4S_upsertBookingLine": [
+            "Succeeded"
+          ],
+          "Initialize_variable_SIE_SF4S_upsertQuoteLineReq": [
+            "Succeeded"
+          ],
+          "_Compose_Response_structure": [
+            "Succeeded"
+          ]
+        },
+        "trackedProperties": {
+          "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+          "citizenName": "c00031",
+          "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+          "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}",
+          "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+          "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'Compas')}",
+          "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+          "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'not-defined')}",
+          "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'compasUpsertOffer')}",
+          "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}"
+        },
+        "type": "Scope"
+      },
+      "_Compose_Response_structure": {
+        "inputs": {
+          "SIE_SF4S_upsertOfferRes": {
+            "Opportunity": "",
+            "bookingLine": [],
+            "involvedAccounts": [],
+            "oppLine": [],
+            "quote": []
+          }
+        },
+        "runAfter": {},
+        "type": "Compose"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {},
+        "kind": "Http",
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

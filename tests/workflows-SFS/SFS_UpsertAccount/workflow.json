@@ -1,0 +1,509 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Initialize_variable-FailedResponse": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "varFailedResponse",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable-XMLResposne": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "ResponseXML",
+              "type": "string",
+              "value": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sie=\"http://demchdc8zkx.dc4ca.siemens.de/SIE.SF4S.SOAP.Public.ws.provider:upsertAccount\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <sie:upsertAccountResponse>\n##XMLResponse##\n </sie:upsertAccountResponse>\n   </soapenv:Body>\n</soapenv:Envelope>"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_-_UserName": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "UserName",
+              "type": "string",
+              "value": "@{coalesce(triggerOutputs()?['headers']?['username'], triggerOutputs()?['queries']?['username'])}"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Scope_-Catch": {
+        "actions": {
+          "Response_Error": {
+            "inputs": {
+              "body": "@if(contains(triggerOutputs()?['headers']?['Content-Type'],'json'),json(xml('<SIE_SF4S_upsertAccountResponse><SIE_SF4S_upsertResponse><Status>Failure</Status><Message></Message></SIE_SF4S_upsertResponse></SIE_SF4S_upsertAccountResponse>')),xml(replace(variables('ResponseXML'),'##XMLResponse##',string('<SIE_SF4S_upsertAccountResponse><SIE_SF4S_upsertResponse><Status>Failure</Status><Message></Message></SIE_SF4S_upsertResponse></SIE_SF4S_upsertAccountResponse>'))))",
+              "headers": {
+                "Content-Type": "@{triggerOutputs()['headers']?['Content-Type']}"
+              },
+              "statusCode": 400
+            },
+            "kind": "Http",
+            "runAfter": {
+              "log_-_Error_": [
+                "Succeeded"
+              ]
+            },
+            "runtimeConfiguration": {
+              "secureData": {
+                "properties": [
+                  "inputs"
+                ]
+              }
+            },
+            "type": "Response"
+          },
+          "Terminate": {
+            "inputs": {
+              "runStatus": "Failed"
+            },
+            "runAfter": {
+              "Response_Error": [
+                "Succeeded"
+              ]
+            },
+            "type": "Terminate"
+          },
+          "log_-_Error_": {
+            "inputs": {
+              "host": {
+                "workflow": {
+                  "id": "int_sf4sLog"
+                }
+              },
+              "body": {
+                "message": "Error catched:  %/lastError/error%",
+                "severity": "ERROR"
+              },
+              "headers": {
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+              }
+            },
+            "runAfter": {},
+            "type": "Workflow"
+          }
+        },
+        "runAfter": {
+          "Scope_-Try": [
+            "Failed",
+            "Skipped",
+            "TimedOut"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Scope_-Try": {
+        "actions": {
+          "Compose-Account": {
+            "inputs": "@xpath(if(contains(triggerOutputs()['headers']?['Content-Type'],string('json')),xml(triggerBody()),xml(replace(string(xml(xpath(xml(triggerBody()),'.//SIE_SF4S_upsertAccount')[0])),'SIE_SF4S_upsertAccount','Account'))), './/Account')?[0]",
+            "runAfter": {},
+            "type": "Compose"
+          },
+          "Compose-isDeleted": {
+            "inputs": "@replace(string(outputs('Compose-Account')),concat('<IsDeleted>',xpath(xml(string(outputs('Compose-Account'))),'.//IsDeleted/text()')?[0],'</IsDeleted>'),concat('<IsDeleted>',xpath(xml(string(outputs('Compose-Account'))),'.//IsDeleted/text()')?[0],'</IsDeleted>','<S4SMarked_for_Deletion__c>',xpath(xml(string(outputs('Compose-Account'))),'.//IsDeleted/text()')?[0],'</S4SMarked_for_Deletion__c>'))",
+            "runAfter": {
+              "Compose-Account": [
+                "Succeeded"
+              ]
+            },
+            "runtimeConfiguration": {
+              "secureData": {
+                "properties": [
+                  "inputs"
+                ]
+              }
+            },
+            "type": "Compose"
+          },
+          "Condition_to_check_Account_null": {
+            "actions": {
+              "Condition_to_Check_Userbased_status": {
+                "actions": {
+                  "Condition_check_accountTeam": {
+                    "actions": {
+                      "logic-SFS_LOS-InternalupsertAccountV2_w_header": {
+                        "inputs": {
+                          "host": {
+                            "workflow": {
+                              "id": "int_SFS_UpsertAccountV2"
+                            }
+                          },
+                          "body": "@body('logic-UserBasedLogic-losUpsert_Account')?['Account']",
+                          "headers": {
+                            "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                            "keepAccountTeam": "@{true}",
+                            "username": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                            "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                          }
+                        },
+                        "runAfter": {},
+                        "type": "Workflow"
+                      }
+                    },
+                    "else": {
+                      "actions": {
+                        "logic-SFS_LOS-InternalupsertAccountV2": {
+                          "inputs": {
+                            "host": {
+                              "workflow": {
+                                "id": "int_SFS_UpsertAccountV2"
+                              }
+                            },
+                            "body": "@body('logic-UserBasedLogic-losUpsert_Account')?['Account']",
+                            "headers": {
+                              "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                              "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                              "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                            }
+                          },
+                          "runAfter": {},
+                          "type": "Workflow"
+                        }
+                      }
+                    },
+                    "expression": {
+                      "and": [
+                        {
+                          "equals": [
+                            "@if(or(equals(xpath(xml(string(outputs('Compose-isDeleted'))),'.//S4SExternal_Source__c/text()')?[0],'LOS'),equals(xpath(xml(string(outputs('Compose-isDeleted'))),'.//S4SExternal_Source__c/text()')?[0],'Webcon')),false,if(equals(xpath(xml(string(outputs('Compose-isDeleted'))),'.//S4SExternal_Source__c/text()')?[0],'Salesforce'),false,coalesce(triggerBody()?['Account']?['keepAccountTeam'],false)))",
+                            "@true"
+                          ]
+                        }
+                      ]
+                    },
+                    "runAfter": {},
+                    "type": "If"
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Response-Error_Response": {
+                      "inputs": {
+                        "body": "@if(contains(triggerOutputs()?['headers']?['Content-Type'],'json'),json(xml(json(variables('varFailedResponse')))),replace(variables('ResponseXML'),'##XMLResponse##',string(xml(json(concat('{\"SIE_SF4S_upsertAccountResponse\":',string(removeProperty(json(variables('varFailedResponse'))?['SIE_SF4S_upsertAccountResponse'],'S4SIAC')),'}'))))))",
+                        "headers": {
+                          "Content-Type": "@{triggerOutputs()['headers']?['Content-Type']}"
+                        },
+                        "statusCode": 400
+                      },
+                      "kind": "Http",
+                      "runAfter": {
+                        "Set_variable_-varFailedResponse": [
+                          "Succeeded"
+                        ]
+                      },
+                      "runtimeConfiguration": {
+                        "secureData": {
+                          "properties": [
+                            "inputs"
+                          ]
+                        }
+                      },
+                      "type": "Response"
+                    },
+                    "Set_variable_-varFailedResponse": {
+                      "inputs": {
+                        "name": "varFailedResponse",
+                        "value": "{\n  \"SIE_SF4S_upsertAccountResponse\": {\n    \"Account\": {\n      \"SIE_SF4S_upsertResponse\": {\n        \"Id\": \"\",\n         \"created\": \"\",\n         \"Status\": \"@{if(equals(outputs('logic-UserBasedLogic-losUpsert_Account')?['statusCode'],400),'Failure',body('logic-UserBasedLogic-losUpsert_Account')?['Status'])}\",\n        \"Message\": \"@{if(equals(outputs('logic-UserBasedLogic-losUpsert_Account')?['statusCode'],400),body('logic-UserBasedLogic-losUpsert_Account'),body('logic-UserBasedLogic-losUpsert_Account')?['message'])}\"\n      }\n    },\n    \"AccountRelationship\": [\n      {\n        \"SIE_SF4S_upsertResponse\": {\n          \"Id\": \"\",\n          \"created\": \"\",\n          \"Status\": \"Failure\",\n          \"Message\": \"\"\n        }\n      }\n    ],\n    \"S4SIAC\": [\n      {\n        \"SIE_SF4S_upsertResponse\": {\n          \"Id\": \"\",\n          \"created\": \"\",\n         \"Status\": \"Failure\",\n          \"Message\": \"\"\n        }\n      }\n    ],\n    \"S4SRole\": [\n      {\n        \"SIE_SF4S_upsertResponse\": {\n          \"Id\": \"\",\n           \"created\": \"\",\n         \"Status\": \"Failure\",\n          \"Message\": \"\"\n        }\n      }\n    ],\n    \"S4SSieSmart_Information\": {\n      \"SIE_SF4S_upsertResponse\": {\n        \"Id\": \"\",\n         \"created\": \"\",\n         \"Status\": \"Failure\",\n          \"Message\": \"\"\n      }\n    }\n  }\n}"
+                      },
+                      "runAfter": {},
+                      "type": "SetVariable"
+                    },
+                    "Terminate-Failed": {
+                      "inputs": {
+                        "runStatus": "Failed"
+                      },
+                      "runAfter": {
+                        "Response-Error_Response": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "Terminate"
+                    }
+                  }
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "equals": [
+                        "@string(outputs('logic-UserBasedLogic-losUpsert_Account')?['statusCode'])",
+                        "@string('200')"
+                      ]
+                    }
+                  ]
+                },
+                "runAfter": {
+                  "logic-UserBasedLogic-losUpsert_Account": [
+                    "Succeeded",
+                    "Failed"
+                  ]
+                },
+                "type": "If"
+              },
+              "SFS_internal_sf4sLog-_Account_": {
+                "inputs": {
+                  "host": {
+                    "workflow": {
+                      "id": "int_sf4sLog"
+                    }
+                  },
+                  "body": {
+                    "message": "upsert account data : '@{json(xml(string(outputs('Compose-isDeleted'))))}'",
+                    "severity": "DEBUG"
+                  },
+                  "headers": {
+                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                    "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                    "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                  }
+                },
+                "runAfter": {},
+                "type": "Workflow"
+              },
+              "SFS_internal_sf4sLog-_Upsert_Account": {
+                "inputs": {
+                  "host": {
+                    "workflow": {
+                      "id": "int_sf4sLog"
+                    }
+                  },
+                  "body": {
+                    "message": "upsert account called by @{variables('UserName')} with External Source: '@{xpath(xml(string(outputs('Compose-isDeleted'))),'.//Account/S4SExternal_Source__c/text()')?[0]}'",
+                    "severity": "INFO"
+                  },
+                  "headers": {
+                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                    "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                    "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                  }
+                },
+                "runAfter": {},
+                "type": "Workflow"
+              },
+              "logic-UserBasedLogic-losUpsert_Account": {
+                "inputs": {
+                  "host": {
+                    "workflow": {
+                      "id": "int_SFS_userbasedAccLOS"
+                    }
+                  },
+                  "body": {
+                    "account": "@{outputs('Compose-isDeleted')}",
+                    "interface": "@{xpath(xml(string(outputs('Compose-isDeleted'))),'.//S4SExternal_Source__c/text()')?[0]\r\n}",
+                    "userName": "@variables('UserName')"
+                  },
+                  "headers": {
+                    "defaultOwner": "@{coalesce(if(or(equals(variables('UserName'), 'SF4S_LOS_API_USER_IC'),equals(variables('UserName'),'SF4S_WEBCON_API_USER_IC')),xpath(xml(triggerBody()),'.//defaultOwner/text()')?[0],triggerBody()?['UpsertAccount']?['defaultOwner']),string(''))}",
+                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                    "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                    "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                  }
+                },
+                "runAfter": {
+                  "SFS_internal_sf4sLog-_Account_": [
+                    "Succeeded"
+                  ],
+                  "SFS_internal_sf4sLog-_Upsert_Account": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Workflow"
+              }
+            },
+            "else": {
+              "actions": {
+                "SFS_internal_sf4sLog-__json_Account_data": {
+                  "inputs": {
+                    "host": {
+                      "workflow": {
+                        "id": "int_sf4sLog"
+                      }
+                    },
+                    "body": {
+                      "message": "upsert account data : '@{base64(json(xml(string(outputs('Compose-isDeleted')))))}'",
+                      "severity": "WARNING"
+                    },
+                    "headers": {
+                      "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                      "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                      "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                    }
+                  },
+                  "runAfter": {},
+                  "type": "Workflow"
+                }
+              }
+            },
+            "expression": {
+              "and": [
+                {
+                  "not": {
+                    "equals": [
+                      "@string(outputs('Compose-isDeleted'))",
+                      "@null"
+                    ]
+                  }
+                }
+              ]
+            },
+            "runAfter": {
+              "Compose-isDeleted": [
+                "Succeeded"
+              ]
+            },
+            "type": "If"
+          },
+          "Final_Response-SFS_internal_sf4sLog": {
+            "inputs": {
+              "host": {
+                "workflow": {
+                  "id": "int_sf4sLog"
+                }
+              },
+              "body": {
+                "message": "Final Response: @{base64(if(contains(triggerOutputs()?['headers']?['Content-Type'],'json'),coalesce(body('logic-SFS_LOS-InternalupsertAccountV2_w_header'), body('logic-SFS_LOS-InternalupsertAccountV2')),replace(variables('ResponseXML'),'##XMLResponse##',string(xml(coalesce(body('logic-SFS_LOS-InternalupsertAccountV2_w_header'), body('logic-SFS_LOS-InternalupsertAccountV2')))))))}",
+                "severity": "INFO"
+              },
+              "headers": {
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+              }
+            },
+            "runAfter": {
+              "Response_-_Success": [
+                "Succeeded"
+              ]
+            },
+            "type": "Workflow"
+          },
+          "Response_-_Success": {
+            "inputs": {
+              "body": "@if(contains(triggerOutputs()?['headers']?['Content-Type'],'json'),json(body('Transform_XML'))?['soapenv:Envelope']?['soapenv:Body']?['sie:upsertAccountResponse'],replace(replace(string(body('Transform_XML')),'xmlns:json=\"http://james.newtonking.com/projects/json\"',''),'json:Array=\"true\"',''))",
+              "headers": {
+                "Content-Type": "@{triggerOutputs()['headers']?['Content-Type']}"
+              },
+              "statusCode": 200
+            },
+            "kind": "Http",
+            "runAfter": {
+              "Transform_XML": [
+                "Succeeded"
+              ]
+            },
+            "runtimeConfiguration": {
+              "secureData": {
+                "properties": [
+                  "inputs"
+                ]
+              }
+            },
+            "type": "Response"
+          },
+          "Terminate_Success": {
+            "inputs": {
+              "runStatus": "Succeeded"
+            },
+            "runAfter": {
+              "Final_Response-SFS_internal_sf4sLog": [
+                "Succeeded"
+              ]
+            },
+            "type": "Terminate"
+          },
+          "Transform_XML": {
+            "type": "Xslt",
+            "inputs": {
+              "content": "@{xml(coalesce(body('logic-SFS_LOS-InternalupsertAccountV2_w_header'),body('logic-SFS_LOS-InternalupsertAccountV2')))}",
+              "map": {
+                "source": "IntegrationAccount",
+                "name": "map-c00031-SFS-ResponseFormat"
+              }
+            },
+            "runAfter": {
+              "Condition_to_check_Account_null": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "Initialize_variable-FailedResponse": [
+            "Succeeded"
+          ],
+          "Initialize_variable-XMLResposne": [
+            "Succeeded"
+          ],
+          "Initialize_variable_-_UserName": [
+            "Succeeded"
+          ],
+          "logic-c00031-SFS_internal_sf4sLog-weu-dev": [
+            "Succeeded"
+          ]
+        },
+        "trackedProperties": {
+          "apimRouting": "external",
+          "citizenName": "c00031",
+          "correlationId": "not-defined",
+          "interfaceName": "SFS",
+          "interfacePartner": "not-defined",
+          "interfaceVersion": "not-defined",
+          "operationName": "upsertAccount",
+          "parentWorkflow": "not-defined"
+        },
+        "type": "Scope"
+      },
+      "logic-c00031-SFS_internal_sf4sLog-weu-dev": {
+        "inputs": {
+          "host": {
+            "workflow": {
+              "id": "int_sf4sLog"
+            }
+          },
+          "body": {
+            "message": "Logic app name is 'SFS_UpsertAccount'",
+            "severity": "INFO"
+          },
+          "headers": {
+            "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+            "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+            "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+          }
+        },
+        "runAfter": {},
+        "type": "Workflow"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {},
+        "kind": "Http",
+        "runtimeConfiguration": {
+          "secureData": {
+            "properties": [
+              "inputs",
+              "outputs"
+            ]
+          }
+        },
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

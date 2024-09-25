@@ -1,0 +1,4 @@
+{
+  "liquid": {"value": "@appsetting('liquid')", "type": "string"},
+  "liquid_Highspot": {"value": "@appsetting('liquid_Highspot')", "type": "string"},
+}

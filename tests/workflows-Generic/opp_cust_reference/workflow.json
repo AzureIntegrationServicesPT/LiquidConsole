@@ -1,0 +1,270 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "GetConfiguration": {
+        "inputs": {
+          "host": {
+            "workflow": {
+              "id": "getconfiguration_logicappid}"
+            }
+          },
+          "body": {
+            "key": "customer-reference-s3-config"
+          },
+          "headers": null
+        },
+        "runAfter": {},
+        "type": "Workflow"
+      },
+      "Initialize_variable-AcKresponse": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "varAckResponse",
+              "type": "string",
+              "value": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:out=\"http://soap.sforce.com/2005/09/outbound\">\n<soapenv:Header/>\n<soapenv:Body>\n<out:notificationsResponse>\n<out:Ack>##RESULT##</out:Ack>\n</out:notificationsResponse>\n</soapenv:Body>\n</soapenv:Envelope>"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Scope_Catch": {
+        "actions": {
+          "Error_Response": {
+            "inputs": {
+              "body": "@replace(variables('varAckResponse'),'##RESULT##','0')",
+              "statusCode": 500
+            },
+            "kind": "Http",
+            "runAfter": {},
+            "type": "Response"
+          },
+          "Terminate": {
+            "inputs": {
+              "runStatus": "Failed"
+            },
+            "runAfter": {
+              "Error_Response": [
+                "Succeeded"
+              ]
+            },
+            "type": "Terminate"
+          }
+        },
+        "runAfter": {
+          "Scope_Try": [
+            "Failed",
+            "TimedOut"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Scope_Try": {
+        "actions": {
+          "Check_Opportunity_Exists": {
+            "actions": {
+              "Account_Where_Clause": {
+                "inputs": {
+                  "body": {
+                    "Opportunity": "@body('HTTP_Query_SF_Opportunity')?['records']?[0]"
+                  },
+                  "function": {
+                    "connectionName": "Liquid"
+                  },
+                  "headers": {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                    "Filename": "Where-Clause-Account-Opp_Cust_Reference"
+                  },
+                  "method": "POST"
+                },
+                "runAfter": {},
+                "type": "Function"
+              },
+              "AwsS3Upload": {
+                "inputs": {
+                  "body": {
+                    "accessKey": "@{json(body('GetConfiguration'))?['config']?['accessKey']}",
+                    "bucketName": "@{json(body('GetConfiguration'))?['config']?['bucketName']}",
+                    "fileName": "@concat(json(body('GetConfiguration'))?['config']?['directory'],'Customer_Reference_', body('HTTP_Query_SF_Opportunity')?['records']?[0]?['Id'],'.json')",
+                    "json": " @{body('Create_JSON_for_S3_Bucket')}",
+                    "secretKey": "@{json(body('GetConfiguration'))?['config']?['secretKey']}"
+                  },
+                  "function": {
+                    "connectionName": "AwsS3Upload"
+                  },
+                  "headers": null,
+                  "method": "POST"
+                },
+                "runAfter": {
+                  "Create_JSON_for_S3_Bucket": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Function"
+              },
+              "Create_JSON_for_S3_Bucket": {
+                "inputs": {
+                  "body": {
+                    "Account": "@body('HTTP_Query_SF_Account')?['records']?[0]",
+                    "Opportunity": "@ body('HTTP_Query_SF_Opportunity')?['records']?[0]",
+                    "User": "@body('HTTP_Query_User_GID')?['records']?[0]"
+                  },
+                  "function": {
+                    "connectionName": "Liquid"
+                  },
+                  "headers": {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                    "Filename": "Create-JSON-for-S3-Bucket-Opp_Cust_Reference"
+                  },
+                  "method": "POST"
+                },
+                "runAfter": {
+                  "HTTP_Query_SF_Account": [
+                    "Succeeded"
+                  ],
+                  "HTTP_Query_User_GID": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Function"
+              },
+              "HTTP_Query_SF_Account": {
+                "inputs": {
+                  "headers": {
+                    "Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+                  },
+                  "method": "GET",
+                  "queries": {
+                    "q": "SELECT Name, BillingStreet, BillingCity, BillingCountryCode, BillingPostalCode, S4SIfA__c FROM Account @{body('Account_Where_Clause')['clause']} LIMIT 100"
+                  },
+                  "uri": "parameters('instanceUrl_nonsfs')/query"
+                },
+                "runAfter": {
+                  "Account_Where_Clause": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Http"
+              },
+              "HTTP_Query_User_GID": {
+                "inputs": {
+                  "headers": {
+                    "Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+                  },
+                  "method": "GET",
+                  "queries": {
+                    "q": "SELECT S4SGID_Technical__c FROM User WHERE Id='@{body('HTTP_Query_SF_Opportunity')?['records']?[0]?['OwnerId']}' LIMIT 100"
+                  },
+                  "uri": "parameters('instanceUrl_nonsfs')/query"
+                },
+                "runAfter": {
+                  "Account_Where_Clause": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Http"
+              },
+              "Response_Success": {
+                "inputs": {
+                  "body": "@replace(variables('varAckResponse'),'##RESULT##','1')",
+                  "statusCode": 200
+                },
+                "kind": "Http",
+                "runAfter": {
+                  "AwsS3Upload": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Response"
+              }
+            },
+            "else": {
+              "actions": {
+                "Response_No_Opportunity_Found": {
+                  "inputs": {
+                    "body": "@replace(variables('varAckResponse'),'##RESULT##','1')",
+                    "statusCode": 200
+                  },
+                  "kind": "Http",
+                  "runAfter": {},
+                  "type": "Response"
+                }
+              }
+            },
+            "expression": {
+              "and": [
+                {
+                  "greater": [
+                    "@length(body('HTTP_Query_SF_Opportunity')?['records'])",
+                    "@int(0)"
+                  ]
+                }
+              ]
+            },
+            "runAfter": {
+              "HTTP_Query_SF_Opportunity": [
+                "Succeeded"
+              ]
+            },
+            "type": "If"
+          },
+          "HTTP_Get_SF_Token": {
+            "inputs": {
+              "headers": {
+                "Ocp-Apim-Subscription-Key": "parameters('subscriptionKey_apim')"
+              },
+              "method": "POST",
+              "uri": "parameters('baseUrl_apim')/c00031/token/oAuth/nonsfs"
+            },
+            "runAfter": {},
+            "type": "Http"
+          },
+          "HTTP_Query_SF_Opportunity": {
+            "inputs": {
+              "headers": {
+                "Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+              },
+              "method": "GET",
+              "queries": {
+                "q": "SELECT Id,Name, AccountId, S4SEnd_Account__r.Id, OwnerId, CloseDate, S4SOpportunity_Amount_EUR__c, S4SDivision__c, S4SCountry_of_Installation__c, S4SAcceptance_Closure__c, S4SAccount_Industry_SISIC__c FROM Opportunity WHERE Id='@{xpath(xml(triggerBody()), 'string(/*[local-name()=\"Envelope\"]/*[local-name()=\"Body\"]/*[local-name()=\"notifications\"]/*[local-name()=\"Notification\"]/*[local-name()=\"sObject\"]/*[local-name()=\"Id\"])')}' LIMIT 100"
+              },
+              "uri": "parameters('instanceUrl_nonsfs')/query"
+            },
+            "runAfter": {
+              "HTTP_Get_SF_Token": [
+                "Succeeded"
+              ]
+            },
+            "type": "Http"
+          }
+        },
+        "runAfter": {
+          "GetConfiguration": [
+            "Succeeded"
+          ],
+          "Initialize_variable-AcKresponse": [
+            "Succeeded"
+          ]
+        },
+        "type": "Scope"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {
+          "method": "POST",
+          "schema": {}
+        },
+        "kind": "Http",
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

@@ -1,0 +1,331 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Catch_Error_Scope": {
+        "actions": {
+          "Terminate": {
+            "inputs": {
+              "runError": {
+                "code": "500"
+              },
+              "runStatus": "Failed"
+            },
+            "runAfter": {},
+            "type": "Terminate"
+          }
+        },
+        "runAfter": {
+          "Scope_-_Try": [
+            "TimedOut",
+            "Skipped",
+            "Failed"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Scope_-_Try": {
+        "actions": {
+          "Connection_to_SOAP_Service": {
+            "inputs": {
+              "authentication": {
+                "password": "@body('Parse_JSON_3')?['password']",
+                "pfx": "@body('Parse_JSON_2')?['certificate']",
+                "type": "ClientCertificate"
+              },
+              "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:urn=\"urn:sap-com:document:sap:rfc:functions\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <urn:_-SIE_-CHCM_WS_ICM/>\n   </soapenv:Body>\n</soapenv:Envelope>",
+              "headers": {
+                "Content-Type": "text/xml; charset=utf-8"
+              },
+              "method": "POST",
+              "uri": "{parameters('soap_service_uri')}"
+            },
+            "runAfter": {
+              "Parse_JSON_3": [
+                "Succeeded"
+              ]
+            },
+            "type": "Http"
+          },
+          "Create_file": {
+            "inputs": {
+              "body": "@body('Parse_JSON')",
+              "queries": {
+                "folderPath": "/sdc-chcm-interface/{parameters('sftpssh_dbupload_path')}/inbound",
+                "name": "@{concat('CHCM_', utcNow(),'.json')}",
+                "queryParametersSingleEncoded": true
+              },
+              "path": "/datasets/default/files",
+              "host": {
+                "connection": {
+                  "referenceName": "Sftp"
+                }
+              },
+              "headers": {
+                "ReadFileMetadataFromServer": false
+              },
+              "method": "post"
+            },
+            "runAfter": {
+              "Parse_JSON": [
+                "Succeeded"
+              ]
+            },
+            "runtimeConfiguration": {
+              "contentTransfer": {
+                "transferMode": "Chunked"
+              }
+            },
+            "type": "ApiConnection"
+          },
+          "Get_Key_Vault_Secret_Certificate": {
+            "inputs": {
+              "authentication": {
+                "audience": "https://vault.azure.net",
+                "type": "ManagedServiceIdentity"
+              },
+              "method": "GET",
+              "queries": {
+                "api-version": "7.2"
+              },
+              "uri": "{parameters('keyVaultSecretBaseUri')}/{parameters('keyVaultSecretKey')}"
+            },
+            "runAfter": {},
+            "type": "Http"
+          },
+          "Get_Key_Vault_Secret_Password": {
+            "inputs": {
+              "authentication": {
+                "audience": "https://vault.azure.net",
+                "type": "ManagedServiceIdentity"
+              },
+              "method": "GET",
+              "queries": {
+                "api-version": "7.2"
+              },
+              "uri": "{parameters('keyVaultSecretBaseUri')}/{parameters('keyVaultSecretKeyPassword')}"
+            },
+            "runAfter": {
+              "Parse_JSON_2": [
+                "Succeeded"
+              ]
+            },
+            "type": "Http"
+          },
+          "Parse_JSON": {
+            "inputs": {
+              "content": "@body('Transform_XML_to_JSON')",
+              "schema": {
+                "items": {
+                  "properties": {
+                    "ARE": {
+                      "type": "string"
+                    },
+                    "ActionType": {
+                      "type": "string"
+                    },
+                    "ActionTypeTxt": {
+                      "type": "string"
+                    },
+                    "BusinessUnitID": {
+                      "type": "string"
+                    },
+                    "BusinessUnitShortText": {
+                      "type": "string"
+                    },
+                    "CompanyEntryDate": {
+                      "type": "string"
+                    },
+                    "CompanyExitDate": {
+                      "type": "string"
+                    },
+                    "ContractStatus": {
+                      "type": "string"
+                    },
+                    "CostCenter": {
+                      "type": "string"
+                    },
+                    "CountryARE": {
+                      "type": "string"
+                    },
+                    "CountryPlaceofAction": {
+                      "type": "string"
+                    },
+                    "Currency": {
+                      "type": "string"
+                    },
+                    "CurrencyPayroll": {
+                      "type": "string"
+                    },
+                    "DateContractStatus": {
+                      "type": "string"
+                    },
+                    "DateTargetIncentiveAmount": {
+                      "type": "string"
+                    },
+                    "DepthStructureDivision": {
+                      "type": "string"
+                    },
+                    "E-mailAddress": {
+                      "type": "string"
+                    },
+                    "ExitReason": {
+                      "type": "string"
+                    },
+                    "GID": {
+                      "type": "string"
+                    },
+                    "GRIPPosition": {
+                      "type": "string"
+                    },
+                    "In-companyManager": {
+                      "type": "string"
+                    },
+                    "IncentivePaymentType": {
+                      "type": "string"
+                    },
+                    "LineManagerIndividual": {
+                      "type": "string"
+                    },
+                    "Name": {
+                      "type": "string"
+                    },
+                    "OrgCodeOM": {
+                      "type": "string"
+                    },
+                    "OrgCodePA": {
+                      "type": "string"
+                    },
+                    "OrgUnitID": {
+                      "type": "string"
+                    },
+                    "PersonnelNumber": {
+                      "type": "string"
+                    },
+                    "Surname": {
+                      "type": "string"
+                    },
+                    "TargetIncentiveAmount": {
+                      "type": "string"
+                    },
+                    "Title": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "ARE",
+                    "GID",
+                    "TargetIncentiveAmount",
+                    "DateTargetIncentiveAmount",
+                    "Title",
+                    "Name",
+                    "Surname",
+                    "PersonnelNumber",
+                    "Currency",
+                    "CompanyEntryDate",
+                    "CompanyExitDate",
+                    "ExitReason",
+                    "OrgCodePA",
+                    "OrgCodeOM",
+                    "OrgUnitID",
+                    "CountryARE",
+                    "CountryPlaceofAction",
+                    "ContractStatus",
+                    "CostCenter",
+                    "CurrencyPayroll",
+                    "E-mailAddress",
+                    "In-companyManager",
+                    "GRIPPosition",
+                    "LineManagerIndividual",
+                    "IncentivePaymentType",
+                    "DepthStructureDivision",
+                    "BusinessUnitID",
+                    "BusinessUnitShortText",
+                    "DateContractStatus",
+                    "ActionType",
+                    "ActionTypeTxt"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "runAfter": {
+              "Transform_XML_to_JSON": [
+                "Succeeded"
+              ]
+            },
+            "type": "ParseJson"
+          },
+          "Parse_JSON_2": {
+            "inputs": {
+              "content": "@body('Get_Key_Vault_Secret_Certificate')['value']",
+              "schema": {
+                "properties": {
+                  "certificate": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "runAfter": {
+              "Get_Key_Vault_Secret_Certificate": [
+                "Succeeded"
+              ]
+            },
+            "type": "ParseJson"
+          },
+          "Parse_JSON_3": {
+            "inputs": {
+              "content": "@body('Get_Key_Vault_Secret_Password')['value']",
+              "schema": {
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "runAfter": {
+              "Get_Key_Vault_Secret_Password": [
+                "Succeeded"
+              ]
+            },
+            "type": "ParseJson"
+          },
+          "Transform_XML_to_JSON": {
+            "inputs": {
+              "content": "@{body('Connection_to_SOAP_Service')}",
+              "integrationAccount": {
+                "map": {
+                  "name": "{parameters('liquidRequest')}"
+                }
+              }
+            },
+            "kind": "XmlToJson",
+            "runAfter": {
+              "Connection_to_SOAP_Service": [
+                "Succeeded"
+              ]
+            },
+            "type": "Liquid"
+          }
+        },
+        "runAfter": {},
+        "type": "Scope"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {},
+        "kind": "Http",
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

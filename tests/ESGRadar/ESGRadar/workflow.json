@@ -1,0 +1,427 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Initialize_variable_-_response": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "response",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Scope-Catch": {
+        "actions": {
+          "Response-BadRequest": {
+            "inputs": {
+              "body": {
+                "message": "error"
+              },
+              "statusCode": 400
+            },
+            "kind": "Http",
+            "runAfter": {},
+            "type": "Response"
+          },
+          "Terminate": {
+            "inputs": {
+              "runError": {
+                "code": "400",
+                "message": "Catch scope"
+              },
+              "runStatus": "Failed"
+            },
+            "runAfter": {
+              "Response-BadRequest": [
+                "Succeeded"
+              ]
+            },
+            "type": "Terminate"
+          }
+        },
+        "runAfter": {
+          "Scope-Try": [
+            "Failed",
+            "TimedOut",
+            "Skipped"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Scope-Try": {
+        "actions": {
+          "Response-Sucessfull": {
+            "inputs": {
+              "body": {
+                "response": "@variables('response')"
+              },
+              "statusCode": 200
+            },
+            "kind": "Http",
+            "runAfter": {
+              "Update_each_opportunity": [
+                "Succeeded"
+              ]
+            },
+            "type": "Response"
+          },
+          "Update_each_opportunity": {
+            "actions": {
+              "Check_id_and_score_are_not_null_or_empty": {
+                "actions": {
+                  "Append_to_array_variable": {
+                    "inputs": {
+                      "name": "response",
+                      "value": "@body('Create_validation_response_error')"
+                    },
+                    "runAfter": {
+                      "Create_validation_response_error": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "AppendToArrayVariable"
+                  },
+                  "Create_validation_response_error": {
+                    "inputs": {
+                      "content": {
+                        "errors": [
+                          {
+                            "message": "Id or Overall_Risk_Score are not provided",
+                            "statusCode": "Exception"
+                          }
+                        ],
+                        "id": "@{items('Update_each_opportunity')?['Id']}",
+                        "success": "false"
+                      },
+                      "schema": {
+                        "properties": {
+                          "errors": {
+                            "items": {
+                              "properties": {
+                                "message": {
+                                  "type": "string"
+                                },
+                                "statusCode": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "message",
+                                "statusCode"
+                              ],
+                              "type": "object"
+                            },
+                            "type": "array"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "success": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      }
+                    },
+                    "runAfter": {},
+                    "type": "ParseJson"
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Check_status_code": {
+                      "actions": {
+                        "Append_to_response_array_": {
+                          "inputs": {
+                            "name": "response",
+                            "value": "@body('Create_Success_Response')"
+                          },
+                          "runAfter": {
+                            "Create_Success_Response": [
+                              "Succeeded"
+                            ]
+                          },
+                          "type": "AppendToArrayVariable"
+                        },
+                        "Create_Success_Response": {
+                          "inputs": {
+                            "content": {
+                              "errors": [],
+                              "id": "@{items('Update_each_opportunity')?['Id']}",
+                              "success": "true"
+                            },
+                            "schema": {
+                              "properties": {
+                                "errors": {
+                                  "type": "array"
+                                },
+                                "id": {
+                                  "type": "string"
+                                },
+                                "success": {
+                                  "type": "string"
+                                }
+                              },
+                              "type": "object"
+                            }
+                          },
+                          "runAfter": {},
+                          "type": "ParseJson"
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Append_to_response_array_(error)": {
+                            "inputs": {
+                              "name": "response",
+                              "value": "@body('Create_error_response')"
+                            },
+                            "runAfter": {
+                              "Create_error_response": [
+                                "Succeeded"
+                              ]
+                            },
+                            "type": "AppendToArrayVariable"
+                          },
+                          "Create_error_response": {
+                            "inputs": {
+                              "content": {
+                                "errors": {
+                                  "message": "@{body('update_record')?['message']}",
+                                  "statusCode": "Exception"
+                                },
+                                "id": "@{items('Update_each_opportunity')?['Id']}",
+                                "success": "false"
+                              },
+                              "schema": {
+                                "properties": {
+                                  "response": {
+                                    "items": {
+                                      "properties": {
+                                        "errors": {
+                                          "items": {
+                                            "properties": {
+                                              "message": {
+                                                "type": "string"
+                                              },
+                                              "statusCode": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "message",
+                                              "statusCode"
+                                            ],
+                                            "type": "object"
+                                          },
+                                          "type": "array"
+                                        },
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "success": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "id",
+                                        "errors",
+                                        "success"
+                                      ],
+                                      "type": "object"
+                                    },
+                                    "type": "array"
+                                  }
+                                },
+                                "type": "object"
+                              }
+                            },
+                            "runAfter": {},
+                            "type": "ParseJson"
+                          }
+                        }
+                      },
+                      "expression": {
+                        "and": [
+                          {
+                            "equals": [
+                              "@int(actions('Update_record').outputs.statusCode)",
+                              200
+                            ]
+                          }
+                        ]
+                      },
+                      "runAfter": {
+                        "Update_record": [
+                          "Succeeded",
+                          "Failed"
+                        ]
+                      },
+                      "type": "If"
+                    },
+                    "Update_record": {
+                      "inputs": {
+                        "body": {
+                          "S4SOverall_Risk_Score__c": "@{items('Update_each_opportunity')?['S4SOverall_Risk_Score__c']}"
+                        },
+                        "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Opportunity'))}/items/@{encodeURIComponent(encodeURIComponent(items('Update_each_opportunity')?['Id']))}",
+                        "host": {
+                          "connection": {
+                            "referenceName": "salesForceConnection"
+                          }
+                        },
+                        "method": "patch"
+                      },
+                      "runAfter": {},
+                      "type": "ApiConnection"
+                    }
+                  }
+                },
+                "expression": {
+                  "or": [
+                    {
+                      "equals": [
+                        "@items('Update_each_opportunity')?['Id']",
+                        "@null"
+                      ]
+                    },
+                    {
+                      "equals": [
+                        "@items('Update_each_opportunity')?['Id']",
+                        ""
+                      ]
+                    },
+                    {
+                      "equals": [
+                        "@items('Update_each_opportunity')?['S4SOverall_Risk_Score__c']",
+                        "@null"
+                      ]
+                    },
+                    {
+                      "equals": [
+                        "@items('Update_each_opportunity')?['S4SOverall_Risk_Score__c']",
+                        ""
+                      ]
+                    }
+                  ]
+                },
+                "runAfter": {},
+                "type": "If"
+              }
+            },
+            "foreach": "@triggerBody()?['Opportunities']",
+            "runAfter": {},
+            "type": "Foreach"
+          }
+        },
+        "runAfter": {
+          "Scope-Validation": [
+            "Succeeded"
+          ]
+        },
+        "trackedProperties": {
+          "apimRouting": "@{coalesce(triggerOutputs()?['headers']?['apimRouting'], 'not-defined')}",
+          "citizenName": "c00031",
+          "correlationId": "@{coalesce(triggerOutputs()?['headers']?['correlationId'], triggerOutputs()?['headers']?['x-ms-client-tracking-id'], 'not-defined')}",
+          "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['interfaceName'], 'ESGRadar')}",
+          "interfacePartner": "@{coalesce(triggerOutputs()?['headers']?['Username'], 'not-defined')}",
+          "interfaceVersion": "@{coalesce(triggerOutputs()?['headers']?['interfaceVersion'], 'non-defined')}",
+          "operationName": "@{coalesce(triggerOutputs()?['headers']?['operationName'], 'ESGRadar')}",
+          "parentWorkflow": "@{coalesce(triggerOutputs()?['headers']?['x-ms-workflow-name'],'not-defined')}",
+          "clientCertificateThumbprint": "@{coalesce(triggerOutputs()?['headers']?['client-certificate-thumbprint'],'not-defined')}",
+          "clientIPAddress": "@{coalesce(triggerOutputs()?['headers']?['client-ip-address'],'not-defined')}"
+        },
+        "type": "Scope"
+      },
+      "Scope-Validation": {
+        "actions": {
+          "Check_if_body_is_not_null": {
+            "actions": {
+              "Response": {
+                "inputs": {
+                  "body": {
+                    "message": "No Opportunity list provided."
+                  },
+                  "statusCode": 400
+                },
+                "kind": "Http",
+                "runAfter": {},
+                "type": "Response"
+              },
+              "Terminate_2": {
+                "inputs": {
+                  "runStatus": "Failed"
+                },
+                "runAfter": {
+                  "Response": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Terminate"
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "expression": {
+              "and": [
+                {
+                  "equals": [
+                    "@triggerBody()",
+                    "@null"
+                  ]
+                }
+              ]
+            },
+            "runAfter": {},
+            "type": "If"
+          }
+        },
+        "runAfter": {
+          "Initialize_variable_-_response": [
+            "Succeeded"
+          ]
+        },
+        "type": "Scope"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {
+          "schema": {
+            "properties": {
+              "Opportunities": {
+                "items": {
+                  "properties": {
+                    "Id": {
+                      "type": "string"
+                    },
+                    "S4SOverall_Risk_Score__c": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "Id",
+                    "S4SOverall_Risk_Score__c"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "kind": "Http",
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

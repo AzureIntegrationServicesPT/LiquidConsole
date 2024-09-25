@@ -1,0 +1,169 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Check_status": {
+        "actions": {
+          "Response_success": {
+            "inputs": {
+              "body": "@coalesce(body('Create_record'), body('Insert_or_Update_(Upsert)_a_Record_by_External_ID'))",
+              "statusCode": "@coalesce(outputs('Create_record')?['statusCode'],outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID')?['statusCode'])"
+            },
+            "kind": "Http",
+            "runAfter": {},
+            "runtimeConfiguration": {
+              "secureData": {
+                "properties": [
+                  "inputs"
+                ]
+              }
+            },
+            "type": "Response"
+          }
+        },
+        "else": {
+          "actions": {
+            "Response_failure": {
+              "inputs": {
+                "body": "@coalesce(body('Create_record'), body('Insert_or_Update_(Upsert)_a_Record_by_External_ID'))",
+                "statusCode": "@coalesce(outputs('Create_record')?['statusCode'],outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID')?['statusCode'],500)"
+              },
+              "kind": "Http",
+              "runAfter": {},
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs"
+                  ]
+                }
+              },
+              "type": "Response"
+            },
+            "Terminate": {
+              "inputs": {
+                "runStatus": "Failed"
+              },
+              "runAfter": {
+                "Response_failure": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Terminate"
+            }
+          }
+        },
+        "expression": {
+          "or": [
+            {
+              "equals": [
+                "@coalesce(outputs('Create_record')?['statusCode'],outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID')?['statusCode'])",
+                200
+              ]
+            },
+            {
+              "equals": [
+                "@coalesce(outputs('Create_record')?['statusCode'],outputs('Insert_or_Update_(Upsert)_a_Record_by_External_ID')?['statusCode'])",
+                201
+              ]
+            }
+          ]
+        },
+        "runAfter": {
+          "Condition": [
+            "Succeeded",
+            "Failed"
+          ]
+        },
+        "type": "If"
+      },
+      "Condition": {
+        "actions": {
+          "Create_record": {
+            "inputs": {
+              "body": "@setProperty(json(string(triggerBody())),'OpportunityId',triggerOutputs()?['Headers']?['OppId'])",
+              "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Quote'))}/items",
+              "host": {
+                "connection": {
+                  "referenceName": "salesForceConnection"
+                }
+              },
+              "method": "post"
+            },
+            "runAfter": {},
+            "runtimeConfiguration": {
+              "secureData": {
+                "properties": [
+                  "inputs",
+                  "outputs"
+                ]
+              }
+            },
+            "type": "ApiConnection"
+          }
+        },
+        "else": {
+          "actions": {
+            "Insert_or_Update_(Upsert)_a_Record_by_External_ID": {
+              "inputs": {
+                "body": "@removeproperty(json(string(triggerBody())),'Id')",
+                "path": "/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('Quote'))}/externalIdFields/@{encodeURIComponent(encodeURIComponent('Id'))}/@{encodeURIComponent(encodeURIComponent(triggerBody()?['Id']))}",
+                "host": {
+                  "connection": {
+                    "referenceName": "salesForceConnection"
+                  }
+                },
+                "method": "patch"
+              },
+              "runAfter": {},
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              },
+              "type": "ApiConnection"
+            }
+          }
+        },
+        "expression": {
+          "or": [
+            {
+              "equals": [
+                "@triggerBody()?['Id']",
+                "@null"
+              ]
+            },
+            {
+              "equals": [
+                "@triggerBody()?['Id']",
+                "@string('')"
+              ]
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "If"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {},
+        "kind": "Http",
+        "runtimeConfiguration": {
+          "secureData": {
+            "properties": [
+              "inputs",
+              "outputs"
+            ]
+          }
+        },
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

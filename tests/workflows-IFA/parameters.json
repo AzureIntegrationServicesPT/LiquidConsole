@@ -1,0 +1,5 @@
+{
+  "InterfaceRoothPath": {"value": "sftp-container-c00031/sftp-c00031/Accounts/in/Accounts", "type": "string"},
+  "blobContainerName": {"value": "sftp-container-c00031-createaccountifa", "type": "string"},
+  "Filter": {"value": "csv", "type": "string"}
+}

@@ -1,390 +1,6 @@
 {
     "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
     "actions": {
-        "Check-ContactOwnerRole": {
-            "actions": {
-                "Condition_ContactOwnerRole": {
-                    "actions": {
-                        "Failed_Response_SieSmart1": {
-                            "inputs": {
-                                "body": "@replace(variables('varAckResponse'),'##RESULT##','0')",
-                                "headers": {
-                                    "Content-Type": "application/xml"
-                                },
-                                "statusCode": 500
-                            },
-                            "kind": "Http",
-                            "runAfter": {
-                                "HTTP-Call_OBM-SieSmart_us_endpoint": [
-                                    "Failed",
-                                    "TimedOut"
-                                ]
-                            },
-                             "runtimeConfiguration": {
-       "secureData": {
-          "properties": [
-              "inputs"
-         ]      
-      }
-  },
-                            "type": "Response"
-                        },
-                        "HTTP-Call_OBM-SieSmart_us_endpoint": {
-                            "inputs": {
-                                "authentication": {
-                                    "password": "@json(body('GetConfiguration'))?['SieSmart']?['password']",
-                                    "type": "Basic",
-                                    "username": "@json(body('GetConfiguration'))?['SieSmart']?['username']"
-                                },
-                                "body": "@json(variables('varInputRequestEndpoint'))",
-                                "headers": {
-                                    "Content-Type": "application/json"
-                                },
-                                "method": "POST",
-                                "uri": "@{json(body('GetConfiguration'))?['SieSmart']?['url4']}"
-                            },
-                            "runAfter": {},
-                             "runtimeConfiguration": {
-       "secureData": {
-          "properties": [
-              "inputs",
-              "outputs"
-         ]      
-      }
-  },
-                            "type": "Http"
-                        },
-                        "Success_Response_SieSmart1": {
-                            "inputs": {
-                                "body": "@replace(variables('varAckResponse'),'##RESULT##','1')",
-                                "headers": {
-                                    "Content-Type": "application/xml"
-                                },
-                                "statusCode": 200
-                            },
-                            "kind": "Http",
-                            "runAfter": {
-                                "HTTP-Call_OBM-SieSmart_us_endpoint": [
-                                    "Succeeded"
-                                ]
-                            },
-                             "runtimeConfiguration": {
-       "secureData": {
-          "properties": [
-              "inputs"
-         ]      
-      }
-  },
-                            "type": "Response"
-                        },
-                        "Terminate-Failed_Response_SieSmart1": {
-                            "inputs": {
-                                "runStatus": "Failed"
-                            },
-                            "runAfter": {
-                                "Failed_Response_SieSmart1": [
-                                    "Succeeded"
-                                ]
-                            },
-                            "type": "Terminate"
-                        }
-                    },
-                    "else": {
-                        "actions": {
-                            "Condition": {
-                                "actions": {
-                                    "Failed_Response_SieSmart2": {
-                                        "inputs": {
-                                            "body": "@replace(variables('varAckResponse'),'##RESULT##','0')",
-                                            "headers": {
-                                                "Content-Type": "application/xml"
-                                            },
-                                            "statusCode": 500
-                                        },
-                                        "kind": "Http",
-                                        "runAfter": {
-                                            "HTTP-Call_OBM-SieSmart_eu_endpoint": [
-                                                "TimedOut",
-                                                "Failed"
-                                            ]
-                                        },
-                                         "runtimeConfiguration": {
-       "secureData": {
-          "properties": [
-              "inputs"
-         ]      
-      }
-  },
-                                        "type": "Response"
-                                    },
-                                    "HTTP-Call_OBM-SieSmart_eu_endpoint": {
-                                        "inputs": {
-                                            "authentication": {
-                                                "password": "@json(body('GetConfiguration'))?['SieSmart']?['password']",
-                                                "type": "Basic",
-                                                "username": "@json(body('GetConfiguration'))?['SieSmart']?['username']"
-                                            },
-                                            "body": "@json(variables('varInputRequestEndpoint'))",
-                                            "headers": {
-                                                "Content-Type": "application/json"
-                                            },
-                                            "method": "POST",
-                                            "uri": "@{json(body('GetConfiguration'))?['SieSmart']?['url5']}"
-                                        },
-                                        "runAfter": {},
-                                         "runtimeConfiguration": {
-       "secureData": {
-          "properties": [
-              "inputs",
-              "outputs"
-         ]      
-      }
-  },
-                                        "type": "Http"
-                                    },
-                                    "Success_Response_SieSmart2": {
-                                        "inputs": {
-                                            "body": "@replace(variables('varAckResponse'),'##RESULT##','1')",
-                                            "headers": {
-                                                "Content-Type": "application/xml"
-                                            },
-                                            "statusCode": 200
-                                        },
-                                        "kind": "Http",
-                                        "runAfter": {
-                                            "HTTP-Call_OBM-SieSmart_eu_endpoint": [
-                                                "Succeeded"
-                                            ]
-                                        },
-                                         "runtimeConfiguration": {
-       "secureData": {
-          "properties": [
-              "inputs"
-         ]      
-      }
-  },
-                                        "type": "Response"
-                                    },
-                                    "Terminate-Failed_Response_SieSmart2": {
-                                        "inputs": {
-                                            "runStatus": "Failed"
-                                        },
-                                        "runAfter": {
-                                            "Failed_Response_SieSmart2": [
-                                                "Succeeded"
-                                            ]
-                                        },
-                                        "type": "Terminate"
-                                    }
-                                },
-                                "else": {
-                                    "actions": {
-                                        "Condition_COF_FR": {
-                                            "actions": {
-                                                "Failed_Response_SieSmart_FR": {
-                                                    "inputs": {
-                                                        "body": "@replace(variables('varAckResponse'),'##RESULT##','0')",
-                                                        "headers": {
-                                                            "Content-Type": "application/xml"
-                                                        },
-                                                        "statusCode": 500
-                                                    },
-                                                    "kind": "Http",
-                                                    "runAfter": {
-                                                        "HTTP-Call_OBM-SieSmart_FR_endpoint": [
-                                                            "Failed",
-                                                            "TimedOut"
-                                                        ]
-                                                    },
-                                                    "type": "Response"
-                                                },
-                                                "HTTP-Call_OBM-SieSmart_FR_endpoint": {
-                                                    "inputs": {
-                                                        "authentication": {
-                                                            "password": "@json(body('GetConfiguration'))?['SieSmart']?['password']",
-                                                            "type": "Basic",
-                                                            "username": "@json(body('GetConfiguration'))?['SieSmart']?['username']"
-                                                        },
-                                                        "body": "@json(variables('varInputRequestEndpoint'))",
-                                                        "headers": {
-                                                            "Content-Type": "application/json"
-                                                        },
-                                                        "method": "POST",
-                                                        "uri": "@{json(body('GetConfiguration'))?['SieSmart']?['url6']}"
-                                                    },
-                                                    "runAfter": {},
-                                                     "runtimeConfiguration": {
-       "secureData": {
-          "properties": [
-              "inputs",
-              "outputs"
-         ]      
-      }
-  },
-                                                    "type": "Http"
-                                                },
-                                                "Success_Response_SieSmart_FR": {
-                                                    "inputs": {
-                                                        "body": "@replace(variables('varAckResponse'),'##RESULT##','1')",
-                                                        "headers": {
-                                                            "Content-Type": "application/xml"
-                                                        },
-                                                        "statusCode": 200
-                                                    },
-                                                    "kind": "Http",
-                                                    "runAfter": {
-                                                        "HTTP-Call_OBM-SieSmart_FR_endpoint": [
-                                                            "Succeeded"
-                                                        ]
-                                                    },
-
-                                                    "type": "Response"
-                                                },
-                                                "Terminate": {
-                                                    "inputs": {
-                                                        "runStatus": "Failed"
-                                                    },
-                                                    "runAfter": {
-                                                        "Failed_Response_SieSmart_FR": [
-                                                            "Succeeded"
-                                                        ]
-                                                    },
-                                                    "type": "Terminate"
-                                                }
-                                            },
-                                            "else": {
-                                                "actions": {
-                                                    "Response_2": {
-                                                        "inputs": {
-                                                            "body": "@xml(replace(variables('varAckResponse'),'##RESULT##','1'))",
-                                                            "headers": {
-                                                                "Content-Type": "application/xml"
-                                                            },
-                                                            "statusCode": 200
-                                                        },
-                                                        "kind": "Http",
-                                                        "runAfter": {},
-                                                        "type": "Response"
-                                                    }
-                                                }
-                                            },
-                                            "expression": {
-                                                "and": [
-                                                    {
-                                                        "equals": [
-                                                            "@variables('ContactOwnerRole')",
-                                                            "@string('FS COF FR')"
-                                                        ]
-                                                    }
-                                                ]
-                                            },
-                                            "runAfter": {},
-                                            "type": "If"
-                                        }
-                                    }
-                                },
-                                "expression": {
-                                    "or": [
-                                        {
-                                            "equals": [
-                                                "@variables('ContactOwnerRole')",
-                                                "@string('FS COF Nordics')"
-                                            ]
-                                        },
-                                        {
-                                            "equals": [
-                                                "@variables('ContactOwnerRole')",
-                                                "@string('FS COF UK')"
-                                            ]
-                                        },
-                                        {
-                                            "equals": [
-                                                "@variables('ContactOwnerRole')",
-                                                "@string('FS COF ES')"
-                                            ]
-                                        },
-                                        {
-                                            "equals": [
-                                                "@variables('ContactOwnerRole')",
-                                                "@string('FS COF IN')"
-                                            ]
-                                        }
-                                    ]
-                                },
-                                "runAfter": {},
-                                "type": "If"
-                            }
-                        }
-                    },
-                    "expression": {
-                        "and": [
-                            {
-                                "equals": [
-                                    "@variables('ContactOwnerRole')",
-                                    "@string('FS COF RG AM')"
-                                ]
-                            }
-                        ]
-                    },
-                    "runAfter": {},
-                    "type": "If"
-                }
-            },
-            "else": {
-                "actions": {
-                    "Response": {
-                        "inputs": {
-                            "body": "@xml(replace(variables('varAckResponse'),'##RESULT##','1'))",
-                            "headers": {
-                                "Content-Type": "application/xml"
-                            },
-                            "statusCode": 200
-                        },
-                        "kind": "Http",
-                         "runtimeConfiguration": {
-       "secureData": {
-          "properties": [
-              "inputs"
-         ]      
-      }
-  },
-                        "runAfter": {},
-
-                        "type": "Response"
-                    }
-                }
-            },
-            "expression": {
-                "and": [
-                    {
-                        "not": {
-                            "equals": [
-                                "@variables('ContactOwnerRole')",
-                                "@string('')"
-                            ]
-                        }
-                    }
-                ]
-            },
-            "runAfter": {
-                "GetConfiguration": [
-                    "Succeeded"
-                ],
-                "Initialize_variable-AcKresponse": [
-                    "Succeeded"
-                ],
-                "Initialize_variable-RequestCompose": [
-                    "Succeeded"
-                ],
-                "Initialize_variable-contactOwnerRole": [
-                    "Succeeded"
-                ],
-                "log-ContactID": [
-                    "Succeeded"
-                ]
-            },
-            "type": "If"
-        },
         "GetConfiguration": {
             "inputs": {
                 "body": {
@@ -410,6 +26,23 @@
       }
   },
             "type": "Workflow"
+        },
+        "Initialize_switchCondition": {
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "switchCondition",
+                        "type": "string",
+                        "value": "@{if(equals(variables('ContactOwnerRole'), string('FS COF RG AM')), string('US'), if(equals(variables('ContactOwnerRole'), string('FS COF UK')), string('UK'), if(or(equals(variables('ContactOwnerRole'), string('FS COF Nordics')), equals(variables('ContactOwnerRole'), string('FS COF ES')), equals(variables('ContactOwnerRole'), string('FS COF IN'))), string('EU'), if(equals(variables('ContactOwnerRole'), string('FS COF FR')), string('FR'), string('')))))}"
+                    }
+                ]
+            },
+            "runAfter": {
+                "Initialize_variable-contactOwnerRole": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable"
         },
         "Initialize_variable-AcKresponse": {
             "inputs": {
@@ -466,6 +99,340 @@
             },
             "runAfter": {},
             "type": "InitializeVariable"
+        },"Switch": {
+            "cases": {
+                "EU_endpoint": {
+                    "actions": {
+                        "Failed_Response_SieSmart2": {
+                            "inputs": {
+                                "body": "@replace(variables('varAckResponse'),'##RESULT##','0')",
+                                "headers": {
+                                    "Content-Type": "application/xml"
+                                },
+                                "statusCode": 500
+                            },
+                            "kind": "Http",
+                            "runAfter": {
+                                "HTTP-Call_OBM-SieSmart_eu_endpoint": [
+                                    "TimedOut",
+                                    "Failed"
+                                ]
+                            },
+                            "type": "Response"
+                        },
+                        "HTTP-Call_OBM-SieSmart_eu_endpoint": {
+                            "inputs": {
+                                "authentication": {
+                                    "password": "@json(body('GetConfiguration'))?['SieSmart']?['password']",
+                                    "type": "Basic",
+                                    "username": "@json(body('GetConfiguration'))?['SieSmart']?['username']"
+                                },
+                                "body": "@json(variables('varInputRequestEndpoint'))",
+                                "headers": {
+                                    "Content-Type": "application/json"
+                                },
+                                "method": "POST",
+                                "uri": "@{json(body('GetConfiguration'))?['SieSmart']?['url5']}"
+                            },
+                            "runAfter": {},
+                             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                            "type": "Http"
+                        },
+                        "Success_Response_SieSmart2": {
+                            "inputs": {
+                                "body": "@replace(variables('varAckResponse'),'##RESULT##','1')",
+                                "headers": {
+                                    "Content-Type": "application/xml"
+                                },
+                                "statusCode": 200
+                            },
+                            "kind": "Http",
+                            "runAfter": {
+                                "HTTP-Call_OBM-SieSmart_eu_endpoint": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Response"
+                        },
+                        "Terminate-Failed_Response_SieSmart2": {
+                            "inputs": {
+                                "runStatus": "Failed"
+                            },
+                            "runAfter": {
+                                "Failed_Response_SieSmart2": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Terminate"
+                        }
+                    },
+                    "case": "EU"
+                },
+                "FR_endpoint": {
+                    "actions": {
+                        "Failed_Response_SieSmart_FR": {
+                            "inputs": {
+                                "body": "@replace(variables('varAckResponse'),'##RESULT##','0')",
+                                "headers": {
+                                    "Content-Type": "application/xml"
+                                },
+                                "statusCode": 500
+                            },
+                            "kind": "Http",
+                            "runAfter": {
+                                "HTTP-Call_OBM-SieSmart_FR_endpoint": [
+                                    "Failed",
+                                    "TimedOut"
+                                ]
+                            },
+                            "type": "Response"
+                        },
+                        "HTTP-Call_OBM-SieSmart_FR_endpoint": {
+                            "inputs": {
+                                "authentication": {
+                                    "password": "@json(body('GetConfiguration'))?['SieSmart']?['password']",
+                                    "type": "Basic",
+                                    "username": "@json(body('GetConfiguration'))?['SieSmart']?['username']"
+                                },
+                                "body": "@json(variables('varInputRequestEndpoint'))",
+                                "headers": {
+                                    "Content-Type": "application/json"
+                                },
+                                "method": "POST",
+                                "uri": "@{json(body('GetConfiguration'))?['SieSmart']?['url6']}"
+                            },
+                            "runAfter": {},
+                             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                            "type": "Http"
+                        },
+                        "Success_Response_SieSmart_FR": {
+                            "inputs": {
+                                "body": "@replace(variables('varAckResponse'),'##RESULT##','1')",
+                                "headers": {
+                                    "Content-Type": "application/xml"
+                                },
+                                "statusCode": 200
+                            },
+                            "kind": "Http",
+                            "runAfter": {
+                                "HTTP-Call_OBM-SieSmart_FR_endpoint": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Response"
+                        },
+                        "Terminate": {
+                            "inputs": {
+                                "runStatus": "Failed"
+                            },
+                            "runAfter": {
+                                "Failed_Response_SieSmart_FR": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Terminate"
+                        }
+                    },
+                    "case": "FR"
+                },
+                "UK_endpoint": {
+                    "actions": {
+                        "Failed_Response_SieSmart_UK": {
+                            "inputs": {
+                                "body": "@replace(variables('varAckResponse'),'##RESULT##','0')",
+                                "headers": {
+                                    "Content-Type": "application/xml"
+                                },
+                                "statusCode": 500
+                            },
+                            "kind": "Http",
+                            "runAfter": {
+                                "HTTP-Call_OBM-SieSmart_UK_endpoint": [
+                                    "TimedOut",
+                                    "Failed"
+                                ]
+                            },
+                            "type": "Response"
+                        },
+                        "HTTP-Call_OBM-SieSmart_UK_endpoint": {
+                            "inputs": {
+                                "authentication": {
+                                    "password": "@json(body('GetConfiguration'))?['SieSmart']?['password']",
+                                    "type": "Basic",
+                                    "username": "@json(body('GetConfiguration'))?['SieSmart']?['username']"
+                                },
+                                "body": "@json(variables('varInputRequestEndpoint'))",
+                                "headers": {
+                                    "Content-Type": "application/json"
+                                },
+                                "method": "POST",
+                                "uri": "@{json(body('GetConfiguration'))?['SieSmart']?['url11']}"
+                            },
+                            "runAfter": {},
+                             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                            "type": "Http"
+                        },
+                        "Success_Response_SieSmart_UK": {
+                            "inputs": {
+                                "body": "@replace(variables('varAckResponse'),'##RESULT##','1')",
+                                "headers": {
+                                    "Content-Type": "application/xml"
+                                },
+                                "statusCode": 200
+                            },
+                            "kind": "Http",
+                            "runAfter": {
+                                "HTTP-Call_OBM-SieSmart_UK_endpoint": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Response"
+                        },
+                        "Terminate-Failed_Response_SieSmart_UK": {
+                            "inputs": {
+                                "runStatus": "Failed"
+                            },
+                            "runAfter": {
+                                "Failed_Response_SieSmart_UK": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Terminate"
+                        }
+                    },
+                    "case": "UK"
+                },
+                "US_endpoint": {
+                    "actions": {
+                        "Failed_Response_SieSmart1": {
+                            "inputs": {
+                                "body": "@replace(variables('varAckResponse'),'##RESULT##','0')",
+                                "headers": {
+                                    "Content-Type": "application/xml"
+                                },
+                                "statusCode": 500
+                            },
+                            "kind": "Http",
+                            "runAfter": {
+                                "HTTP-Call_OBM-SieSmart_us_endpoint": [
+                                    "Failed",
+                                    "TimedOut"
+                                ]
+                            },
+                            "type": "Response"
+                        },
+                        "HTTP-Call_OBM-SieSmart_us_endpoint": {
+                            "inputs": {
+                                "authentication": {
+                                    "password": "@json(body('GetConfiguration'))?['SieSmart']?['password']",
+                                    "type": "Basic",
+                                    "username": "@json(body('GetConfiguration'))?['SieSmart']?['username']"
+                                },
+                                "body": "@json(variables('varInputRequestEndpoint'))",
+                                "headers": {
+                                    "Content-Type": "application/json"
+                                },
+                                "method": "POST",
+                                "uri": "@{json(body('GetConfiguration'))?['SieSmart']?['url4']}"
+                            },
+                            "runAfter": {},
+                             "runtimeConfiguration": {
+       "secureData": {
+          "properties": [
+              "inputs",
+              "outputs"
+         ]      
+      }
+  },
+                            "type": "Http"
+                        },
+                        "Success_Response_SieSmart1": {
+                            "inputs": {
+                                "body": "@replace(variables('varAckResponse'),'##RESULT##','1')",
+                                "headers": {
+                                    "Content-Type": "application/xml"
+                                },
+                                "statusCode": 200
+                            },
+                            "kind": "Http",
+                            "runAfter": {
+                                "HTTP-Call_OBM-SieSmart_us_endpoint": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Response"
+                        },
+                        "Terminate-Failed_Response_SieSmart1": {
+                            "inputs": {
+                                "runStatus": "Failed"
+                            },
+                            "runAfter": {
+                                "Failed_Response_SieSmart1": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Terminate"
+                        }
+                    },
+                    "case": "US"
+                }
+            },
+            "default": {
+                "actions": {
+                    "Response_2": {
+                        "inputs": {
+                            "body": "@xml(replace(variables('varAckResponse'),'##RESULT##','1'))",
+                            "headers": {
+                                "Content-Type": "application/xml"
+                            },
+                            "statusCode": 200
+                        },
+                        "kind": "Http",
+                        "runAfter": {},
+                        "type": "Response"
+                    }
+                }
+            },
+            "expression": "@variables('switchCondition')",
+            "runAfter": {
+                "GetConfiguration": [
+                    "Succeeded"
+                ],
+                "Initialize_switchCondition": [
+                    "Succeeded"
+                ],
+                "Initialize_variable-AcKresponse": [
+                    "Succeeded"
+                ],
+                "Initialize_variable-RequestCompose": [
+                    "Succeeded"
+                ],
+                "log-ContactID": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Switch"
         },
         "log-ContactID": {
             "inputs": {

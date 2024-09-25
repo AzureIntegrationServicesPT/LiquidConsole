@@ -1,0 +1,529 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "For_each_discrepancy_record_in_the_request": {
+        "actions": {
+          "Compose_Upsert_Request": {
+            "inputs": {
+              "CurrencyIsoCode": "@{items('For_each_discrepancy_record_in_the_request')?['CurrencyIsoCode']}",
+              "Name": "@{items('For_each_discrepancy_record_in_the_request')?['Name']}",
+              "S4SActual_Shipment_Date__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SActual_Shipment_Date__c']}",
+              "S4SAutomated_Process__c": "@items('For_each_discrepancy_record_in_the_request')?['S4SAutomated_Process__c']",
+              "S4SCase__c": "@{triggerOutputs()['headers']?['caseId']}",
+              "S4SComments__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SComments__c']}",
+              "S4SCompleted_Date__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SCompleted_Date__c']}",
+              "S4SConfirmed_Date__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SConfirmed_Date__c']}",
+              "S4SDelivery_Note__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SDelivery_Note__c']}",
+              "S4SDelivery__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SDelivery__c']}",
+              "S4SDiscrepancy_Type__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SDiscrepancy_Type__c']}",
+              "S4SEAD_Date__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SEAD_Date__c']}",
+              "S4SExit_Ramp_shipment__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SExit_Ramp_shipment__c']}",
+              "S4SExternal_Source__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SExternal_Source__c']}",
+              "S4SFirst_Confirmed_Date__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SFirst_Confirmed_Date__c']}",
+              "S4SInvoiced_Price__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SInvoiced_Price__c']}",
+              "S4SMultiple_Confirmations_Exists__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SMultiple_Confirmations_Exists__c']}",
+              "S4SNext_Action__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SNext_Action__c']}",
+              "S4SNotes__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SNotes__c']}",
+              "S4SOriginal_Requested_Date__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SOriginal_Requested_Date__c']}",
+              "S4SOwner__c": "@{body('int_getUserId')?['Id']}",
+              "S4SPEGA_Case__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SPEGA_Case__c']}",
+              "S4SPEGA_Expected_Date_of_Delivery__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SPEGA_Expected_Date_of_Delivery__c']}",
+              "S4SPEGA_Expedite_Status__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SPEGA_Expedite_Status__c']}",
+              "S4SPEGA_Sync_Status__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SPEGA_Sync_Status__c']}",
+              "S4SPO_Confirmation_Date__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SPO_Confirmation_Date__c']}",
+              "S4SPart_Ordered__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SPart_Ordered__c']}",
+              "S4SPart_Received__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SPart_Received__c']}",
+              "S4SPlant__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SPlant__c']}",
+              "S4SPurchasing_Group__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SPurchasing_Group__c']}",
+              "S4SQuantity_Open__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SQuantity_Open__c']}",
+              "S4SQuantity_Ordered__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SQuantity_Ordered__c']}",
+              "S4SQuantity_Shipped__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SQuantity_Shipped__c']}",
+              "S4SRequest_Expedite_Delivery_Date__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SRequest_Expedite_Delivery_Date__c']}",
+              "S4SRoot_Cause__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SRoot_Cause__c']}",
+              "S4SRoute_Carrier__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SRoute_Carrier__c']}",
+              "S4SSAP_Sync_Status__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SSAP_Sync_Status__c']}",
+              "S4SSO_Line_Profit_Center__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SSO_Line_Profit_Center__c']}",
+              "S4SSales_Order_Line__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SSales_Order_Line__c']}",
+              "S4SStatus__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SStatus__c']}",
+              "S4SSupplier_Org_ID__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SSupplier_Org_ID__c']}",
+              "S4STeam_Workbasket__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4STeam_Workbasket__c']}",
+              "S4STracking_Number__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4STracking_Number__c']}",
+              "S4SType__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SType__c']}",
+              "S4SUnit_PO_Price__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SUnit_PO_Price__c']}",
+              "S4SVendor_PO_Line__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SVendor_PO_Line__c']}",
+              "S4SVendor_PO__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SVendor_PO__c']}",
+              "S4SVendor__c": "@{items('For_each_discrepancy_record_in_the_request')?['S4SVendor__c']}"
+            },
+            "runAfter": {
+              "int_getUserId": [
+                "Succeeded"
+              ]
+            },
+            "type": "Compose"
+          },
+          "If_Discrepancy_has_no_Id": {
+            "actions": {
+              "Catch_Create_Discrepancy": {
+                "actions": {
+                  "Append_to_array_Response_on_Create_Failure": {
+                    "inputs": {
+                      "name": "ResponseDiscrepancy",
+                      "value": {
+                        "Created": "",
+                        "Id": "",
+                        "Message": "@{body('Create_Discrepancy')?['message']}",
+                        "Success": "false",
+                        "externalId": "@{items('For_each_discrepancy_record_in_the_request')?['ExternalId']}"
+                      }
+                    },
+                    "runAfter": {},
+                    "type": "AppendToArrayVariable"
+                  }
+                },
+                "runAfter": {
+                  "Try_Create_Discrepancy": [
+                    "Failed",
+                    "Skipped",
+                    "TimedOut"
+                  ]
+                },
+                "type": "Scope"
+              },
+              "Try_Create_Discrepancy": {
+                "actions": {
+                  "Append_to_Response_Array_on_Insert": {
+                    "inputs": {
+                      "name": "ResponseDiscrepancy",
+                      "value": {
+                        "Id": "@{body('Create_Discrepancy')?['Id']}",
+                        "Success": "true",
+                        "created": "true",
+                        "externalId": "@{items('For_each_discrepancy_record_in_the_request')?['ExternalId']}"
+                      }
+                    },
+                    "runAfter": {
+                      "Create_Discrepancy": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "AppendToArrayVariable"
+                  },
+                  "Create_Discrepancy": {
+                    "inputs": {
+                      "body": "@json(body('JsonRemoveNullOrEmptyFunc')?['result']?['restructuredJson'])",
+                      "path": "/v2/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SDiscrepancy__c'))}/items",
+                      "host": {
+                        "connection": {
+                          "referenceName": "salesForceConnection"
+                        }
+                      },
+                      "method": "post"
+                    },
+                    "runAfter": {},
+                    "type": "ApiConnection"
+                  }
+                },
+                "runAfter": {},
+                "type": "Scope"
+              }
+            },
+            "else": {
+              "actions": {
+                "Catch_Update_Discrepancy": {
+                  "actions": {
+                    "Append_to_Response_Array_on_Update_Failure": {
+                      "inputs": {
+                        "name": "ResponseDiscrepancy",
+                        "value": {
+                          "Created": "",
+                          "Id": "@{items('For_each_discrepancy_record_in_the_request')?['Id']}",
+                          "Message": "@{body('Update_Discrepancy')?['message']}",
+                          "Success": "false",
+                          "externalId": "@{items('For_each_discrepancy_record_in_the_request')?['ExternalId']}"
+                        }
+                      },
+                      "runAfter": {},
+                      "type": "AppendToArrayVariable"
+                    }
+                  },
+                  "runAfter": {
+                    "Try_Update_Discrepancy": [
+                      "Failed",
+                      "Skipped",
+                      "TimedOut"
+                    ]
+                  },
+                  "type": "Scope"
+                },
+                "Try_Update_Discrepancy": {
+                  "actions": {
+                    "Append_to_Response_Array_on_Update": {
+                      "inputs": {
+                        "name": "ResponseDiscrepancy",
+                        "value": {
+                          "Created": "false",
+                          "Id": "@{body('Update_Discrepancy')?['Id']}",
+                          "Message": "",
+                          "Success": "true",
+                          "externalId": "@{items('For_each_discrepancy_record_in_the_request')?['ExternalId']}"
+                        }
+                      },
+                      "runAfter": {
+                        "Update_Discrepancy": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "AppendToArrayVariable"
+                    },
+                    "Update_Discrepancy": {
+                      "inputs": {
+                        "body": "@json(body('JsonRemoveNullOrEmptyFunc')?['result']?['restructuredJson'])",
+                        "path": "/v3/datasets/default/tables/@{encodeURIComponent(encodeURIComponent('S4SDiscrepancy__c'))}/items/@{encodeURIComponent(encodeURIComponent(items('For_each_discrepancy_record_in_the_request')?['Id']))}",
+                        "host": {
+                          "connection": {
+                            "referenceName": "salesForceConnection"
+                          }
+                        },
+                        "method": "patch"
+                      },
+                      "runAfter": {},
+                      "type": "ApiConnection"
+                    }
+                  },
+                  "runAfter": {},
+                  "type": "Scope"
+                }
+              }
+            },
+            "expression": {
+              "and": [
+                {
+                  "equals": [
+                    "@length(coalesce(items('For_each_discrepancy_record_in_the_request')?['Id'],''))",
+                    0
+                  ]
+                }
+              ]
+            },
+            "runAfter": {
+              "JsonRemoveNullOrEmptyFunc": [
+                "Succeeded"
+              ]
+            },
+            "type": "If"
+          },
+          "JsonRemoveNullOrEmptyFunc": {
+            "inputs": {
+              "body": {
+                "CorrelationId": "",
+                "InputRequestBase64": "@{base64(outputs('Compose_Upsert_Request'))}",
+                "InterfaceName": "",
+                "Username": "",
+                "operation": "JsonRemoveNullOrEmpty"
+              },
+              "function": {
+                "connectionName": "JsonRemoveNullOrEmpty"
+              },
+              "headers": null,
+              "method": "POST"
+            },
+            "runAfter": {
+              "Compose_Upsert_Request": [
+                "Succeeded"
+              ]
+            },
+            "type": "Function"
+          },
+          "int_getUserId": {
+            "inputs": {
+              "host": {
+                "workflow": {
+                  "id": "int_getUserId"
+                }
+              },
+              "body": {
+                "S4SGID_Technical__c": "@items('For_each_discrepancy_record_in_the_request')?['S4SOwner__c']?['GID']"
+              },
+              "headers": null
+            },
+            "runAfter": {},
+            "type": "Workflow"
+          }
+        },
+        "foreach": "@triggerBody()?['S4SDiscrepancy__c']",
+        "runAfter": {
+          "Init_ResponseDiscrepancies": [
+            "Succeeded"
+          ]
+        },
+        "runtimeConfiguration": {
+          "concurrency": {
+            "repetitions": 1
+          }
+        },
+        "type": "Foreach"
+      },
+      "Init_ResponseDiscrepancies": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "ResponseDiscrepancy",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Return_ResponseDiscrepancies": {
+        "inputs": {
+          "body": "@variables('ResponseDiscrepancy')",
+          "statusCode": 200
+        },
+        "kind": "Http",
+        "runAfter": {
+          "For_each_discrepancy_record_in_the_request": [
+            "Succeeded"
+          ]
+        },
+        "type": "Response"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {
+          "schema": {
+            "properties": {
+              "S4SDiscrepancy__c": {
+                "items": {
+                  "properties": {
+                    "CurrencyIsoCode": {
+                      "type": "string"
+                    },
+                    "ExternalId": {
+                      "type": "string"
+                    },
+                    "Id": {
+                      "type": "string"
+                    },
+                    "Name": {
+                      "type": "string"
+                    },
+                    "S4SActual_Shipment_Date__c": {
+                      "type": "string"
+                    },
+                    "S4SAutomated_Process__c": {
+                      "type": "string"
+                    },
+                    "S4SCase__c": {
+                      "type": "string"
+                    },
+                    "S4SComments__c": {
+                      "type": "string"
+                    },
+                    "S4SCompleted_Date__c": {
+                      "type": "string"
+                    },
+                    "S4SConfirmed_Date__c": {
+                      "type": "string"
+                    },
+                    "S4SDelivery_Note__c": {
+                      "type": "string"
+                    },
+                    "S4SDelivery__c": {
+                      "type": "string"
+                    },
+                    "S4SDiscrepancy_Type__c": {
+                      "type": "string"
+                    },
+                    "S4SEAD_Date__c": {
+                      "type": "string"
+                    },
+                    "S4SExit_Ramp_shipment__c": {
+                      "type": "string"
+                    },
+                    "S4SExternal_Source__c": {
+                      "type": "string"
+                    },
+                    "S4SFirst_Confirmed_Date__c": {
+                      "type": "string"
+                    },
+                    "S4SInvoiced_Price__c": {
+                      "type": "string"
+                    },
+                    "S4SMultiple_Confirmations_Exists__c": {
+                      "type": "string"
+                    },
+                    "S4SNext_Action__c": {
+                      "type": "string"
+                    },
+                    "S4SNotes__c": {
+                      "type": "string"
+                    },
+                    "S4SOriginal_Requested_Date__c": {
+                      "type": "string"
+                    },
+                    "S4SOwner__c": {
+                      "properties": {
+                        "Email": {
+                          "type": "string"
+                        },
+                        "GID": {
+                          "type": "string"
+                        },
+                        "Id": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "S4SPEGA_Case__c": {
+                      "type": "string"
+                    },
+                    "S4SPEGA_Expected_Date_of_Delivery__c": {
+                      "type": "string"
+                    },
+                    "S4SPEGA_Expedite_Status__c": {
+                      "type": "string"
+                    },
+                    "S4SPEGA_Sync_Status__c": {
+                      "type": "string"
+                    },
+                    "S4SPO_Confirmation_Date__c": {
+                      "type": "string"
+                    },
+                    "S4SPart_Ordered__c": {
+                      "type": "string"
+                    },
+                    "S4SPart_Received__c": {
+                      "type": "string"
+                    },
+                    "S4SPlant__c": {
+                      "type": "string"
+                    },
+                    "S4SPurchasing_Group__c": {
+                      "type": "string"
+                    },
+                    "S4SQuantity_Open__c": {
+                      "type": "string"
+                    },
+                    "S4SQuantity_Ordered__c": {
+                      "type": "string"
+                    },
+                    "S4SQuantity_Shipped__c": {
+                      "type": "string"
+                    },
+                    "S4SRequest_Expedite_Delivery_Date__c": {
+                      "type": "string"
+                    },
+                    "S4SRoot_Cause__c": {
+                      "type": "string"
+                    },
+                    "S4SRoute_Carrier__c": {
+                      "type": "string"
+                    },
+                    "S4SSAP_Sync_Status__c": {
+                      "type": "string"
+                    },
+                    "S4SSO_Line_Profit_Center__c": {
+                      "type": "string"
+                    },
+                    "S4SSales_Order_Line__c": {
+                      "type": "string"
+                    },
+                    "S4SStatus__c": {
+                      "type": "string"
+                    },
+                    "S4SSupplier_Org_ID__c": {
+                      "type": "string"
+                    },
+                    "S4STeam_Workbasket__c": {
+                      "type": "string"
+                    },
+                    "S4STracking_Number__c": {
+                      "type": "string"
+                    },
+                    "S4SType__c": {
+                      "type": "string"
+                    },
+                    "S4SUnit_PO_Price__c": {
+                      "type": "string"
+                    },
+                    "S4SVendor_PO_Line__c": {
+                      "type": "string"
+                    },
+                    "S4SVendor_PO__c": {
+                      "type": "string"
+                    },
+                    "S4SVendor__c": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "Id",
+                    "ExternalId",
+                    "Name",
+                    "CurrencyIsoCode",
+                    "S4SCase__c",
+                    "S4SDiscrepancy_Type__c",
+                    "S4SInvoiced_Price__c",
+                    "S4SPart_Ordered__c",
+                    "S4SPart_Received__c",
+                    "S4SQuantity_Ordered__c",
+                    "S4SQuantity_Shipped__c",
+                    "S4SRoot_Cause__c",
+                    "S4SSales_Order_Line__c",
+                    "S4SUnit_PO_Price__c",
+                    "S4SAutomated_Process__c",
+                    "S4SActual_Shipment_Date__c",
+                    "S4SComments__c",
+                    "S4SCompleted_Date__c",
+                    "S4SConfirmed_Date__c",
+                    "S4SDelivery_Note__c",
+                    "S4SDelivery__c",
+                    "S4SEAD_Date__c",
+                    "S4SExit_Ramp_shipment__c",
+                    "S4SExternal_Source__c",
+                    "S4SNext_Action__c",
+                    "S4SNotes__c",
+                    "S4SOriginal_Requested_Date__c",
+                    "S4SPEGA_Case__c",
+                    "S4SPEGA_Expected_Date_of_Delivery__c",
+                    "S4SPEGA_Expedite_Status__c",
+                    "S4SPEGA_Sync_Status__c",
+                    "S4SPO_Confirmation_Date__c",
+                    "S4SPlant__c",
+                    "S4SPurchasing_Group__c",
+                    "S4SRequest_Expedite_Delivery_Date__c",
+                    "S4SRoute_Carrier__c",
+                    "S4SSAP_Sync_Status__c",
+                    "S4SSO_Line_Profit_Center__c",
+                    "S4SStatus__c",
+                    "S4SSupplier_Org_ID__c",
+                    "S4STeam_Workbasket__c",
+                    "S4STracking_Number__c",
+                    "S4SType__c",
+                    "S4SVendor_PO_Line__c",
+                    "S4SVendor_PO__c",
+                    "S4SVendor__c",
+                    "S4SQuantity_Open__c",
+                    "S4SOwner__c"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "kind": "Http",
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

@@ -1,0 +1,12 @@
+{
+  "LogLevel": {"value": "@appsetting('LogLevel')", "type": "string"},
+  "instanceURL": {"value": "@appsetting('instanceURL')", "type": "string"},
+  "apimKey": {"value": "@appsetting('apimKey')", "type": "string"},
+  "baseUrl_apim_ise": {"value": "@appsetting('baseUrl_apim_ise')", "type": "string"},
+  "apimURL": {"value": "@appsetting('apimURL')", "type": "string"},
+  "liquid_setError": {"value": "@appsetting('liquid_setError')", "type": "string"},
+  "liquid_responseContactDetails": {"value": "@appsetting('liquid_responseContactDetails')", "type": "string"},
+  "liquid_ContactSearchQuery": {"value": "@appsetting('liquid_ContactSearchQuery')", "type": "string"},
+  "liquid_upsertSFSAccountContactRelationship": {"value": "@appsetting('liquid_upsertSFSAccountContactRelationship')", "type": "string"},
+  "liquid_upsertSFSContactCreateOrUpdate": {"value": "@appsetting('liquid_upsertSFSContactCreateOrUpdate')", "type": "string"},
+}

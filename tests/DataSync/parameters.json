@@ -1,0 +1,90 @@
+{
+  "baseUrl_apim": {
+    "type": "string",
+    "value": "@appsetting('baseUrl_apim')"
+  },
+  "subscriptionKey_apim": {
+    "type": "string",
+    "value": "@appsetting('subscriptionKey_apim')"
+  },
+  "instanceUrl_nonsfs": {
+    "type": "string",
+    "value": "@appsetting('instanceUrl_nonsfs')"
+  },
+  "loginUrl_nonsfs": {
+    "type": "string",
+    "value": "@appsetting('loginUrl_nonsfs')"
+  },
+  "CreateStringIdArray": {
+    "type": "string",
+    "value": "@appsetting('CreateStringIdArray')"
+  },
+  "DeleteObjectToDeleteArray": {
+    "type": "string",
+    "value": "@appsetting('DeleteObjectToDeleteArray')"
+  },
+  "st_name": {
+    "type": "string",
+    "value": "@appsetting('st_name')"
+  },
+  "baseUrl_kv": {
+    "type": "string",
+    "value": "@appsetting('baseUrl_kv')"
+  },
+  "OESCanada_sftp_path": {
+    "value": "sftp-container-c00031/sftp-c00031/OESCanada/in/OESCanada",
+    "type": "string"
+  },
+  "OESCanada_container_name": {
+    "value": "sftp-container-c00031-oesupload-canada",
+    "type": "string"
+  },
+  "OESUsa_sftp_path": {
+    "value": "sftp-container-c00031/sftp-c00031/OES/in/OES",
+    "type": "string"
+  },
+  "OESUsa_container_name": {
+    "value": "sftp-container-c00031-oesupload",
+    "type": "string"
+  },
+  "BlobContainerName_upsert": {
+    "value": "sftp-container-c00031-ssd",
+    "type": "string"
+  },
+  "BlobContainerName_delete": {
+    "value": "sftp-container-c00031-ssddelete",
+    "type": "string"
+  },
+  "basePath": {
+    "value": "sftp-container-c00031/sftp-c00031",
+    "type": "string"
+  },
+  "fileFilter": {
+    "value": "text/csv",
+    "type": "string"
+  },
+  "BlobContainerName": {
+    "value": "sftp-container-c00031-debitorupload",
+    "type": "string"
+  },
+  "Filter": {
+    "value": "text/csv",
+    "type": "string"
+  },
+  "InterfaceRootPath": {
+    "value": "/sftp-container-c00031/sftp-c00031/Debitors/in/Debitors/",
+    "type": "string"
+  },
+  "BlobContainerName_DebDelete": {
+    "value": "sftp-container-c00031-debitororgidsdelete",
+    "type": "string"
+  },
+  "InterfaceRoothPath_Delete": {
+    "value": "/sftp-container-c00031/sftp-c00031/DebitorOrgIdsDelete",
+    "type": "string"
+  },
+  "InterfaceRoothPath_CH": {
+    "value": "/sftp-container-c00031/sftp-c00031/Debitors/in/Debitors/CH",
+    "type": "string"
+  }
+}

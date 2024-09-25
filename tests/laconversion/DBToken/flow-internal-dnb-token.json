@@ -1,0 +1,376 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "actions": {
+    "Get_DnB_Token_ExpiryDate": {
+      "inputs": {
+        "body": {
+          "key": "DnB-Token-ExpiryDate"
+        },
+        "host": {
+          "triggerName": "manual",
+          "workflow": {
+            "id": "${getConfiguration_logicAppId}"
+          }
+        }
+      },
+      "runAfter": {},
+      "type": "Workflow"
+    },
+    "Init_Base64": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "base64",
+            "type": "string"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "Init_BasicToken": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "BasicToken",
+            "type": "string"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "Init_CurrentTime_+_15min": {
+      "inputs": {
+        "variables": [
+          {
+            "name": "CurrentTime",
+            "type": "string",
+            "value": "@{addMinutes(utcNow(),15)}"
+          }
+        ]
+      },
+      "runAfter": {},
+      "type": "InitializeVariable"
+    },
+    "Scope": {
+      "actions": {
+        "If_ExpiryDate_is_null": {
+          "actions": {
+            "Get_DnB_Key_1": {
+              "inputs": {
+                "body": {
+                  "key": "DnB-Key"
+                },
+                "host": {
+                  "triggerName": "manual",
+                  "workflow": {
+                    "id": "${getConfiguration_logicAppId}"
+                  }
+                }
+              },
+              "runAfter": {},
+              "type": "Workflow"
+            },
+            "Get_DnB_Secret_1": {
+              "inputs": {
+                "body": {
+                  "key": "DnB-Secret"
+                },
+                "host": {
+                  "triggerName": "manual",
+                  "workflow": {
+                    "id": "${getConfiguration_logicAppId}"
+                  }
+                }
+              },
+              "runAfter": {
+                "Get_DnB_Key_1": ["Succeeded"]
+              },
+              "type": "Workflow"
+            },
+            "Get_Token_1": {
+              "inputs": {
+                "body": {
+                  "grant_type": "client_credentials"
+                },
+                "headers": {
+                  "Authorization": "Basic <@{variables('base64')}>",
+                  "Content-Type": "application/json"
+                },
+                "method": "POST",
+                "uri": "https://plus.dnb.com/v2/token"
+              },
+              "runAfter": {
+                "Set_Base64_1": ["Succeeded"]
+              },
+              "type": "Http"
+            },
+            "Set_Base64_1": {
+              "inputs": {
+                "name": "base64",
+                "value": "@{base64(concat(body('Get_DnB_Key_1'),':',body('Get_DnB_Secret_1')))}"
+              },
+              "runAfter": {
+                "Get_DnB_Secret_1": ["Succeeded"]
+              },
+              "type": "SetVariable"
+            },
+            "Set_new_Token_1": {
+              "inputs": {
+                "name": "BasicToken",
+                "value": "@{body('Get_Token_1')?['access_token']}"
+              },
+              "runAfter": {
+                "Get_Token_1": ["Succeeded"]
+              },
+              "type": "SetVariable"
+            },
+            "Update_Token_ExpireDate_in_KeyVault_1": {
+              "inputs": {
+                "body": {
+                  "body": "@{addSeconds(utcNow(), body('Get_Token_1')?['expiresIn'])}"
+                },
+                "headers": {
+                  "key": "DnB-Token-ExpiryDate"
+                },
+                "host": {
+                  "triggerName": "manual",
+                  "workflow": {
+                    "id": "${setConfiguration_logicAppId}"
+                  }
+                }
+              },
+              "runAfter": {
+                "Set_new_Token_1": ["Succeeded"]
+              },
+              "type": "Workflow"
+            },
+            "Update_Token_in_KeyVault_1": {
+              "inputs": {
+                "body": {
+                  "body": "@variables('BasicToken')"
+                },
+                "headers": {
+                  "key": "DnB-Token"
+                },
+                "host": {
+                  "triggerName": "manual",
+                  "workflow": {
+                    "id": "${setConfiguration_logicAppId}"
+                  }
+                }
+              },
+              "runAfter": {
+                "Set_new_Token_1": ["Succeeded"]
+              },
+              "type": "Workflow"
+            }
+          },
+          "else": {
+            "actions": {
+              "If_Token_is_Expired": {
+                "actions": {
+                  "Get_DnB_Key": {
+                    "inputs": {
+                      "body": {
+                        "key": "DnB-Key"
+                      },
+                      "host": {
+                        "triggerName": "manual",
+                        "workflow": {
+                          "id": "${getConfiguration_logicAppId}"
+                        }
+                      }
+                    },
+                    "runAfter": {},
+                    "type": "Workflow"
+                  },
+                  "Get_DnB_Secret": {
+                    "inputs": {
+                      "body": {
+                        "key": "DnB-Secret"
+                      },
+                      "host": {
+                        "triggerName": "manual",
+                        "workflow": {
+                          "id": "${getConfiguration_logicAppId}"
+                        }
+                      }
+                    },
+                    "runAfter": {
+                      "Get_DnB_Key": ["Succeeded"]
+                    },
+                    "type": "Workflow"
+                  },
+                  "Get_Token": {
+                    "inputs": {
+                      "body": {
+                        "grant_type": "client_credentials"
+                      },
+                      "headers": {
+                        "Authorization": "Basic <@{variables('base64')}>",
+                        "Content-Type": "application/json"
+                      },
+                      "method": "POST",
+                      "uri": "https://plus.dnb.com/v2/token"
+                    },
+                    "runAfter": {
+                      "Set_Base64": ["Succeeded"]
+                    },
+                    "type": "Http"
+                  },
+                  "Set_Base64": {
+                    "inputs": {
+                      "name": "base64",
+                      "value": "@{base64(concat(body('Get_DnB_Key'),':',body('Get_DnB_Secret')))}"
+                    },
+                    "runAfter": {
+                      "Get_DnB_Secret": ["Succeeded"]
+                    },
+                    "type": "SetVariable"
+                  },
+                  "Set_new_Token": {
+                    "inputs": {
+                      "name": "BasicToken",
+                      "value": "@{body('Get_Token')?['access_token']}"
+                    },
+                    "runAfter": {
+                      "Get_Token": ["Succeeded"]
+                    },
+                    "type": "SetVariable"
+                  },
+                  "Update_Token_ExpireDate_in_KeyVault": {
+                    "inputs": {
+                      "body": {
+                        "body": "@{addSeconds(utcNow(), body('Get_Token')?['expiresIn'])}"
+                      },
+                      "headers": {
+                        "key": "DnB-Token-ExpiryDate"
+                      },
+                      "host": {
+                        "triggerName": "manual",
+                        "workflow": {
+                          "id": "${setConfiguration_logicAppId}"
+                        }
+                      }
+                    },
+                    "runAfter": {
+                      "Set_new_Token": ["Succeeded"]
+                    },
+                    "type": "Workflow"
+                  },
+                  "Update_Token_in_KeyVault": {
+                    "inputs": {
+                      "body": {
+                        "body": "@variables('BasicToken')"
+                      },
+                      "headers": {
+                        "key": "DnB-Token"
+                      },
+                      "host": {
+                        "triggerName": "manual",
+                        "workflow": {
+                          "id": "${setConfiguration_logicAppId}"
+                        }
+                      }
+                    },
+                    "runAfter": {
+                      "Set_new_Token": ["Succeeded"]
+                    },
+                    "type": "Workflow"
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Get_DnB_Token": {
+                      "inputs": {
+                        "body": {
+                          "key": "DnB-Token"
+                        },
+                        "host": {
+                          "triggerName": "manual",
+                          "workflow": {
+                            "id": "${getConfiguration_logicAppId}"
+                          }
+                        }
+                      },
+                      "runAfter": {},
+                      "type": "Workflow"
+                    },
+                    "Set_Token_from_keyVault": {
+                      "inputs": {
+                        "name": "BasicToken",
+                        "value": "@{body('Get_DnB_Token')}"
+                      },
+                      "runAfter": {
+                        "Get_DnB_Token": ["Succeeded"]
+                      },
+                      "type": "SetVariable"
+                    }
+                  }
+                },
+                "expression": {
+                  "or": [
+                    {
+                      "greater": [
+                        "@ticks(variables('CurrentTime'))",
+                        "@ticks(body('Get_DnB_Token_ExpiryDate'))"
+                      ]
+                    }
+                  ]
+                },
+                "runAfter": {},
+                "type": "If"
+              }
+            }
+          },
+          "expression": {
+            "and": [
+              {
+                "equals": ["@body('Get_DnB_Token_ExpiryDate')", "@null"]
+              }
+            ]
+          },
+          "runAfter": {},
+          "type": "If"
+        },
+        "Response": {
+          "inputs": {
+            "body": "@variables('BasicToken')",
+            "statusCode": 200
+          },
+          "kind": "Http",
+          "runAfter": {
+            "If_ExpiryDate_is_null": [
+              "Succeeded",
+              "Failed",
+              "Skipped",
+              "TimedOut"
+            ]
+          },
+          "type": "Response"
+        }
+      },
+      "runAfter": {
+        "Get_DnB_Token_ExpiryDate": ["Succeeded"],
+        "Init_Base64": ["Succeeded"],
+        "Init_BasicToken": ["Succeeded"],
+        "Init_CurrentTime_+_15min": ["Succeeded"]
+      },
+      "type": "Scope"
+    }
+  },
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {},
+  "triggers": {
+    "manual": {
+      "inputs": {
+        "schema": {}
+      },
+      "kind": "Http",
+      "type": "Request"
+    }
+  }
+}

@@ -1,0 +1,1824 @@
+{
+  "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "actions": {
+          "Initialize_BulkData": {
+              "type": "InitializeVariable",
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "BulkData",
+                          "type": "string"
+                      }
+                  ]
+              },
+              "runAfter": {
+                  "Initialize_BulkState": [
+                      "SUCCEEDED"
+                  ]
+              }
+          },
+          "Initialize_SecondBulkData": {
+              "type": "InitializeVariable",
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "SecondBulkData",
+                          "type": "string"
+                      }
+                  ]
+              },
+              "runAfter": {}
+          },
+          "Initialize_variable__UnprocessedUpsertCounter": {
+              "type": "InitializeVariable",
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "UnprocessedUpsertCounter",
+                          "type": "integer",
+                          "value": "0"
+                      }
+                  ]
+              },
+              "runAfter": {}
+          },
+          "Move_file_from_incoming_to_working_dir": {
+              "type": "Scope",
+              "actions": {
+                  "BlobToZipConverterFunction": {
+                      "type": "Function",
+                      "inputs": {
+                          "method": "POST",
+                          "body": {
+                              "blobContainerName": "@{parameters('BlobContainerName_xAgents')}",
+                              "incomingBlobPath": "@{workflow()['run']['name']}/incoming",
+                              "incominigBlobName": "@{triggerBody()?['properties']?['blobName']}",
+                              "outcomingBlobPath": "@{workflow()['run']['name']}/zip"
+                          },
+                          "headers": null,
+                          "function": {
+                              "connectionName": "BlobToZipConverterFunction"
+                          }
+                      },
+                      "runAfter": {
+                          "Create_incoming_blob": [
+                              "SUCCEEDED"
+                          ]
+                      }
+                  },
+                  "Create_File_in_Working_Dir": {
+                      "type": "ServiceProvider",
+                      "inputs": {
+                          "parameters": {
+                              "blobUri": "@{parameters('basePath_xAgents')}/working/@{substring(triggerBody()?['properties']?['blobName'], 0, sub(length(triggerBody()?['properties']?['blobName']), 4))}(@{convertTimeZone(utcNow(), 'UTC', 'Central Europe Standard Time')}).zip",
+                              "content": "@body('Get_Zip_Content')?['content']"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageSFTP",
+                              "operationId": "uploadBlobFromUri",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Get_Zip_Content": [
+                              "SUCCEEDED"
+                          ]
+                      }
+                  },
+                  "Create_incoming_blob": {
+                      "type": "ServiceProvider",
+                      "inputs": {
+                          "parameters": {
+                              "blobUri": "@{parameters('BlobContainerName_xAgents')}/@{workflow()['run']['name']}/incoming/@{triggerBody()?['properties']?['blobName']}",
+                              "content": "@triggerBody()?['content']"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageUploadFile",
+                              "operationId": "uploadBlobFromUri",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      }
+                  },
+                  "Delete_Incoming_Blob": {
+                      "type": "ServiceProvider",
+                      "inputs": {
+                          "parameters": {
+                              "containerName": "@{parameters('basePath_xAgents')}/incoming",
+                              "blobName": "@triggerBody()?['properties']?['blobName']"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageSFTP",
+                              "operationId": "deleteBlob",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Create_File_in_Working_Dir": [
+                              "SUCCEEDED"
+                          ]
+                      }
+                  },
+                  "Delete_Zip": {
+                      "type": "ServiceProvider",
+                      "inputs": {
+                          "parameters": {
+                              "containerName": "@parameters('BlobContainerName_xAgents')",
+                              "blobName": "@body('BlobToZipConverterFunction')?['Value']"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageUploadFile",
+                              "operationId": "deleteBlob",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Create_File_in_Working_Dir": [
+                              "SUCCEEDED"
+                          ]
+                      }
+                  },
+                  "Get_Zip_Content": {
+                      "type": "ServiceProvider",
+                      "inputs": {
+                          "parameters": {
+                              "blobUri": "@{parameters('BlobContainerName_xAgents')}/@{body('BlobToZipConverterFunction')?['Value']}"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageUploadFile",
+                              "operationId": "readBlobFromUri",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "BlobToZipConverterFunction": [
+                              "Succeeded"
+                          ]
+                      }
+                  }
+              },
+              "runAfter": {
+                  "Initialize_ErrorsCount": [
+                      "SUCCEEDED"
+                  ],
+                  "Initialize_CurrentTime": [
+                      "SUCCEEDED"
+                  ],
+                  "Initialize_BulkData": [
+                      "SUCCEEDED"
+                  ],
+                  "Initialize_RecordsCounter": [
+                      "SUCCEEDED"
+                  ],
+                  "Initialize_Response": [
+                      "SUCCEEDED"
+                  ],
+                  "Parse_mail_configurations_from_json": [
+                      "SUCCEEDED"
+                  ]
+              }
+          },
+          "Move_file_to_error_dir": {
+              "type": "Scope",
+              "actions": {
+                  "Copy_Blob_to_Error_Folder": {
+                      "type": "ServiceProvider",
+                      "inputs": {
+                          "parameters": {
+                              "sourceBlobUri": "@{parameters('basePath_xAgents')}/working/@{body('Create_File_in_Working_Dir')?['properties']?['blobName']}",
+                              "destinationBlobUri": "@{parameters('basePath_xAgents')}/error/@{body('Create_File_in_Working_Dir')?['properties']?['blobName']}"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageSFTP",
+                              "operationId": "copyBlobFromUri",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      }
+                  },
+                  "Delete_Blob_from_Incoming_Dir": {
+                      "type": "ServiceProvider",
+                      "inputs": {
+                          "parameters": {
+                              "containerName": "@{parameters('basePath_xAgents')}/working",
+                              "blobName": "@body('Create_File_in_Working_Dir')?['properties']?['blobName']"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageSFTP",
+                              "operationId": "deleteBlob",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Copy_Blob_to_Error_Folder": [
+                              "Succeeded"
+                          ]
+                      }
+                  },
+                  "File_processing_failed": {
+                      "type": "Terminate",
+                      "inputs": {
+                          "runStatus": "Failed"
+                      },
+                      "runAfter": {
+                          "Delete_Blob_from_Incoming_Dir": [
+                              "Succeeded"
+                          ]
+                      }
+                  }
+              },
+              "runAfter": {
+                  "Proceed_file": [
+                      "Failed",
+                      "Skipped",
+                      "TimedOut"
+                  ]
+              }
+          },
+          "Move_file_to_processed_dir": {
+              "type": "Scope",
+              "actions": {
+                  "Copy_Blob_to_Archive_Folder": {
+                      "type": "ServiceProvider",
+                      "inputs": {
+                          "parameters": {
+                              "sourceBlobUri": "@{parameters('basePath_xAgents')}/working/@{body('Create_File_in_Working_Dir')?['properties']?['blobName']}",
+                              "destinationBlobUri": "@{parameters('basePath_xAgents')}/archive/@{body('Create_File_in_Working_Dir')?['properties']?['blobName']}"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageSFTP",
+                              "operationId": "copyBlobFromUri",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      }
+                  },
+                  "Delete_Blob_from_Incoming_Dir_copy": {
+                      "type": "ServiceProvider",
+                      "inputs": {
+                          "parameters": {
+                              "containerName": "@{parameters('basePath_xAgents')}/working",
+                              "blobName": "@body('Create_File_in_Working_Dir')?['properties']?['blobName']"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageSFTP",
+                              "operationId": "deleteBlob",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Copy_Blob_to_Archive_Folder": [
+                              "SUCCEEDED"
+                          ]
+                      }
+                  }
+              },
+              "runAfter": {
+                  "Proceed_file": [
+                      "Succeeded"
+                  ]
+              }
+          },
+          "Proceed_file": {
+              "type": "Scope",
+              "actions": {
+                  "Bulk_insert": {
+                      "type": "Scope",
+                      "actions": {
+                          "Close_job": {
+                              "type": "Http",
+                              "inputs": {
+                                  "uri": "@{parameters('instanceUrl_nonsfs')}/jobs/ingest/@{body('Create_a_bulk_update_job_')?['id']}",
+                                  "method": "PATCH",
+                                  "headers": {
+                                      "Accept": "application/json",
+                                      "Authorization": "Bearer @{body('getOauthToken')}",
+                                      "Content-Type": "application/json"
+                                  },
+                                  "body": {
+                                      "state": "UploadComplete"
+                                  }
+                              },
+                              "runAfter": {
+                                  "Upload_job_data": [
+                                      "Succeeded"
+                                  ]
+                              },
+                              "runtimeConfiguration": {
+                                  "contentTransfer": {
+                                      "transferMode": "Chunked"
+                                  }
+                              }
+                          },
+                          "Condition_for_unprocessed_results": {
+                              "type": "If",
+                              "expression": {
+                                  "and": [
+                                      {
+                                          "not": {
+                                              "equals": [
+                                                  "@body('Get_job_unprocessed_results')",
+                                                  "@string('')"
+                                              ]
+                                          }
+                                      },
+                                      {
+                                          "not": {
+                                              "equals": [
+                                                  "@body('Get_job_unprocessed_results')",
+                                                  "@null"
+                                              ]
+                                          }
+                                      },
+                                      {
+                                          "greater": [
+                                              "@length(body('Get_job_unprocessed_results'))",
+                                              700
+                                          ]
+                                      }
+                                  ]
+                              },
+                              "actions": {
+                                  "Append_to_response": {
+                                      "type": "AppendToStringVariable",
+                                      "inputs": {
+                                          "name": "Response",
+                                          "value": "@{substring(body('Get_job_unprocessed_results'),207)}\n"
+                                      },
+                                      "runAfter": {
+                                          "Increment_Unprocessed_records_counter": [
+                                              "Succeeded"
+                                          ]
+                                      }
+                                  },
+                                  "Increment_Unprocessed_records_counter": {
+                                      "type": "IncrementVariable",
+                                      "inputs": {
+                                          "name": "UnprocessedUpsertCounter",
+                                          "value": "@sub(length(split(body('Get_job_unprocessed_results'),'\n')),2)"
+                                      }
+                                  }
+                              },
+                              "else": {
+                                  "actions": {}
+                              },
+                              "runAfter": {
+                                  "Get_job_unprocessed_results": [
+                                      "Succeeded"
+                                  ]
+                              }
+                          },
+                          "Create_a_bulk_update_job_": {
+                              "type": "Http",
+                              "inputs": {
+                                  "uri": "@{parameters('instanceUrl_nonsfs')}/jobs/ingest/",
+                                  "method": "POST",
+                                  "headers": {
+                                      "Accept": "application/json",
+                                      "Authorization": "Bearer @{body('getOauthToken')}",
+                                      "Content-Type": "application/json"
+                                  },
+                                  "body": {
+                                      "object": "AccountTeamMember",
+                                      "operation": "insert",
+                                      "columnDelimiter": "SEMICOLON",
+                                      "contentType": "CSV",
+                                      "externalIdFieldName": "S4SAccount_Team_ID__c"
+                                  }
+                              },
+                              "runtimeConfiguration": {
+                                  "contentTransfer": {
+                                      "transferMode": "Chunked"
+                                  }
+                              }
+                          },
+                          "Get_failed_job_results": {
+                              "type": "Http",
+                              "inputs": {
+                                  "uri": "@{parameters('instanceUrl_nonsfs')}/jobs/ingest/@{body('Create_a_bulk_update_job_')?['id']}/failedResults",
+                                  "method": "GET",
+                                  "headers": {
+                                      "Accept": "application/json",
+                                      "Authorization": "Bearer @{body('getOauthToken')}",
+                                      "Content-Type": "application/json"
+                                  }
+                              },
+                              "runAfter": {
+                                  "Until_Bulk_state_is_Failed_or_Complete": [
+                                      "Succeeded"
+                                  ]
+                              },
+                              "runtimeConfiguration": {
+                                  "contentTransfer": {
+                                      "transferMode": "Chunked"
+                                  }
+                              }
+                          },
+                          "Get_job_successful_results": {
+                              "type": "Http",
+                              "inputs": {
+                                  "uri": "@{parameters('instanceUrl_nonsfs')}/jobs/ingest/@{body('Create_a_bulk_update_job_')?['id']}/successfulResults",
+                                  "method": "GET",
+                                  "headers": {
+                                      "Accept": "application/json",
+                                      "Authorization": "Bearer @{body('getOauthToken')}",
+                                      "Content-Type": "application/json"
+                                  }
+                              },
+                              "runAfter": {
+                                  "Until_Bulk_state_is_Failed_or_Complete": [
+                                      "Succeeded"
+                                  ]
+                              },
+                              "runtimeConfiguration": {
+                                  "contentTransfer": {
+                                      "transferMode": "Chunked"
+                                  }
+                              }
+                          },
+                          "Get_job_unprocessed_results": {
+                              "type": "Http",
+                              "inputs": {
+                                  "uri": "@{parameters('instanceUrl_nonsfs')}/jobs/ingest/@{body('Create_a_bulk_update_job_')?['id']}/unprocessedRecords ",
+                                  "method": "GET",
+                                  "headers": {
+                                      "Accept": "application/json",
+                                      "Authorization": "Bearer @{body('getOauthToken')}",
+                                      "Content-Type": "application/json"
+                                  }
+                              },
+                              "runAfter": {
+                                  "Until_Bulk_state_is_Failed_or_Complete": [
+                                      "Succeeded"
+                                  ]
+                              },
+                              "runtimeConfiguration": {
+                                  "contentTransfer": {
+                                      "transferMode": "Chunked"
+                                  }
+                              }
+                          },
+                          "Reset_BulkData": {
+                              "type": "SetVariable",
+                              "inputs": {
+                                  "name": "BulkData",
+                                  "value": "@{string('')}"
+                              },
+                              "runAfter": {
+                                  "Condition_for_unprocessed_results": [
+                                      "Succeeded"
+                                  ],
+                                  "Get_failed_job_results": [
+                                      "Succeeded"
+                                  ],
+                                  "Get_job_successful_results": [
+                                      "Succeeded"
+                                  ]
+                              }
+                          },
+                          "Reset_BulkState": {
+                              "type": "SetVariable",
+                              "inputs": {
+                                  "name": "BulkState",
+                                  "value": "false"
+                              },
+                              "runAfter": {
+                                  "Reset_BulkData": [
+                                      "Succeeded"
+                                  ]
+                              }
+                          },
+                          "Until_Bulk_state_is_Failed_or_Complete": {
+                              "type": "Until",
+                              "expression": "@equals(variables('BulkState'), true)",
+                              "limit": {
+                                  "count": 30,
+                                  "timeout": "PT1H"
+                              },
+                              "actions": {
+                                  "Delay": {
+                                      "type": "Wait",
+                                      "inputs": {
+                                          "interval": {
+                                              "count": 45,
+                                              "unit": "Second"
+                                          }
+                                      }
+                                  },
+                                  "Get_job_info": {
+                                      "type": "Http",
+                                      "inputs": {
+                                          "uri": "@{parameters('instanceUrl_nonsfs')}/jobs/ingest/@{body('Create_a_bulk_update_job_')?['id']}",
+                                          "method": "GET",
+                                          "headers": {
+                                              "Accept": "application/json",
+                                              "Authorization": "Bearer @{body('getOauthToken')}",
+                                              "Content-Type": "application/json"
+                                          }
+                                      },
+                                      "runAfter": {
+                                          "Delay": [
+                                              "Succeeded"
+                                          ]
+                                      },
+                                      "runtimeConfiguration": {
+                                          "contentTransfer": {
+                                              "transferMode": "Chunked"
+                                          }
+                                      }
+                                  },
+                                  "Until_file_is_uploaded": {
+                                      "type": "If",
+                                      "expression": {
+                                          "or": [
+                                              {
+                                                  "equals": [
+                                                      "@body('Get_job_info')?['state']",
+                                                      "Failed"
+                                                  ]
+                                              },
+                                              {
+                                                  "equals": [
+                                                      "@body('Get_job_info')?['state']",
+                                                      "JobComplete"
+                                                  ]
+                                              }
+                                          ]
+                                      },
+                                      "actions": {
+                                          "Set_variable": {
+                                              "type": "SetVariable",
+                                              "inputs": {
+                                                  "name": "BulkState",
+                                                  "value": "true"
+                                              }
+                                          }
+                                      },
+                                      "else": {
+                                          "actions": {}
+                                      },
+                                      "runAfter": {
+                                          "Get_job_info": [
+                                              "Succeeded"
+                                          ]
+                                      }
+                                  }
+                              },
+                              "runAfter": {
+                                  "Close_job": [
+                                      "Succeeded"
+                                  ]
+                              }
+                          },
+                          "Upload_job_data": {
+                              "type": "Http",
+                              "inputs": {
+                                  "uri": "@{parameters('instanceUrl_nonsfs')}/jobs/ingest/@{body('Create_a_bulk_update_job_')?['id']}/batches",
+                                  "method": "PUT",
+                                  "headers": {
+                                      "Accept": "application/json",
+                                      "Authorization": "Bearer @{body('getOauthToken')}",
+                                      "Content-Type": "text/csv"
+                                  },
+                                  "body": "Account.S4SIfA__c;AccountAccessLevel;CaseAccessLevel;ContactAccessLevel;S4SExternal_Source__c;S4SInterface_Upsert_Date__c;OpportunityAccessLevel;TeamMemberRole;User.S4SGID_Technical__c\n@{body('Get_Blob_Content')?['content']}"
+                              },
+                              "runAfter": {
+                                  "Create_a_bulk_update_job_": [
+                                      "SUCCEEDED"
+                                  ]
+                              },
+                              "runtimeConfiguration": {
+                                  "contentTransfer": {
+                                      "transferMode": "Chunked"
+                                  }
+                              }
+                          },
+                          "Validate_error_records_count": {
+                              "type": "If",
+                              "expression": {
+                                  "and": [
+                                      {
+                                          "greater": [
+                                              "@length(body('Get_failed_job_results'))",
+                                              700
+                                          ]
+                                      },
+                                      {
+                                          "not": {
+                                              "equals": [
+                                                  "@body('Get_failed_job_results')",
+                                                  "@null"
+                                              ]
+                                          }
+                                      }
+                                  ]
+                              },
+                              "actions": {
+                                  "CSVToJSONParser": {
+                                      "type": "Function",
+                                      "inputs": {
+                                          "method": "POST",
+                                          "body": {
+                                              "fieldSeperator": ";",
+                                              "fileContent": "@{replace(substring(body('Get_failed_job_results'),207), '\"', '')}",
+                                              "fileHeaders": "sf__Id;sf__Error;Account.S4SIfA__c;AccountAccessLevel;CaseAccessLevel;ContactAccessLevel;OpportunityAccessLevel;S4SExternal_Source__c;S4SInterface_Upsert_Date__c;TeamMemberRole;User.S4SGID_Technical__c",
+                                              "linesSkip": 0
+                                          },
+                                          "headers": null,
+                                          "function": {
+                                              "connectionName": "CSVToJSONParser"
+                                          }
+                                      }
+                                  },
+                                  "Close_or_abort_a_job": {
+                                      "type": "Http",
+                                      "inputs": {
+                                          "uri": "@{parameters('instanceUrl_nonsfs')}/jobs/ingest/@{body('Create_an_update_job_for_failed_records')?['id']}",
+                                          "method": "PATCH",
+                                          "headers": {
+                                              "Accept": "application/json",
+                                              "Authorization": "Bearer @{body('getOauthToken')}",
+                                              "Content-Type": "application/json"
+                                          },
+                                          "body": {
+                                              "state": "UploadComplete"
+                                          }
+                                      },
+                                      "runAfter": {
+                                          "Upload_job_data_2": [
+                                              "Succeeded"
+                                          ]
+                                      },
+                                      "runtimeConfiguration": {
+                                          "contentTransfer": {
+                                              "transferMode": "Chunked"
+                                          }
+                                      }
+                                  },
+                                  "Condition_on_failed_records": {
+                                      "type": "If",
+                                      "expression": {
+                                          "and": [
+                                              {
+                                                  "not": {
+                                                      "equals": [
+                                                          "@body('Get_second_job_Failed_records')",
+                                                          "@string('')"
+                                                      ]
+                                                  }
+                                              },
+                                              {
+                                                  "not": {
+                                                      "equals": [
+                                                          "@body('Get_second_job_Failed_records')",
+                                                          "@null"
+                                                      ]
+                                                  }
+                                              },
+                                              {
+                                                  "greater": [
+                                                      "@length(body('Get_second_job_Failed_records'))",
+                                                      700
+                                                  ]
+                                              }
+                                          ]
+                                      },
+                                      "actions": {
+                                          "Append_to_response_Failed_record_data": {
+                                              "type": "AppendToStringVariable",
+                                              "inputs": {
+                                                  "name": "Response",
+                                                  "value": "@{substring(body('Get_second_job_Failed_records'),206)}"
+                                              },
+                                              "runAfter": {
+                                                  "Increment_variable_FailedUpsertCount": [
+                                                      "Succeeded"
+                                                  ]
+                                              }
+                                          },
+                                          "Increment_variable_FailedUpsertCount": {
+                                              "type": "IncrementVariable",
+                                              "inputs": {
+                                                  "name": "UnprocessedUpsertCounter",
+                                                  "value": "@sub(length(split(body('Get_second_job_Failed_records'),'\n')),2)"
+                                              }
+                                          },
+                                          "sf4sLog_2": {
+                                              "type": "Workflow",
+                                              "inputs": {
+                                                  "host": {
+                                                      "workflow": {
+                                                          "id": "sf4sLog"
+                                                      }
+                                                  },
+                                                  "headers": {
+                                                      "interfaceName": "ExternalAgents",
+                                                      "runId": "@{workflow()['run']['name']}"
+                                                  },
+                                                  "body": {
+                                                      "message": "@{substring(body('Get_second_job_Failed_records'),205)}",
+                                                      "severity": "INFO"
+                                                  }
+                                              },
+                                              "runAfter": {
+                                                  "Append_to_response_Failed_record_data": [
+                                                      "Succeeded"
+                                                  ]
+                                              }
+                                          }
+                                      },
+                                      "else": {
+                                          "actions": {}
+                                      },
+                                      "runAfter": {
+                                          "Get_second_job_Failed_records": [
+                                              "Succeeded"
+                                          ]
+                                      }
+                                  },
+                                  "Condition_on_unprocessed_records": {
+                                      "type": "If",
+                                      "expression": {
+                                          "and": [
+                                              {
+                                                  "not": {
+                                                      "equals": [
+                                                          "@body('Get_second_job_Unprocessed_records')",
+                                                          "@string('')"
+                                                      ]
+                                                  }
+                                              },
+                                              {
+                                                  "not": {
+                                                      "equals": [
+                                                          "@body('Get_second_job_Unprocessed_records')",
+                                                          "@null"
+                                                      ]
+                                                  }
+                                              },
+                                              {
+                                                  "greater": [
+                                                      "@length(body('Get_second_job_unprocessed_records'))",
+                                                      700
+                                                  ]
+                                              }
+                                          ]
+                                      },
+                                      "actions": {
+                                          "Append_to_string_variable": {
+                                              "type": "AppendToStringVariable",
+                                              "inputs": {
+                                                  "name": "Response",
+                                                  "value": "@{substring(body('Get_second_job_unprocessed_records'),186)}\n"
+                                              },
+                                              "runAfter": {
+                                                  "Increment_variable_unprocessed_counter": [
+                                                      "Succeeded"
+                                                  ]
+                                              }
+                                          },
+                                          "Increment_variable_unprocessed_counter": {
+                                              "type": "IncrementVariable",
+                                              "inputs": {
+                                                  "name": "UnprocessedUpsertCounter",
+                                                  "value": "@sub(length(split(body('Get_second_job_unprocessed_records'),'\n')),2)"
+                                              }
+                                          }
+                                      },
+                                      "else": {
+                                          "actions": {}
+                                      },
+                                      "runAfter": {
+                                          "Get_second_job_Unprocessed_records": [
+                                              "Succeeded"
+                                          ]
+                                      }
+                                  },
+                                  "Create_an_update_job_for_failed_records": {
+                                      "type": "Http",
+                                      "inputs": {
+                                          "uri": "@{parameters('instanceUrl_nonsfs')}/jobs/ingest/",
+                                          "method": "POST",
+                                          "headers": {
+                                              "Accept": "application/json",
+                                              "Authorization": "Bearer @{body('refreshOauthToken')}",
+                                              "Content-Type": "application/json"
+                                          },
+                                          "body": {
+                                              "columnDelimiter": "SEMICOLON",
+                                              "contentType": "CSV",
+                                              "externalIdFieldName": "S4SAccount_Team_ID__c",
+                                              "object": "AccountTeamMember",
+                                              "operation": "insert"
+                                          }
+                                      },
+                                      "runAfter": {
+                                          "refreshOauthToken": [
+                                              "SUCCEEDED"
+                                          ]
+                                      },
+                                      "runtimeConfiguration": {
+                                          "contentTransfer": {
+                                              "transferMode": "Chunked"
+                                          }
+                                      }
+                                  },
+                                  "For_each_failed_record": {
+                                      "type": "Foreach",
+                                      "foreach": "@body('Parse_Failed_records')",
+                                      "actions": {
+                                          "Append_to_Response_2": {
+                                              "type": "AppendToStringVariable",
+                                              "inputs": {
+                                                  "name": "Response",
+                                                  "value": "\"\";\"@{body('Parse_ExternalAgentsAccounts_response')?['Message']}\";\"@{items('For_each_failed_record')?['Account.S4SIfA__c']}\";\"Edit\";\"None\";\"Edit\";\"None\";\"External Agent IT\";\"2021-07-29T09:26:15.196Z\";\"Sales Support - Professional\";\"@{items('For_each_failed_record')?['User.S4SGID_Technical__c']}\"\n"
+                                              },
+                                              "runAfter": {
+                                                  "Check_ExternalAgentsAccounts_result": [
+                                                      "SUCCEEDED"
+                                                  ]
+                                              }
+                                          },
+                                          "ExternalAgentsAccounts": {
+                                              "type": "Workflow",
+                                              "inputs": {
+                                                  "host": {
+                                                      "workflow": {
+                                                          "id": "int-ExternalAgentsAccount"
+                                                      }
+                                                  },
+                                                  "body": {
+                                                    "IFA_NUMBER": "@items('For_each_failed_record')?['Account.S4SIfA__c']",
+                                                    "XGID": "@items('For_each_failed_record')?['User.S4SGID_Technical__c']"
+                                                }
+                                              }
+                                          },
+                                          "Parse_ExternalAgentsAccounts_response": {
+                                              "type": "ParseJson",
+                                              "inputs": {
+                                                  "content": "@body('externalAgentsAccounts')",
+                                                  "schema": {
+                                                      "properties": {
+                                                          "Message": {
+                                                              "type": "string"
+                                                          },
+                                                          "Success": {
+                                                              "type": "boolean"
+                                                          }
+                                                      },
+                                                      "type": "object"
+                                                  }
+                                              },
+                                              "runAfter": {
+                                                  "ExternalAgentsAccounts": [
+                                                      "SUCCEEDED"
+                                                  ]
+                                              }
+                                          },
+                                          "Check_ExternalAgentsAccounts_result": {
+                                              "type": "If",
+                                              "expression": {
+                                                  "and": [
+                                                      {
+                                                          "equals": [
+                                                              "@body('Parse_ExternalAgentsAccounts_response')?['Success']",
+                                                              "@false"
+                                                          ]
+                                                      }
+                                                  ]
+                                              },
+                                              "actions": {
+                                                  "Condition_for_counter_type": {
+                                                      "type": "If",
+                                                      "expression": {
+                                                          "and": [
+                                                              {
+                                                                  "equals": [
+                                                                      "Condition for counter type",
+                                                                      "not found in CMD"
+                                                                  ]
+                                                              }
+                                                          ]
+                                                      },
+                                                      "actions": {
+                                                          "Increment_errors_count": {
+                                                              "type": "IncrementVariable",
+                                                              "inputs": {
+                                                                  "name": "ErrorsCount",
+                                                                  "value": 1
+                                                              }
+                                                          }
+                                                      },
+                                                      "else": {
+                                                          "actions": {
+                                                              "Increment_unprocessed_count": {
+                                                                  "type": "IncrementVariable",
+                                                                  "inputs": {
+                                                                      "name": "UnprocessedUpsertCounter",
+                                                                      "value": 1
+                                                                  }
+                                                              }
+                                                          }
+                                                      }
+                                                  }
+                                              },
+                                              "else": {
+                                                  "actions": {
+                                                      "Append_failed_records_to_BulkData": {
+                                                          "type": "AppendToStringVariable",
+                                                          "inputs": {
+                                                              "name": "BulkData",
+                                                              "value": "@{items('For_each_failed_record')?['Account.S4SIfA__c']}@{parameters('delimeter')}Edit@{parameters('delimeter')}None@{parameters('delimeter')}Edit@{parameters('delimeter')}External Agent IT@{parameters('delimeter')}@{convertTimeZone(utcNow(), 'UTC', 'Central Europe Standard Time')}@{parameters('delimeter')}None@{parameters('delimeter')}Sales Support - Professional@{parameters('delimeter')}@{items('For_each_failed_record')?['User.S4SGID_Technical__c']}\n"
+                                                          }
+                                                      }
+                                                  }
+                                              },
+                                              "runAfter": {
+                                                  "Parse_ExternalAgentsAccounts_response": [
+                                                      "SUCCEEDED"
+                                                  ]
+                                              }
+                                          },
+                                          "NonSFS_Log": {
+                                              "type": "Workflow",
+                                              "inputs": {
+                                                  "host": {
+                                                      "workflow": {
+                                                          "id": "sf4sLog"
+                                                      }
+                                                  },
+                                                  "headers": {
+                                                      "interfaceName": "ExternalAgents",
+                                                      "runId": "@{workflow()['run']['name']}"
+                                                  },
+                                                  "body": {
+                                                      "message": "@body('Parse_ExternalAgentsAccounts_response')?['Message']",
+                                                      "severity": "INFO"
+                                                  }
+                                              },
+                                              "runAfter": {
+                                                  "Append_to_Response_2": [
+                                                      "SUCCEEDED"
+                                                  ]
+                                              }
+                                          }
+                                      },
+                                      "runAfter": {
+                                          "Parse_Failed_records": [
+                                              "Succeeded"
+                                          ]
+                                      },
+                                      "runtimeConfiguration": {
+                                          "concurrency": {
+                                              "repetitions": 10
+                                          }
+                                      }
+                                  },
+                                  "Get_second_job_Failed_records": {
+                                      "type": "Http",
+                                      "inputs": {
+                                          "uri": "@{parameters('instanceUrl_nonsfs')}/jobs/ingest/@{body('Create_an_update_job_for_failed_records')?['id']}/failedResults",
+                                          "method": "GET",
+                                          "headers": {
+                                              "Accept": "application/json",
+                                              "Authorization": "Bearer @{body('getOauthToken')}",
+                                              "Content-Type": "application/json"
+                                          }
+                                      },
+                                      "runAfter": {
+                                          "Until_BulkState_is_Failed_or_Complete": [
+                                              "Succeeded"
+                                          ]
+                                      },
+                                      "runtimeConfiguration": {
+                                          "contentTransfer": {
+                                              "transferMode": "Chunked"
+                                          }
+                                      }
+                                  },
+                                  "Get_second_job_Successful_records": {
+                                      "type": "Http",
+                                      "inputs": {
+                                          "uri": "@{parameters('instanceUrl_nonsfs')}/jobs/ingest/@{body('Create_an_update_job_for_failed_records')?['id']}/successfulResults",
+                                          "method": "GET",
+                                          "headers": {
+                                              "Accept": "application/json",
+                                              "Authorization": "Bearer @{body('getOauthToken')}",
+                                              "Content-Type": "application/json"
+                                          }
+                                      },
+                                      "runAfter": {
+                                          "Until_BulkState_is_Failed_or_Complete": [
+                                              "Succeeded"
+                                          ]
+                                      },
+                                      "runtimeConfiguration": {
+                                          "contentTransfer": {
+                                              "transferMode": "Chunked"
+                                          }
+                                      }
+                                  },
+                                  "Get_second_job_Unprocessed_records": {
+                                      "type": "Http",
+                                      "inputs": {
+                                          "uri": "@{parameters('instanceUrl_nonsfs')}/jobs/ingest/@{body('Create_an_update_job_for_failed_records')?['id']}/unprocessedRecords ",
+                                          "method": "GET",
+                                          "headers": {
+                                              "Accept": "application/json",
+                                              "Authorization": "Bearer @{body('getOauthToken')}",
+                                              "Content-Type": "application/json"
+                                          }
+                                      },
+                                      "runAfter": {
+                                          "Until_BulkState_is_Failed_or_Complete": [
+                                              "Succeeded"
+                                          ]
+                                      },
+                                      "runtimeConfiguration": {
+                                          "contentTransfer": {
+                                              "transferMode": "Chunked"
+                                          }
+                                      }
+                                  },
+                                  "Parse_Failed_records": {
+                                      "type": "ParseJson",
+                                      "inputs": {
+                                          "content": "@body('CSVToJSONParser')?['Value']",
+                                          "schema": {
+                                              "items": {
+                                                  "properties": {
+                                                      "Account.S4SIfA__c": {
+                                                          "type": "string"
+                                                      },
+                                                      "AccountAccessLevel": {
+                                                          "type": "string"
+                                                      },
+                                                      "CaseAccessLevel": {
+                                                          "type": "string"
+                                                      },
+                                                      "ContactAccessLevel": {
+                                                          "type": "string"
+                                                      },
+                                                      "OpportunityAccessLevel": {
+                                                          "type": "string"
+                                                      },
+                                                      "S4SExternal_Source__c": {
+                                                          "type": "string"
+                                                      },
+                                                      "S4SInterface_Upsert_Date__c": {
+                                                          "type": "string"
+                                                      },
+                                                      "TeamMemberRole": {
+                                                          "type": "string"
+                                                      },
+                                                      "User.S4SGID_Technical__c": {
+                                                          "type": "string"
+                                                      },
+                                                      "sf__Error": {
+                                                          "type": "string"
+                                                      },
+                                                      "sf__Id": {
+                                                          "type": "string"
+                                                      }
+                                                  },
+                                                  "type": "object"
+                                              },
+                                              "type": "array"
+                                          }
+                                      },
+                                      "runAfter": {
+                                          "CSVToJSONParser": [
+                                              "Succeeded"
+                                          ]
+                                      }
+                                  },
+                                  "Until_BulkState_is_Failed_or_Complete": {
+                                      "type": "Until",
+                                      "expression": "@equals(variables('BulkState'), true)",
+                                      "limit": {
+                                          "count": 60,
+                                          "timeout": "PT1H"
+                                      },
+                                      "actions": {
+                                          "Delay_2": {
+                                              "type": "Wait",
+                                              "inputs": {
+                                                  "interval": {
+                                                      "count": 45,
+                                                      "unit": "Second"
+                                                  }
+                                              }
+                                          },
+                                          "Get_job_info_2": {
+                                              "type": "Http",
+                                              "inputs": {
+                                                  "uri": "@{parameters('instanceUrl_nonsfs')}/jobs/ingest/@{body('Close_or_abort_a_job')?['id']}",
+                                                  "method": "GET",
+                                                  "headers": {
+                                                      "Accept": "application/json",
+                                                      "Authorization": "Bearer @{body('refreshOauthToken')}",
+                                                      "Content-Type": "application/json"
+                                                  }
+                                              },
+                                              "runAfter": {
+                                                  "Delay_2": [
+                                                      "Succeeded"
+                                                  ]
+                                              },
+                                              "runtimeConfiguration": {
+                                                  "contentTransfer": {
+                                                      "transferMode": "Chunked"
+                                                  }
+                                              }
+                                          },
+                                          "While_job_Succeed": {
+                                              "type": "If",
+                                              "expression": {
+                                                  "or": [
+                                                      {
+                                                          "equals": [
+                                                              "@body('Get_job_info_2')?['state']",
+                                                              "JobComplete"
+                                                          ]
+                                                      },
+                                                      {
+                                                          "equals": [
+                                                              "@body('Get_job_info_2')?['state']",
+                                                              "Failed"
+                                                          ]
+                                                      }
+                                                  ]
+                                              },
+                                              "actions": {
+                                                  "Set_BulkState": {
+                                                      "type": "SetVariable",
+                                                      "inputs": {
+                                                          "name": "BulkState",
+                                                          "value": "true"
+                                                      }
+                                                  }
+                                              },
+                                              "else": {
+                                                  "actions": {}
+                                              },
+                                              "runAfter": {
+                                                  "Get_job_info_2": [
+                                                      "Succeeded"
+                                                  ]
+                                              }
+                                          }
+                                      },
+                                      "runAfter": {
+                                          "Close_or_abort_a_job": [
+                                              "Succeeded"
+                                          ]
+                                      }
+                                  },
+                                  "Upload_job_data_2": {
+                                      "type": "Http",
+                                      "inputs": {
+                                          "uri": "@{parameters('instanceUrl_nonsfs')}/jobs/ingest/@{body('Create_an_update_job_for_failed_records')?['id']}/batches",
+                                          "method": "PUT",
+                                          "headers": {
+                                              "Accept": "application/json",
+                                              "Authorization": "Bearer @{body('refreshOauthToken')}",
+                                              "Content-Type": "text/csv"
+                                          },
+                                          "body": "Account.S4SIfA__c;AccountAccessLevel;CaseAccessLevel;ContactAccessLevel;S4SExternal_Source__c;S4SInterface_Upsert_Date__c;OpportunityAccessLevel;TeamMemberRole;User.S4SGID_Technical__c\n@{variables('BulkData')}"
+                                      },
+                                      "runAfter": {
+                                          "Create_an_update_job_for_failed_records": [
+                                              "Succeeded"
+                                          ]
+                                      },
+                                      "runtimeConfiguration": {
+                                          "contentTransfer": {
+                                              "transferMode": "Chunked"
+                                          }
+                                      }
+                                  },
+                                  "refreshOauthToken": {
+                                      "type": "Http",
+                                      "inputs": {
+                                          "uri": "@concat(parameters('baseUrl_apim'),'/c00031/token/oAuth/','nonsfs')",
+                                          "method": "POST",
+                                          "headers": {
+                                              "Ocp-Apim-Subscription-Key": "@{parameters('subscriptionKey_apim')}"
+                                          }
+                                      },
+                                      "runAfter": {
+                                          "For_each_failed_record": [
+                                              "Succeeded"
+                                          ]
+                                      },
+                                      "runtimeConfiguration": {
+                                          "contentTransfer": {
+                                              "transferMode": "Chunked"
+                                          }
+                                      }
+                                  }
+                              },
+                              "else": {
+                                  "actions": {}
+                              },
+                              "runAfter": {
+                                  "Reset_BulkState": [
+                                      "Succeeded"
+                                  ]
+                              }
+                          }
+                      },
+                      "runAfter": {
+                          "Get_Blob_Content": [
+                              "Succeeded"
+                          ]
+                      }
+                  },
+                  "getOauthToken": {
+                      "type": "Http",
+                      "inputs": {
+                          "uri": "@concat(parameters('baseUrl_apim'),'/c00031/token/oAuth/','nonsfs')",
+                          "method": "POST",
+                          "headers": {
+                              "Ocp-Apim-Subscription-Key": "@{parameters('subscriptionKey_apim')}"
+                          }
+                      },
+                      "runtimeConfiguration": {
+                          "contentTransfer": {
+                              "transferMode": "Chunked"
+                          }
+                      }
+                  },
+                  "ExternalAgentsTXTParser": {
+                      "type": "Function",
+                      "inputs": {
+                          "method": "POST",
+                          "body": {
+                              "blobContainerName": "@{parameters('BlobContainerName_xAgents')}",
+                              "blobName": "@{triggerBody()?['properties']?['blobName']}",
+                              "creationTime": "@{convertTimeZone(utcNow(), 'UTC', 'Central Europe Standard Time')}",
+                              "fieldMapping": [
+                                  4,
+                                  10,
+                                  8,
+                                  18,
+                                  8
+                              ],
+                              "fileHeaders": "AGENT_CODE;CUSTOMER_CODE;MODIFICATION_DATE;IFA_NUMBER;XGID",
+                              "runID": "@{workflow()['run']['name']}"
+                          },
+                          "headers": null,
+                          "function": {
+                              "connectionName": "ExternalAgentsTXTParser"
+                          }
+                      }
+                  },
+                  "Get_Blob_Content": {
+                      "type": "ServiceProvider",
+                      "inputs": {
+                          "parameters": {
+                              "blobUri": "@{parameters('BlobContainerName_xAgents')}/@{body('Parse_JSON')?['blobName']}"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageUploadFile",
+                              "operationId": "readBlobFromUri",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Increment_Unprocessed": [
+                              "SUCCEEDED"
+                          ]
+                      }
+                  },
+                  "Parse_JSON": {
+                      "type": "ParseJson",
+                      "inputs": {
+                          "content": "@body('ExternalAgentsTXTParser')",
+                          "schema": {
+                              "properties": {
+                                  "blobName": {
+                                      "type": "string"
+                                  },
+                                  "errors": {
+                                      "type": "string"
+                                  },
+                                  "recordsCount": {
+                                      "type": "integer"
+                                  }
+                              },
+                              "type": "object"
+                          }
+                      },
+                      "runAfter": {
+                          "ExternalAgentsTXTParser": [
+                              "SUCCEEDED"
+                          ]
+                      }
+                  },
+                  "Increment_Unprocessed": {
+                      "type": "IncrementVariable",
+                      "inputs": {
+                          "name": "UnprocessedUpsertCounter",
+                          "value": "@div(int(sub(length(split(body('Parse_JSON')?['errors'],';')),1)), 10)"
+                      },
+                      "runAfter": {
+                          "Append_to_Response_": [
+                              "SUCCEEDED"
+                          ]
+                      }
+                  },
+                  "Increment_Records_Counter": {
+                      "type": "IncrementVariable",
+                      "inputs": {
+                          "name": "UnprocessedUpsertCounter",
+                          "value": "@body('Parse_JSON')?['recordsCounter']"
+                      },
+                      "runAfter": {
+                          "getOauthToken": [
+                              "SUCCEEDED"
+                          ],
+                          "Parse_JSON": [
+                              "SUCCEEDED"
+                          ]
+                      }
+                  },
+                  "Append_to_Response_": {
+                      "type": "AppendToStringVariable",
+                      "inputs": {
+                          "name": "Response",
+                          "value": "@body('Parse_JSON')?['errors']"
+                      },
+                      "runAfter": {
+                          "Increment_Records_Counter": [
+                              "SUCCEEDED"
+                          ]
+                      }
+                  }
+              },
+              "runAfter": {
+                  "Move_file_from_incoming_to_working_dir": [
+                      "Succeeded"
+                  ]
+              }
+          },
+          "Send_Email": {
+              "type": "ServiceProvider",
+              "inputs": {
+                  "parameters": {
+                      "from": "@body('Parse_mail_configurations_from_json')?['EmailSender']",
+                      "to": "@body('Parse_mail_configurations_from_json')?['EmailRecipient']",
+                      "subject": "@body('Parse_mail_configurations_from_json')?['Subject']",
+                      "body": "Hi,\n\nThe External Agents Italy process is completed.  Please find the summary below:\n\nRecords Processed:  @{variables('RecordsCounter')}\nErrors: @{variables('ErrorsCount')}\nNot relevant for the account teams update : @{variables('UnprocessedUpsertCounter')}\n\nStatus of deletion process: @{variables('DeletionResult')}. @{variables('DeletionCount')} records deleted\n\nThe detailed log is attached to this email.\nReplies to this email are not monitored.\nFor any queries or concerns, Please contact AMC team.\n\nThanks,\nAMC Team",
+                      "attachment": [
+                          {
+                              "fileName": "CSV_Log.csv",
+                              "contentData": "@variables('Response')",
+                              "contentType": "text/csv"
+                          }
+                      ]
+                  },
+                  "serviceProviderConfiguration": {
+                      "connectionName": "Smtp",
+                      "operationId": "sendEmail",
+                      "serviceProviderId": "/serviceProviders/Smtp"
+                  }
+              },
+              "runAfter": {
+                  "Save_error_logs": [
+                      "SUCCEEDED"
+                  ]
+              }
+          },
+          "Save_error_logs": {
+              "type": "Scope",
+              "actions": {
+                  "Create_Error_Log_in_SFTP_Container": {
+                      "type": "ServiceProvider",
+                      "inputs": {
+                          "parameters": {
+                              "blobUri": "@{parameters('basePath_xAgents')}/Logs@{utcNow()}.zip",
+                              "content": "@body('Get_Log_File_Content')?['content']"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageSFTP",
+                              "operationId": "uploadBlobFromUri",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Get_Log_File_Content": [
+                              "SUCCEEDED"
+                          ]
+                      }
+                  },
+                  "Create_Log_File": {
+                      "type": "ServiceProvider",
+                      "inputs": {
+                          "parameters": {
+                              "blobUri": "@{parameters('BlobContainerName_xAgents')}/@{workflow()['run']['name']}/incoming/CSV_Log@{formatDateTime(utcNow(), 'yyyyMMddHHmmss')}.csv",
+                              "content": "@variables('Response')"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageUploadFile",
+                              "operationId": "uploadBlobFromUri",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      }
+                  },
+                  "Delete_Log_File": {
+                      "type": "ServiceProvider",
+                      "inputs": {
+                          "parameters": {
+                              "containerName": "@{parameters('BlobContainerName_xAgents')}/@{workflow()['run']['name']}/incoming",
+                              "blobName": "@body('Create_Log_File')?['properties']?['blobName']"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageUploadFile",
+                              "operationId": "deleteBlob",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Create_Error_Log_in_SFTP_Container": [
+                              "SUCCEEDED"
+                          ]
+                      }
+                  },
+                  "Get_Log_File_Content": {
+                      "type": "ServiceProvider",
+                      "inputs": {
+                          "parameters": {
+                              "blobUri": "@{parameters('BlobContainerName_xAgents')}/@{body('Log_BlobToZipConverterFunction')?['Value']}"
+                          },
+                          "serviceProviderConfiguration": {
+                              "connectionName": "AzureStorageUploadFile",
+                              "operationId": "readBlobFromUri",
+                              "serviceProviderId": "/serviceProviders/AzureBlob"
+                          }
+                      },
+                      "runAfter": {
+                          "Log_BlobToZipConverterFunction": [
+                              "Succeeded"
+                          ]
+                      }
+                  },
+                  "Log_BlobToZipConverterFunction": {
+                      "type": "Function",
+                      "inputs": {
+                          "method": "POST",
+                          "body": {
+                              "blobContainerName": "@{parameters('BlobContainerName_xAgents')}",
+                              "incomingBlobPath": "@{workflow()['run']['name']}/incoming",
+                              "incominigBlobName": "@{body('Create_Log_File')?['properties']?['blobName']}",
+                              "outcomingBlobPath": "@{workflow()['run']['name']}/logZip"
+                          },
+                          "headers": null,
+                          "function": {
+                              "connectionName": "BlobToZipConverterFunction"
+                          }
+                      },
+                      "runAfter": {
+                          "Create_Log_File": [
+                              "Succeeded"
+                          ]
+                      }
+                  }
+              },
+              "runAfter": {
+                  "Append_to_string_variable_DeletionResult_success": [
+                      "SUCCEEDED"
+                  ],
+                  "Append_to_string_variable_DeletionResult_unsuccess": [
+                      "SUCCEEDED"
+                  ]
+              }
+          },
+          "Initialize_ErrorsCount": {
+              "type": "InitializeVariable",
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "ErrorsCount",
+                          "type": "integer",
+                          "value": "0"
+                      }
+                  ]
+              },
+              "runAfter": {
+                  "Initialize_variable__UnprocessedUpsertCounter": [
+                      "SUCCEEDED"
+                  ]
+              }
+          },
+          "Delete_all_records_where_upload_date_before_today": {
+              "type": "Scope",
+              "actions": {
+                  "refreshOauthToken_2": {
+                      "type": "Http",
+                      "inputs": {
+                          "uri": "@concat(parameters('baseUrl_apim'),'/c00031/token/oAuth/','nonsfs')",
+                          "method": "POST",
+                          "headers": {
+                              "Ocp-Apim-Subscription-Key": "@{parameters('subscriptionKey_apim')}"
+                          }
+                      },
+                      "runtimeConfiguration": {
+                          "contentTransfer": {
+                              "transferMode": "Chunked"
+                          }
+                      }
+                  },
+                  "Execute_a_SOQL_query": {
+                      "type": "Http",
+                      "inputs": {
+                          "uri": "@{parameters('instanceUrl_nonsfs')}/services/data/v55.0/query?q=select id, S4SInterface_Upsert_Date__c from AccountTeamMember WHERE S4SExternal_Source__c = 'External Agent IT' and S4SInterface_Upsert_Date__c < @{variables('CurrentTime')}z",
+                          "method": "GET",
+                          "headers": {
+                              "Accept": "application/json",
+                              "Authorization": "Bearer @{body('refreshOauthToken_2')}",
+                              "Content-Type": "application/json"
+                          }
+                      },
+                      "runAfter": {
+                          "refreshOauthToken_2": [
+                              "SUCCEEDED"
+                          ]
+                      },
+                      "runtimeConfiguration": {
+                          "contentTransfer": {
+                              "transferMode": "Chunked"
+                          }
+                      }
+                  },
+                  "Compose_SOQL_query": {
+                      "type": "Compose",
+                      "inputs": "@body('Execute_a_SOQL_query')",
+                      "runAfter": {
+                          "Execute_a_SOQL_query": [
+                              "SUCCEEDED"
+                          ]
+                      }
+                  },
+                  "Condition_on_soql_query_": {
+                      "type": "If",
+                      "expression": {
+                          "and": [
+                              {
+                                  "equals": [
+                                      "@variables('DeletionStatus')",
+                                      true
+                                  ]
+                              }
+                          ]
+                      },
+                      "actions": {
+                          "For_each_record_from_SOQL": {
+                              "type": "Foreach",
+                              "foreach": "@outputs('Compose_SOQL_query')?['records']",
+                              "actions": {
+                                  "Increment_DeletionCount": {
+                                      "type": "IncrementVariable",
+                                      "inputs": {
+                                          "name": "DeletionCount",
+                                          "value": 1
+                                      }
+                                  },
+                                  "Delete_Records": {
+                                      "type": "Http",
+                                      "inputs": {
+                                          "uri": "@{parameters('instanceUrl_nonsfs')}/composite/sobjects?ids=@{items('For_each_record_from_SOQL')?['Id']}",
+                                          "method": "DELETE",
+                                          "headers": {
+                                              "Accept": "application/json",
+                                              "Authorization": "Bearer @{body('Execute_a_SOQL_query')}",
+                                              "Content-Type": "application/json"
+                                          }
+                                      },
+                                      "runAfter": {
+                                          "Increment_DeletionCount": [
+                                              "SUCCEEDED"
+                                          ]
+                                      },
+                                      "runtimeConfiguration": {
+                                          "contentTransfer": {
+                                              "transferMode": "Chunked"
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      },
+                      "else": {
+                          "actions": {
+                              "Set_DeletionStatus": {
+                                  "type": "SetVariable",
+                                  "inputs": {
+                                      "name": "DeletionStatus",
+                                      "value": "true"
+                                  }
+                              }
+                          }
+                      },
+                      "runAfter": {
+                          "Compose_SOQL_query": [
+                              "SUCCEEDED"
+                          ]
+                      }
+                  }
+              },
+              "runAfter": {
+                  "Move_file_to_processed_dir": [
+                      "Succeeded"
+                  ]
+              }
+          },
+          "Initialize_CurrentTime": {
+              "type": "InitializeVariable",
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "CurrentTime",
+                          "type": "string",
+                          "value": "@{convertTimeZone(utcNow(), 'UTC', 'Central Europe Standard Time')}"
+                      }
+                  ]
+              },
+              "runAfter": {
+                  "Initialize_SecondBulkData": [
+                      "SUCCEEDED"
+                  ]
+              }
+          },
+          "Initialize_Deletion_Status": {
+              "type": "InitializeVariable",
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "DeletionStatus",
+                          "type": "boolean",
+                          "value": "false"
+                      }
+                  ]
+              },
+              "runAfter": {}
+          },
+          "Initialize_BulkState": {
+              "type": "InitializeVariable",
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "BulkState",
+                          "type": "boolean",
+                          "value": "false"
+                      }
+                  ]
+              },
+              "runAfter": {}
+          },
+          "Initialize_RecordsCounter": {
+              "type": "InitializeVariable",
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "RecordsCounter",
+                          "type": "string"
+                      }
+                  ]
+              },
+              "runAfter": {
+                  "Initialize_DeletionResult": [
+                      "SUCCEEDED"
+                  ]
+              }
+          },
+          "Initialize_Deletion_Count": {
+              "type": "InitializeVariable",
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "DeletionCount",
+                          "type": "integer",
+                          "value": "0"
+                      }
+                  ]
+              },
+              "runAfter": {}
+          },
+          "Initialize_Response": {
+              "type": "InitializeVariable",
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "Response",
+                          "type": "string",
+                          "value": "\"sf__Id\";\"sf__Error\";\"Account.S4SIfA__c\";\"AccountAccessLevel\";\"CaseAccessLevel\";\"ContactAccessLevel\";\"OpportunityAccessLevel\";\"S4SExternal_Source__c\";\"S4SInterface_Upsert_Date__c\";\"TeamMemberRole\";\"User.S4SGID_Technical__c\"\n"
+                      }
+                  ]
+              },
+              "runAfter": {
+                  "Initialize_Deletion_Count": [
+                      "SUCCEEDED"
+                  ]
+              }
+          },
+          "Get_xAgetns-EmailConfigurations": {
+              "type": "Workflow",
+              "inputs": {
+                  "host": {
+                      "workflow": {
+                          "id": "getConfiguration"
+                      }
+                  },
+                  "body": {
+                      "key": "xAgent-mail-config"
+                  }
+              },
+              "runAfter": {}
+          },
+          "Parse_mail_configurations_from_json": {
+              "type": "ParseJson",
+              "inputs": {
+                  "content": "@body('Get_xAgetns-EmailConfigurations')",
+                  "schema": {
+                      "properties": {
+                          "EmailRecipient": {
+                              "type": "string"
+                          },
+                          "EmailSender": {
+                              "type": "string"
+                          },
+                          "Subject": {
+                              "type": "string"
+                          }
+                      },
+                      "type": "object"
+                  }
+              },
+              "runAfter": {
+                  "Get_xAgetns-EmailConfigurations": [
+                      "SUCCEEDED"
+                  ]
+              }
+          },
+          "Append_to_string_variable_DeletionResult_success": {
+              "type": "AppendToStringVariable",
+              "inputs": {
+                  "name": "DeletionResult",
+                  "value": "deletion job completed successfully"
+              },
+              "runAfter": {
+                  "Delete_all_records_where_upload_date_before_today": [
+                      "SUCCEEDED"
+                  ]
+              }
+          },
+          "Append_to_string_variable_DeletionResult_unsuccess": {
+              "type": "AppendToStringVariable",
+              "inputs": {
+                  "name": "DeletionResult",
+                  "value": "deletion job completed unsuccessfully"
+              },
+              "runAfter": {
+                  "Delete_all_records_where_upload_date_before_today": [
+                      "FAILED",
+                      "TIMEDOUT"
+                  ]
+              }
+          },
+          "Initialize_DeletionResult": {
+              "type": "InitializeVariable",
+              "inputs": {
+                  "variables": [
+                      {
+                          "name": "DeletionResult",
+                          "type": "string"
+                      }
+                  ]
+              },
+              "runAfter": {
+                  "Initialize_Deletion_Status": [
+                      "SUCCEEDED"
+                  ]
+              }
+          }
+      },
+      "contentVersion": "1.0.0.0",
+      "outputs": {},
+      "triggers": {
+          "When_a_blob_is_added_or_updated": {
+              "type": "ServiceProvider",
+              "inputs": {
+                  "parameters": {
+                      "path": "@{parameters('basePath_xAgents')}/incoming/{name}.txt"
+                  },
+                  "serviceProviderConfiguration": {
+                      "connectionName": "AzureStorageSFTP",
+                      "operationId": "whenABlobIsAddedOrModified",
+                      "serviceProviderId": "/serviceProviders/AzureBlob"
+                  }
+              },
+              "conditions": []
+          }
+      }
+  },
+  "kind": "Stateful"
+}

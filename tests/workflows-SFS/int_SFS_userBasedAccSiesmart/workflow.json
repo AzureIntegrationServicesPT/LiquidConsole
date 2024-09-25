@@ -1,0 +1,1859 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Compose-userNameobjectInterface": {
+        "inputs": "@{variables('userName')}-@{variables('object')}-@{variables('Interface')}",
+        "runAfter": {
+          "Condition-Account": [
+            "Succeeded"
+          ]
+        },
+        "runtimeConfiguration": {
+          "secureData": {
+            "properties": [
+              "inputs"
+            ]
+          }
+        },
+        "type": "Compose"
+      },
+      "Compose_response": {
+        "inputs": {
+          "Account": "@{xml(coalesce(outputs('Compose_Account_Acc'),outputs('Compose_XMLINPUT_SSMart'),outputs('Compose_Default')))}",
+          "Opportunity": "@variables('Response')",
+          "Status": "@{variables('status')}",
+          "message": "@{variables('message')}"
+        },
+        "runAfter": {
+          "Switch-Condition_to_check_upsertAccount": [
+            "Succeeded"
+          ]
+        },
+        "runtimeConfiguration": {
+          "secureData": {
+            "properties": [
+              "inputs"
+            ]
+          }
+        },
+        "type": "Compose"
+      },
+      "Condition-Account": {
+        "actions": {
+          "Set_variable_object_as_Account": {
+            "inputs": {
+              "name": "object",
+              "value": "Account"
+            },
+            "runAfter": {},
+            "type": "SetVariable"
+          },
+          "SubLogic-sf4sLogAccount": {
+            "inputs": {
+              "host": {
+                "workflow": {
+                  "id": "int_sf4sLog"
+                }
+              },
+              "body": {
+                "message": "SieSales Object being Used for user based logic is '@{variables('object')}'",
+                "severity": "DEBUG"
+              },
+              "headers": {
+                "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+              }
+            },
+            "runAfter": {},
+            "type": "Workflow"
+          }
+        },
+        "else": {
+          "actions": {}
+        },
+        "expression": {
+          "and": [
+            {
+              "not": {
+                "equals": [
+                  "@variables('Account')",
+                  "@string('')"
+                ]
+              }
+            },
+            {
+              "not": {
+                "equals": [
+                  "@variables('Account')",
+                  "@null"
+                ]
+              }
+            }
+          ]
+        },
+        "runAfter": {
+          "HTTP-Get_Config_userBasedLogic": [
+            "Succeeded"
+          ],
+          "HTTP_Get_SF_Token": [
+            "Succeeded"
+          ],
+          "Initialize_Variable-ReplaceVariable": [
+            "Succeeded"
+          ],
+          "Initialize_variable-Account": [
+            "Succeeded"
+          ],
+          "Initialize_variable-Interface": [
+            "Succeeded"
+          ],
+          "Initialize_variable-Opportunity": [
+            "Succeeded"
+          ],
+          "Initialize_variable-OwnerRoleIds": [
+            "Succeeded"
+          ],
+          "Initialize_variable-message": [
+            "Succeeded"
+          ],
+          "Initialize_variable-object": [
+            "Succeeded"
+          ],
+          "Initialize_variable-severity": [
+            "Succeeded"
+          ],
+          "Initialize_variable-status": [
+            "Succeeded"
+          ],
+          "Initialize_variable-userName": [
+            "Succeeded"
+          ],
+          "Initialize_variable_Confidential": [
+            "Succeeded"
+          ],
+          "Initialize_variable_OpportunityId": [
+            "Succeeded"
+          ],
+          "Initialize_variable_Response": [
+            "Succeeded"
+          ],
+          "Initialize_variable_accetCodeIAC": [
+            "Succeeded"
+          ],
+          "Initialize_variable_emptyArray": [
+            "Succeeded"
+          ],
+          "Initialize_variable_offerRefId": [
+            "Succeeded"
+          ],
+          "Initialize_variable_ownerId": [
+            "Succeeded"
+          ],
+          "Initialize_variable_ownerRoleId": [
+            "Succeeded"
+          ],
+          "Initialize_variable_recordTypeId": [
+            "Succeeded"
+          ],
+          "Initialize_variable_whereClause": [
+            "Succeeded"
+          ]
+        },
+        "type": "If"
+      },
+      "HTTP-Get_Config_userBasedLogic": {
+        "inputs": {
+          "host": {
+            "workflow": {
+              "id": "getConfiguration"
+            }
+          },
+          "body": {
+            "key": "sfs-user-config"
+          },
+          "headers": {
+            "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+            "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+            "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+          }
+        },
+        "runAfter": {},
+        "type": "Workflow"
+      },
+      "HTTP_Get_SF_Token": {
+        "inputs": {
+          "headers": {
+            "Ocp-Apim-Subscription-Key": "parameters('apimKey')"
+          },
+          "method": "POST",
+          "uri": "parameters('apimURL')"
+        },
+        "runAfter": {},
+        "runtimeConfiguration": {
+          "secureData": {
+            "properties": [
+              "inputs",
+              "outputs"
+            ]
+          }
+        },
+        "type": "Http"
+      },
+      "Initialize_Variable-ReplaceVariable": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "varReplaceVariable",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable-Account": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "Account",
+              "type": "string",
+              "value": "@triggerBody()?['account']"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable-Interface": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "Interface",
+              "type": "string",
+              "value": "@triggerBody()?['interface']"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable-Opportunity": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "Opportunity",
+              "type": "object"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable-OwnerRoleIds": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "varOwnerRoleIds",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable-message": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "message",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable-object": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "object",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable-severity": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "severity",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable-status": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "status",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable-userName": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "userName",
+              "type": "string",
+              "value": "@triggerBody()?['userName']"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_Confidential": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "confidential",
+              "type": "boolean"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_OpportunityId": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "OpportunityId",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_Response": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "Response",
+              "type": "string",
+              "value": "{\n  \"Opportunity\": @{triggerBody()?['opportunity']}\n}"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_accetCodeIAC": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "accetCodeIAC",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_emptyArray": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "emptyArray",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_offerRefId": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "offerRefId",
+              "type": "boolean"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_ownerId": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "ownerId",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_ownerRoleId": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "ownerRoleId",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_recordTypeId": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "recordTypeId",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_whereClause": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "whereClause",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Response": {
+        "inputs": {
+          "body": "@outputs('Compose_response')",
+          "statusCode": 200
+        },
+        "kind": "Http",
+        "runAfter": {
+          "Compose_response": [
+            "Succeeded"
+          ]
+        },
+        "runtimeConfiguration": {
+          "secureData": {
+            "properties": [
+              "inputs"
+            ]
+          }
+        },
+        "type": "Response"
+      },
+      "Switch-Condition_to_check_upsertAccount": {
+        "cases": {
+          "Case-mapUpsertAccForLOS": {
+            "actions": {
+              "Condition-To_CheckMapUpsertAccLos": {
+                "actions": {
+                  "Response_Invalid_AccountID": {
+                    "inputs": {
+                      "body": "@body('logic-c00031-internal-userbasedLogic-mapupsertAccLOS')",
+                      "headers": {
+                        "Content-Type": "text/plain"
+                      },
+                      "statusCode": 400
+                    },
+                    "kind": "Http",
+                    "runAfter": {},
+                    "runtimeConfiguration": {
+                      "secureData": {
+                        "properties": [
+                          "inputs"
+                        ]
+                      }
+                    },
+                    "type": "Response"
+                  },
+                  "Terminate-Invalid_AccountID": {
+                    "inputs": {
+                      "runStatus": "Succeeded"
+                    },
+                    "runAfter": {
+                      "Response_Invalid_AccountID": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Terminate"
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Compose_Account_Acc": {
+                      "inputs": "@body('logic-c00031-internal-userbasedLogic-mapupsertAccLOS')",
+                      "runAfter": {},
+                      "type": "Compose"
+                    }
+                  }
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "equals": [
+                        "@outputs('logic-c00031-internal-userbasedLogic-mapupsertAccLOS')?['statusCode']",
+                        400
+                      ]
+                    }
+                  ]
+                },
+                "runAfter": {
+                  "logic-c00031-internal-userbasedLogic-mapupsertAccLOS": [
+                    "Succeeded",
+                    "Failed"
+                  ]
+                },
+                "type": "If"
+              },
+              "log-Upsert_Account_User": {
+                "inputs": {
+                  "host": {
+                    "workflow": {
+                      "id": "int_sf4sLog"
+                    }
+                  },
+                  "body": {
+                    "message": "Map Upsert Account for @{variables('userName')}",
+                    "severity": "INFO"
+                  },
+                  "headers": {
+                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                    "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                    "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                  }
+                },
+                "runAfter": {},
+                "type": "Workflow"
+              },
+              "logic-c00031-internal-userbasedLogic-mapupsertAccLOS": {
+                "inputs": {
+                  "host": {
+                    "workflow": {
+                      "id": "int_SFS_userbasedAccLOS"
+                    }
+                  },
+                  "body": {
+                    "account": "@variables('Account')",
+                    "userName": "@variables('userName')"
+                  },
+                  "headers": {
+                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                    "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                    "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}",
+                    "defaultOwner": "@{coalesce(triggerOutputs()?['headers']?['defaultOwner'],string(''))}"
+                  }
+                },
+                "runAfter": {},
+                "type": "Workflow"
+              }
+            },
+            "case": "mapUpsertAccForLOS"
+          },
+          "Case-mapUpsertAccForSSmart": {
+            "actions": {
+              "Append_to_array_variable-RecordTypeID": {
+                "inputs": {
+                  "name": "varReplaceVariable",
+                  "value": "RecordTypeId:@{body('Execute_a_SQL_query_fetchOppRecordType')?['records']?[0]?['Id']}"
+                },
+                "runAfter": {
+                  "Execute_a_SQL_query_fetchOppRecordType": [
+                    "Succeeded"
+                  ],
+                  "sf4sLog_-mapUpsertAccForSSmart": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "AppendToArrayVariable"
+              },
+              "Compose_Account_json": {
+                "inputs": "@concat('{\"Account\":',string(json(xml(variables('Account')))?['Account']),'}')",
+                "runAfter": {
+                  "Condition_Has_Errors": [
+                    "Succeeded"
+                  ],
+                  "Condition_SIE_SF4S_fetchAccount": [
+                    "Succeeded"
+                  ],
+                  "Condition_ToCheckID": [
+                    "Succeeded"
+                  ],
+                  "Condition__to_check_SIE_SF4S_fetchUser": [
+                    "Succeeded"
+                  ],
+                  "Condition_to_check_S4SSISIC_Direct__c": [
+                    "Succeeded"
+                  ]
+                },
+                "runtimeConfiguration": {
+                  "secureData": {
+                    "properties": [
+                      "inputs"
+                    ]
+                  }
+                },
+                "type": "Compose"
+              },
+              "Compose_XMLINPUT_SSMart": {
+                "inputs": "@xml(body('RequestUpdate'))",
+                "runAfter": {
+                  "RequestUpdate": [
+                    "Succeeded"
+                  ]
+                },
+                "runtimeConfiguration": {
+                  "secureData": {
+                    "properties": [
+                      "inputs"
+                    ]
+                  }
+                },
+                "type": "Compose"
+              },
+              "Condition_Has_Errors": {
+                "actions": {
+                  "Log_Multiple_Accounts_Found": {
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "int_sf4sLog"
+                        }
+                      },
+                      "body": {
+                        "message": "@{body('LiquidTransformer')?['Message']}",
+                        "severity": "Error"
+                      },
+                      "headers": {
+                        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                        "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                        "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                      }
+                    },
+                    "runAfter": {},
+                    "type": "Workflow"
+                  },
+                  "Response_Multiple_Accounts": {
+                    "inputs": {
+                      "body": "@body('LiquidTransformer')?['Message']",
+                      "statusCode": 400
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                      "Log_Multiple_Accounts_Found": [
+                        "Succeeded"
+                      ]
+                    },
+                    "runtimeConfiguration": {
+                      "secureData": {
+                        "properties": [
+                          "inputs"
+                        ]
+                      }
+                    },
+                    "type": "Response"
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Condition_Create_or_Update": {
+                      "actions": {
+                        "Log_No_Account_Found": {
+                          "inputs": {
+                            "host": {
+                              "workflow": {
+                                "id": "int_sf4sLog"
+                              }
+                            },
+                            "body": {
+                              "message": "Provided Origination ID/National Company ID and Related IFA doesn't match any Account in SieSales",
+                              "severity": "Error"
+                            },
+                            "headers": {
+                              "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                              "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                              "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                            }
+                          },
+                          "runAfter": {},
+                          "type": "Workflow"
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Append_to_array_variable": {
+                            "inputs": {
+                              "name": "varReplaceVariable",
+                              "value": "Id:@{body('LiquidTransformer')?['Id']}"
+                            },
+                            "runAfter": {},
+                            "type": "AppendToArrayVariable"
+                          }
+                        }
+                      },
+                      "expression": {
+                        "and": [
+                          {
+                            "equals": [
+                              "@body('LiquidTransformer')?['Create']",
+                              "@true"
+                            ]
+                          }
+                        ]
+                      },
+                      "runAfter": {},
+                      "type": "If"
+                    }
+                  }
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "equals": [
+                        "@ body('LiquidTransformer')?['Error']",
+                        "@true"
+                      ]
+                    }
+                  ]
+                },
+                "runAfter": {
+                  "LiquidTransformer": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "If"
+              },
+              "Condition_SIE_SF4S_fetchAccount": {
+                "actions": {
+                  "Condition_AccountID_validity": {
+                    "actions": {
+                      "logic-log AccountIDValidity": {
+                        "inputs": {
+                          "host": {
+                            "workflow": {
+                              "id": "int_sf4sLog"
+                            }
+                          },
+                          "body": {
+                            "message": "Provided Account Id is  @{body('Execute_a_SQL_query_SIE_SF4S_fetchAccount')?['records']?[0]?['Id']} valid.",
+                            "severity": "INFO"
+                          },
+                          "headers": {
+                            "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                            "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                            "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                          }
+                        },
+                        "runAfter": {},
+                        "type": "Workflow"
+                      }
+                    },
+                    "else": {
+                      "actions": {
+                        "Response_Failure_ID_not_valid": {
+                          "inputs": {
+                            "body": "Provided Account Id @{xpath(xml(variables('Account')),'.//Id/text()')?[0]} is invalid",
+                            "statusCode": 400
+                          },
+                          "kind": "Http",
+                          "runAfter": {
+                            "SubLogic-sf4sLog_ID_notValid": [
+                              "Succeeded"
+                            ]
+                          },
+                          "runtimeConfiguration": {
+                            "secureData": {
+                              "properties": [
+                                "inputs"
+                              ]
+                            }
+                          },
+                          "type": "Response"
+                        },
+                        "SubLogic-sf4sLog_ID_notValid": {
+                          "inputs": {
+                            "host": {
+                              "workflow": {
+                                "id": "int_sf4sLog"
+                              }
+                            },
+                            "body": {
+                              "message": "Provided Account Id @{xpath(xml(variables('Account')),'.//Id/text()')?[0]} is invalid",
+                              "severity": "Error"
+                            },
+                            "headers": {
+                              "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                              "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                              "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                            }
+                          },
+                          "runAfter": {},
+                          "type": "Workflow"
+                        },
+                        "Terminate_-_Failure_ID_not_valid": {
+                          "inputs": {
+                            "runStatus": "Succeeded"
+                          },
+                          "runAfter": {
+                            "Response_Failure_ID_not_valid": [
+                              "Succeeded"
+                            ]
+                          },
+                          "type": "Terminate"
+                        }
+                      }
+                    },
+                    "expression": {
+                      "and": [
+                        {
+                          "not": {
+                            "equals": [
+                              "@body('Execute_a_SQL_query_SIE_SF4S_fetchAccount')?['records']?[0]?['Id']",
+                              ""
+                            ]
+                          }
+                        },
+                        {
+                          "not": {
+                            "equals": [
+                              "@body('Execute_a_SQL_query_SIE_SF4S_fetchAccount')?['records']?[0]?['Id']",
+                              "@null"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "runAfter": {
+                      "Execute_a_SQL_query_SIE_SF4S_fetchAccount": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "If"
+                  },
+                  "Execute_a_SQL_query_SIE_SF4S_fetchAccount": {
+                    "inputs": {
+                      "body": {
+                        "query": "select Id,IsDeleted,MasterRecordId,Name,Type,RecordTypeId,ParentId,BillingStreet,BillingCity,BillingState,BillingPostalCode,BillingCountry,BillingStateCode,BillingCountryCode,BillingLatitude,BillingLongitude,BillingGeocodeAccuracy,ShippingStreet,ShippingCity,ShippingState,ShippingPostalCode,ShippingCountry,ShippingStateCode,ShippingCountryCode,ShippingLatitude,ShippingLongitude,ShippingGeocodeAccuracy,Phone,Fax,AccountNumber,Website,PhotoUrl,Sic,Industry,AnnualRevenue,NumberOfEmployees,Ownership,TickerSymbol,Description,Rating,Site,CurrencyIsoCode,OwnerId,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastActivityDate,LastViewedDate,LastReferencedDate,IsPartner,IsCustomerPortal,ChannelProgramName,ChannelProgramLevelName,Jigsaw,JigsawCompanyId,AccountSource,SicDesc,LID__LinkedIn_Company_Id__c,Copado_Testing__c,S4SACCOUNT_LegacyID__c,S4SARE__c,S4SAccount_Assignment__c,S4SAccount_Current_Record_Link__c,S4SAccount_Group_Type__c,S4SAccount_Life_Cycle__c,S4SAccount_Name_International__c,S4SAccount_Role__c,S4SAvailable_languages__c,S4SBusiness_Availability_24h_365_days__c,S4SBusiness_Availability_24h_Mon_Fri__c,S4SBusiness_Unit__c,S4SBypass_Duplicate_rules__c,S4SCID_Number__c,S4SCMD_IfA_Update__c,S4SCMD_KUKLA__c,S4SCMD_NAME1_I__c,S4SCMD_NAME1__c,S4SCMD_NAME2_I__c,S4SCMD_NAME2__c,S4SCMD_NAME3_I__c,S4SCMD_NAME3__c,S4SCMD_REGION__c,S4SCMD_STREET2__c,S4SCMD_STREET__c,S4SCMD_Subscription_Rejected_Date__c,S4SChange_n__c,S4SChange_of_NPS__c,S4SCheck_IFAs_and_Contacts__c,S4SCity_PO_Box_International__c,S4SCity_PO_Box__c,S4SCompany_Postal_Code__c,S4SCompany_Summary__c,S4SCurrent_FY_NPS__c,S4SDUNS__c,S4SDivision__c,S4SDomestic_Ultimate_DUNS__c,S4SDuns_Information__c,S4SDuplicate_IfA_Number__c,S4SEmail__c,S4SEngineering_electrical__c,S4SEngineering_mechanical__c,S4SExternal_Account_HelpText__c,S4SFacebook__c,S4SField_Services_24_7__c,S4SFounding_Year__c,S4SFrom_Search__c,S4SGlobal_Frame_Agreement_Database__c,S4SGlobal_Ultimate_DUNS__c,S4SISIC__c,S4SIfAAutoNumber__c,S4SIfA_Siemens_Location__c,S4SIfA__c,S4SIndustry_Direct__c,S4SIndustry_Segment_Direct__c,S4SIndustry_Segment_Ship_To__c,S4SIndustry_Ship_To__c,S4SInternational_City__c,S4SInternational_CountryGP__c,S4SInternational_Country__c,S4SInternational_Postal_Code__c,S4SInternational_RegionGP__c,S4SInternational_Region__c,S4SInternational_Steet_Name_2__c,S4SInternational_Street_Name_1__c,S4SIsOwnerCMDUser__c,S4SIs_Partner__c,S4SLead_Country__c,S4SLead_Org__c,S4SLegalOwner__c,S4SLocal_Search_Term__c,S4SMD_Status__c,S4SNPS_Trend__c,S4SNat_Company_ID__c,S4SNo_Legal_Form_available__c,S4SNo_of_Active_Candidature__c,S4SNo_of_Cancelled_Candidature__c,S4SNomination_Letter__c,S4SNormal_Business_Hours__c,S4SNotification_from_CMD__c,S4SOfferings_to_the_market_SOP__c,S4SOfferings_to_the_market_VAR__c,S4SOperational_radius__c,S4SOrganization_Code__c,S4SPO_Box_Postcode__c,S4SPO_box__c,S4SParent_Account_Group__c,S4SParent_DUNS__c,S4SPartner_Main_Industries__c,S4SPartner_Type__c,S4SPartnership_Status__c,S4SPartnership_with_competing_vendors__c,S4SPrevious_FY_NPS__c,S4SPrevious_FY_n__c,S4SPrevious_IfA_Number__c,S4SPulse_Link__c,S4SRelevant_Portfolio__c,S4SResponders_current_FY_n__c,S4SSFS_Confidential__c,S4SSISIC_Direct_Description__c,S4SSISIC_Direct__c,S4SSISIC_Ship_To_Description__c,S4SSISIC_Ship_To__c,S4SSalesCountry__c,S4SSales_Branch__c,S4SSales_Country__c,S4SSales_Department__c,S4SSales_Office__c,S4SSales_Org_Type__c,S4SSales_Sub_Region__c,S4SSales_Territory__c,S4SService_electrical__c,S4SService_mechanical__c,S4SShopfloor_level_square_meters__c,S4SShort_Partner_company_description__c,S4SSiemens_Account_Type__c,S4STax_ID__c,S4STotal_Employees__c,S4SVertical_Name__c,S4S_No_Matched_Accounts_Found__c,S4SClone_Account_Number__c,S4SNumber_of_Pricing_Primary__c,Account_Assignments__c,S4SBypassValidationForProcessBuilder__c,S4SConfidentiality_Status__c,S4SDAndBCreated__c,S4SData_Visibility__c,S4SIdentification_Number__c,S4SLegal_Status__c,S4SMarked_for_Deletion__c,S4SPartner_Group__c,S4SQuip_ABP_URL__c,S4SQuip_Briefing_URL__c,S4SQuip_CSVP_URL__c,S4SSAP_Client__c,S4SSAP_System_ID__c,S4SSales_Planning_enabled__c,S4SClone_Confidential__c,S4SCounty_FIPS__c,S4SCounty__c,S4SCustomer_Classification__c,S4SExternal_Source__c,S4SGeographical_Code__c,S4SIndirect_Creation_Status__c,S4SLead_Central_Enabled_Account__c,S4SMilitary_Non_Military_Use__c,S4SNTA__c,S4SRegion__c,S4SRelated_IfA__c,S4SSkipValidationForDataVisibilty__c,S4SPartner_Group_Record_Type_Name__c,Owner.Id,Owner.Username,Owner.LastName,Owner.FirstName,Owner.MiddleName,Owner.Suffix,Owner.Name,Owner.CompanyName,Owner.Division,Owner.Department,Owner.Title,Owner.Street,Owner.City,Owner.State,Owner.PostalCode,Owner.Country,Owner.StateCode,Owner.CountryCode,Owner.Latitude,Owner.Longitude,Owner.GeocodeAccuracy,Owner.Address,Owner.Email,Owner.EmailPreferencesAutoBcc,Owner.EmailPreferencesAutoBccStayInTouch,Owner.EmailPreferencesStayInTouchReminder,Owner.SenderEmail,Owner.SenderName,Owner.Signature,Owner.StayInTouchSubject,Owner.StayInTouchSignature,Owner.StayInTouchNote,Owner.Phone,Owner.Fax,Owner.MobilePhone,Owner.Alias,Owner.CommunityNickname,Owner.BadgeText,Owner.IsActive,Owner.TimeZoneSidKey,Owner.UserRoleId,Owner.LocaleSidKey,Owner.ReceivesInfoEmails,Owner.ReceivesAdminInfoEmails,Owner.EmailEncodingKey,Owner.DefaultCurrencyIsoCode,Owner.CurrencyIsoCode,Owner.ProfileId,Owner.UserType,Owner.LanguageLocaleKey,Owner.EmployeeNumber,Owner.DelegatedApproverId,Owner.ManagerId,Owner.LastLoginDate,Owner.CreatedDate,Owner.CreatedById,Owner.LastModifiedDate,Owner.LastModifiedById,Owner.SystemModstamp,Owner.OfflineTrialExpirationDate,Owner.OfflinePdaTrialExpirationDate,Owner.UserPermissionsMarketingUser,Owner.UserPermissionsOfflineUser,Owner.UserPermissionsAvantgoUser,Owner.UserPermissionsCallCenterAutoLogin,Owner.UserPermissionsMobileUser,Owner.UserPermissionsSFContentUser,Owner.UserPermissionsKnowledgeUser,Owner.UserPermissionsInteractionUser,Owner.UserPermissionsSupportUser,Owner.UserPermissionsLiveAgentUser,Owner.ForecastEnabled,Owner.UserPreferencesActivityRemindersPopup,Owner.UserPreferencesEventRemindersCheckboxDefault,Owner.UserPreferencesTaskRemindersCheckboxDefault,Owner.UserPreferencesReminderSoundOff,Owner.UserPreferencesDisableAllFeedsEmail,Owner.UserPreferencesDisableFollowersEmail,Owner.UserPreferencesDisableProfilePostEmail,Owner.UserPreferencesDisableChangeCommentEmail,Owner.UserPreferencesDisableLaterCommentEmail,Owner.UserPreferencesDisProfPostCommentEmail,Owner.UserPreferencesContentNoEmail,Owner.UserPreferencesContentEmailAsAndWhen,Owner.UserPreferencesApexPagesDeveloperMode,Owner.UserPreferencesHideCSNGetChatterMobileTask,Owner.UserPreferencesDisableMentionsPostEmail,Owner.UserPreferencesDisMentionsCommentEmail,Owner.UserPreferencesHideCSNDesktopTask,Owner.UserPreferencesHideChatterOnboardingSplash,Owner.UserPreferencesHideSecondChatterOnboardingSplash,Owner.UserPreferencesDisCommentAfterLikeEmail,Owner.UserPreferencesDisableLikeEmail,Owner.UserPreferencesSortFeedByComment,Owner.UserPreferencesDisableMessageEmail,Owner.UserPreferencesDisableBookmarkEmail,Owner.UserPreferencesDisableSharePostEmail,Owner.UserPreferencesEnableAutoSubForFeeds,Owner.UserPreferencesDisableFileShareNotificationsForApi,Owner.UserPreferencesShowTitleToExternalUsers,Owner.UserPreferencesShowManagerToExternalUsers,Owner.UserPreferencesShowEmailToExternalUsers,Owner.UserPreferencesShowWorkPhoneToExternalUsers,Owner.UserPreferencesShowMobilePhoneToExternalUsers,Owner.UserPreferencesShowFaxToExternalUsers,Owner.UserPreferencesShowStreetAddressToExternalUsers,Owner.UserPreferencesShowCityToExternalUsers,Owner.UserPreferencesShowStateToExternalUsers,Owner.UserPreferencesShowPostalCodeToExternalUsers,Owner.UserPreferencesShowCountryToExternalUsers,Owner.UserPreferencesShowProfilePicToGuestUsers,Owner.UserPreferencesShowTitleToGuestUsers,Owner.UserPreferencesShowCityToGuestUsers,Owner.UserPreferencesShowStateToGuestUsers,Owner.UserPreferencesShowPostalCodeToGuestUsers,Owner.UserPreferencesShowCountryToGuestUsers,Owner.UserPreferencesPipelineViewHideHelpPopover,Owner.UserPreferencesHideS1BrowserUI,Owner.UserPreferencesDisableEndorsementEmail,Owner.UserPreferencesPathAssistantCollapsed,Owner.UserPreferencesCacheDiagnostics,Owner.UserPreferencesShowEmailToGuestUsers,Owner.UserPreferencesShowManagerToGuestUsers,Owner.UserPreferencesShowWorkPhoneToGuestUsers,Owner.UserPreferencesShowMobilePhoneToGuestUsers,Owner.UserPreferencesShowFaxToGuestUsers,Owner.UserPreferencesShowStreetAddressToGuestUsers,Owner.UserPreferencesLightningExperiencePreferred,Owner.UserPreferencesPreviewLightning,Owner.UserPreferencesHideEndUserOnboardingAssistantModal,Owner.UserPreferencesHideLightningMigrationModal,Owner.UserPreferencesHideSfxWelcomeMat,Owner.UserPreferencesHideBiggerPhotoCallout,Owner.UserPreferencesGlobalNavBarWTShown,Owner.UserPreferencesGlobalNavGridMenuWTShown,Owner.UserPreferencesCreateLEXAppsWTShown,Owner.UserPreferencesFavoritesWTShown,Owner.UserPreferencesRecordHomeSectionCollapseWTShown,Owner.UserPreferencesRecordHomeReservedWTShown,Owner.UserPreferencesFavoritesShowTopFavorites,Owner.UserPreferencesExcludeMailAppAttachments,Owner.UserPreferencesSuppressTaskSFXReminders,Owner.UserPreferencesPreviewCustomTheme,Owner.UserPreferencesHasCelebrationBadge,Owner.UserPreferencesUserDebugModePref,Owner.UserPreferencesNewLightningReportRunPageEnabled,Owner.ContactId,Owner.AccountId,Owner.CallCenterId,Owner.Extension,Owner.PortalRole,Owner.IsPortalEnabled,Owner.FederationIdentifier,Owner.AboutMe,Owner.FullPhotoUrl,Owner.SmallPhotoUrl,Owner.IsExtIndicatorVisible,Owner.OutOfOfficeMessage,Owner.MediumPhotoUrl,Owner.DigestFrequency,Owner.DefaultGroupNotificationFrequency,Owner.LastViewedDate,Owner.LastReferencedDate,Owner.BannerPhotoUrl,Owner.SmallBannerPhotoUrl,Owner.MediumBannerPhotoUrl,Owner.IsProfilePhotoActive,Owner.IndividualId,Owner.copado__API_URL__c,Owner.copado__Hide_Copado_feedback__c,Owner.copado__Show_Copado_Tips__c,Owner.copado__Work_Manager_Panels__c,Owner.S4SARE__c,Owner.S4SBusiness_Segment__c,Owner.S4SBusiness_SubSegment__c,Owner.S4SBusiness_Unit__c,Owner.S4SCompany__c,Owner.S4SCost_Center__c,Owner.S4SDepartment__c,Owner.S4SDirX_Email__c,Owner.S4SDirX_Origin__c,Owner.S4SDivision_Territory__c,Owner.S4SEmailChangedDate__c,Owner.S4SFirst_Name_int__c,Owner.S4SGCK__c,Owner.S4SGID_Technical__c,Owner.S4SGID__c,Owner.S4SIsUserUpdated__c,Owner.S4SLast_Name_int__c,Owner.S4SLead_Country__c,Owner.S4SLocation__c,Owner.S4SManager_SCD_Technical__c,Owner.S4SManager_SCD__c,Owner.S4SOperations_Manager__c,Owner.S4SOrgUnit_SCD__c,Owner.S4SOrg_ID__c,Owner.S4SPrimary__c,Owner.S4SRelated_User_DirX__c,Owner.S4SSCD_Status__c,Owner.S4SSSP_Promotor_Planer__c,Owner.S4SSales_Branch__c,Owner.S4SSales_Department__c,Owner.S4SSales_District__c,Owner.S4SSales_Manager_Email__c,Owner.S4SSales_Office__c,Owner.S4SSales_SubRegion__c,Owner.S4SSales_Territory__c,Owner.S4SSalutation__c,Owner.S4SSiemens_Territory_Structure_Name__c,Owner.S4SSiemens_Territory_Structure__c,Owner.S4SSingle_Sign_On_Only__c,Owner.S4SSponsor_SCD_Technical__c,Owner.S4SSponsor_SCD__c,Owner.S4SSurname__c,Owner.S4SUser_s_Country__c,Owner.S4SUser_s_Division__c,Owner.DB_Region__c,Owner.S4SCurrency__c,Owner.S4SSales_Manager__c from Account where ID='@{xpath(xml(variables('Account')),'.//Id/text()')?[0]}' and recordTypeId ='@{body('Execute_a_SQL_query_fetchOppRecordType')?['records']?[0]?['Id']}'"
+                      },
+                      "path": "/soql/executesoqlquery",
+                      "host": {
+                        "connection": {
+                          "referenceName": "salesForceConnection"
+                        }
+                      },
+                      "method": "post"
+                    },
+                    "runAfter": {},
+                    "runtimeConfiguration": {
+                      "secureData": {
+                        "properties": [
+                          "inputs",
+                          "outputs"
+                        ]
+                      }
+                    },
+                    "type": "ApiConnection"
+                  },
+                  "Response_Invalid_Account_Id": {
+                    "inputs": {
+                      "body": "Invalid Account Id",
+                      "statusCode": 400
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                      "Execute_a_SQL_query_SIE_SF4S_fetchAccount": [
+                        "Failed"
+                      ]
+                    },
+                    "runtimeConfiguration": {
+                      "secureData": {
+                        "properties": [
+                          "inputs"
+                        ]
+                      }
+                    },
+                    "type": "Response"
+                  },
+                  "Terminate-_Invalid_Account_Id": {
+                    "inputs": {
+                      "runStatus": "Succeeded"
+                    },
+                    "runAfter": {
+                      "Response_Invalid_Account_Id": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Terminate"
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Condition_FetchCOF": {
+                      "actions": {
+                        "Condition_fetchCOF_": {
+                          "actions": {
+                            "Condition_to_Check_Log": {
+                              "actions": {
+                                "SubLogic-sf4sLog_9": {
+                                  "inputs": {
+                                    "host": {
+                                      "workflow": {
+                                        "id": "int_sf4sLog"
+                                      }
+                                    },
+                                    "body": {
+                                      "message": "Provided Origination ID matches this Account ID @{body('Execute_SOQL_query_fetchCOF_fetchAccount')['matchingAccountId']}  in Sales.",
+                                      "severity": "Notification"
+                                    },
+                                    "headers": {
+                                      "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                      "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                      "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                    }
+                                  },
+                                  "runAfter": {},
+                                  "type": "Workflow"
+                                }
+                              },
+                              "else": {
+                                "actions": {
+                                  "SubLogic-sf4sLog_12": {
+                                    "inputs": {
+                                      "host": {
+                                        "workflow": {
+                                          "id": "int_sf4sLog"
+                                        }
+                                      },
+                                      "body": {
+                                        "message": "Provided Origination ID doesn't match any Account in SieSales",
+                                        "severity": "Notification"
+                                      },
+                                      "headers": {
+                                        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                        "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                        "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                      }
+                                    },
+                                    "runAfter": {},
+                                    "type": "Workflow"
+                                  }
+                                }
+                              },
+                              "expression": {
+                                "and": [
+                                  {
+                                    "not": {
+                                      "equals": [
+                                        "@body('Execute_SOQL_query_fetchCOF_fetchAccount')?['records']?[0]?['Id']",
+                                        "@null"
+                                      ]
+                                    }
+                                  },
+                                  {
+                                    "not": {
+                                      "equals": [
+                                        "@body('Execute_SOQL_query_fetchCOF_fetchAccount')?['records']?[0]?['Id']",
+                                        "@' '"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              },
+                              "runAfter": {
+                                "Execute_SOQL_query_fetchCOF_fetchAccount": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "If"
+                            },
+                            "Execute_SOQL_query_fetchCOF_fetchAccount": {
+                              "inputs": {
+                                "body": {
+                                  "query": "select Id,IsDeleted,MasterRecordId,Name,Type,RecordTypeId,ParentId,BillingStreet,BillingCity,BillingState,BillingPostalCode,BillingCountry,BillingStateCode,BillingCountryCode,BillingLatitude,BillingLongitude,BillingGeocodeAccuracy,ShippingStreet,ShippingCity,ShippingState,ShippingPostalCode,ShippingCountry,ShippingStateCode,ShippingCountryCode,ShippingLatitude,ShippingLongitude,ShippingGeocodeAccuracy,Phone,Fax,AccountNumber,Website,PhotoUrl,Sic,Industry,AnnualRevenue,NumberOfEmployees,Ownership,TickerSymbol,Description,Rating,Site,CurrencyIsoCode,OwnerId,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastActivityDate,LastViewedDate,LastReferencedDate,IsPartner,IsCustomerPortal,ChannelProgramName,ChannelProgramLevelName,Jigsaw,JigsawCompanyId,AccountSource,SicDesc,LID__LinkedIn_Company_Id__c,Copado_Testing__c,S4SACCOUNT_LegacyID__c,S4SARE__c,S4SAccount_Assignment__c,S4SAccount_Current_Record_Link__c,S4SAccount_Group_Type__c,S4SAccount_Life_Cycle__c,S4SAccount_Name_International__c,S4SAccount_Role__c,S4SAvailable_languages__c,S4SBusiness_Availability_24h_365_days__c,S4SBusiness_Availability_24h_Mon_Fri__c,S4SBusiness_Unit__c,S4SBypass_Duplicate_rules__c,S4SCID_Number__c,S4SCMD_IfA_Update__c,S4SCMD_KUKLA__c,S4SCMD_NAME1_I__c,S4SCMD_NAME1__c,S4SCMD_NAME2_I__c,S4SCMD_NAME2__c,S4SCMD_NAME3_I__c,S4SCMD_NAME3__c,S4SCMD_REGION__c,S4SCMD_STREET2__c,S4SCMD_STREET__c,S4SCMD_Subscription_Rejected_Date__c,S4SChange_n__c,S4SChange_of_NPS__c,S4SCheck_IFAs_and_Contacts__c,S4SCity_PO_Box_International__c,S4SCity_PO_Box__c,S4SCompany_Postal_Code__c,S4SCompany_Summary__c,S4SCurrent_FY_NPS__c,S4SDUNS__c,S4SDivision__c,S4SDomestic_Ultimate_DUNS__c,S4SDuns_Information__c,S4SDuplicate_IfA_Number__c,S4SEmail__c,S4SEngineering_electrical__c,S4SEngineering_mechanical__c,S4SExternal_Account_HelpText__c,S4SFacebook__c,S4SField_Services_24_7__c,S4SFounding_Year__c,S4SFrom_Search__c,S4SGlobal_Frame_Agreement_Database__c,S4SGlobal_Ultimate_DUNS__c,S4SISIC__c,S4SIfAAutoNumber__c,S4SIfA_Siemens_Location__c,S4SIfA__c,S4SIndustry_Direct__c,S4SIndustry_Segment_Direct__c,S4SIndustry_Segment_Ship_To__c,S4SIndustry_Ship_To__c,S4SInternational_City__c,S4SInternational_CountryGP__c,S4SInternational_Country__c,S4SInternational_Postal_Code__c,S4SInternational_RegionGP__c,S4SInternational_Region__c,S4SInternational_Steet_Name_2__c,S4SInternational_Street_Name_1__c,S4SIsOwnerCMDUser__c,S4SIs_Partner__c,S4SLead_Country__c,S4SLead_Org__c,S4SLegalOwner__c,S4SLocal_Search_Term__c,S4SMD_Status__c,S4SNPS_Trend__c,S4SNat_Company_ID__c,S4SNo_Legal_Form_available__c,S4SNo_of_Active_Candidature__c,S4SNo_of_Cancelled_Candidature__c,S4SNomination_Letter__c,S4SNormal_Business_Hours__c,S4SNotification_from_CMD__c,S4SOfferings_to_the_market_SOP__c,S4SOfferings_to_the_market_VAR__c,S4SOperational_radius__c,S4SOrganization_Code__c,S4SPO_Box_Postcode__c,S4SPO_box__c,S4SParent_Account_Group__c,S4SParent_DUNS__c,S4SPartner_Main_Industries__c,S4SPartner_Type__c,S4SPartnership_Status__c,S4SPartnership_with_competing_vendors__c,S4SPrevious_FY_NPS__c,S4SPrevious_FY_n__c,S4SPrevious_IfA_Number__c,S4SPulse_Link__c,S4SRelevant_Portfolio__c,S4SResponders_current_FY_n__c,S4SSFS_Confidential__c,S4SSISIC_Direct_Description__c,S4SSISIC_Direct__c,S4SSISIC_Ship_To_Description__c,S4SSISIC_Ship_To__c,S4SSalesCountry__c,S4SSales_Branch__c,S4SSales_Country__c,S4SSales_Department__c,S4SSales_Office__c,S4SSales_Org_Type__c,S4SSales_Sub_Region__c,S4SSales_Territory__c,S4SService_electrical__c,S4SService_mechanical__c,S4SShopfloor_level_square_meters__c,S4SShort_Partner_company_description__c,S4SSiemens_Account_Type__c,S4STax_ID__c,S4STotal_Employees__c,S4SVertical_Name__c,S4S_No_Matched_Accounts_Found__c,S4SClone_Account_Number__c,S4SNumber_of_Pricing_Primary__c,Account_Assignments__c,S4SBypassValidationForProcessBuilder__c,S4SConfidentiality_Status__c,S4SDAndBCreated__c,S4SData_Visibility__c,S4SIdentification_Number__c,S4SLegal_Status__c,S4SMarked_for_Deletion__c,S4SPartner_Group__c,S4SQuip_ABP_URL__c,S4SQuip_Briefing_URL__c,S4SQuip_CSVP_URL__c,S4SSAP_Client__c,S4SSAP_System_ID__c,S4SSales_Planning_enabled__c,S4SClone_Confidential__c,S4SCounty_FIPS__c,S4SCounty__c,S4SCustomer_Classification__c,S4SExternal_Source__c,S4SGeographical_Code__c,S4SIndirect_Creation_Status__c,S4SLead_Central_Enabled_Account__c,S4SMilitary_Non_Military_Use__c,S4SNTA__c,S4SRegion__c,S4SRelated_IfA__c,S4SSkipValidationForDataVisibilty__c,S4SPartner_Group_Record_Type_Name__c,Owner.Id,Owner.Username,Owner.LastName,Owner.FirstName,Owner.MiddleName,Owner.Suffix,Owner.Name,Owner.CompanyName,Owner.Division,Owner.Department,Owner.Title,Owner.Street,Owner.City,Owner.State,Owner.PostalCode,Owner.Country,Owner.StateCode,Owner.CountryCode,Owner.Latitude,Owner.Longitude,Owner.GeocodeAccuracy,Owner.Address,Owner.Email,Owner.EmailPreferencesAutoBcc,Owner.EmailPreferencesAutoBccStayInTouch,Owner.EmailPreferencesStayInTouchReminder,Owner.SenderEmail,Owner.SenderName,Owner.Signature,Owner.StayInTouchSubject,Owner.StayInTouchSignature,Owner.StayInTouchNote,Owner.Phone,Owner.Fax,Owner.MobilePhone,Owner.Alias,Owner.CommunityNickname,Owner.BadgeText,Owner.IsActive,Owner.TimeZoneSidKey,Owner.UserRoleId,Owner.LocaleSidKey,Owner.ReceivesInfoEmails,Owner.ReceivesAdminInfoEmails,Owner.EmailEncodingKey,Owner.DefaultCurrencyIsoCode,Owner.CurrencyIsoCode,Owner.ProfileId,Owner.UserType,Owner.LanguageLocaleKey,Owner.EmployeeNumber,Owner.DelegatedApproverId,Owner.ManagerId,Owner.LastLoginDate,Owner.CreatedDate,Owner.CreatedById,Owner.LastModifiedDate,Owner.LastModifiedById,Owner.SystemModstamp,Owner.OfflineTrialExpirationDate,Owner.OfflinePdaTrialExpirationDate,Owner.UserPermissionsMarketingUser,Owner.UserPermissionsOfflineUser,Owner.UserPermissionsAvantgoUser,Owner.UserPermissionsCallCenterAutoLogin,Owner.UserPermissionsMobileUser,Owner.UserPermissionsSFContentUser,Owner.UserPermissionsKnowledgeUser,Owner.UserPermissionsInteractionUser,Owner.UserPermissionsSupportUser,Owner.UserPermissionsLiveAgentUser,Owner.ForecastEnabled,Owner.UserPreferencesActivityRemindersPopup,Owner.UserPreferencesEventRemindersCheckboxDefault,Owner.UserPreferencesTaskRemindersCheckboxDefault,Owner.UserPreferencesReminderSoundOff,Owner.UserPreferencesDisableAllFeedsEmail,Owner.UserPreferencesDisableFollowersEmail,Owner.UserPreferencesDisableProfilePostEmail,Owner.UserPreferencesDisableChangeCommentEmail,Owner.UserPreferencesDisableLaterCommentEmail,Owner.UserPreferencesDisProfPostCommentEmail,Owner.UserPreferencesContentNoEmail,Owner.UserPreferencesContentEmailAsAndWhen,Owner.UserPreferencesApexPagesDeveloperMode,Owner.UserPreferencesHideCSNGetChatterMobileTask,Owner.UserPreferencesDisableMentionsPostEmail,Owner.UserPreferencesDisMentionsCommentEmail,Owner.UserPreferencesHideCSNDesktopTask,Owner.UserPreferencesHideChatterOnboardingSplash,Owner.UserPreferencesHideSecondChatterOnboardingSplash,Owner.UserPreferencesDisCommentAfterLikeEmail,Owner.UserPreferencesDisableLikeEmail,Owner.UserPreferencesSortFeedByComment,Owner.UserPreferencesDisableMessageEmail,Owner.UserPreferencesDisableBookmarkEmail,Owner.UserPreferencesDisableSharePostEmail,Owner.UserPreferencesEnableAutoSubForFeeds,Owner.UserPreferencesDisableFileShareNotificationsForApi,Owner.UserPreferencesShowTitleToExternalUsers,Owner.UserPreferencesShowManagerToExternalUsers,Owner.UserPreferencesShowEmailToExternalUsers,Owner.UserPreferencesShowWorkPhoneToExternalUsers,Owner.UserPreferencesShowMobilePhoneToExternalUsers,Owner.UserPreferencesShowFaxToExternalUsers,Owner.UserPreferencesShowStreetAddressToExternalUsers,Owner.UserPreferencesShowCityToExternalUsers,Owner.UserPreferencesShowStateToExternalUsers,Owner.UserPreferencesShowPostalCodeToExternalUsers,Owner.UserPreferencesShowCountryToExternalUsers,Owner.UserPreferencesShowProfilePicToGuestUsers,Owner.UserPreferencesShowTitleToGuestUsers,Owner.UserPreferencesShowCityToGuestUsers,Owner.UserPreferencesShowStateToGuestUsers,Owner.UserPreferencesShowPostalCodeToGuestUsers,Owner.UserPreferencesShowCountryToGuestUsers,Owner.UserPreferencesPipelineViewHideHelpPopover,Owner.UserPreferencesHideS1BrowserUI,Owner.UserPreferencesDisableEndorsementEmail,Owner.UserPreferencesPathAssistantCollapsed,Owner.UserPreferencesCacheDiagnostics,Owner.UserPreferencesShowEmailToGuestUsers,Owner.UserPreferencesShowManagerToGuestUsers,Owner.UserPreferencesShowWorkPhoneToGuestUsers,Owner.UserPreferencesShowMobilePhoneToGuestUsers,Owner.UserPreferencesShowFaxToGuestUsers,Owner.UserPreferencesShowStreetAddressToGuestUsers,Owner.UserPreferencesLightningExperiencePreferred,Owner.UserPreferencesPreviewLightning,Owner.UserPreferencesHideEndUserOnboardingAssistantModal,Owner.UserPreferencesHideLightningMigrationModal,Owner.UserPreferencesHideSfxWelcomeMat,Owner.UserPreferencesHideBiggerPhotoCallout,Owner.UserPreferencesGlobalNavBarWTShown,Owner.UserPreferencesGlobalNavGridMenuWTShown,Owner.UserPreferencesCreateLEXAppsWTShown,Owner.UserPreferencesFavoritesWTShown,Owner.UserPreferencesRecordHomeSectionCollapseWTShown,Owner.UserPreferencesRecordHomeReservedWTShown,Owner.UserPreferencesFavoritesShowTopFavorites,Owner.UserPreferencesExcludeMailAppAttachments,Owner.UserPreferencesSuppressTaskSFXReminders,Owner.UserPreferencesPreviewCustomTheme,Owner.UserPreferencesHasCelebrationBadge,Owner.UserPreferencesUserDebugModePref,Owner.UserPreferencesNewLightningReportRunPageEnabled,Owner.ContactId,Owner.AccountId,Owner.CallCenterId,Owner.Extension,Owner.PortalRole,Owner.IsPortalEnabled,Owner.FederationIdentifier,Owner.AboutMe,Owner.FullPhotoUrl,Owner.SmallPhotoUrl,Owner.IsExtIndicatorVisible,Owner.OutOfOfficeMessage,Owner.MediumPhotoUrl,Owner.DigestFrequency,Owner.DefaultGroupNotificationFrequency,Owner.LastViewedDate,Owner.LastReferencedDate,Owner.BannerPhotoUrl,Owner.SmallBannerPhotoUrl,Owner.MediumBannerPhotoUrl,Owner.IsProfilePhotoActive,Owner.IndividualId,Owner.copado__API_URL__c,Owner.copado__Hide_Copado_feedback__c,Owner.copado__Show_Copado_Tips__c,Owner.copado__Work_Manager_Panels__c,Owner.S4SARE__c,Owner.S4SBusiness_Segment__c,Owner.S4SBusiness_SubSegment__c,Owner.S4SBusiness_Unit__c,Owner.S4SCompany__c,Owner.S4SCost_Center__c,Owner.S4SDepartment__c,Owner.S4SDirX_Email__c,Owner.S4SDirX_Origin__c,Owner.S4SDivision_Territory__c,Owner.S4SEmailChangedDate__c,Owner.S4SFirst_Name_int__c,Owner.S4SGCK__c,Owner.S4SGID_Technical__c,Owner.S4SGID__c,Owner.S4SIsUserUpdated__c,Owner.S4SLast_Name_int__c,Owner.S4SLead_Country__c,Owner.S4SLocation__c,Owner.S4SManager_SCD_Technical__c,Owner.S4SManager_SCD__c,Owner.S4SOperations_Manager__c,Owner.S4SOrgUnit_SCD__c,Owner.S4SOrg_ID__c,Owner.S4SPrimary__c,Owner.S4SRelated_User_DirX__c,Owner.S4SSCD_Status__c,Owner.S4SSSP_Promotor_Planer__c,Owner.S4SSales_Branch__c,Owner.S4SSales_Department__c,Owner.S4SSales_District__c,Owner.S4SSales_Manager_Email__c,Owner.S4SSales_Office__c,Owner.S4SSales_SubRegion__c,Owner.S4SSales_Territory__c,Owner.S4SSalutation__c,Owner.S4SSiemens_Territory_Structure_Name__c,Owner.S4SSiemens_Territory_Structure__c,Owner.S4SSingle_Sign_On_Only__c,Owner.S4SSponsor_SCD_Technical__c,Owner.S4SSponsor_SCD__c,Owner.S4SSurname__c,Owner.S4SUser_s_Country__c,Owner.S4SUser_s_Division__c,Owner.DB_Region__c,Owner.S4SCurrency__c,Owner.S4SSales_Manager__c from Account where id=@{body('Execute_SOQL_query_fetchCOF')['S4SSieSmart_Information_c']['S4SAccount_c']} and recordTypeId='@{body('Execute_a_SQL_query_fetchOppRecordType')?['records']?[0]?['Id']}'"
+                                },
+                                "path": "/soql/executesoqlquery",
+                                "host": {
+                                  "connection": {
+                                    "referenceName": "salesForceConnection"
+                                  }
+                                },
+                                "method": "post"
+                              },
+                              "runAfter": {},
+                              "runtimeConfiguration": {
+                                "secureData": {
+                                  "properties": [
+                                    "inputs",
+                                    "outputs"
+                                  ]
+                                }
+                              },
+                              "type": "ApiConnection"
+                            }
+                          },
+                          "else": {
+                            "actions": {
+                              "SubLogic-sf4sLog_11": {
+                                "inputs": {
+                                  "host": {
+                                    "workflow": {
+                                      "id": "int_sf4sLog"
+                                    }
+                                  },
+                                  "body": {
+                                    "message": "Provided Origination ID doesn't match any Account in SieSales",
+                                    "severity": "INFO"
+                                  },
+                                  "headers": {
+                                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                                    "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                                    "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                                  }
+                                },
+                                "runAfter": {},
+                                "type": "Workflow"
+                              }
+                            }
+                          },
+                          "expression": {
+                            "and": [
+                              {
+                                "not": {
+                                  "equals": [
+                                    "@body('Execute_SOQL_query_fetchCOF')",
+                                    ""
+                                  ]
+                                }
+                              },
+                              {
+                                "not": {
+                                  "equals": [
+                                    "@body('Execute_SOQL_query_fetchCOF')['S4SSieSmart_Information_c']['S4SAccount_c']",
+                                    "@' '"
+                                  ]
+                                }
+                              }
+                            ]
+                          },
+                          "runAfter": {
+                            "Execute_SOQL_query_fetchCOF": [
+                              "Succeeded"
+                            ]
+                          },
+                          "type": "If"
+                        },
+                        "Execute_SOQL_query_fetchCOF": {
+                          "inputs": {
+                            "body": {
+                              "query": "select Id,IsDeleted,Name,CurrencyIsoCode,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastActivityDate,S4SAccount__c,S4SCassiopeia_ID__c,S4SCreated_Country__c,S4SCustomer_of_Siemens__c,S4SExpiry_Date_Financial_Framework__c,S4SExpiry_Date_Risk_Approval__c,S4SFinancial_Framework__c,S4SGovernmental_Registration_Number__c,S4SIntroducer_Approval_Status__c,S4SLocal_ID__c,S4SOrigination_ID__c,S4SPhilos_ID__c,S4SSFS_Rating_Date__c,S4SSFS_Rating_Status__c,S4SSFS_Rating__c,S4SSieSmart_Information_Legacy_ID__c,S4SSupplier_to_Siemens__c,S4SExternal_Source__c,S4SRelationship_Status__c,S4SRoles__c,S4STarget_Volume__c,S4SUltimate_Parent_Account__c,S4SLegal_entity__c from COF Information where S4SOrigination_ID__c ='@{xpath(xml(variables('Account')),'.//S4SSieSmart_Information/S4SOrigination_ID_c/text()')?[0]}'"
+                            },
+                            "path": "/soql/executesoqlquery",
+                            "host": {
+                              "connection": {
+                                "referenceName": "salesForceConnection"
+                              }
+                            },
+                            "method": "post"
+                          },
+                          "runAfter": {},
+                          "runtimeConfiguration": {
+                            "secureData": {
+                              "properties": [
+                                "inputs",
+                                "outputs"
+                              ]
+                            }
+                          },
+                          "type": "ApiConnection"
+                        }
+                      },
+                      "else": {
+                        "actions": {}
+                      },
+                      "expression": {
+                        "and": [
+                          {
+                            "not": {
+                              "equals": [
+                                "@xpath(xml(variables('Account')),'.//S4SSieSmart_Information/S4SOrigination_ID_c/text()')?[0]",
+                                ""
+                              ]
+                            }
+                          },
+                          {
+                            "not": {
+                              "equals": [
+                                "@xpath(xml(variables('Account')),'.//S4SSieSmart_Information/S4SOrigination_ID_c/text()')?[0]",
+                                "@string(' ')"
+                              ]
+                            }
+                          },
+                          {
+                            "not": {
+                              "equals": [
+                                "@xpath(xml(variables('Account')),'.//S4SSieSmart_Information/S4SOrigination_ID_c/text()')?[0]",
+                                "@null"
+                              ]
+                            }
+                          }
+                        ]
+                      },
+                      "runAfter": {},
+                      "type": "If"
+                    }
+                  }
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "not": {
+                        "equals": [
+                          "@xpath(xml(variables('Account')),'.//Id/text()')?[0]",
+                          ""
+                        ]
+                      }
+                    },
+                    {
+                      "not": {
+                        "equals": [
+                          "@xpath(xml(variables('Account')),'.//Id/text()')?[0]",
+                          "@string(' ')"
+                        ]
+                      }
+                    },
+                    {
+                      "not": {
+                        "equals": [
+                          "@xpath(xml(variables('Account')),'.//Id/text()')?[0]",
+                          "@null"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "runAfter": {
+                  "Append_to_array_variable-RecordTypeID": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "If"
+              },
+              "Condition_ToCheckID": {
+                "actions": {},
+                "else": {
+                  "actions": {
+                    "Append_to_array_variable-varReplaceVariable2": {
+                      "inputs": {
+                        "name": "varReplaceVariable",
+                        "value": "Id:"
+                      },
+                      "runAfter": {},
+                      "type": "AppendToArrayVariable"
+                    }
+                  }
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "not": {
+                        "equals": [
+                          "@xpath(xml(triggerBody()?['account']),'.//Id/text()')?[0]",
+                          "@null"
+                        ]
+                      }
+                    },
+                    {
+                      "not": {
+                        "equals": [
+                          "@xpath(xml(triggerBody()?['account']),'.//Id/text()')?[0]",
+                          ""
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "runAfter": {
+                  "Append_to_array_variable-RecordTypeID": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "If"
+              },
+              "Condition__to_check_SIE_SF4S_fetchUser": {
+                "actions": {
+                  "Condition_to_Check_totalSize": {
+                    "actions": {
+                      "Append_to_array_variable-ownerId": {
+                        "inputs": {
+                          "name": "varReplaceVariable",
+                          "value": "OwnerId:@{body('Execute_a_SQL_query_fetchUser')?['records']?[0]?['Id']}"
+                        },
+                        "runAfter": {},
+                        "type": "AppendToArrayVariable"
+                      }
+                    },
+                    "else": {
+                      "actions": {
+                        "Condition_to_check_defaultOwner": {
+                          "actions": {
+                            "Append_to_array_variable_defaultOwner_as_OwnerId": {
+                              "inputs": {
+                                "name": "varReplaceVariable",
+                                "value": "OwnerId:@{body('Get_defaultOwner_ID')?['records']?[0]?['Id']}"
+                              },
+                              "runAfter": {
+                                "Get_defaultOwner_ID": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "AppendToArrayVariable"
+                            },
+                            "Get_defaultOwner_ID": {
+                              "inputs": {
+                                "body": {
+                                  "query": "select id from User where S4SGID_Technical__c = '@{triggerOutputs()['headers']?['defaultOwner']}'"
+                                },
+                                "path": "/soql/executesoqlquery",
+                                "host": {
+                                  "connection": {
+                                    "referenceName": "salesForceConnection"
+                                  }
+                                },
+                                "method": "post"
+                              },
+                              "runAfter": {},
+                              "type": "ApiConnection"
+                            }
+                          },
+                          "else": {
+                            "actions": {
+                              "Failure_Response": {
+                                "inputs": {
+                                  "body": "Provided owner information is not unique",
+                                  "statusCode": 400
+                                },
+                                "kind": "Http",
+                                "runAfter": {},
+                                "runtimeConfiguration": {
+                                  "secureData": {
+                                    "properties": [
+                                      "inputs"
+                                    ]
+                                  }
+                                },
+                                "type": "Response"
+                              },
+                              "Terminate_owner_information_is_not_unique": {
+                                "inputs": {
+                                  "runStatus": "Succeeded"
+                                },
+                                "runAfter": {
+                                  "Failure_Response": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "type": "Terminate"
+                              }
+                            }
+                          },
+                          "expression": {
+                            "and": [
+                              {
+                                "not": {
+                                  "equals": [
+                                    "@triggerOutputs()?['headers']?['defaultOwner']",
+                                    "@null"
+                                  ]
+                                }
+                              },
+                              {
+                                "not": {
+                                  "equals": [
+                                    "@triggerOutputs()?['headers']?['defaultOwner']",
+                                    "@string('')"
+                                  ]
+                                }
+                              }
+                            ]
+                          },
+                          "runAfter": {},
+                          "type": "If"
+                        }
+                      }
+                    },
+                    "expression": {
+                      "and": [
+                        {
+                          "equals": [
+                            "@body('Execute_a_SQL_query_fetchUser')?['totalSize']",
+                            1
+                          ]
+                        }
+                      ]
+                    },
+                    "runAfter": {
+                      "log-_fetchuser_totalsize": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "If"
+                  },
+                  "Execute_a_SQL_query_fetchUser": {
+                    "inputs": {
+                      "body": {
+                        "query": "select Id,Username,LastName,FirstName,MiddleName,Suffix,Name,CompanyName,Division,Department,Title,Street,City,State,PostalCode,Country,StateCode,CountryCode,Latitude,Longitude,GeocodeAccuracy,Email,EmailPreferencesAutoBcc,EmailPreferencesAutoBccStayInTouch,EmailPreferencesStayInTouchReminder,SenderEmail,SenderName,Signature,StayInTouchSubject,StayInTouchSignature,StayInTouchNote,Phone,Fax,MobilePhone,Alias,CommunityNickname,BadgeText,IsActive,TimeZoneSidKey,UserRoleId,LocaleSidKey,ReceivesInfoEmails,ReceivesAdminInfoEmails,EmailEncodingKey,DefaultCurrencyIsoCode,CurrencyIsoCode,ProfileId,UserType,LanguageLocaleKey,EmployeeNumber,DelegatedApproverId,ManagerId,LastLoginDate,LastPasswordChangeDate,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,OfflineTrialExpirationDate,OfflinePdaTrialExpirationDate,UserPermissionsMarketingUser,UserPermissionsOfflineUser,UserPermissionsAvantgoUser,UserPermissionsCallCenterAutoLogin,UserPermissionsMobileUser,UserPermissionsSFContentUser,UserPermissionsKnowledgeUser,UserPermissionsInteractionUser,UserPermissionsSupportUser,UserPermissionsLiveAgentUser,ForecastEnabled,UserPreferencesActivityRemindersPopup,UserPreferencesEventRemindersCheckboxDefault,UserPreferencesTaskRemindersCheckboxDefault,UserPreferencesReminderSoundOff,UserPreferencesDisableAllFeedsEmail,UserPreferencesDisableFollowersEmail,UserPreferencesDisableProfilePostEmail,UserPreferencesDisableChangeCommentEmail,UserPreferencesDisableLaterCommentEmail,UserPreferencesDisProfPostCommentEmail,UserPreferencesContentNoEmail,UserPreferencesContentEmailAsAndWhen,UserPreferencesApexPagesDeveloperMode,UserPreferencesHideCSNGetChatterMobileTask,UserPreferencesDisableMentionsPostEmail,UserPreferencesDisMentionsCommentEmail,UserPreferencesHideCSNDesktopTask,UserPreferencesHideChatterOnboardingSplash,UserPreferencesHideSecondChatterOnboardingSplash,UserPreferencesDisCommentAfterLikeEmail,UserPreferencesDisableLikeEmail,UserPreferencesSortFeedByComment,UserPreferencesDisableMessageEmail,UserPreferencesDisableBookmarkEmail,UserPreferencesDisableSharePostEmail,UserPreferencesEnableAutoSubForFeeds,UserPreferencesDisableFileShareNotificationsForApi,UserPreferencesShowTitleToExternalUsers,UserPreferencesShowManagerToExternalUsers,UserPreferencesShowEmailToExternalUsers,UserPreferencesShowWorkPhoneToExternalUsers,UserPreferencesShowMobilePhoneToExternalUsers,UserPreferencesShowFaxToExternalUsers,UserPreferencesShowStreetAddressToExternalUsers,UserPreferencesShowCityToExternalUsers,UserPreferencesShowStateToExternalUsers,UserPreferencesShowPostalCodeToExternalUsers,UserPreferencesShowCountryToExternalUsers,UserPreferencesShowProfilePicToGuestUsers,UserPreferencesShowTitleToGuestUsers,UserPreferencesShowCityToGuestUsers,UserPreferencesShowStateToGuestUsers,UserPreferencesShowPostalCodeToGuestUsers,UserPreferencesShowCountryToGuestUsers,UserPreferencesPipelineViewHideHelpPopover,UserPreferencesHideS1BrowserUI,UserPreferencesDisableEndorsementEmail,UserPreferencesPathAssistantCollapsed,UserPreferencesCacheDiagnostics,UserPreferencesShowEmailToGuestUsers,UserPreferencesShowManagerToGuestUsers,UserPreferencesShowWorkPhoneToGuestUsers,UserPreferencesShowMobilePhoneToGuestUsers,UserPreferencesShowFaxToGuestUsers,UserPreferencesShowStreetAddressToGuestUsers,UserPreferencesLightningExperiencePreferred,UserPreferencesPreviewLightning,UserPreferencesHideEndUserOnboardingAssistantModal,UserPreferencesHideLightningMigrationModal,UserPreferencesHideSfxWelcomeMat,UserPreferencesHideBiggerPhotoCallout,UserPreferencesGlobalNavBarWTShown,UserPreferencesGlobalNavGridMenuWTShown,UserPreferencesCreateLEXAppsWTShown,UserPreferencesFavoritesWTShown,UserPreferencesRecordHomeSectionCollapseWTShown,UserPreferencesRecordHomeReservedWTShown,UserPreferencesFavoritesShowTopFavorites,UserPreferencesExcludeMailAppAttachments,UserPreferencesSuppressTaskSFXReminders,UserPreferencesPreviewCustomTheme,UserPreferencesHasCelebrationBadge,UserPreferencesUserDebugModePref,UserPreferencesNewLightningReportRunPageEnabled,ContactId,AccountId,CallCenterId,Extension,PortalRole,IsPortalEnabled,FederationIdentifier,AboutMe,FullPhotoUrl,SmallPhotoUrl,IsExtIndicatorVisible,OutOfOfficeMessage,MediumPhotoUrl,DigestFrequency,DefaultGroupNotificationFrequency,LastViewedDate,LastReferencedDate,BannerPhotoUrl,SmallBannerPhotoUrl,MediumBannerPhotoUrl,IsProfilePhotoActive,IndividualId,copado__API_URL__c,copado__Hide_Copado_feedback__c,copado__Show_Copado_Tips__c,copado__Work_Manager_Panels__c,S4SARE__c,S4SBusiness_Segment__c,S4SBusiness_SubSegment__c,S4SBusiness_Unit__c,S4SCompany__c,S4SCost_Center__c,S4SDepartment__c,S4SDirX_Email__c,S4SDirX_Origin__c,S4SDivision_Territory__c,S4SEmailChangedDate__c,S4SFirst_Name_int__c,S4SGCK__c,S4SGID_Technical__c,S4SGID__c,S4SIsUserUpdated__c,S4SLast_Name_int__c,S4SLead_Country__c,S4SLocation__c,S4SManager_SCD_Technical__c,S4SManager_SCD__c,S4SOperations_Manager__c,S4SOrgUnit_SCD__c,S4SOrg_ID__c,S4SPrimary__c,S4SRelated_User_DirX__c,S4SSCD_Status__c,S4SSSP_Promotor_Planer__c,S4SSales_Branch__c,S4SSales_Department__c,S4SSales_District__c,S4SSales_Manager_Email__c,S4SSales_Office__c,S4SSales_SubRegion__c,S4SSales_Territory__c,S4SSalutation__c,S4SSiemens_Territory_Structure_Name__c,S4SSiemens_Territory_Structure__c,S4SSingle_Sign_On_Only__c,S4SSponsor_SCD_Technical__c,S4SSponsor_SCD__c,S4SSurname__c,S4SUser_s_Country__c,S4SUser_s_Division__c,DB_Region__c,S4SCurrency__c,S4SSales_Manager__c from User where S4SGID_Technical__c='@{xpath(xml(variables('Account')),'.//OwnerId/text()')?[0]}'"
+                      },
+                      "path": "/soql/executesoqlquery",
+                      "host": {
+                        "connection": {
+                          "referenceName": "salesForceConnection"
+                        }
+                      },
+                      "method": "post"
+                    },
+                    "runAfter": {},
+                    "runtimeConfiguration": {
+                      "secureData": {
+                        "properties": [
+                          "inputs",
+                          "outputs"
+                        ]
+                      }
+                    },
+                    "type": "ApiConnection"
+                  },
+                  "Response_Invalid_Account_ID_FetchUser": {
+                    "inputs": {
+                      "body": "Invalid Account ID",
+                      "statusCode": 200
+                    },
+                    "kind": "Http",
+                    "runAfter": {
+                      "Execute_a_SQL_query_fetchUser": [
+                        "Failed"
+                      ]
+                    },
+                    "runtimeConfiguration": {
+                      "secureData": {
+                        "properties": [
+                          "inputs"
+                        ]
+                      }
+                    },
+                    "type": "Response"
+                  },
+                  "Terminate_Invalid_Account_ID_FetchUser": {
+                    "inputs": {
+                      "runStatus": "Failed"
+                    },
+                    "runAfter": {
+                      "Response_Invalid_Account_ID_FetchUser": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Terminate"
+                  },
+                  "log-_fetchuser_totalsize": {
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "int_sf4sLog"
+                        }
+                      },
+                      "body": {
+                        "message": "There are  @{body('Execute_a_SQL_query_fetchUser')?['totalSize']} user(s) in SieSales with the GID technical sent in request",
+                        "severity": "INFO"
+                      },
+                      "headers": {
+                        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                        "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                        "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                      }
+                    },
+                    "runAfter": {
+                      "Execute_a_SQL_query_fetchUser": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Workflow"
+                  }
+                },
+                "else": {
+                  "actions": {}
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "not": {
+                        "equals": [
+                          "@xpath(xml(variables('Account')),'.//OwnerId/text()')?[0]",
+                          ""
+                        ]
+                      }
+                    },
+                    {
+                      "not": {
+                        "equals": [
+                          "@xpath(xml(variables('Account')),'.//OwnerId/text()')?[0]",
+                          "@null"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "runAfter": {
+                  "Append_to_array_variable-RecordTypeID": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "If"
+              },
+              "Condition_to_check_S4SSISIC_Direct__c": {
+                "actions": {
+                  "Append_to_array_variable_-SSISICDirect": {
+                    "inputs": {
+                      "name": "varReplaceVariable",
+                      "value": "S4SSISIC_Direct__c:@{body('Execute_a_SOQL_-_S4SSISIC_Direct__c')?['records']?[0]?['Id']}"
+                    },
+                    "runAfter": {
+                      "log-Execute_a_SOQL_-_S4SSISIC_Direct__c": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "AppendToArrayVariable"
+                  },
+                  "Execute_a_SOQL_-_S4SSISIC_Direct__c": {
+                    "inputs": {
+                      "body": {
+                        "query": "select Id, OwnerId, IsDeleted,Name,CurrencyIsoCode,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById,SystemModstamp,LastViewedDate,\nLastReferencedDate,S4SExternal_ID__c,S4SIndustry_Description__c,S4SIndustry_Segment__c,S4SIndustry__c,S4SNAF_ID__c from S4SSISIC__c where Name ='@{xpath(xml(variables('Account')),'.//S4SSISIC_Direct__c/text()')?[0]}' AND S4S_Confidential__c='Yes'"
+                      },
+                      "path": "/soql/executesoqlquery",
+                      "host": {
+                        "connection": {
+                          "referenceName": "salesForceConnection"
+                        }
+                      },
+                      "method": "post"
+                    },
+                    "runAfter": {},
+                    "type": "ApiConnection"
+                  },
+                  "log-Execute_a_SOQL_-_S4SSISIC_Direct__c": {
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "int_sf4sLog"
+                        }
+                      },
+                      "body": {
+                        "message": "SISIC Details Provided matched to the following Id '@{body('Execute_a_SOQL_-_S4SSISIC_Direct__c')?['records']?[0]?['Id']}' on SieSales",
+                        "severity": "INFO"
+                      },
+                      "headers": {
+                        "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                        "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                        "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                      }
+                    },
+                    "runAfter": {
+                      "Execute_a_SOQL_-_S4SSISIC_Direct__c": [
+                        "Succeeded"
+                      ]
+                    },
+                    "type": "Workflow"
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "log-No_SISIC_Details_": {
+                      "inputs": {
+                        "host": {
+                          "workflow": {
+                            "id": "int_sf4sLog"
+                          }
+                        },
+                        "body": {
+                          "message": "No SISIC Details Provided in the Request",
+                          "severity": "WARNING"
+                        },
+                        "headers": {
+                          "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                          "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                          "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                        }
+                      },
+                      "runAfter": {},
+                      "type": "Workflow"
+                    }
+                  }
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "not": {
+                        "equals": [
+                          "@xpath(xml(variables('Account')),'.//S4SSISIC_Direct__c/text()')?[0]",
+                          ""
+                        ]
+                      }
+                    },
+                    {
+                      "not": {
+                        "equals": [
+                          "@xpath(xml(variables('Account')),'.//S4SSISIC_Direct__c/text()')?[0]",
+                          "@null"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "runAfter": {
+                  "Append_to_array_variable-RecordTypeID": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "If"
+              },
+              "Execute_a_SQL_query_fetchOppRecordType": {
+                "inputs": {
+                  "body": {
+                    "parameters": {
+                      "Limit": "1"
+                    },
+                    "query": "select Id,Name,Description,IsActive,LastModifiedDate from RecordType  where name ='SFS Account' and SobjectType  ='Account' and isActive = true "
+                  },
+                  "path": "/soql/executesoqlquery",
+                  "host": {
+                    "connection": {
+                      "referenceName": "salesForceConnection"
+                    }
+                  },
+                  "method": "post"
+                },
+                "runAfter": {},
+                "type": "ApiConnection"
+              },
+              "LiquidTransformer": {
+                "inputs": {
+                  "body": {
+                    "NationalCompanyQuery": "@if(equals(outputs('HTTP_Get_Account_From_Nat_Company_ID')['statusCode'],int('200')),body('HTTP_Get_Account_From_Nat_Company_ID')?['records'],variables('emptyArray'))",
+                    "OriginationQuery": "@if(equals(outputs('HTTP_Get_Account_From_OriginationID')['statusCode'],int('200')),body('HTTP_Get_Account_From_OriginationID')?['records'],variables('emptyArray'))",
+                    "RelatedIFAQuery": "@if(equals(outputs('HTTP_Get_Account_From_Related_IFA')['statusCode'],int('200')),body('HTTP_Get_Account_From_Related_IFA')?['records'],variables('emptyArray'))"
+                  },
+                  "function": {
+                    "connectionName": "Liquid"
+                  },
+                  "headers": {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                    "Filename": "CheckOrgId_NatId_RelatedIFA"
+                  },
+                  "method": "POST"
+                },
+                "runAfter": {
+                  "Scope_Deduplication_Logic": [
+                    "Succeeded",
+                    "Failed"
+                  ]
+                },
+                "type": "Function"
+              },
+              "RequestUpdate": {
+                "inputs": {
+                  "body": {
+                    "ReplaceVaribales": "@{replace(replace(replace(string(variables('varReplaceVariable')),'[',''),']',''),'\"','')}",
+                    "isUpdateRequest": "yes",
+                    "requestBody": "@{base64(outputs('Compose_Account_json'))}"
+                  },
+                  "function": {
+                    "connectionName": "Liquid"
+                  },
+                  "headers": null,
+                  "method": "POST"
+                },
+                "runAfter": {
+                  "Compose_Account_json": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Function"
+              },
+              "Scope_Deduplication_Logic": {
+                "actions": {
+                  "HTTP_Get_Account_From_Nat_Company_ID": {
+                    "inputs": {
+                      "headers": {
+                        "Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+                      },
+                      "method": "GET",
+                      "queries": {
+                        "q": "SELECT Id from Account where S4SNat_Company_ID__c = '@{if(equals(xpath(xml(variables('Account')),'.//S4SNat_Company_ID__c/text()')?[0],string('')),string('999999'),if(equals(xpath(xml(variables('Account')),'.//S4SNat_Company_ID__c/text()')?[0],null),string('999999'),xpath(xml(variables('Account')),'.//S4SNat_Company_ID__c/text()')?[0]))}' AND Owner.UserRoleId = '@{coalesce(body('HTTP_Get_UserRoleId_From_OwnerId')?['records']?[0]?['UserRoleId'],body('HTTP_Get_UserRoleId_From_defaultOwner')?['records']?[0]?['UserRoleId'],string('999999'))}' AND S4SData_Visibility__c =  'Confidential' AND recordTypeId = '@{body('Execute_a_SQL_query_fetchOppRecordType')?['records']?[0]?['Id']}' and S4SOrigination_ID__c = null LIMIT 2"
+                      },
+                      "uri": "parameters('instanceURL')/query"
+                    },
+                    "runAfter": {
+                      "HTTP_Get_UserRoleId_From_OwnerId": [
+                        "Succeeded"
+                      ]
+                    },
+                    "runtimeConfiguration": {
+                      "secureData": {
+                        "properties": [
+                          "inputs",
+                          "outputs"
+                        ]
+                      }
+                    },
+                    "type": "Http"
+                  },
+                  "HTTP_Get_Account_From_OriginationID": {
+                    "inputs": {
+                      "headers": {
+                        "Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+                      },
+                      "method": "GET",
+                      "queries": {
+                        "q": "SELECT Id from Account where S4SOrigination_ID__c = '@{if(equals(xpath(xml(variables('Account')),'.//S4SOrigination_ID__c/text()')?[0],string('')),string('999999'),if(equals(xpath(xml(variables('Account')),'.//S4SOrigination_ID__c/text()')?[0],null),string('999999'),xpath(xml(variables('Account')),'.//S4SOrigination_ID__c/text()')?[0]))}' AND RecordTypeId = '@{body('Execute_a_SQL_query_fetchOppRecordType')?['records']?[0]?['Id']}' AND Owner.UserRoleId = '@{coalesce(body('HTTP_Get_UserRoleId_From_OwnerId')?['records']?[0]?['UserRoleId'],body('HTTP_Get_UserRoleId_From_defaultOwner')?['records']?[0]?['UserRoleId'],string('999999'))}' LIMIT 2"
+                      },
+                      "uri": "parameters('instanceURL')/query"
+                    },
+                    "runAfter": {
+                      "HTTP_Get_UserRoleId_From_OwnerId": [
+                        "Succeeded"
+                      ]
+                    },
+                    "runtimeConfiguration": {
+                      "secureData": {
+                        "properties": [
+                          "inputs",
+                          "outputs"
+                        ]
+                      }
+                    },
+                    "type": "Http"
+                  },
+                  "HTTP_Get_Account_From_Related_IFA": {
+                    "inputs": {
+                      "headers": {
+                        "Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+                      },
+                      "method": "GET",
+                      "queries": {
+                        "q": "SELECT Id from Account where S4SRelated_IfA__c= '@{if(equals(xpath(xml(variables('Account')),'.//S4SRelated_IfA__c/text()')?[0],string('')),string('999999'),if(equals(xpath(xml(variables('Account')),'.//S4SRelated_IfA__c/text()')?[0],null),string('999999'),xpath(xml(variables('Account')),'.//S4SRelated_IfA__c/text()')?[0]))}' AND Owner.UserRoleId= '@{coalesce(body('HTTP_Get_UserRoleId_From_OwnerId')?['records']?[0]?['UserRoleId'],body('HTTP_Get_UserRoleId_From_defaultOwner')?['records']?[0]?['UserRoleId'],string('999999'))}' AND S4SData_Visibility__c =  'Confidential' and recordTypeId = '@{body('Execute_a_SQL_query_fetchOppRecordType')?['records']?[0]?['Id']}' and S4SOrigination_ID__c = null LIMIT 2"
+                      },
+                      "uri": "parameters('instanceURL')/query"
+                    },
+                    "runAfter": {
+                      "HTTP_Get_UserRoleId_From_OwnerId": [
+                        "Succeeded"
+                      ]
+                    },
+                    "runtimeConfiguration": {
+                      "secureData": {
+                        "properties": [
+                          "inputs",
+                          "outputs"
+                        ]
+                      }
+                    },
+                    "type": "Http"
+                  },
+                  "HTTP_Get_UserRoleId_From_OwnerId": {
+                    "inputs": {
+                      "headers": {
+                        "Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+                      },
+                      "method": "GET",
+                      "queries": {
+                        "q": "SELECT UserRoleId from User where S4SGID_Technical__c = '@{if(equals(xpath(xml(variables('Account')),'.//OwnerId/text()')?[0],string('')),string('999999'),if(equals(xpath(xml(variables('Account')),'.//OwnerId/text()')?[0],null),string('999999'),xpath(xml(variables('Account')),'.//OwnerId/text()')?[0]))}' LIMIT 1"
+                      },
+                      "uri": "parameters('instanceURL')/query"
+                    },
+                    "runAfter": {
+                      "HTTP_Get_UserRoleId_From_defaultOwner": [
+                        "Succeeded"
+                      ]
+                    },
+                    "runtimeConfiguration": {
+                      "secureData": {
+                        "properties": [
+                          "inputs",
+                          "outputs"
+                        ]
+                      }
+                    },
+                    "type": "Http"
+                  },
+                  "HTTP_Get_UserRoleId_From_defaultOwner": {
+                    "inputs": {
+                      "headers": {
+                        "Authorization": "Bearer @{body('HTTP_Get_SF_Token')}"
+                      },
+                      "method": "GET",
+                      "queries": {
+                        "q": "SELECT UserRoleId from User where S4SGID_Technical__c = '@{if(equals(triggerOutputs()['headers']?['defaultOwner'],string('')),string('999999'),if(equals(triggerOutputs()['headers']?['defaultOwner'],null),string('999999'),triggerOutputs()['headers']?['defaultOwner']))}' LIMIT 1"
+                      },
+                      "uri": "parameters('instanceURL')/query"
+                    },
+                    "runAfter": {},
+                    "runtimeConfiguration": {
+                      "secureData": {
+                        "properties": [
+                          "inputs",
+                          "outputs"
+                        ]
+                      }
+                    },
+                    "type": "Http"
+                  }
+                },
+                "runAfter": {
+                  "Append_to_array_variable-RecordTypeID": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "Scope"
+              },
+              "sf4sLog_-mapUpsertAccForSSmart": {
+                "inputs": {
+                  "host": {
+                    "workflow": {
+                      "id": "int_sf4sLog"
+                    }
+                  },
+                  "body": {
+                    "message": "Map Upsert Account for @{variables('userName')}",
+                    "severity": "INFO"
+                  },
+                  "headers": {
+                    "interfaceName": "@{coalesce(triggerOutputs()?['headers']?['inerfaceName'], 'not-defined')}",
+                    "username": "@{coalesce(triggerOutputs()?['headers']?['username'], 'not-defined')}",
+                    "workflowRunId": "@{coalesce(triggerOutputs()?['headers']?['workflowRunId'], triggerOutputs()?['headers']?['x-ms-workflow-name'])}"
+                  }
+                },
+                "runAfter": {},
+                "type": "Workflow"
+              }
+            },
+            "case": "mapUpsertAccForSSmart"
+          }
+        },
+        "default": {
+          "actions": {
+            "Condition_to_check_default": {
+              "actions": {
+                "Compose_Default": {
+                  "inputs": "@triggerBody()?['account']",
+                  "runAfter": {},
+                  "type": "Compose"
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "expression": {
+                "and": [
+                  {
+                    "not": {
+                      "equals": [
+                        "@variables('Opportunity')?['RecordTypeId']",
+                        ""
+                      ]
+                    }
+                  }
+                ]
+              },
+              "runAfter": {},
+              "type": "If"
+            }
+          }
+        },
+        "runAfter": {
+          "Compose-userNameobjectInterface": [
+            "Succeeded"
+          ]
+        },
+        "expression": "@string(json(body('HTTP-Get_Config_userBasedLogic'))?['SIE_SFS_userBasedLogic']?[outputs('Compose-userNameobjectInterface')])",
+        "type": "Switch"
+      },
+      "Terminate": {
+        "inputs": {
+          "runStatus": "Succeeded"
+        },
+        "runAfter": {
+          "Response": [
+            "Succeeded"
+          ]
+        },
+        "type": "Terminate"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "manual": {
+        "inputs": {
+          "schema": {
+            "properties": {
+              "account": {
+                "description": "The Account used in the Interface",
+                "required": "true",
+                "type": "string"
+              },
+              "interface": {
+                "description": "The message for the source system",
+                "required": "true",
+                "type": "string"
+              },
+              "opportunity": {
+                "description": "The Opportunity used in the Interface",
+                "required": "true",
+                "type": "string"
+              },
+              "userName": {
+                "description": "The userName for the source system",
+                "required": "true",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "kind": "Http",
+        "runtimeConfiguration": {
+          "secureData": {
+            "properties": [
+              "inputs",
+              "outputs"
+            ]
+          }
+        },
+        "type": "Request"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

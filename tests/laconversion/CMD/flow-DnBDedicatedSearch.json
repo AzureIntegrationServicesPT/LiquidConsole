@@ -68,7 +68,7 @@
     "HTTP_Get_Certificate_Password": {
       "inputs": {
         "body": {
-          "key": "integration-platform-certificate-password"
+          "key": "SieSalesCRM-certificate-password"
         },
         "host": {
           "triggerName": "manual",

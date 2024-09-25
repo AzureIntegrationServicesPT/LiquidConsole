@@ -1,0 +1,620 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "work-Scope": {
+        "actions": {
+          "BlobToZipConverterFunction": {
+            "inputs": {
+              "body": {
+                "blobContainerName": "@{parameters('blobContainerName_DBNumbers')}",
+                "incomingBlobPath": "@{workflow()['run']['name']}/incoming",
+                "incominigBlobName": "@{triggerBody()?['Name']}",
+                "outcomingBlobPath": "@{workflow()['run']['name']}/zip"
+              },
+              "function": {
+                "connectionName": "BlobToZipConverterFunction"
+              },
+              "headers": null,
+              "method": "POST"
+            },
+            "runAfter": {
+              "Create_blob_(V2)": [
+                "Succeeded"
+              ]
+            },
+            "type": "Function"
+          },
+          "Create_blob_(V2)": {
+            "inputs": {
+              "parameters": {
+                  "blobUri": "@{parameters('blobContainerName_DBNumbers')}/@{workflow()['run']['name']}/incoming/@{triggerBody()?['properties']?['blobName']}",
+                  "content": "@triggerBody()?['content']"
+              },
+              "serviceProviderConfiguration": {
+                  "connectionName": "AzureStorageUploadFile",
+                  "operationId": "uploadBlobFromUri",
+                  "serviceProviderId": "/serviceProviders/AzureBlob"
+              }
+            },
+            "type": "ServiceProvider"
+          },
+          "Create_new_file_in_working_directory": {
+            "inputs": {
+              "parameters": {
+                  "blobUri": "@{parameters('InterfaceRoothPath_DBNumbers')}/working/@{substring(triggerBody()?['properties']?['blobName'], 0, sub(length(triggerBody()?['properties']?['blobName']), 4))}(@{convertTimeZone(utcNow(), 'UTC', 'Central Europe Standard Time')}).zip",
+                  "content": "@body('Get_zip_blob_content_(V2)')?['content']"
+              },
+              "serviceProviderConfiguration": {
+                  "connectionName": "AzureStorageSFTP",
+                  "operationId": "uploadBlobFromUri",
+                  "serviceProviderId": "/serviceProviders/AzureBlob"
+              }
+            },
+            "runAfter": {
+              "Get_zip_blob_content_(V2)": [
+                "Succeeded"
+              ]
+            },
+            "type": "ServiceProvider"
+          },
+          "Delete_file_from_incoming_dir": {
+            "inputs": {
+              "parameters": {
+                  "blobName": "@triggerBody()?['properties']?['blobName']",
+                  "containerName": "@{parameters('InterfaceRoothPath_DBNumbers')}/incoming"
+              },
+              "serviceProviderConfiguration": {
+                  "connectionName": "AzureStorageSFTP",
+                  "operationId": "deleteBlob",
+                  "serviceProviderId": "/serviceProviders/AzureBlob"
+              }
+            },
+            "runAfter": {
+              "Create_new_file_in_working_directory": [
+                "Succeeded"
+              ]
+            },
+            "type": "ServiceProvider"
+          },
+          "Get_zip_blob_content_(V2)": {
+            "inputs": {
+              "parameters": {
+                  "blobUri": "@{parameters('blobContainerName_DBNumbers')}/@{body('BlobToZipConverterFunction')?['Value']}"
+              },
+              "serviceProviderConfiguration": {
+                  "connectionName": "AzureStorageUploadFile",
+                  "operationId": "readBlobFromUri",
+                  "serviceProviderId": "/serviceProviders/AzureBlob"
+              }
+            },
+            "runAfter": {
+              "BlobToZipConverterFunction": [
+                "Succeeded"
+              ]
+            },
+            "type": "ServiceProvider"
+          }
+        },
+        "runAfter": {
+          "Initialize_variable_Logs": [
+            "Succeeded"
+          ]
+        },
+        "type": "Scope"
+      },
+      "HTTP_Get_Token": {
+        "inputs": {
+          "headers": {
+            "Ocp-Apim-Subscription-Key": "@parameters('apimKey')"
+          },
+          "method": "POST",
+          "uri": "@parameters('apimURL')"
+        },
+        "runAfter": {
+          "Initialize_SecondBulkData": [
+            "Succeeded"
+          ]
+        },
+        "type": "Http"
+      },
+      "Initialize_BulkData": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "BulkData",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_BulkState": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "BulkState",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_BulkData": [
+            "Succeeded"
+          ]
+        },
+        "type": "InitializeVariable"
+      },
+      "Initialize_ConfigData": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "configData",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_IncomingFileID": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "IncomingFileID",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_variable_CurrentTime": [
+            "Succeeded"
+          ]
+        },
+        "type": "InitializeVariable"
+      },
+      "Initialize_ParentRunID": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "ParentRunID",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_variable_DeletedRecordsCount": [
+            "Succeeded"
+          ]
+        },
+        "type": "InitializeVariable"
+      },
+      "Initialize_Response": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "Response",
+              "type": "string",
+              "value": "\"sf__Id\";\"sf__Error\";\"S4SDUNS__c\";\"S4SParent_DUNS__c\";\"S4SDomestic_Ultimate_DUNS__c\";\"S4SGlobal_Ultimate_DUNS__c\";\"S4SIfa__c\"\n"
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_SecondBulkData": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "SecondBulkData",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_variable_DeletionStatus": [
+            "Succeeded"
+          ]
+        },
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_CurrentTime": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "CurrentTime",
+              "type": "string",
+              "value": "@{convertTimeZone(utcNow(), 'UTC', 'Central Europe Standard Time')}"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_variable_DeletionResult": [
+            "Succeeded"
+          ]
+        },
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_DeletedRecordsCount": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "DeletedRecordsCount",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_variable_FunctionResponse": [
+            "Succeeded"
+          ]
+        },
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_DeletionResult": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "DeletionResult",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_ConfigData": [
+            "Succeeded"
+          ]
+        },
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_DeletionStatus": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "DeletionStatus",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_BulkState": [
+            "Succeeded"
+          ]
+        },
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_ErrorsCount": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "ErrorsCount",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_variable__UnprocessedUpsertCounter": [
+            "Succeeded"
+          ]
+        },
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_FunctionResponse": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "FunctionResponse",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_Response": [
+            "Succeeded"
+          ]
+        },
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable_RecordsCounter": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "RecordsCounter",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {},
+        "type": "InitializeVariable"
+      },
+      "Initialize_variable__UnprocessedUpsertCounter": {
+        "inputs": {
+          "variables": [
+            {
+              "name": "UnprocessedUpsertCounter",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_variable_RecordsCounter": [
+            "Succeeded"
+          ]
+        },
+        "type": "InitializeVariable"
+      },
+      "Move_file_to_error_dir": {
+        "actions": {
+          "Copy_file_to_error_dir": {
+            "inputs": {
+              "parameters": {
+                "destinationBlobUri": "@{parameters('InterfaceRoothPath_DBNumbers')}/error/@{body('Create_new_file_in_working_directory')?['properties']?['blobName']}",
+                "sourceBlobUri": "@{parameters('InterfaceRoothPath_DBNumbers')}/working/@{body('Create_new_file_in_working_directory')?['properties']?['blobName']}",
+                "overrideIfExists": false
+              },
+              "serviceProviderConfiguration": {
+                "connectionName": "AzureStorageSFTP",
+                "operationId": "copyBlobFromUri",
+                "serviceProviderId": "/serviceProviders/AzureBlob"
+              }
+            },
+            "type": "ServiceProvider"
+          },
+          "Delete_file_from_working_dir": {
+            "inputs": {
+              "parameters": {
+                "blobName": "@body('Create_new_file_in_working_directory')?['properties']?['blobName']",
+                "containerName": "@{parameters('InterfaceRoothPath_DBNumbers')}/working"
+              },
+              "serviceProviderConfiguration": {
+                "connectionName": "AzureStorageSFTP",
+                "operationId": "deleteBlob",
+                "serviceProviderId": "/serviceProviders/AzureBlob"
+              }
+            },
+            "runAfter": {
+              "Copy_file_to_error_dir": [
+                "Succeeded"
+              ]
+            },
+            "type": "ServiceProvider"
+          },
+          "File_processing_failed": {
+            "inputs": {
+              "runStatus": "Failed"
+            },
+            "runAfter": {
+              "Delete_file_from_working_dir": [
+                "Succeeded"
+              ]
+            },
+            "type": "Terminate"
+          }
+        },
+        "runAfter": {
+          "Proceed_file": [
+            "Failed",
+            "Skipped",
+            "TimedOut"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Move_file_to_processed_dir": {
+        "actions": {
+          "Copy_file_to_processed_dir": {
+            "inputs": {
+              "parameters": {
+                "destinationBlobUri": "@{parameters('InterfaceRoothPath_DBNumbers')}/archive/@{body('Create_new_file_in_working_directory')?['properties']?['blobName']}",
+                "sourceBlobUri": "@{parameters('InterfaceRoothPath_DBNumbers')}/working/@{body('Create_new_file_in_working_directory')['properties']?['blobName']}"
+              },
+              "serviceProviderConfiguration": {
+                "connectionName": "AzureStorageSFTP",
+                "operationId": "copyBlobFromUri",
+                "serviceProviderId": "/serviceProviders/AzureBlob"
+              }
+            },
+            "type": "ServiceProvider"
+          },
+          "Delete_file_from_working": {
+            "inputs": {
+              "parameters": {
+                "blobName": "@body('Create_new_file_in_working_directory')?['properties']?['blobName']",
+                "containerName": "@{parameters('InterfaceRoothPath_DBNumbers')}/working"
+              },
+              "serviceProviderConfiguration": {
+                "connectionName": "AzureStorageSFTP",
+                "operationId": "deleteBlob",
+                "serviceProviderId": "/serviceProviders/AzureBlob"
+              }
+            },
+            "runAfter": {
+              "Copy_file_to_processed_dir": [
+                "SUCCEEDED"
+              ]
+            },
+            "type": "ServiceProvider"
+          }
+        },
+        "runAfter": {
+          "Proceed_file": [
+            "Succeeded"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Proceed_file": {
+        "actions": {
+          "Get_blob_content_using_path_(V2)": {
+            "inputs": {
+              "parameters": {
+                "blobUri": "@{parameters('blobContainerName_DBNumbers')}/@{workflow()['run']['name']}/incoming/@{body('Create_blob_(V2)')?['properties']?['BlobName']}"
+              },
+              "serviceProviderConfiguration": {
+                "connectionName": "AzureStorageUploadFile",
+                "operationId": "readBlobFromUri",
+                "serviceProviderId": "/serviceProviders/AzureBlob"
+              }
+            },
+            "runAfter": {},
+            "type": "ServiceProvider"
+          },
+          "HTTP_Call_Batch_Job": {
+            "inputs": {
+              "body": "S4SDUNS__c;S4SParent_DUNS__c;S4SDomestic_Ultimate_DUNS__c;S4SGlobal_Ultimate_DUNS__c;S4SIfa__c\n@{body('Get_blob_content_using_path_(V2)')}",
+              "headers": {
+                "columnDelimiter": "SEMICOLON",
+                "externalIdFieldName": "S4SIfa__c",
+                "lineEnding": "LF",
+                "object": "Account",
+                "operation": "upsert",
+                "token": "@{body('HTTP_Get_Token')}"
+              },
+              "method": "POST",
+              "uri": "[concat('parameters('las_uploadBatchGeneric_path')','?','parameters('las_uploadBatchGeneric_querystring')')]"
+            },
+            "runAfter": {
+              "Get_blob_content_using_path_(V2)": [
+                "Succeeded"
+              ]
+            },
+            "type": "Http"
+          }
+        },
+        "runAfter": {
+          "work-scope": [
+            "Succeeded"
+          ]
+        },
+        "type": "Scope"
+      },
+      "Save_error_logs": {
+        "actions": {
+          "Create_blob_for_Log_File": {
+            "inputs": {
+              "parameters": {
+                "blobUri": "@{parameters('blobContainerName_DBNumbers')}/@{workflow()['run']['name']}/incoming/CSV_Log@{formatDateTime(utcNow(), 'yyyyMMddHHmmss')}.csv",
+                "content": "@variables('Response')"
+              },
+              "serviceProviderConfiguration": {
+                "connectionName": "AzureStorageUploadFile",
+                "operationId": "uploadBlobFromUri",
+                "serviceProviderId": "/serviceProviders/AzureBlob"
+              }
+            },
+            "type": "ServiceProvider"
+          },
+          "Create_error_log_file": {
+            "inputs": {
+              "parameters": {
+                "blobUri": "@{parameters('InterfaceRoothPath_Delete')}/log/Logs@{utcNow()}.zip",
+                "content": "@body('Get_Log_blob_content')?['content']"
+              },
+              "serviceProviderConfiguration": {
+                "connectionName": "AzureStorageSFTP",
+                "operationId": "uploadBlobFromUri",
+                "serviceProviderId": "/serviceProviders/AzureBlob"
+              }
+            },
+            "runAfter": {
+              "Get_Log_blob_content": [
+                "SUCCEEDED"
+              ]
+            },
+            "type": "ServiceProvider"
+          },
+          "Delete_Log_blob": {
+            "inputs": {
+              "parameters": {
+                "blobName": "@{body('Create_blob_for_Log_File')?['properties']?['blobName']}",
+                "containerName": "@{parameters('blobContainerName_DBNumbers')}"
+              },
+              "serviceProviderConfiguration": {
+                "connectionName": "AzureStorageUploadFile",
+                "operationId": "deleteBlob",
+                "serviceProviderId": "/serviceProviders/AzureBlob"
+              }
+            },
+            "runAfter": {
+              "Create_error_log_file": [
+                "Succeeded"
+              ]
+            },
+            "type": "ServiceProvider"
+          },
+          "Get_Log_blob_content": {
+            "inputs": {
+              "parameters": {
+                "blobUri": "@{parameters('blobContainerName_DBNumbers')}/@{body('Log_BlobToZipConverterFunction')?['Value']}"
+              },
+              "serviceProviderConfiguration": {
+                "connectionName": "AzureStorageUploadFile",
+                "operationId": "readBlobFromUri",
+                "serviceProviderId": "/serviceProviders/AzureBlob"
+              }
+            },
+            "runAfter": {
+              "Log_BlobToZipConverterFunction": [
+                "Succeeded"
+              ]
+            },
+            "type": "ServiceProvider"
+          },
+          "Log_BlobToZipConverterFunction": {
+            "inputs": {
+              "body": {
+                "blobContainerName": "@{parameters('blobContainerName_DBNumbers')}",
+                "incomingBlobPath": "@{workflow()['run']['name']}/incoming",
+                "incominigBlobName": "@{body('Create_blob_for_Log_File')?['properties']?['BlobName']}",
+                "outcomingBlobPath": "@{workflow()['run']['name']}/logZip"
+              },
+              "function": {
+                "connectionName": "BlobToZipConverterFunction"
+              },
+              "headers": null,
+              "method": "POST"
+            },
+            "runAfter": {
+              "Create_blob_for_Log_File": [
+                "Succeeded"
+              ]
+            },
+            "type": "Function"
+          }
+        },
+        "runAfter": {
+          "Move_file_to_processed_dir": [
+            "Succeeded"
+          ]
+        },
+        "type": "Scope"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "triggers": {
+      "When_files_are_added_or_modified_(properties_only)": {
+        "conditions": [],
+        "inputs": {
+          "parameters": {
+            "path": "@{parameters('InterfaceRoothPath_DBNumbers')}/incoming/{name}.zip"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "AzureStorageSFTP",
+            "operationId": "whenABlobIsAddedOrModified",
+            "serviceProviderId": "/serviceProviders/AzureBlob"
+          }
+        },
+        "type": "ServiceProvider"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

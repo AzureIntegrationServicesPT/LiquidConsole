@@ -1,0 +1,8 @@
+{
+  "InterfaceRootPath_DBNumbers": {"value": "sftp-container-c00031/sftp-c00031/D&B/", "type": "string"},
+  "blobContainerName_DBNumbers": {"value": "sftp-container-c00031-dbnumbers", "type": "string"},
+  "apimKey": {"value": "@appsetting('apimKey')", "type": "string"},
+  "apimURL": {"value": "@appsetting('apimURL')", "type": "string"},
+  "las_uploadBatchGeneric_path": {"value": "@appsetting('las_uploadBatchGeneric_path", "type": "string"},
+  "las_uploadBatchGeneric_querystring": {"value": "@appsetting('las_uploadBatchGeneric_querystring')", "type": "string"}
+}
